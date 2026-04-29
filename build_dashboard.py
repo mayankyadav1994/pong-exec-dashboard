@@ -163,11 +163,12 @@ def fetch_fix_versions():
     versions = []
     for proj in PROJECTS:
         data = jira_get(f"/project/{proj}/versions")
-        for v in data:
-            if v.get("archived") or v.get("released"):
-                continue
+        unarchived = [v for v in data if not v.get("archived") and not v.get("released")]
+        print(f"  [{proj}] total={len(data)} unarchived/unreleased={len(unarchived)} names={[v.get('name','') for v in unarchived]}")
+        for v in unarchived:
             name = v.get("name", "")
             if not is_valid_fv(name):
+                print(f"  [{proj}] SKIPPED by filter: '{name}'")
                 continue
             versions.append({
                 "name":        name,
