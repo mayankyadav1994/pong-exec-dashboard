@@ -39,7 +39,7 @@ SECTION_META = {
 }
 
 EXCLUDED_FV  = {"Trello", "PFH - Side Projects", "FC Backlog"}
-VERSION_RE   = re.compile(r'^\d+\.\d+|^\d{4}$')
+VERSION_RE   = re.compile(r'\d+\.\d+')
 QA_STATUSES  = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
 
 TODAY = date.today()
@@ -80,7 +80,7 @@ def jira_jql(jql, fields, max_results=100):
 
 
 def is_valid_fv(name):
-    return name not in EXCLUDED_FV and bool(VERSION_RE.match(name))
+    return name not in EXCLUDED_FV and bool(VERSION_RE.search(name))
 
 
 # ── Confluence helpers ────────────────────────────────────────────────────────
@@ -163,12 +163,11 @@ def fetch_fix_versions():
     versions = []
     for proj in PROJECTS:
         data = jira_get(f"/project/{proj}/versions")
-        unarchived = [v for v in data if not v.get("archived") and not v.get("released")]
-        print(f"  [{proj}] total={len(data)} unarchived/unreleased={len(unarchived)} names={[v.get('name','') for v in unarchived]}")
-        for v in unarchived:
+        for v in data:
+            if v.get("archived") or v.get("released"):
+                continue
             name = v.get("name", "")
             if not is_valid_fv(name):
-                print(f"  [{proj}] SKIPPED by filter: '{name}'")
                 continue
             versions.append({
                 "name":        name,
