@@ -54,14 +54,22 @@ def jira_get(path, params=None):
     return r.json()
 
 
+def jira_post(path, body):
+    r = requests.post(f"{JIRA_BASE}{path}", auth=JIRA_AUTH,
+                      headers={**JSON_HEADERS, "Content-Type": "application/json"},
+                      json=body)
+    r.raise_for_status()
+    return r.json()
+
+
 def jira_jql(jql, fields, max_results=100):
-    """Paginate all JQL results."""
+    """Paginate all JQL results using POST /search/jql (GET /search is 410 Gone)."""
     issues, token = [], None
     while True:
-        params = {"jql": jql, "fields": ",".join(fields), "maxResults": max_results}
+        body = {"jql": jql, "fields": fields, "maxResults": max_results}
         if token:
-            params["nextPageToken"] = token
-        data = jira_get("/search", params)
+            body["nextPageToken"] = token
+        data = jira_post("/search/jql", body)
         issues.extend(data.get("issues", []))
         if data.get("isLast", True):
             break
