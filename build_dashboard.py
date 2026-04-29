@@ -171,6 +171,7 @@ def fetch_fix_versions():
                 continue
             versions.append({
                 "name":        name,
+                "id":          v.get("id"),
                 "project":     proj,
                 "section":     SECTION_MAP[proj],
                 "releaseDate": v.get("releaseDate"),
@@ -288,6 +289,7 @@ def build_releases():
     for v in shipped_versions:
         shipped.append({
             "name":         v["name"],
+            "id":           v["id"],
             "section":      v["section"],
             "shipped_date": prf_overrides[v["name"]],
             "description":  v.get("jira_desc", ""),
@@ -310,6 +312,7 @@ def build_releases():
 
         active.append({
             "name":         name,
+            "id":           v["id"],
             "section":      v["section"],
             "description":  scope,
             "health":       health,
@@ -352,6 +355,13 @@ def compute_kpis(active, shipped):
 
 
 # ── Step 7: HTML rendering ────────────────────────────────────────────────────
+
+def jira_fv_url(fv_id, _fv_name):
+    import urllib.parse
+    jql = f"fixVersion = {fv_id} ORDER BY issuetype DESC"
+    encoded = urllib.parse.quote(jql)
+    return f"https://ponggamestudios.atlassian.net/issues/?jql={encoded}"
+
 
 def fmt_date(d):
     """Format a date object to 'Apr 24' (cross-platform)."""
@@ -404,7 +414,7 @@ def render_active_row(r):
 
     return f"""
     <div class="rel-row">
-      <div><div class="rel-name">{r['name']}</div></div>
+      <div><div class="rel-name"><a href="{jira_fv_url(r['id'], r['name'])}" target="_blank" rel="noopener" class="rel-link">{r['name']}</a></div></div>
       <div class="hc {r['health']}"><span class="hc-dot"></span>{health_label}</div>
       <span class="ph {phase_cls}">{phase_label}</span>
       <div class="prog-col">
@@ -423,7 +433,7 @@ def render_shipped_row(r):
     scope = r.get("description", "")
     return f"""
     <div class="rel-row">
-      <div><div class="rel-name">{r['name']}</div></div>
+      <div><div class="rel-name"><a href="{jira_fv_url(r['id'], r['name'])}" target="_blank" rel="noopener" class="rel-link">{r['name']}</a></div></div>
       <div class="hc grn"><span class="hc-dot"></span>Shipped</div>
       <span class="ph ph-ship">Shipped</span>
       <div class="dc"><span class="tag t-ship">{lbl}</span></div>
@@ -543,6 +553,8 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .t-imm {{ background:#6D28D9; color:#fff; }}
 .scope-text {{ font-size:10px; color:#374151; line-height:1.55; padding-top:3px; }}
 .footer {{ font-size:10px; color:#9CA3AF; margin:8px 2px 0; }}
+.rel-link {{ color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(0,0,0,0.25); }}
+.rel-link:hover {{ border-bottom-color: currentColor; border-bottom-style: solid; }}
 </style>
 </head>
 <body>
