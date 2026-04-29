@@ -38,9 +38,10 @@ SECTION_META = {
     "cs":  {"label": "🩷 CS — Cloud Services",         "card": "card-cs",  "icon": "☁️", "title": "Cloud Services"},
 }
 
-EXCLUDED_FV  = {"Trello", "PFH - Side Projects", "FC Backlog"}
-VERSION_RE   = re.compile(r'\d+\.\d+')
-QA_STATUSES  = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
+EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
+VERSION_RE     = re.compile(r'\d+\.\d+')
+QA_STATUSES    = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
+QA_ISSUE_TYPES = ["QA", "QA Task", "Test", "Testing", "QA/Test"]
 
 TODAY = date.today()
 
@@ -230,6 +231,57 @@ def fetch_version_stats(fv_name, project):
     return {"done": done, "total": total, "pct": pct, "blockers": blockers, "phase": phase}
 
 
+# ── Step 3b: QA estimate coverage ────────────────────────────────────────────
+
+def fetch_qa_estimate_status(fv_name, project):
+    """
+    Returns {"missing": int, "total": int} for QA tasks/subtasks in a fix version.
+    - Finds issues with QA_ISSUE_TYPES in this fix version.
+    - For issues with subtasks: checks each subtask's timeoriginalestimate.
+    - For issues without subtasks: checks the issue's own timeoriginalestimate.
+    - Returns {"missing": 0, "total": 0} when no QA tasks exist (not a warning).
+    """
+    types_jql = ", ".join(f'"{t}"' for t in QA_ISSUE_TYPES)
+    try:
+        qa_issues = jira_jql(
+            jql=f'project = {project} AND fixVersion = "{fv_name}" AND issuetype in ({types_jql})',
+            fields=["subtasks", "timeoriginalestimate"],
+        )
+    except Exception:
+        return {"missing": 0, "total": 0}
+
+    if not qa_issues:
+        return {"missing": 0, "total": 0}
+
+    missing = total = 0
+    parent_keys = []
+
+    for issue in qa_issues:
+        subtasks = issue["fields"].get("subtasks") or []
+        if subtasks:
+            parent_keys.append(issue["key"])
+        else:
+            total += 1
+            if not issue["fields"].get("timeoriginalestimate"):
+                missing += 1
+
+    if parent_keys:
+        keys_clause = ", ".join(parent_keys)
+        try:
+            subs = jira_jql(
+                jql=f"parent in ({keys_clause})",
+                fields=["timeoriginalestimate"],
+            )
+            for sub in subs:
+                total += 1
+                if not sub["fields"].get("timeoriginalestimate"):
+                    missing += 1
+        except Exception:
+            pass
+
+    return {"missing": missing, "total": total}
+
+
 # ── Step 4: Health classification ────────────────────────────────────────────
 
 def classify_health(stats, release_date_str):
@@ -298,6 +350,7 @@ def build_releases():
     for v in active_versions:
         name         = v["name"]
         stats        = fetch_version_stats(name, v["project"])
+        qa_est       = fetch_qa_estimate_status(name, v["project"])
         release_date = v.get("releaseDate")
         health       = classify_health(stats, release_date)
         od           = overdue_days(release_date)
@@ -311,19 +364,21 @@ def build_releases():
         )
 
         active.append({
-            "name":         name,
-            "id":           v["id"],
-            "section":      v["section"],
-            "description":  scope,
-            "health":       health,
-            "phase":        stats["phase"],
-            "done":         stats["done"],
-            "total":        stats["total"],
-            "pct":          stats["pct"],
-            "blockers":     stats["blockers"],
-            "release_date": release_date,
-            "overdue_days": od,
-            "days_until":   du,
+            "name":           name,
+            "id":             v["id"],
+            "section":        v["section"],
+            "description":    scope,
+            "health":         health,
+            "phase":          stats["phase"],
+            "done":           stats["done"],
+            "total":          stats["total"],
+            "pct":            stats["pct"],
+            "blockers":       stats["blockers"],
+            "release_date":   release_date,
+            "overdue_days":   od,
+            "days_until":     du,
+            "qa_unestimated": qa_est["missing"],
+            "qa_total":       qa_est["total"],
         })
 
     # Sort: by section order, then red → yellow → green within each section
@@ -409,6 +464,10 @@ def render_active_row(r):
     if r["blockers"] > 0:
         word = "blocker" if r["blockers"] == 1 else "blockers"
         tags.append(f'<span class="tag t-blk">🔴 {r["blockers"]} {word}</span>')
+    if r.get("qa_unestimated", 0) > 0:
+        n = r["qa_unestimated"]
+        word = "subtask" if n == 1 else "subtasks"
+        tags.append(f'<span class="tag t-qa-warn">🔶 QA: {n} {word} unestimated</span>')
 
     scope = r.get("description") or "Scope being defined."
 
@@ -551,6 +610,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .t-blk {{ background:#FECACA; color:#B91C1C; }}
 .t-ship {{ background:#A7F3D0; color:#064E3B; }}
 .t-imm {{ background:#6D28D9; color:#fff; }}
+.t-qa-warn {{ background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; }}
 .scope-text {{ font-size:10px; color:#374151; line-height:1.55; padding-top:3px; }}
 .footer {{ font-size:10px; color:#9CA3AF; margin:8px 2px 0; }}
 .rel-link {{ color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(0,0,0,0.25); }}
