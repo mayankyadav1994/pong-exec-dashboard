@@ -42,6 +42,7 @@ EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
 VERSION_RE     = re.compile(r'\d+\.\d+')
 QA_STATUSES    = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
 QA_ISSUE_TYPES = ["QA", "QA Task", "Test", "Testing", "QA/Test"]
+GAME_ISSUE_TYPES = ["New Game", "Game"]
 
 TODAY = date.today()
 
@@ -226,9 +227,11 @@ def fetch_version_stats(fv_name, project):
             blockers += 1
 
     total = len(issues)
-    pct   = int(done / total * 100) if total else 0
-    phase = "qa" if qa_count >= dev_count else "dev"
-    return {"done": done, "total": total, "pct": pct, "blockers": blockers, "phase": phase}
+    # QA-status issues count as dev-complete for the progress bar
+    pct   = int((done + qa_count) / total * 100) if total else 0
+    # Any QA activity = version is in QA phase regardless of remaining dev count
+    phase = "qa" if qa_count > 0 else "dev"
+    return {"done": done, "qa_count": qa_count, "total": total, "pct": pct, "blockers": blockers, "phase": phase}
 
 
 # ── Step 3b: QA estimate coverage ────────────────────────────────────────────
@@ -282,6 +285,24 @@ def fetch_qa_estimate_status(fv_name, project):
     return {"missing": missing, "total": total}
 
 
+# ── Step 3c: Game issues list ─────────────────────────────────────────────────
+
+def fetch_game_issues(fv_name, project):
+    """
+    Returns a list of game names (issue summaries) for the fix version.
+    Tries GAME_ISSUE_TYPES; returns [] if none found or on error.
+    """
+    types_jql = ", ".join(f'"{t}"' for t in GAME_ISSUE_TYPES)
+    try:
+        issues = jira_jql(
+            jql=f'project = {project} AND fixVersion = "{fv_name}" AND issuetype in ({types_jql})',
+            fields=["summary"],
+        )
+        return [i["fields"]["summary"] for i in issues if i["fields"].get("summary")]
+    except Exception:
+        return []
+
+
 # ── Step 4: Health classification ────────────────────────────────────────────
 
 def classify_health(stats, release_date_str):
@@ -325,26 +346,22 @@ def build_releases():
     prf_overrides = fetch_prf_overrides()
     print(f"  Found {len(prf_overrides)} shipped via PRF")
 
-    # Separate active from shipped first (to avoid Confluence calls on shipped)
     active_versions  = [v for v in versions if v["name"] not in prf_overrides]
     shipped_versions = [v for v in versions if v["name"] in prf_overrides]
-
-    # Fetch Confluence scope for active versions only
-    print(f"  Fetching Confluence scope for {len(active_versions)} active releases...")
-    active_names  = [v["name"] for v in active_versions]
-    scope_map     = fetch_confluence_scope(active_names)
-    print(f"  Got Confluence scope for {len(scope_map)}/{len(active_versions)} releases")
 
     active  = []
     shipped = []
 
     for v in shipped_versions:
+        # All shipped versions here have released=False in Jira (we filter released=True
+        # out of fetch_fix_versions), so the team still needs to close them in Jira.
         shipped.append({
-            "name":         v["name"],
-            "id":           v["id"],
-            "section":      v["section"],
-            "shipped_date": prf_overrides[v["name"]],
-            "description":  v.get("jira_desc", ""),
+            "name":          v["name"],
+            "id":            v["id"],
+            "section":       v["section"],
+            "shipped_date":  prf_overrides[v["name"]],
+            "description":   v.get("jira_desc", ""),
+            "jira_released": False,
         })
 
     for v in active_versions:
@@ -356,12 +373,12 @@ def build_releases():
         od           = overdue_days(release_date)
         du           = days_until(release_date)
 
-        # Scope priority: Confluence text > Jira fix version description > fallback
-        scope = (
-            scope_map.get(name)
-            or v.get("jira_desc")
-            or "Scope being defined."
-        )
+        # Scope: game names from Jira > fix version description > fallback
+        games = fetch_game_issues(name, v["project"])
+        if games:
+            scope = " · ".join(games)
+        else:
+            scope = v.get("jira_desc") or "Scope TBD"
 
         active.append({
             "name":           name,
@@ -371,6 +388,7 @@ def build_releases():
             "health":         health,
             "phase":          stats["phase"],
             "done":           stats["done"],
+            "qa_count":       stats["qa_count"],
             "total":          stats["total"],
             "pct":            stats["pct"],
             "blockers":       stats["blockers"],
@@ -478,7 +496,7 @@ def render_active_row(r):
       <span class="ph {phase_cls}">{phase_label}</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill {pc}" style="width:{max(pct,1)}%"></div></div>
-        <div class="prog-lbl">{pct}% · {r['done']}/{r['total']}</div>
+        <div class="prog-lbl">{pct}% · {r['done'] + r['qa_count']}/{r['total']}</div>
       </div>
       <div class="dc">{''.join(tags)}<div class="scope-text">{scope}</div></div>
     </div>"""
@@ -490,12 +508,16 @@ def render_shipped_row(r):
     except Exception:
         lbl = r["shipped_date"]
     scope = r.get("description", "")
+    jira_flag = (
+        '<span class="tag t-jira-open">⚠️ Mark Released in Jira</span>'
+        if not r.get("jira_released", True) else ""
+    )
     return f"""
     <div class="rel-row">
       <div><div class="rel-name"><a href="{jira_fv_url(r['id'], r['name'])}" target="_blank" rel="noopener" class="rel-link">{r['name']}</a></div></div>
       <div class="hc grn"><span class="hc-dot"></span>Shipped</div>
       <span class="ph ph-ship">Shipped</span>
-      <div class="dc"><span class="tag t-ship">{lbl}</span></div>
+      <div class="dc"><span class="tag t-ship">{lbl}</span>{jira_flag}</div>
       <div class="scope-text">{scope}</div>
     </div>"""
 
@@ -611,6 +633,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .t-ship {{ background:#A7F3D0; color:#064E3B; }}
 .t-imm {{ background:#6D28D9; color:#fff; }}
 .t-qa-warn {{ background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; }}
+.t-jira-open {{ background:#FEF9C3; color:#854D0E; border:1px solid #FDE047; }}
 .scope-text {{ font-size:10px; color:#374151; line-height:1.55; padding-top:3px; }}
 .footer {{ font-size:10px; color:#9CA3AF; margin:8px 2px 0; }}
 .rel-link {{ color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(0,0,0,0.25); }}
