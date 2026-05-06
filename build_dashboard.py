@@ -8,7 +8,8 @@ Standalone — no Confluence page is written, only read.
 import os
 import re
 import requests
-from datetime import date
+from datetime import date, timedelta
+from math import ceil
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 
@@ -209,29 +210,66 @@ def fetch_prf_overrides():
 def fetch_version_stats(fv_name, project):
     issues = jira_jql(
         jql=f'project = {project} AND fixVersion = "{fv_name}"',
-        fields=["status", "priority"],
+        fields=["status", "priority", "timeestimate", "timeoriginalestimate", "resolutiondate"],
     )
     done = blockers = qa_count = dev_count = 0
+    remaining_secs = 0
+    recent_done_secs = 0
+    recent_done_count = 0
+    open_with_estimate = 0
+    open_total = 0
+    cutoff = TODAY - timedelta(days=14)
+
     for issue in issues:
-        fields     = issue["fields"]
-        status_cat = fields["status"]["statusCategory"]["key"]
-        status_nm  = fields["status"]["name"]
-        priority   = (fields.get("priority") or {}).get("name", "")
+        fields       = issue["fields"]
+        status_cat   = fields["status"]["statusCategory"]["key"]
+        status_nm    = fields["status"]["name"]
+        priority     = (fields.get("priority") or {}).get("name", "")
+        timeest      = fields.get("timeestimate") or 0
+        timeorig     = fields.get("timeoriginalestimate") or 0
+        resdate_str  = (fields.get("resolutiondate") or "")[:10]
+
         if status_cat == "done":
             done += 1
+            if resdate_str:
+                try:
+                    if date.fromisoformat(resdate_str) >= cutoff:
+                        recent_done_count += 1
+                        if timeorig:
+                            recent_done_secs += timeorig
+                except ValueError:
+                    pass
         elif status_nm in QA_STATUSES:
             qa_count += 1
+            open_total += 1
+            if timeest:
+                remaining_secs += timeest
+                open_with_estimate += 1
         else:
             dev_count += 1
+            open_total += 1
+            if timeest:
+                remaining_secs += timeest
+                open_with_estimate += 1
+
         if priority == "Blocker" and status_cat != "done":
             blockers += 1
 
     total = len(issues)
-    # QA-status issues count as dev-complete for the progress bar
     pct   = int((done + qa_count) / total * 100) if total else 0
-    # Any QA activity = version is in QA phase regardless of remaining dev count
     phase = "qa" if qa_count > 0 else "dev"
-    return {"done": done, "qa_count": qa_count, "total": total, "pct": pct, "blockers": blockers, "phase": phase}
+    estimate_coverage    = open_with_estimate / open_total if open_total else 0
+    velocity_secs_per_day = recent_done_secs / 14 if recent_done_secs > 0 else 0
+
+    return {
+        "done": done, "qa_count": qa_count, "total": total, "pct": pct,
+        "blockers": blockers, "phase": phase,
+        "remaining_secs": remaining_secs,
+        "estimate_coverage": estimate_coverage,
+        "velocity_secs_per_day": velocity_secs_per_day,
+        "recent_done_count": recent_done_count,
+        "open_count": open_total,
+    }
 
 
 # ── Step 3b: QA estimate coverage ────────────────────────────────────────────
@@ -335,6 +373,57 @@ def days_until(release_date_str):
         return None
 
 
+# ── Step 4b: ETA calculation ─────────────────────────────────────────────────
+
+def compute_eta(stats, release_date_str):
+    """
+    Returns (eta_date: date|None, confidence: 'hi'|'med'|'lo'|None).
+    Tier 1 hi  — estimate-based with measured 14-day velocity
+    Tier 1b med — estimate-based with assumed 12 h/day capacity
+    Tier 2 med — count velocity (≥3 issues resolved in last 14 days)
+    Tier 3 lo  — planned release date or pct extrapolation
+    """
+    remaining_secs        = stats.get("remaining_secs", 0)
+    estimate_coverage     = stats.get("estimate_coverage", 0)
+    velocity_secs_per_day = stats.get("velocity_secs_per_day", 0)
+    recent_done_count     = stats.get("recent_done_count", 0)
+    open_count            = stats.get("open_count", 0)
+    pct                   = stats.get("pct", 0)
+
+    if open_count == 0 and pct > 0:
+        return TODAY, "hi"
+
+    # Tier 1: good estimates + real velocity
+    if estimate_coverage >= 0.5 and velocity_secs_per_day > 0 and remaining_secs > 0:
+        days = ceil(remaining_secs / velocity_secs_per_day)
+        return TODAY + timedelta(days=min(days, 365)), "hi"
+
+    # Tier 1b: good estimates + assumed 12 h/day capacity
+    if estimate_coverage >= 0.5 and remaining_secs > 0:
+        days = ceil(remaining_secs / (12 * 3600))
+        return TODAY + timedelta(days=min(days, 365)), "med"
+
+    # Tier 2: count velocity
+    if recent_done_count >= 3 and open_count > 0:
+        days = ceil(open_count / (recent_done_count / 14))
+        return TODAY + timedelta(days=min(days, 365)), "med"
+
+    # Tier 3: planned date or overdue extrapolation
+    if release_date_str:
+        try:
+            rd = date.fromisoformat(release_date_str)
+            if rd >= TODAY:
+                return rd, "lo"
+            od = (TODAY - rd).days
+            if pct > 0 and od > 0:
+                remaining_days = ceil(od * (100 - pct) / max(pct, 1))
+                return TODAY + timedelta(days=min(remaining_days, 365)), "lo"
+        except ValueError:
+            pass
+
+    return None, None
+
+
 # ── Step 5: Build release data ────────────────────────────────────────────────
 
 def build_releases():
@@ -372,6 +461,7 @@ def build_releases():
         health       = classify_health(stats, release_date)
         od           = overdue_days(release_date)
         du           = days_until(release_date)
+        eta_date, eta_confidence = compute_eta(stats, release_date)
 
         # Scope: game names from Jira > fix version description > fallback
         games = fetch_game_issues(name, v["project"])
@@ -395,8 +485,10 @@ def build_releases():
             "release_date":   release_date,
             "overdue_days":   od,
             "days_until":     du,
-            "qa_unestimated": qa_est["missing"],
-            "qa_total":       qa_est["total"],
+            "qa_unestimated":  qa_est["missing"],
+            "qa_total":        qa_est["total"],
+            "eta_date":        eta_date,
+            "eta_confidence":  eta_confidence,
         })
 
     # Sort: by section order, then red → yellow → green within each section
@@ -486,6 +578,10 @@ def render_active_row(r):
         n = r["qa_unestimated"]
         word = "subtask" if n == 1 else "subtasks"
         tags.append(f'<span class="tag t-qa-warn">🔶 QA: {n} {word} unestimated</span>')
+    if r.get("eta_date"):
+        conf = r.get("eta_confidence", "lo")
+        cls  = {"hi": "eta-hi", "med": "eta-med", "lo": "eta-lo"}.get(conf, "eta-lo")
+        tags.append(f'<span class="tag {cls}">📅 Est. {fmt_date(r["eta_date"])}</span>')
 
     scope = r.get("description") or "Scope being defined."
 
@@ -634,6 +730,9 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .t-imm {{ background:#6D28D9; color:#fff; }}
 .t-qa-warn {{ background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; }}
 .t-jira-open {{ background:#FEF9C3; color:#854D0E; border:1px solid #FDE047; }}
+.eta-hi  {{ background:#D1FAE5; color:#065F46; border:1px solid #6EE7B7; }}
+.eta-med {{ background:#DBEAFE; color:#1E40AF; border:1px solid #93C5FD; }}
+.eta-lo  {{ background:#F3F4F6; color:#6B7280; border:1px solid #D1D5DB; }}
 .scope-text {{ font-size:10px; color:#374151; line-height:1.55; padding-top:3px; }}
 .footer {{ font-size:10px; color:#9CA3AF; margin:8px 2px 0; }}
 .rel-link {{ color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(0,0,0,0.25); }}
