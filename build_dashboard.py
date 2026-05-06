@@ -42,6 +42,7 @@ SECTION_META = {
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
 VERSION_RE     = re.compile(r'\d+\.\d+')
 QA_STATUSES    = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
+QA_ROUND_RE    = re.compile(r'R\d+', re.IGNORECASE)   # R1, R2 … in status name
 QA_ISSUE_TYPES = ["QA", "QA Task", "Test", "Testing", "QA/Test"]
 GAME_ISSUE_TYPES = ["New Game", "Game"]
 
@@ -210,9 +211,38 @@ def fetch_prf_overrides():
 def fetch_version_stats(fv_name, project):
     issues = jira_jql(
         jql=f'project = {project} AND fixVersion = "{fv_name}"',
-        fields=["status", "priority", "timeestimate", "timeoriginalestimate", "resolutiondate"],
+        fields=["status", "priority", "subtasks", "issuetype",
+                "timeestimate", "timeoriginalestimate", "resolutiondate"],
     )
+
+    # Build the set of countable "leaf" issues:
+    #   - Skip any subtask already returned (issuetype.subtask=True) — will be
+    #     re-fetched below so we get the full status detail from the parent query.
+    #   - For parent issues with subtasks, record the key and skip the parent
+    #     itself (its status just mirrors children; counting it double-counts).
+    #   - For issues with no subtasks, count directly.
+    leaf_issues = []
+    parent_keys = []
+    for issue in issues:
+        if issue["fields"].get("issuetype", {}).get("subtask", False):
+            continue  # will arrive via parent in (...) below
+        subs = issue["fields"].get("subtasks") or []
+        if subs:
+            parent_keys.append(issue["key"])
+        else:
+            leaf_issues.append(issue)
+
+    # Fetch full subtask detail in chunks
+    chunk = 40
+    for i in range(0, len(parent_keys), chunk):
+        subs = jira_jql(
+            jql=f'parent in ({", ".join(parent_keys[i:i+chunk])})',
+            fields=["status", "priority", "timeestimate", "timeoriginalestimate", "resolutiondate"],
+        )
+        leaf_issues.extend(subs)
+
     done = blockers = qa_count = dev_count = 0
+    any_qa_round = False
     remaining_secs = 0
     recent_done_secs = 0
     recent_done_count = 0
@@ -220,14 +250,14 @@ def fetch_version_stats(fv_name, project):
     open_total = 0
     cutoff = TODAY - timedelta(days=14)
 
-    for issue in issues:
-        fields       = issue["fields"]
-        status_cat   = fields["status"]["statusCategory"]["key"]
-        status_nm    = fields["status"]["name"]
-        priority     = (fields.get("priority") or {}).get("name", "")
-        timeest      = fields.get("timeestimate") or 0
-        timeorig     = fields.get("timeoriginalestimate") or 0
-        resdate_str  = (fields.get("resolutiondate") or "")[:10]
+    for issue in leaf_issues:
+        fields      = issue["fields"]
+        status_cat  = fields["status"]["statusCategory"]["key"]
+        status_nm   = fields["status"]["name"]
+        priority    = (fields.get("priority") or {}).get("name", "")
+        timeest     = fields.get("timeestimate") or 0
+        timeorig    = fields.get("timeoriginalestimate") or 0
+        resdate_str = (fields.get("resolutiondate") or "")[:10]
 
         if status_cat == "done":
             done += 1
@@ -245,6 +275,8 @@ def fetch_version_stats(fv_name, project):
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
+            if QA_ROUND_RE.search(status_nm):
+                any_qa_round = True
         else:
             dev_count += 1
             open_total += 1
@@ -255,10 +287,11 @@ def fetch_version_stats(fv_name, project):
         if priority == "Blocker" and status_cat != "done":
             blockers += 1
 
-    total = len(issues)
+    total = len(leaf_issues)
     pct   = int((done + qa_count) / total * 100) if total else 0
-    phase = "qa" if qa_count > 0 else "dev"
-    estimate_coverage    = open_with_estimate / open_total if open_total else 0
+    # Phase = QA only when round-specific tickets (R1, R2 …) are present
+    phase = "qa" if any_qa_round else "dev"
+    estimate_coverage     = open_with_estimate / open_total if open_total else 0
     velocity_secs_per_day = recent_done_secs / 14 if recent_done_secs > 0 else 0
 
     return {
