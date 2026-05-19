@@ -1,12 +1,17 @@
-name: Daily Dashboard Refresh
+name: V2 Timeline
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 7:00 AM CST daily
+    - cron: "15 13 * * *"   # 7:15 AM CST daily (10–15 min after exec dashboard)
   workflow_dispatch:
 
+# Serialize against exec_dashboard so the two pushes can't race.
+concurrency:
+  group: refresh-dashboards
+  cancel-in-progress: false
+
 permissions:
-  contents: write   # required to push updated index.html
+  contents: write
 
 jobs:
   build:
@@ -28,13 +33,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build dashboard
-        env:
-          JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
-          JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
-          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
-        run: python build_dashboard.py
-
       - name: Build V2 timeline
         env:
           JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
@@ -46,8 +44,9 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add index.html v2-timeline.html
-          git diff --staged --quiet || git commit -m "chore: dashboard refresh $(date -u +%Y-%m-%d)"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git add v2-timeline.html
+          git diff --staged --quiet || git commit -m "chore: v2 timeline refresh $(date -u +%Y-%m-%d)"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

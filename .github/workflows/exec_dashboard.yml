@@ -1,0 +1,52 @@
+name: Exec Dashboard
+
+on:
+  schedule:
+    - cron: "0 13 * * *"   # 7:00 AM CST daily
+  workflow_dispatch:
+
+# Serialize against v2_timeline so the two pushes can't race.
+concurrency:
+  group: refresh-dashboards
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build exec dashboard
+        env:
+          JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+        run: python build_dashboard.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git add index.html
+          git diff --staged --quiet || git commit -m "chore: exec dashboard refresh $(date -u +%Y-%m-%d)"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

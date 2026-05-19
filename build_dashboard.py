@@ -190,9 +190,13 @@ def fetch_prf_overrides():
     A closed Release issue with a resolutiondate = PRF sent = truly shipped.
     Returns { "V2 C2 5.00": "2026-04-23", ... }
     """
+    # The team stamps `resolutiondate` on the Release ticket when the PRF
+    # goes out, but often leaves the ticket in "In QA" / "Ready For QA" rather
+    # than transitioning it to Closed. So resolution presence (not status) is
+    # the actual ship signal.
     issues = jira_jql(
         jql=f'project in ({_projects_clause(PROJECTS)}) AND issuetype = "Release" '
-            f'AND status = "Closed" AND resolution is not EMPTY',
+            f'AND resolution is not EMPTY',
         fields=["summary", "resolutiondate", "fixVersions"],
     )
     overrides = {}
@@ -240,7 +244,8 @@ def fetch_version_stats(fv_name, projects):
     for i in range(0, len(parent_keys), chunk):
         subs = jira_jql(
             jql=f'parent in ({", ".join(parent_keys[i:i+chunk])})',
-            fields=["status", "priority", "timeestimate", "timeoriginalestimate", "resolutiondate"],
+            fields=["status", "priority", "issuetype",
+                    "timeestimate", "timeoriginalestimate", "resolutiondate"],
         )
         leaf_issues.extend(subs)
 
@@ -252,6 +257,11 @@ def fetch_version_stats(fv_name, projects):
     open_total = 0
     cutoff = TODAY - timedelta(days=14)
 
+    # For AI-fill (imputation) of missing estimates: group open-ticket estimates
+    # by issue type so we can use the median to fill in unestimated tickets.
+    open_estimated_by_type = {}    # itype -> list of timeestimate seconds
+    open_unestimated_by_type = {}  # itype -> count of unestimated open tickets
+
     for issue in leaf_issues:
         fields      = issue["fields"]
         status_cat  = fields["status"]["statusCategory"]["key"]
@@ -260,6 +270,7 @@ def fetch_version_stats(fv_name, projects):
         timeest     = fields.get("timeestimate") or 0
         timeorig    = fields.get("timeoriginalestimate") or 0
         resdate_str = (fields.get("resolutiondate") or "")[:10]
+        itype       = (fields.get("issuetype") or {}).get("name", "Unknown")
 
         if status_cat == "done":
             done += 1
@@ -277,15 +288,41 @@ def fetch_version_stats(fv_name, projects):
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
+                open_estimated_by_type.setdefault(itype, []).append(timeest)
+            else:
+                open_unestimated_by_type[itype] = open_unestimated_by_type.get(itype, 0) + 1
         else:
             dev_count += 1
             open_total += 1
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
+                open_estimated_by_type.setdefault(itype, []).append(timeest)
+            else:
+                open_unestimated_by_type[itype] = open_unestimated_by_type.get(itype, 0) + 1
 
         if priority == "Blocker" and status_cat != "done":
             blockers += 1
+
+    # ── AI-fill (statistical imputation) for unestimated tickets ────────────
+    # Per-type median from estimated tickets in this FV; fall back to the
+    # cross-type median; finally to a sensible default by issue-type name.
+    from statistics import median
+    type_median   = {it: median(v) for it, v in open_estimated_by_type.items() if v}
+    all_estimated = [s for v in open_estimated_by_type.values() for s in v]
+    global_median = median(all_estimated) if all_estimated else 0
+    DEFAULT_HOURS_BY_NAME = {
+        "Sub-task": 4, "Subtask": 4, "Dev Subtask": 4, "QA Subtask": 2,
+        "Task": 8, "Dev Task": 8, "Story": 16, "Bug": 4, "QA Task": 4,
+    }
+
+    imputed_secs  = 0
+    imputed_count = 0
+    for itype, count in open_unestimated_by_type.items():
+        per_ticket = type_median.get(itype) or global_median \
+                     or (DEFAULT_HOURS_BY_NAME.get(itype, 8) * 3600)
+        imputed_secs  += per_ticket * count
+        imputed_count += count
 
     total = len(leaf_issues)
     pct   = int((done + qa_count) / total * 100) if total else 0
@@ -298,6 +335,8 @@ def fetch_version_stats(fv_name, projects):
         "done": done, "qa_count": qa_count, "total": total, "pct": pct,
         "blockers": blockers, "phase": phase,
         "remaining_secs": remaining_secs,
+        "imputed_secs": imputed_secs,
+        "imputed_count": imputed_count,
         "estimate_coverage": estimate_coverage,
         "velocity_secs_per_day": velocity_secs_per_day,
         "recent_done_count": recent_done_count,
@@ -413,37 +452,57 @@ def days_until(release_date_str):
 def compute_eta(stats, release_date_str):
     """
     Returns (eta_date: date|None, confidence: 'hi'|'med'|'lo'|None).
-    Tier 1 hi  — estimate-based with measured 14-day velocity
-    Tier 1b med — estimate-based with assumed 12 h/day capacity
-    Tier 2 med — count velocity (≥3 issues resolved in last 14 days)
-    Tier 3 lo  — planned release date or pct extrapolation
+
+    Tier 1   hi  — real estimates ≥70% coverage + measured 14-day velocity
+    Tier 1b  med — real estimates ≥70% coverage + assumed 12 h/day capacity
+    Tier 2   med — real + AI-filled estimates + measured velocity
+    Tier 2b  lo  — real + AI-filled estimates + 12 h/day capacity
+    Tier 3   med — count velocity (≥3 issues resolved in last 14 days)
+    Tier 4   lo  — planned release date or pct extrapolation
+
+    AI-filled (Tier 2 / 2b) uses per-issuetype median imputation for
+    unestimated open tickets — see fetch_version_stats() imputation pass.
+    Confidence drops to "lo" when 12h/day fallback is used.
     """
-    remaining_secs        = stats.get("remaining_secs", 0)
+    real_secs             = stats.get("remaining_secs", 0)
+    imputed_secs          = stats.get("imputed_secs", 0)
     estimate_coverage     = stats.get("estimate_coverage", 0)
     velocity_secs_per_day = stats.get("velocity_secs_per_day", 0)
     recent_done_count     = stats.get("recent_done_count", 0)
     open_count            = stats.get("open_count", 0)
     pct                   = stats.get("pct", 0)
 
+    total_secs = real_secs + imputed_secs
+
     if open_count == 0 and pct > 0:
         return TODAY, "hi"
 
-    # Tier 1: good estimates + real velocity
-    if estimate_coverage >= 0.5 and velocity_secs_per_day > 0 and remaining_secs > 0:
-        days = ceil(remaining_secs / velocity_secs_per_day)
+    # Tier 1: high real coverage + measured velocity
+    if estimate_coverage >= 0.7 and velocity_secs_per_day > 0 and real_secs > 0:
+        days = ceil(real_secs / velocity_secs_per_day)
         return TODAY + timedelta(days=min(days, 365)), "hi"
 
-    # Tier 1b: good estimates + assumed 12 h/day capacity
-    if estimate_coverage >= 0.5 and remaining_secs > 0:
-        days = ceil(remaining_secs / (12 * 3600))
+    # Tier 1b: high real coverage + 12 h/day capacity
+    if estimate_coverage >= 0.7 and real_secs > 0:
+        days = ceil(real_secs / (12 * 3600))
         return TODAY + timedelta(days=min(days, 365)), "med"
 
-    # Tier 2: count velocity
+    # Tier 2: AI-filled hours + measured velocity
+    if total_secs > 0 and velocity_secs_per_day > 0:
+        days = ceil(total_secs / velocity_secs_per_day)
+        return TODAY + timedelta(days=min(days, 365)), "med"
+
+    # Tier 2b: AI-filled hours + 12 h/day capacity
+    if total_secs > 0:
+        days = ceil(total_secs / (12 * 3600))
+        return TODAY + timedelta(days=min(days, 365)), "lo"
+
+    # Tier 3: count velocity
     if recent_done_count >= 3 and open_count > 0:
         days = ceil(open_count / (recent_done_count / 14))
         return TODAY + timedelta(days=min(days, 365)), "med"
 
-    # Tier 3: planned date or overdue extrapolation
+    # Tier 4: planned date or overdue extrapolation
     if release_date_str:
         try:
             rd = date.fromisoformat(release_date_str)
@@ -525,6 +584,7 @@ def build_releases():
             "days_until":     du,
             "qa_unestimated":  qa_est["missing"],
             "qa_total":        qa_est["total"],
+            "imputed_count":   stats.get("imputed_count", 0),
             "eta_date":        eta_date,
             "eta_confidence":  eta_confidence,
         })
@@ -622,7 +682,8 @@ def render_active_row(r):
     if r.get("eta_date"):
         conf = r.get("eta_confidence", "lo")
         cls  = {"hi": "eta-hi", "med": "eta-med", "lo": "eta-lo"}.get(conf, "eta-lo")
-        tags.append(f'<span class="tag {cls}">📅 Est. {fmt_date(r["eta_date"])}</span>')
+        ai_suffix = " · 🤖 AI-filled" if r.get("imputed_count", 0) > 0 else ""
+        tags.append(f'<span class="tag {cls}">📅 Est. {fmt_date(r["eta_date"])}{ai_suffix}</span>')
 
     scope = r.get("description") or "Scope being defined."
 
