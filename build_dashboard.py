@@ -454,16 +454,56 @@ def fetch_game_issues(fv_name, projects):
 
 # ── Step 4: Health classification ────────────────────────────────────────────
 
-def classify_health(stats, release_date_str):
-    if stats["blockers"] > 0:
+def classify_health(stats, release_date_str, eta_date):
+    """
+    Health classification — ETA vs. deadline as the primary signal.
+
+    Red    = real, immediate risk:
+             • blockers present, OR
+             • deadline passed and release isn't nearly done (≥95% any signal),
+               OR
+             • ETA misses the deadline by more than 2 weeks
+    Yellow = potential risk:
+             • deadline passed but ≥95% done (trailing edge)
+             • ETA slips past the deadline by ≤2 weeks (recoverable)
+             • deadline within 7 days and progress < 80%
+    Green  = on track:
+             • no blockers and ETA fits within deadline
+             • no deadline set and no blockers (TBD doesn't mean at risk)
+    """
+    if stats.get("blockers", 0) > 0:
         return "red"
-    if release_date_str:
-        try:
-            if date.fromisoformat(release_date_str) < TODAY:
-                return "red"
-        except ValueError:
-            pass
-    return "grn" if stats["pct"] >= 90 else "yel"
+
+    # Best progress signal — whichever of count- or hour-weighted is higher.
+    best_pct = max(stats.get("pct", 0), stats.get("pct_hours", 0))
+
+    if not release_date_str:
+        return "grn"  # No planned deadline → nothing being missed
+
+    try:
+        rd = date.fromisoformat(release_date_str)
+    except ValueError:
+        return "grn"
+
+    if rd < TODAY:
+        # Deadline already passed.
+        if best_pct >= 95:
+            return "yel"
+        return "red"
+
+    if eta_date:
+        slip_days = (eta_date - rd).days
+        if slip_days > 14:
+            return "red"
+        if slip_days > 0:
+            return "yel"
+        return "grn"
+
+    # No ETA but deadline approaching.
+    days_to = (rd - TODAY).days
+    if days_to <= 7 and best_pct < 80:
+        return "yel"
+    return "grn"
 
 
 def overdue_days(release_date_str):
@@ -517,17 +557,20 @@ def compute_eta(stats, release_date_str):
     # Tier 1: high real coverage + measured velocity
     if estimate_coverage >= 0.7 and velocity_secs_per_day > 0 and real_secs > 0:
         days = ceil(real_secs / velocity_secs_per_day)
-        return TODAY + timedelta(days=min(days, 365)), "hi"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "hi")
 
     # Tier 1b: high real coverage + 12 h/day capacity
     if estimate_coverage >= 0.7 and real_secs > 0:
         days = ceil(real_secs / (12 * 3600))
-        return TODAY + timedelta(days=min(days, 365)), "med"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "med")
 
     # Tier 2: AI-filled hours + measured velocity
     if total_secs > 0 and velocity_secs_per_day > 0:
         days = ceil(total_secs / velocity_secs_per_day)
-        return TODAY + timedelta(days=min(days, 365)), "med"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "med")
 
     # Tier 2b: AI-filled hours + 12 h/day capacity
     if total_secs > 0:
@@ -537,7 +580,8 @@ def compute_eta(stats, release_date_str):
     # Tier 3: count velocity
     if recent_done_count >= 3 and open_count > 0:
         days = ceil(open_count / (recent_done_count / 14))
-        return TODAY + timedelta(days=min(days, 365)), "med"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "med")
 
     # Tier 4: planned date or overdue extrapolation
     if release_date_str:
@@ -602,10 +646,10 @@ def build_releases():
             continue
         unestimated  = fetch_unestimated_status(name, projects)
         release_date = v.get("releaseDate")
-        health       = classify_health(stats, release_date)
+        eta_date, eta_confidence = compute_eta(stats, release_date)
+        health       = classify_health(stats, release_date, eta_date)
         od           = overdue_days(release_date)
         du           = days_until(release_date)
-        eta_date, eta_confidence = compute_eta(stats, release_date)
 
         # Scope: game names from Jira > fix version description > fallback
         games = fetch_game_issues(name, projects)
@@ -680,8 +724,13 @@ def jira_fv_url(_fv_id, fv_name):
 
 
 def fmt_date(d):
-    """Format a date object to 'Apr 24' (cross-platform)."""
+    """Format a date as 'Apr 24'; include year when it differs from today's."""
     try:
+        if isinstance(d, date) and d.year != TODAY.year:
+            try:
+                return d.strftime("%b %-d %Y")
+            except ValueError:
+                return d.strftime("%b %#d %Y")
         return d.strftime("%b %-d")   # Linux/Mac
     except ValueError:
         return d.strftime("%b %#d")   # Windows
