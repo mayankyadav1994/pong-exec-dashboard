@@ -44,8 +44,17 @@ SECTION_META = {
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
 VERSION_RE     = re.compile(r'\d+\.\d+')
 QA_STATUSES    = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
-QA_ISSUE_TYPES = ["QA", "QA Task", "Test", "Testing", "QA/Test"]
 GAME_ISSUE_TYPES = ["New Game", "Game"]
+
+# Per-category issue types for unestimated-ticket callouts. Logic for each
+# category: if a top-level issue has subtasks, check the subtasks; otherwise
+# check the issue itself. Missing = no timeoriginalestimate.
+ESTIMATE_CATEGORIES = {
+    "QA":       ["QA", "QA Task", "QA Subtask", "Test", "Testing", "QA/Test"],
+    "Math":     ["Math Task", "Math Subtask"],
+    "Creative": ["Creative Task", "Creative Subtask"],
+    "Sound":    ["Sound Task", "Sound Subtask"],
+}
 
 TODAY = date.today()
 
@@ -373,54 +382,55 @@ def fetch_version_stats(fv_name, projects):
 
 # ── Step 3b: QA estimate coverage ────────────────────────────────────────────
 
-def fetch_qa_estimate_status(fv_name, projects):
+def fetch_unestimated_status(fv_name, projects):
     """
-    Returns {"missing": int, "total": int} for QA tasks/subtasks in a fix version.
-    - Finds issues with QA_ISSUE_TYPES in this fix version.
-    - For issues with subtasks: checks each subtask's timeoriginalestimate.
-    - For issues without subtasks: checks the issue's own timeoriginalestimate.
-    - Returns {"missing": 0, "total": 0} when no QA tasks exist (not a warning).
+    Per ESTIMATE_CATEGORIES, count tickets missing timeoriginalestimate.
+    Returns { category: {"missing": int, "total": int} }.
+
+    Rule per top-level issue:
+      - If the issue has subtasks → check each subtask's timeoriginalestimate.
+      - If no subtasks → check the issue itself.
     """
-    types_jql = ", ".join(f'"{t}"' for t in QA_ISSUE_TYPES)
-    try:
-        qa_issues = jira_jql(
-            jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}" '
-                f'AND issuetype in ({types_jql})',
-            fields=["subtasks", "timeoriginalestimate"],
-        )
-    except Exception:
-        return {"missing": 0, "total": 0}
+    result = {cat: {"missing": 0, "total": 0} for cat in ESTIMATE_CATEGORIES}
 
-    if not qa_issues:
-        return {"missing": 0, "total": 0}
-
-    missing = total = 0
-    parent_keys = []
-
-    for issue in qa_issues:
-        subtasks = issue["fields"].get("subtasks") or []
-        if subtasks:
-            parent_keys.append(issue["key"])
-        else:
-            total += 1
-            if not issue["fields"].get("timeoriginalestimate"):
-                missing += 1
-
-    if parent_keys:
-        keys_clause = ", ".join(parent_keys)
+    for category, types in ESTIMATE_CATEGORIES.items():
+        types_jql = ", ".join(f'"{t}"' for t in types)
         try:
-            subs = jira_jql(
-                jql=f"parent in ({keys_clause})",
-                fields=["timeoriginalestimate"],
+            issues = jira_jql(
+                jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}" '
+                    f'AND issuetype in ({types_jql})',
+                fields=["subtasks", "timeoriginalestimate"],
             )
-            for sub in subs:
-                total += 1
-                if not sub["fields"].get("timeoriginalestimate"):
-                    missing += 1
         except Exception:
-            pass
+            continue
 
-    return {"missing": missing, "total": total}
+        if not issues:
+            continue
+
+        parent_keys = []
+        for issue in issues:
+            subtasks = issue["fields"].get("subtasks") or []
+            if subtasks:
+                parent_keys.append(issue["key"])
+            else:
+                result[category]["total"] += 1
+                if not issue["fields"].get("timeoriginalestimate"):
+                    result[category]["missing"] += 1
+
+        if parent_keys:
+            try:
+                subs = jira_jql(
+                    jql=f'parent in ({", ".join(parent_keys)})',
+                    fields=["timeoriginalestimate"],
+                )
+                for sub in subs:
+                    result[category]["total"] += 1
+                    if not sub["fields"].get("timeoriginalestimate"):
+                        result[category]["missing"] += 1
+            except Exception:
+                pass
+
+    return result
 
 
 # ── Step 3c: Game issues list ─────────────────────────────────────────────────
@@ -590,7 +600,7 @@ def build_releases():
             # Fix version exists in Jira but has no associated issues — skip
             # to avoid cluttering the dashboard with 0/0 placeholder rows.
             continue
-        qa_est       = fetch_qa_estimate_status(name, projects)
+        unestimated  = fetch_unestimated_status(name, projects)
         release_date = v.get("releaseDate")
         health       = classify_health(stats, release_date)
         od           = overdue_days(release_date)
@@ -619,8 +629,7 @@ def build_releases():
             "release_date":   release_date,
             "overdue_days":   od,
             "days_until":     du,
-            "qa_unestimated":  qa_est["missing"],
-            "qa_total":        qa_est["total"],
+            "unestimated":     unestimated,
             "imputed_count":   stats.get("imputed_count", 0),
             "eta_date":        eta_date,
             "eta_confidence":  eta_confidence,
@@ -705,8 +714,17 @@ def render_active_row(r):
     health_label = {"red": "Red Flag", "yel": "At Risk", "grn": "On Track"}[r["health"]]
     phase_label  = "In QA" if r["phase"] == "qa" else "In Dev"
     phase_cls    = "ph-qa" if r["phase"] == "qa" else "ph-dev"
-    pct          = r["pct"]
-    pc           = prog_class(r["phase"], pct)
+
+    # Primary progress = hour-weighted when hour data exists; fall back to count.
+    hours_done_h  = round((r.get("hours_done")  or 0) / 3600)
+    hours_total_h = round((r.get("hours_total") or 0) / 3600)
+    if hours_total_h > 0:
+        pct   = r.get("pct_hours", 0)
+        label = f'{pct}% by hours · {hours_done_h}h / {hours_total_h}h logged'
+    else:
+        pct   = r["pct"]
+        label = f'{pct}% · {r["done"] + r["qa_count"]}/{r["total"]} tickets'
+    pc = prog_class(r["phase"], pct)
 
     tags = []
     if r["overdue_days"] > 0:
@@ -716,10 +734,13 @@ def render_active_row(r):
     if r["blockers"] > 0:
         word = "blocker" if r["blockers"] == 1 else "blockers"
         tags.append(f'<span class="tag t-blk">🔴 {r["blockers"]} {word}</span>')
-    if r.get("qa_unestimated", 0) > 0:
-        n = r["qa_unestimated"]
-        word = "subtask" if n == 1 else "subtasks"
-        tags.append(f'<span class="tag t-qa-warn">🔶 QA: {n} {word} unestimated</span>')
+    # Per-category unestimated callouts (QA / Math / Creative / Sound).
+    # Rule per fetch_unestimated_status: subtasks if present, else parent.
+    for cat, counts in (r.get("unestimated") or {}).items():
+        n = counts.get("missing", 0)
+        if n > 0:
+            word = "ticket" if n == 1 else "tickets"
+            tags.append(f'<span class="tag t-qa-warn">🔶 {cat}: {n} {word} unestimated</span>')
     if r.get("eta_date"):
         conf = r.get("eta_confidence", "lo")
         cls  = {"hi": "eta-hi", "med": "eta-med", "lo": "eta-lo"}.get(conf, "eta-lo")
@@ -728,16 +749,6 @@ def render_active_row(r):
 
     scope = r.get("description") or "Scope being defined."
 
-    # Hour-weighted progress line (only shown when meaningful hour data exists)
-    hours_done_h  = round((r.get("hours_done") or 0) / 3600)
-    hours_total_h = round((r.get("hours_total") or 0) / 3600)
-    hours_line = ""
-    if hours_total_h > 0:
-        hours_line = (
-            f'<div class="prog-hrs">{r.get("pct_hours", 0)}% by hours · '
-            f'{hours_done_h}h / {hours_total_h}h logged</div>'
-        )
-
     return f"""
     <div class="rel-row">
       <div><div class="rel-name"><a href="{jira_fv_url(r['id'], r['name'])}" target="_blank" rel="noopener" class="rel-link">{r['name']}</a></div></div>
@@ -745,8 +756,7 @@ def render_active_row(r):
       <span class="ph {phase_cls}">{phase_label}</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill {pc}" style="width:{max(pct,1)}%"></div></div>
-        <div class="prog-lbl">{pct}% · {r['done'] + r['qa_count']}/{r['total']} tickets</div>
-        {hours_line}
+        <div class="prog-lbl">{label}</div>
       </div>
       <div class="dc">{''.join(tags)}<div class="scope-text">{scope}</div></div>
     </div>"""
@@ -775,21 +785,32 @@ def render_shipped_row(r):
 def generate_html(active, shipped, kpis):
     run_date = fmt_date(TODAY) + f", {TODAY.year}"
 
-    sections_html = ""
-
-    # 1. Shipped first (current month) — the win column at the top
     month_label   = TODAY.strftime("%B %Y")
     month_prefix  = TODAY.strftime("%Y-%m")
     shipped_month = [r for r in shipped if r["shipped_date"].startswith(month_prefix)]
-    shipped_rows  = "".join(render_shipped_row(r) for r in shipped_month)
-    if shipped_month:
+
+    sections_html = ""
+
+    # For each team, render: shipped this month (if any) then active releases.
+    for sec_key in ["v2", "ig", "cs"]:
+        meta        = SECTION_META[sec_key]
+        sec_shipped = [r for r in shipped_month if r["section"] == sec_key]
+        sec_active  = [r for r in active        if r["section"] == sec_key]
+        if not sec_shipped and not sec_active:
+            continue
+
         sections_html += f"""
-  <div class="sec-label sec-done">✅ Shipped — {month_label}</div>
+  <div class="sec-label sec-{sec_key}">{meta['label']}</div>"""
+
+        # Shipped sub-card (this team, current month)
+        if sec_shipped:
+            shipped_rows = "".join(render_shipped_row(r) for r in sec_shipped)
+            sections_html += f"""
   <div class="card card-done">
     <div class="card-head">
       <span style="font-size:16px">🎉</span>
-      <span class="card-head-title">Shipped this month</span>
-      <span class="card-head-count">{len(shipped_month)} releases</span>
+      <span class="card-head-title">{meta['title']} — Shipped {month_label}</span>
+      <span class="card-head-count">{len(sec_shipped)} shipped</span>
     </div>
     <div class="col-head">
       <span>Release</span><span>Health</span><span>Phase</span>
@@ -798,20 +819,15 @@ def generate_html(active, shipped, kpis):
     {shipped_rows}
   </div>"""
 
-    # 2. Active sections by team
-    for sec_key in ["v2", "ig", "cs"]:
-        meta = SECTION_META[sec_key]
-        rows = [r for r in active if r["section"] == sec_key]
-        if not rows:
-            continue
-        row_html = "".join(render_active_row(r) for r in rows)
-        sections_html += f"""
-  <div class="sec-label sec-{sec_key}">{meta['label']}</div>
+        # Active sub-card (this team, in-progress)
+        if sec_active:
+            row_html = "".join(render_active_row(r) for r in sec_active)
+            sections_html += f"""
   <div class="card {meta['card']}">
     <div class="card-head">
       <span style="font-size:16px">{meta['icon']}</span>
-      <span class="card-head-title">{meta['title']}</span>
-      <span class="card-head-count">{len(rows)} active</span>
+      <span class="card-head-title">{meta['title']} — In Progress</span>
+      <span class="card-head-count">{len(sec_active)} active</span>
     </div>
     <div class="col-head">
       <span>Release</span><span>Health</span><span>Phase</span>
@@ -877,8 +893,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .pf-qa   {{ background:linear-gradient(90deg,#10B981,#065F46); }}
 .pf-ship {{ background:linear-gradient(90deg,#34D399,#059669); }}
 .pf-zero {{ background:#D1D5DB; }}
-.prog-lbl {{ font-size:10px; color:#6B7280; }}
-.prog-hrs {{ font-size:9px; color:#9CA3AF; margin-top:1px; font-variant-numeric: tabular-nums; }}
+.prog-lbl {{ font-size:10px; color:#6B7280; font-variant-numeric: tabular-nums; }}
 .dc {{ display:flex; flex-direction:column; gap:3px; padding-top:1px; }}
 .tag {{ display:inline-flex; align-items:center; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; width:fit-content; white-space:nowrap; }}
 .t-apr {{ background:#EDE9FE; color:#5B21B6; }}
