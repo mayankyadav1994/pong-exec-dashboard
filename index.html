@@ -23,15 +23,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sec-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin: 16px 0 7px 2px; }
 .sec-v2 { color:#1D4ED8; } .sec-ig { color:#065F46; } .sec-pfh { color:#B45309; } .sec-cs { color:#9D174D; } .sec-done { color:#064E3B; }
 .card { border-radius: 14px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.card-v2   { background:#EFF6FF; border:1.5px solid #BFDBFE; }
-.card-ig   { background:#ECFDF5; border:1.5px solid #6EE7B7; }
-.card-pfh  { background:#FFFBEB; border:1.5px solid #FCD34D; }
-.card-cs   { background:#FDF2F8; border:1.5px solid #F9A8D4; }
-.card-done { background:#F0FDF4; border:1.5px solid #86EFAC; }
+/* Two card styles, applied uniformly across all teams:
+   - card-active = blue (every "In Progress" sub-card)
+   - card-done   = green (every "Shipped this month" sub-card)
+   Team identity is carried by the section label color, not the card. */
+.card-active { background:#EFF6FF; border:1.5px solid #BFDBFE; }
+.card-done   { background:#F0FDF4; border:1.5px solid #86EFAC; }
 .card-head { display:flex; align-items:center; gap:8px; padding:11px 16px 9px; border-bottom:1px solid rgba(0,0,0,0.07); }
-.card-v2  .card-head { background:#DBEAFE; } .card-ig .card-head { background:#D1FAE5; }
-.card-pfh .card-head { background:#FEF3C7; } .card-cs .card-head { background:#FCE7F3; }
-.card-done .card-head { background:#DCFCE7; }
+.card-active .card-head { background:#DBEAFE; }
+.card-done   .card-head { background:#DCFCE7; }
 .card-head-title { font-size:13px; font-weight:600; color:#111; flex:1; }
 .card-head-count { font-size:11px; background:rgba(0,0,0,0.09); color:#333; padding:2px 10px; border-radius:20px; font-weight:600; }
 .col-head { display:grid; grid-template-columns:155px 76px 68px 82px 1fr; gap:6px; padding:6px 16px; font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,0.05); background:rgba(255,255,255,0.4); }
@@ -95,8 +95,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <p>Live Jira + Confluence data &nbsp;·&nbsp; May 19, 2026 &nbsp;·&nbsp; Auto-refreshes daily &nbsp;·&nbsp; PRF override active</p>
   </div>
   <div class="kpi-grid">
-    <div class="kpi kpi-r"><div class="kpi-num">2</div><div class="kpi-lbl">🔴 Red Flag</div></div>
-    <div class="kpi kpi-y"><div class="kpi-num">21</div><div class="kpi-lbl">🟡 At Risk</div></div>
+    <div class="kpi kpi-r"><div class="kpi-num">3</div><div class="kpi-lbl">🔴 Red Flag</div></div>
+    <div class="kpi kpi-y"><div class="kpi-num">1</div><div class="kpi-lbl">🟡 At Risk</div></div>
     <div class="kpi kpi-g"><div class="kpi-num">0</div><div class="kpi-lbl">🟢 In QA</div></div>
     <div class="kpi kpi-b"><div class="kpi-num">0</div><div class="kpi-lbl">🚀 Ships Soon</div></div>
     <div class="kpi kpi-p"><div class="kpi-num">5</div><div class="kpi-lbl">✅ Shipped May</div></div>
@@ -122,7 +122,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="scope-text">Trunk Release + New Games</div>
     </div>
   </div>
-  <div class="card card-v2">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">🎮</span>
       <span class="card-head-title">V2 Releases — In Progress</span>
@@ -134,8 +134,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     
     <div class="rel-row">
+      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20SW%2015.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 SW 15.00</a></div></div>
+      <div class="hc red"><span class="hc-dot"></span>Red Flag</div>
+      <span class="ph ph-dev">In Dev</span>
+      <div class="prog-col">
+        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:59%"></div></div>
+        <div class="prog-lbl">59% by hours · 784h / 1322h logged</div>
+      </div>
+      <div class="dc"><span class="tag t-apr">🚀 May 30</span><span class="tag t-qa-warn">🔶 Math: 6 tickets unestimated</span><span class="tag t-qa-warn">🔶 Creative: 1 ticket unestimated</span><span class="tag eta-lo">📅 Est. May 19 2027 · 🤖 AI-filled</span><div class="scope-text">Big Data</div></div>
+    </div>
+    <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20HHR%203.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 HHR 3.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:61%"></div></div>
@@ -144,18 +154,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 9 tickets unestimated</span><span class="tag t-qa-warn">🔶 Math: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Creative: 1 ticket unestimated</span><span class="tag eta-lo">📅 Est. Jun 14 · 🤖 AI-filled</span><div class="scope-text">User roles</div></div>
     </div>
     <div class="rel-row">
-      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20SW%2015.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 SW 15.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
-      <span class="ph ph-dev">In Dev</span>
-      <div class="prog-col">
-        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:59%"></div></div>
-        <div class="prog-lbl">59% by hours · 784h / 1322h logged</div>
-      </div>
-      <div class="dc"><span class="tag t-apr">🚀 May 30</span><span class="tag t-qa-warn">🔶 Math: 6 tickets unestimated</span><span class="tag t-qa-warn">🔶 Creative: 1 ticket unestimated</span><span class="tag eta-med">📅 Est. May 19 · 🤖 AI-filled</span><div class="scope-text">Big Data</div></div>
-    </div>
-    <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20SW%2016.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 SW 16.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:73%"></div></div>
@@ -165,7 +165,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20C2%205.10%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 C2 5.10</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:18%"></div></div>
@@ -175,7 +175,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20PT%2013.30%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 PT 13.30</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:26%"></div></div>
@@ -185,7 +185,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20P2P%2016.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 P2P 16.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:79%"></div></div>
@@ -195,7 +195,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20HHR%203.10%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 HHR 3.10</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:25%"></div></div>
@@ -205,7 +205,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22V2%20PT%2014.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">V2 PT 14.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:1%"></div></div>
@@ -215,7 +215,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
   <div class="sec-label sec-ig">🟢 iGaming — ELG & PFH2 Games</div>
-  <div class="card card-ig">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">🎰</span>
       <span class="card-head-title">iGaming — ELG & PFH2 Games — In Progress</span>
@@ -227,8 +227,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     
     <div class="rel-row">
-      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Games%202.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Games 2.00</a></div></div>
+      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22ELG%204.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">ELG 4.00</a></div></div>
       <div class="hc red"><span class="hc-dot"></span>Red Flag</div>
+      <span class="ph ph-dev">In Dev</span>
+      <div class="prog-col">
+        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:91%"></div></div>
+        <div class="prog-lbl">91% by hours · 1239h / 1359h logged</div>
+      </div>
+      <div class="dc"><span class="tag t-apr">🚀 May 29</span><span class="tag t-qa-warn">🔶 QA: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Math: 1 ticket unestimated</span><span class="tag eta-med">📅 Est. Jul 6 · 🤖 AI-filled</span><div class="scope-text">Game Engine</div></div>
+    </div>
+    <div class="rel-row">
+      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Games%202.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Games 2.00</a></div></div>
+      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:99%"></div></div>
@@ -237,18 +247,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="dc"><span class="tag t-ovr">⚠️ 19d overdue</span><span class="tag t-qa-warn">🔶 QA: 6 tickets unestimated</span><span class="tag t-qa-warn">🔶 Math: 6 tickets unestimated</span><span class="tag t-qa-warn">🔶 Creative: 2 tickets unestimated</span><span class="tag t-qa-warn">🔶 Sound: 16 tickets unestimated</span><span class="tag eta-med">📅 Est. May 22 · 🤖 AI-filled</span><div class="scope-text">New Games and more functionality</div></div>
     </div>
     <div class="rel-row">
-      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22ELG%204.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">ELG 4.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
-      <span class="ph ph-dev">In Dev</span>
-      <div class="prog-col">
-        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:91%"></div></div>
-        <div class="prog-lbl">91% by hours · 1239h / 1354h logged</div>
-      </div>
-      <div class="dc"><span class="tag t-apr">🚀 May 29</span><span class="tag t-qa-warn">🔶 QA: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Math: 1 ticket unestimated</span><span class="tag eta-med">📅 Est. Jun 29 · 🤖 AI-filled</span><div class="scope-text">Game Engine</div></div>
-    </div>
-    <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22ELG%204.10%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">ELG 4.10</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:87%"></div></div>
@@ -258,17 +258,17 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Games%202.10%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Games 2.10</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:95%"></div></div>
         <div class="prog-lbl">95% by hours · 4327h / 4552h logged</div>
       </div>
-      <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Creative: 20 tickets unestimated</span><span class="tag t-qa-warn">🔶 Sound: 32 tickets unestimated</span><span class="tag eta-med">📅 Est. May 19 · 🤖 AI-filled</span><div class="scope-text">PFH2 Games 2.10</div></div>
+      <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Creative: 20 tickets unestimated</span><span class="tag t-qa-warn">🔶 Sound: 32 tickets unestimated</span><span class="tag eta-lo">📅 Est. May 19 2027 · 🤖 AI-filled</span><div class="scope-text">PFH2 Games 2.10</div></div>
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Games%203.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Games 3.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:43%"></div></div>
@@ -278,7 +278,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Games%204.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Games 4.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:82%"></div></div>
@@ -288,7 +288,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22Horse%20Play%201.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">Horse Play 1.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:88%"></div></div>
@@ -313,7 +313,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20VGTC%207.01%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS VGTC 7.01</a></div></div>
       <div class="hc grn"><span class="hc-dot"></span>Shipped</div>
       <span class="ph ph-ship">Shipped</span>
-      <div class="dc"><span class="tag t-ship">May 13</span><span class="tag t-jira-open">⚠️ Mark Released in Jira</span></div>
+      <div class="dc"><span class="tag t-ship">May 13</span><span class="tag t-jira-open">⚠️ Not yet marked Released in Jira</span></div>
       <div class="scope-text">Patch to fix access when over 2000 locations</div>
     </div>
     <div class="rel-row">
@@ -338,7 +338,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="scope-text">Targeted Promo</div>
     </div>
   </div>
-  <div class="card card-cs">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">☁️</span>
       <span class="card-head-title">Cloud Services — In Progress</span>
@@ -360,8 +360,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="dc"><span class="tag t-ovr">⚠️ 19d overdue</span><span class="tag eta-lo">📅 Est. Jun 30 · 🤖 AI-filled</span><div class="scope-text">Kiosk Lite [APIs]</div></div>
     </div>
     <div class="rel-row">
+      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20GCP%201.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS GCP 1.00</a></div></div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
+      <span class="ph ph-dev">In Dev</span>
+      <div class="prog-col">
+        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:92%"></div></div>
+        <div class="prog-lbl">92% by hours · 850h / 918h logged</div>
+      </div>
+      <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 8 tickets unestimated</span><span class="tag eta-lo">📅 Est. Jun 6 · 🤖 AI-filled</span><div class="scope-text">GCP - Game Catalog & Pool Catalog</div></div>
+    </div>
+    <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20GCP%203.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS GCP 3.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-zero" style="width:1%"></div></div>
@@ -371,7 +381,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20BD%201.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS BD 1.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:54%"></div></div>
@@ -381,7 +391,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20CRM%209.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS CRM 9.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:28%"></div></div>
@@ -391,7 +401,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20VGTC%208.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS VGTC 8.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:56%"></div></div>
@@ -401,7 +411,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20GCP%204.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS GCP 4.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-zero" style="width:1%"></div></div>
@@ -411,7 +421,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20TH%208.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS TH 8.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:25%"></div></div>
@@ -421,23 +431,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Services%205.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Services 5.00</a></div></div>
-      <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
+      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:76%"></div></div>
         <div class="prog-lbl">76% by hours · 1580h / 2062h logged</div>
       </div>
-      <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 16 tickets unestimated</span><span class="tag eta-med">📅 Est. Jan 10 · 🤖 AI-filled</span><div class="scope-text">Kiosk Lite [Web Kiosk]</div></div>
-    </div>
-    <div class="rel-row">
-      <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20GCP%201.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS GCP 1.00</a></div></div>
-      <div class="hc grn"><span class="hc-dot"></span>On Track</div>
-      <span class="ph ph-dev">In Dev</span>
-      <div class="prog-col">
-        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:92%"></div></div>
-        <div class="prog-lbl">92% by hours · 850h / 918h logged</div>
-      </div>
-      <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 8 tickets unestimated</span><span class="tag eta-lo">📅 Est. Jun 6 · 🤖 AI-filled</span><div class="scope-text">GCP - Game Catalog & Pool Catalog</div></div>
+      <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag t-qa-warn">🔶 QA: 16 tickets unestimated</span><span class="tag eta-med">📅 Est. Jan 10 2027 · 🤖 AI-filled</span><div class="scope-text">Kiosk Lite [Web Kiosk]</div></div>
     </div>
   </div>
   <p class="footer">Source: Live Jira + Confluence PMO · ponggamestudios.atlassian.net · PRF shipped signal via Release issue resolutiondate · Generated May 19, 2026</p>

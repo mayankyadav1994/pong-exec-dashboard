@@ -36,9 +36,9 @@ SECTION_PROJECTS = {
 PROJECTS = sorted({p for projs in SECTION_PROJECTS.values() for p in projs})
 
 SECTION_META = {
-    "v2":  {"label": "🔵 V2 — Vendor 2",              "card": "card-v2",  "icon": "🎮", "title": "V2 Releases"},
-    "ig":  {"label": "🟢 iGaming — ELG & PFH2 Games", "card": "card-ig",  "icon": "🎰", "title": "iGaming — ELG & PFH2 Games"},
-    "cs":  {"label": "🩷 CSS — Cloud Services",        "card": "card-cs",  "icon": "☁️", "title": "Cloud Services"},
+    "v2":  {"label": "🔵 V2 — Vendor 2",              "icon": "🎮", "title": "V2 Releases"},
+    "ig":  {"label": "🟢 iGaming — ELG & PFH2 Games", "icon": "🎰", "title": "iGaming — ELG & PFH2 Games"},
+    "cs":  {"label": "🩷 CSS — Cloud Services",        "icon": "☁️", "title": "Cloud Services"},
 }
 
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
@@ -454,16 +454,56 @@ def fetch_game_issues(fv_name, projects):
 
 # ── Step 4: Health classification ────────────────────────────────────────────
 
-def classify_health(stats, release_date_str):
-    if stats["blockers"] > 0:
+def classify_health(stats, release_date_str, eta_date):
+    """
+    Health classification — ETA vs. deadline as the primary signal.
+
+    Red    = real, immediate risk:
+             • blockers present, OR
+             • deadline passed and release isn't nearly done (≥95% any signal),
+               OR
+             • ETA misses the deadline by more than 2 weeks
+    Yellow = potential risk:
+             • deadline passed but ≥95% done (trailing edge)
+             • ETA slips past the deadline by ≤2 weeks (recoverable)
+             • deadline within 7 days and progress < 80%
+    Green  = on track:
+             • no blockers and ETA fits within deadline
+             • no deadline set and no blockers (TBD doesn't mean at risk)
+    """
+    if stats.get("blockers", 0) > 0:
         return "red"
-    if release_date_str:
-        try:
-            if date.fromisoformat(release_date_str) < TODAY:
-                return "red"
-        except ValueError:
-            pass
-    return "grn" if stats["pct"] >= 90 else "yel"
+
+    # Best progress signal — whichever of count- or hour-weighted is higher.
+    best_pct = max(stats.get("pct", 0), stats.get("pct_hours", 0))
+
+    if not release_date_str:
+        return "grn"  # No planned deadline → nothing being missed
+
+    try:
+        rd = date.fromisoformat(release_date_str)
+    except ValueError:
+        return "grn"
+
+    if rd < TODAY:
+        # Deadline already passed.
+        if best_pct >= 95:
+            return "yel"
+        return "red"
+
+    if eta_date:
+        slip_days = (eta_date - rd).days
+        if slip_days > 14:
+            return "red"
+        if slip_days > 0:
+            return "yel"
+        return "grn"
+
+    # No ETA but deadline approaching.
+    days_to = (rd - TODAY).days
+    if days_to <= 7 and best_pct < 80:
+        return "yel"
+    return "grn"
 
 
 def overdue_days(release_date_str):
@@ -517,17 +557,20 @@ def compute_eta(stats, release_date_str):
     # Tier 1: high real coverage + measured velocity
     if estimate_coverage >= 0.7 and velocity_secs_per_day > 0 and real_secs > 0:
         days = ceil(real_secs / velocity_secs_per_day)
-        return TODAY + timedelta(days=min(days, 365)), "hi"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "hi")
 
     # Tier 1b: high real coverage + 12 h/day capacity
     if estimate_coverage >= 0.7 and real_secs > 0:
         days = ceil(real_secs / (12 * 3600))
-        return TODAY + timedelta(days=min(days, 365)), "med"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "med")
 
     # Tier 2: AI-filled hours + measured velocity
     if total_secs > 0 and velocity_secs_per_day > 0:
         days = ceil(total_secs / velocity_secs_per_day)
-        return TODAY + timedelta(days=min(days, 365)), "med"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "med")
 
     # Tier 2b: AI-filled hours + 12 h/day capacity
     if total_secs > 0:
@@ -537,7 +580,8 @@ def compute_eta(stats, release_date_str):
     # Tier 3: count velocity
     if recent_done_count >= 3 and open_count > 0:
         days = ceil(open_count / (recent_done_count / 14))
-        return TODAY + timedelta(days=min(days, 365)), "med"
+        capped = days > 365
+        return TODAY + timedelta(days=min(days, 365)), ("lo" if capped else "med")
 
     # Tier 4: planned date or overdue extrapolation
     if release_date_str:
@@ -602,10 +646,10 @@ def build_releases():
             continue
         unestimated  = fetch_unestimated_status(name, projects)
         release_date = v.get("releaseDate")
-        health       = classify_health(stats, release_date)
+        eta_date, eta_confidence = compute_eta(stats, release_date)
+        health       = classify_health(stats, release_date, eta_date)
         od           = overdue_days(release_date)
         du           = days_until(release_date)
-        eta_date, eta_confidence = compute_eta(stats, release_date)
 
         # Scope: game names from Jira > fix version description > fallback
         games = fetch_game_issues(name, projects)
@@ -680,8 +724,13 @@ def jira_fv_url(_fv_id, fv_name):
 
 
 def fmt_date(d):
-    """Format a date object to 'Apr 24' (cross-platform)."""
+    """Format a date as 'Apr 24'; include year when it differs from today's."""
     try:
+        if isinstance(d, date) and d.year != TODAY.year:
+            try:
+                return d.strftime("%b %-d %Y")
+            except ValueError:
+                return d.strftime("%b %#d %Y")
         return d.strftime("%b %-d")   # Linux/Mac
     except ValueError:
         return d.strftime("%b %#d")   # Windows
@@ -768,8 +817,12 @@ def render_shipped_row(r):
     except Exception:
         lbl = r["shipped_date"]
     scope = r.get("description", "")
+    # Tag triggers when the fix-version's `released` flag is still False in
+    # Jira, even though a PRF Release ticket has a resolutiondate. The wording
+    # is imperative ("you should mark this Released") — phrased explicitly to
+    # avoid being mis-read as a status label.
     jira_flag = (
-        '<span class="tag t-jira-open">⚠️ Mark Released in Jira</span>'
+        '<span class="tag t-jira-open">⚠️ Not yet marked Released in Jira</span>'
         if not r.get("jira_released", True) else ""
     )
     return f"""
@@ -819,11 +872,11 @@ def generate_html(active, shipped, kpis):
     {shipped_rows}
   </div>"""
 
-        # Active sub-card (this team, in-progress)
+        # Active sub-card (this team, in-progress) — uniform blue regardless of team
         if sec_active:
             row_html = "".join(render_active_row(r) for r in sec_active)
             sections_html += f"""
-  <div class="card {meta['card']}">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">{meta['icon']}</span>
       <span class="card-head-title">{meta['title']} — In Progress</span>
@@ -861,15 +914,15 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .sec-label {{ font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin: 16px 0 7px 2px; }}
 .sec-v2 {{ color:#1D4ED8; }} .sec-ig {{ color:#065F46; }} .sec-pfh {{ color:#B45309; }} .sec-cs {{ color:#9D174D; }} .sec-done {{ color:#064E3B; }}
 .card {{ border-radius: 14px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
-.card-v2   {{ background:#EFF6FF; border:1.5px solid #BFDBFE; }}
-.card-ig   {{ background:#ECFDF5; border:1.5px solid #6EE7B7; }}
-.card-pfh  {{ background:#FFFBEB; border:1.5px solid #FCD34D; }}
-.card-cs   {{ background:#FDF2F8; border:1.5px solid #F9A8D4; }}
-.card-done {{ background:#F0FDF4; border:1.5px solid #86EFAC; }}
+/* Two card styles, applied uniformly across all teams:
+   - card-active = blue (every "In Progress" sub-card)
+   - card-done   = green (every "Shipped this month" sub-card)
+   Team identity is carried by the section label color, not the card. */
+.card-active {{ background:#EFF6FF; border:1.5px solid #BFDBFE; }}
+.card-done   {{ background:#F0FDF4; border:1.5px solid #86EFAC; }}
 .card-head {{ display:flex; align-items:center; gap:8px; padding:11px 16px 9px; border-bottom:1px solid rgba(0,0,0,0.07); }}
-.card-v2  .card-head {{ background:#DBEAFE; }} .card-ig .card-head {{ background:#D1FAE5; }}
-.card-pfh .card-head {{ background:#FEF3C7; }} .card-cs .card-head {{ background:#FCE7F3; }}
-.card-done .card-head {{ background:#DCFCE7; }}
+.card-active .card-head {{ background:#DBEAFE; }}
+.card-done   .card-head {{ background:#DCFCE7; }}
 .card-head-title {{ font-size:13px; font-weight:600; color:#111; flex:1; }}
 .card-head-count {{ font-size:11px; background:rgba(0,0,0,0.09); color:#333; padding:2px 10px; border-radius:20px; font-weight:600; }}
 .col-head {{ display:grid; grid-template-columns:155px 76px 68px 82px 1fr; gap:6px; padding:6px 16px; font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,0.05); background:rgba(255,255,255,0.4); }}
