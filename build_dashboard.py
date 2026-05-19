@@ -28,9 +28,17 @@ CONFLUENCE_AUTH = (JIRA_EMAIL, CONFLUENCE_API_TOKEN)
 JSON_HEADERS    = {"Accept": "application/json"}
 
 # ── Project / section config ──────────────────────────────────────────────────
-PROJECTS = ["V2", "IG", "CS", "PFH"]
+# Each dashboard section can be backed by multiple Jira projects. Cloud Services
+# is split across CS (legacy) and CSS (Scrum migration) — both projects hold
+# issues for the same fix versions, so we must query them together.
+SECTION_PROJECTS = {
+    "v2":  ["V2"],
+    "ig":  ["IG"],
+    "pfh": ["PFH"],
+    "cs":  ["CS", "CSS"],
+}
 
-SECTION_MAP = {"V2": "v2", "IG": "ig", "CS": "cs", "PFH": "pfh"}
+PROJECTS = sorted({p for projs in SECTION_PROJECTS.values() for p in projs})
 
 SECTION_META = {
     "v2":  {"label": "🔵 V2 — Vendor 2",              "card": "card-v2",  "icon": "🎮", "title": "V2 Releases"},
@@ -164,33 +172,53 @@ def fetch_confluence_scope(version_names):
 
 def fetch_fix_versions(prf_overrides=None):
     """
-    Fetch active fix versions. Versions marked 'released' in Jira are normally
-    excluded, but kept if they have a PRF override (so recently-shipped releases
-    stay visible in the dashboard even after the team marks them released).
+    Fetch active fix versions. A version with the same name can exist in more
+    than one Jira project (e.g. `PFH2 Services 2.00` is defined in both PFH and
+    CSS; `CS VGTC 8.00` is in both CS and CSS after the Scrum migration).
+    Dedupe globally by name: first-seen section wins (iteration order is v2 →
+    ig → pfh → cs), and the `projects` list expands to every project where the
+    version was found so issue queries hit all of them.
+
+    Versions marked 'released' in Jira are normally excluded, but kept if they
+    have a PRF override so recently-shipped releases stay visible after the
+    team marks them released.
     """
     prf_overrides = prf_overrides or {}
-    versions = []
-    for proj in PROJECTS:
-        data = jira_get(f"/project/{proj}/versions")
-        for v in data:
-            if v.get("archived"):
-                continue
-            name = v.get("name", "")
-            if not is_valid_fv(name):
-                continue
-            is_released = bool(v.get("released"))
-            if is_released and name not in prf_overrides:
-                continue
-            versions.append({
-                "name":          name,
-                "id":            v.get("id"),
-                "project":       proj,
-                "section":       SECTION_MAP[proj],
-                "releaseDate":   v.get("releaseDate"),
-                "jira_desc":     v.get("description", ""),
-                "jira_released": is_released,
-            })
-    return versions
+    seen = {}  # name -> entry
+
+    for section, projs in SECTION_PROJECTS.items():
+        for proj in projs:
+            data = jira_get(f"/project/{proj}/versions")
+            for v in data:
+                if v.get("archived"):
+                    continue
+                name = v.get("name", "")
+                if not is_valid_fv(name):
+                    continue
+                is_released = bool(v.get("released"))
+                if is_released and name not in prf_overrides:
+                    continue
+                existing = seen.get(name)
+                if existing is None:
+                    seen[name] = {
+                        "name":          name,
+                        "id":            v.get("id"),
+                        "projects":      [proj],
+                        "section":       section,
+                        "releaseDate":   v.get("releaseDate"),
+                        "jira_desc":     v.get("description", ""),
+                        "jira_released": is_released,
+                    }
+                else:
+                    if proj not in existing["projects"]:
+                        existing["projects"].append(proj)
+                    if not existing.get("releaseDate") and v.get("releaseDate"):
+                        existing["releaseDate"] = v.get("releaseDate")
+                    if not existing.get("jira_desc") and v.get("description"):
+                        existing["jira_desc"] = v.get("description")
+                    existing["jira_released"] = existing["jira_released"] or is_released
+
+    return list(seen.values())
 
 
 # ── Step 2: PRF override ──────────────────────────────────────────────────────
@@ -201,8 +229,8 @@ def fetch_prf_overrides():
     Returns { "V2 C2 5.00": "2026-04-23", ... }
     """
     issues = jira_jql(
-        jql='project in (V2, IG, CS, PFH) AND issuetype = "Release" '
-            'AND status = "Closed" AND resolution is not EMPTY',
+        jql=f'project in ({_projects_clause(PROJECTS)}) AND issuetype = "Release" '
+            f'AND status = "Closed" AND resolution is not EMPTY',
         fields=["summary", "resolutiondate", "fixVersions"],
     )
     overrides = {}
@@ -217,9 +245,13 @@ def fetch_prf_overrides():
 
 # ── Step 3: Issue stats per version ──────────────────────────────────────────
 
-def fetch_version_stats(fv_name, project):
+def _projects_clause(projects):
+    return ", ".join(projects)
+
+
+def fetch_version_stats(fv_name, projects):
     issues = jira_jql(
-        jql=f'project = {project} AND fixVersion = "{fv_name}"',
+        jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}"',
         fields=["status", "priority", "subtasks", "issuetype",
                 "timeestimate", "timeoriginalestimate", "resolutiondate"],
     )
@@ -313,7 +345,7 @@ def fetch_version_stats(fv_name, project):
 
 # ── Step 3b: QA estimate coverage ────────────────────────────────────────────
 
-def fetch_qa_estimate_status(fv_name, project):
+def fetch_qa_estimate_status(fv_name, projects):
     """
     Returns {"missing": int, "total": int} for QA tasks/subtasks in a fix version.
     - Finds issues with QA_ISSUE_TYPES in this fix version.
@@ -324,7 +356,8 @@ def fetch_qa_estimate_status(fv_name, project):
     types_jql = ", ".join(f'"{t}"' for t in QA_ISSUE_TYPES)
     try:
         qa_issues = jira_jql(
-            jql=f'project = {project} AND fixVersion = "{fv_name}" AND issuetype in ({types_jql})',
+            jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}" '
+                f'AND issuetype in ({types_jql})',
             fields=["subtasks", "timeoriginalestimate"],
         )
     except Exception:
@@ -364,7 +397,7 @@ def fetch_qa_estimate_status(fv_name, project):
 
 # ── Step 3c: Game issues list ─────────────────────────────────────────────────
 
-def fetch_game_issues(fv_name, project):
+def fetch_game_issues(fv_name, projects):
     """
     Returns a list of game names (issue summaries) for the fix version.
     Tries GAME_ISSUE_TYPES; returns [] if none found or on error.
@@ -372,7 +405,8 @@ def fetch_game_issues(fv_name, project):
     types_jql = ", ".join(f'"{t}"' for t in GAME_ISSUE_TYPES)
     try:
         issues = jira_jql(
-            jql=f'project = {project} AND fixVersion = "{fv_name}" AND issuetype in ({types_jql})',
+            jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}" '
+                f'AND issuetype in ({types_jql})',
             fields=["summary"],
         )
         return [i["fields"]["summary"] for i in issues if i["fields"].get("summary")]
@@ -492,12 +526,13 @@ def build_releases():
 
     for v in active_versions:
         name         = v["name"]
-        stats        = fetch_version_stats(name, v["project"])
+        projects     = v["projects"]
+        stats        = fetch_version_stats(name, projects)
         if stats["total"] == 0:
             # Fix version exists in Jira but has no associated issues — skip
             # to avoid cluttering the dashboard with 0/0 placeholder rows.
             continue
-        qa_est       = fetch_qa_estimate_status(name, v["project"])
+        qa_est       = fetch_qa_estimate_status(name, projects)
         release_date = v.get("releaseDate")
         health       = classify_health(stats, release_date)
         od           = overdue_days(release_date)
@@ -505,7 +540,7 @@ def build_releases():
         eta_date, eta_confidence = compute_eta(stats, release_date)
 
         # Scope: game names from Jira > fix version description > fallback
-        games = fetch_game_issues(name, v["project"])
+        games = fetch_game_issues(name, projects)
         if games:
             scope = " · ".join(games)
         else:
@@ -562,9 +597,12 @@ def compute_kpis(active, shipped):
 
 # ── Step 7: HTML rendering ────────────────────────────────────────────────────
 
-def jira_fv_url(fv_id, _fv_name):
+def jira_fv_url(_fv_id, fv_name):
+    # Filter by name (string) so the link works across projects when a version
+    # is duplicated (e.g. PFH and CSS both have "PFH2 Services 2.00").
     import urllib.parse
-    jql = f"fixVersion = {fv_id} ORDER BY issuetype DESC"
+    escaped = fv_name.replace('"', '\\"')
+    jql = f'fixVersion = "{escaped}" ORDER BY issuetype DESC'
     encoded = urllib.parse.quote(jql)
     return f"https://ponggamestudios.atlassian.net/issues/?jql={encoded}"
 
