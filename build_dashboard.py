@@ -42,7 +42,6 @@ SECTION_META = {
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
 VERSION_RE     = re.compile(r'\d+\.\d+')
 QA_STATUSES    = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
-QA_ROUND_RE    = re.compile(r'R\d+', re.IGNORECASE)   # R1, R2 … in status name
 QA_ISSUE_TYPES = ["QA", "QA Task", "Test", "Testing", "QA/Test"]
 GAME_ISSUE_TYPES = ["New Game", "Game"]
 
@@ -163,23 +162,33 @@ def fetch_confluence_scope(version_names):
 
 # ── Step 1: Fix versions ──────────────────────────────────────────────────────
 
-def fetch_fix_versions():
+def fetch_fix_versions(prf_overrides=None):
+    """
+    Fetch active fix versions. Versions marked 'released' in Jira are normally
+    excluded, but kept if they have a PRF override (so recently-shipped releases
+    stay visible in the dashboard even after the team marks them released).
+    """
+    prf_overrides = prf_overrides or {}
     versions = []
     for proj in PROJECTS:
         data = jira_get(f"/project/{proj}/versions")
         for v in data:
-            if v.get("archived") or v.get("released"):
+            if v.get("archived"):
                 continue
             name = v.get("name", "")
             if not is_valid_fv(name):
                 continue
+            is_released = bool(v.get("released"))
+            if is_released and name not in prf_overrides:
+                continue
             versions.append({
-                "name":        name,
-                "id":          v.get("id"),
-                "project":     proj,
-                "section":     SECTION_MAP[proj],
-                "releaseDate": v.get("releaseDate"),
-                "jira_desc":   v.get("description", ""),
+                "name":          name,
+                "id":            v.get("id"),
+                "project":       proj,
+                "section":       SECTION_MAP[proj],
+                "releaseDate":   v.get("releaseDate"),
+                "jira_desc":     v.get("description", ""),
+                "jira_released": is_released,
             })
     return versions
 
@@ -242,7 +251,6 @@ def fetch_version_stats(fv_name, project):
         leaf_issues.extend(subs)
 
     done = blockers = qa_count = dev_count = 0
-    any_qa_round = False
     remaining_secs = 0
     recent_done_secs = 0
     recent_done_count = 0
@@ -275,8 +283,6 @@ def fetch_version_stats(fv_name, project):
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
-            if QA_ROUND_RE.search(status_nm):
-                any_qa_round = True
         else:
             dev_count += 1
             open_total += 1
@@ -289,8 +295,8 @@ def fetch_version_stats(fv_name, project):
 
     total = len(leaf_issues)
     pct   = int((done + qa_count) / total * 100) if total else 0
-    # Phase = QA only when round-specific tickets (R1, R2 …) are present
-    phase = "qa" if any_qa_round else "dev"
+    # Phase = QA when all remaining work is in QA statuses (dev is done)
+    phase = "qa" if qa_count > 0 and dev_count == 0 else "dev"
     estimate_coverage     = open_with_estimate / open_total if open_total else 0
     velocity_secs_per_day = recent_done_secs / 14 if recent_done_secs > 0 else 0
 
@@ -460,13 +466,13 @@ def compute_eta(stats, release_date_str):
 # ── Step 5: Build release data ────────────────────────────────────────────────
 
 def build_releases():
-    print("  Fetching fix versions from Jira...")
-    versions     = fetch_fix_versions()
-    print(f"  Found {len(versions)} valid fix versions")
-
     print("  Fetching PRF overrides...")
     prf_overrides = fetch_prf_overrides()
     print(f"  Found {len(prf_overrides)} shipped via PRF")
+
+    print("  Fetching fix versions from Jira...")
+    versions = fetch_fix_versions(prf_overrides)
+    print(f"  Found {len(versions)} valid fix versions")
 
     active_versions  = [v for v in versions if v["name"] not in prf_overrides]
     shipped_versions = [v for v in versions if v["name"] in prf_overrides]
@@ -475,20 +481,22 @@ def build_releases():
     shipped = []
 
     for v in shipped_versions:
-        # All shipped versions here have released=False in Jira (we filter released=True
-        # out of fetch_fix_versions), so the team still needs to close them in Jira.
         shipped.append({
             "name":          v["name"],
             "id":            v["id"],
             "section":       v["section"],
             "shipped_date":  prf_overrides[v["name"]],
             "description":   v.get("jira_desc", ""),
-            "jira_released": False,
+            "jira_released": v.get("jira_released", False),
         })
 
     for v in active_versions:
         name         = v["name"]
         stats        = fetch_version_stats(name, v["project"])
+        if stats["total"] == 0:
+            # Fix version exists in Jira but has no associated issues — skip
+            # to avoid cluttering the dashboard with 0/0 placeholder rows.
+            continue
         qa_est       = fetch_qa_estimate_status(name, v["project"])
         release_date = v.get("releaseDate")
         health       = classify_health(stats, release_date)
@@ -676,16 +684,18 @@ def generate_html(active, shipped, kpis):
     {row_html}
   </div>"""
 
-    month_label  = TODAY.strftime("%B %Y")
-    shipped_rows = "".join(render_shipped_row(r) for r in shipped)
-    if shipped:
+    month_label   = TODAY.strftime("%B %Y")
+    month_prefix  = TODAY.strftime("%Y-%m")
+    shipped_month = [r for r in shipped if r["shipped_date"].startswith(month_prefix)]
+    shipped_rows  = "".join(render_shipped_row(r) for r in shipped_month)
+    if shipped_month:
         sections_html += f"""
   <div class="sec-label sec-done">✅ Shipped — {month_label}</div>
   <div class="card card-done">
     <div class="card-head">
       <span style="font-size:16px">🎉</span>
       <span class="card-head-title">Shipped this month</span>
-      <span class="card-head-count">{kpis['shipped']} releases</span>
+      <span class="card-head-count">{len(shipped_month)} releases</span>
     </div>
     <div class="col-head">
       <span>Release</span><span>Health</span><span>Phase</span>
