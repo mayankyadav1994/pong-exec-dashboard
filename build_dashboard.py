@@ -44,8 +44,17 @@ SECTION_META = {
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
 VERSION_RE     = re.compile(r'\d+\.\d+')
 QA_STATUSES    = {"In QA", "In QA R1", "In QA R2", "Ready For QA", "QA In Progress"}
-QA_ISSUE_TYPES = ["QA", "QA Task", "Test", "Testing", "QA/Test"]
 GAME_ISSUE_TYPES = ["New Game", "Game"]
+
+# Per-category issue types for unestimated-ticket callouts. Logic for each
+# category: if a top-level issue has subtasks, check the subtasks; otherwise
+# check the issue itself. Missing = no timeoriginalestimate.
+ESTIMATE_CATEGORIES = {
+    "QA":       ["QA", "QA Task", "QA Subtask", "Test", "Testing", "QA/Test"],
+    "Math":     ["Math Task", "Math Subtask"],
+    "Creative": ["Creative Task", "Creative Subtask"],
+    "Sound":    ["Sound Task", "Sound Subtask"],
+}
 
 TODAY = date.today()
 
@@ -132,20 +141,21 @@ def fetch_confluence_scope(version_names):
 
 # ── Step 1: Fix versions ──────────────────────────────────────────────────────
 
-def fetch_fix_versions(prf_overrides=None):
+def fetch_fix_versions():
     """
-    Fetch active fix versions. A version with the same name can exist in more
-    than one Jira project (e.g. `PFH2 Services 2.00` is defined in both PFH and
-    CSS; `CS VGTC 8.00` is in both CS and CSS after the Scrum migration).
-    Dedupe globally by name: first-seen section wins (iteration order is v2 →
-    ig → pfh → cs), and the `projects` list expands to every project where the
-    version was found so issue queries hit all of them.
+    Fetch every non-archived, valid fix version (released + unreleased).
+    A version with the same name can exist in more than one project
+    (`PFH2 Services 2.00` is in both PFH and CSS; `CS VGTC 8.00` is in both
+    CS and CSS after the Scrum migration). Dedupe globally by name: first-seen
+    section wins (iteration order is v2 → ig → cs), and the `projects` list
+    expands to every project where the version is defined so issue queries
+    hit all of them.
 
-    Versions marked 'released' in Jira are normally excluded, but kept if they
-    have a PRF override so recently-shipped releases stay visible after the
-    team marks them released.
+    Classification of shipped vs active happens in build_releases():
+        - jira_released=True            → SHIPPED (authoritative)
+        - jira_released=False + PRF     → SHIPPED (fallback; flag "Mark Released")
+        - otherwise                     → ACTIVE
     """
-    prf_overrides = prf_overrides or {}
     seen = {}  # name -> entry
 
     for section, projs in SECTION_PROJECTS.items():
@@ -158,8 +168,6 @@ def fetch_fix_versions(prf_overrides=None):
                 if not is_valid_fv(name):
                     continue
                 is_released = bool(v.get("released"))
-                if is_released and name not in prf_overrides:
-                    continue
                 existing = seen.get(name)
                 if existing is None:
                     seen[name] = {
@@ -190,9 +198,13 @@ def fetch_prf_overrides():
     A closed Release issue with a resolutiondate = PRF sent = truly shipped.
     Returns { "V2 C2 5.00": "2026-04-23", ... }
     """
+    # The team stamps `resolutiondate` on the Release ticket when the PRF
+    # goes out, but often leaves the ticket in "In QA" / "Ready For QA" rather
+    # than transitioning it to Closed. So resolution presence (not status) is
+    # the actual ship signal.
     issues = jira_jql(
         jql=f'project in ({_projects_clause(PROJECTS)}) AND issuetype = "Release" '
-            f'AND status = "Closed" AND resolution is not EMPTY',
+            f'AND resolution is not EMPTY',
         fields=["summary", "resolutiondate", "fixVersions"],
     )
     overrides = {}
@@ -215,7 +227,7 @@ def fetch_version_stats(fv_name, projects):
     issues = jira_jql(
         jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}"',
         fields=["status", "priority", "subtasks", "issuetype",
-                "timeestimate", "timeoriginalestimate", "resolutiondate"],
+                "timeestimate", "timeoriginalestimate", "timespent", "resolutiondate"],
     )
 
     # Build the set of countable "leaf" issues:
@@ -240,7 +252,8 @@ def fetch_version_stats(fv_name, projects):
     for i in range(0, len(parent_keys), chunk):
         subs = jira_jql(
             jql=f'parent in ({", ".join(parent_keys[i:i+chunk])})',
-            fields=["status", "priority", "timeestimate", "timeoriginalestimate", "resolutiondate"],
+            fields=["status", "priority", "issuetype",
+                    "timeestimate", "timeoriginalestimate", "timespent", "resolutiondate"],
         )
         leaf_issues.extend(subs)
 
@@ -252,6 +265,21 @@ def fetch_version_stats(fv_name, projects):
     open_total = 0
     cutoff = TODAY - timedelta(days=14)
 
+    # Hour-weighted progress accumulators (in seconds):
+    #   hours_done_credit = effort credited as "complete"
+    #     = sum(timeoriginalestimate || timespent) for done tickets
+    #     + sum(timespent) for open tickets (partial credit for work logged so far)
+    #   hours_total       = effort that should be done
+    #     = sum(max(timeoriginalestimate, timespent + timeestimate)) per ticket
+    hours_done_credit = 0
+    hours_total       = 0
+    hours_spent_open  = 0   # logged time across open tickets (for display)
+
+    # For AI-fill (imputation) of missing estimates: group open-ticket estimates
+    # by issue type so we can use the median to fill in unestimated tickets.
+    open_estimated_by_type = {}    # itype -> list of timeestimate seconds
+    open_unestimated_by_type = {}  # itype -> count of unestimated open tickets
+
     for issue in leaf_issues:
         fields      = issue["fields"]
         status_cat  = fields["status"]["statusCategory"]["key"]
@@ -259,10 +287,19 @@ def fetch_version_stats(fv_name, projects):
         priority    = (fields.get("priority") or {}).get("name", "")
         timeest     = fields.get("timeestimate") or 0
         timeorig    = fields.get("timeoriginalestimate") or 0
+        timespent   = fields.get("timespent") or 0
         resdate_str = (fields.get("resolutiondate") or "")[:10]
+        itype       = (fields.get("issuetype") or {}).get("name", "Unknown")
+
+        # Ticket "scope" = best estimate of total effort for this ticket
+        ticket_scope = max(timeorig, timespent + timeest)
+        hours_total += ticket_scope
 
         if status_cat == "done":
             done += 1
+            # Done tickets: credit whichever signal is larger — the original
+            # estimate (planned effort) or the time actually spent.
+            hours_done_credit += max(timeorig, timespent)
             if resdate_str:
                 try:
                     if date.fromisoformat(resdate_str) >= cutoff:
@@ -274,18 +311,48 @@ def fetch_version_stats(fv_name, projects):
         elif status_nm in QA_STATUSES:
             qa_count += 1
             open_total += 1
+            hours_done_credit += timespent
+            hours_spent_open  += timespent
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
+                open_estimated_by_type.setdefault(itype, []).append(timeest)
+            else:
+                open_unestimated_by_type[itype] = open_unestimated_by_type.get(itype, 0) + 1
         else:
             dev_count += 1
             open_total += 1
+            hours_done_credit += timespent
+            hours_spent_open  += timespent
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
+                open_estimated_by_type.setdefault(itype, []).append(timeest)
+            else:
+                open_unestimated_by_type[itype] = open_unestimated_by_type.get(itype, 0) + 1
 
         if priority == "Blocker" and status_cat != "done":
             blockers += 1
+
+    # ── AI-fill (statistical imputation) for unestimated tickets ────────────
+    # Per-type median from estimated tickets in this FV; fall back to the
+    # cross-type median; finally to a sensible default by issue-type name.
+    from statistics import median
+    type_median   = {it: median(v) for it, v in open_estimated_by_type.items() if v}
+    all_estimated = [s for v in open_estimated_by_type.values() for s in v]
+    global_median = median(all_estimated) if all_estimated else 0
+    DEFAULT_HOURS_BY_NAME = {
+        "Sub-task": 4, "Subtask": 4, "Dev Subtask": 4, "QA Subtask": 2,
+        "Task": 8, "Dev Task": 8, "Story": 16, "Bug": 4, "QA Task": 4,
+    }
+
+    imputed_secs  = 0
+    imputed_count = 0
+    for itype, count in open_unestimated_by_type.items():
+        per_ticket = type_median.get(itype) or global_median \
+                     or (DEFAULT_HOURS_BY_NAME.get(itype, 8) * 3600)
+        imputed_secs  += per_ticket * count
+        imputed_count += count
 
     total = len(leaf_issues)
     pct   = int((done + qa_count) / total * 100) if total else 0
@@ -293,68 +360,77 @@ def fetch_version_stats(fv_name, projects):
     phase = "qa" if qa_count > 0 and dev_count == 0 else "dev"
     estimate_coverage     = open_with_estimate / open_total if open_total else 0
     velocity_secs_per_day = recent_done_secs / 14 if recent_done_secs > 0 else 0
+    pct_hours = int(hours_done_credit / hours_total * 100) if hours_total > 0 else 0
 
     return {
         "done": done, "qa_count": qa_count, "total": total, "pct": pct,
         "blockers": blockers, "phase": phase,
         "remaining_secs": remaining_secs,
+        "imputed_secs": imputed_secs,
+        "imputed_count": imputed_count,
         "estimate_coverage": estimate_coverage,
         "velocity_secs_per_day": velocity_secs_per_day,
         "recent_done_count": recent_done_count,
         "open_count": open_total,
+        # Hour-weighted progress (in seconds for arithmetic; format later)
+        "hours_done_credit": hours_done_credit,
+        "hours_total":       hours_total,
+        "hours_spent_open":  hours_spent_open,
+        "pct_hours":         pct_hours,
     }
 
 
 # ── Step 3b: QA estimate coverage ────────────────────────────────────────────
 
-def fetch_qa_estimate_status(fv_name, projects):
+def fetch_unestimated_status(fv_name, projects):
     """
-    Returns {"missing": int, "total": int} for QA tasks/subtasks in a fix version.
-    - Finds issues with QA_ISSUE_TYPES in this fix version.
-    - For issues with subtasks: checks each subtask's timeoriginalestimate.
-    - For issues without subtasks: checks the issue's own timeoriginalestimate.
-    - Returns {"missing": 0, "total": 0} when no QA tasks exist (not a warning).
+    Per ESTIMATE_CATEGORIES, count tickets missing timeoriginalestimate.
+    Returns { category: {"missing": int, "total": int} }.
+
+    Rule per top-level issue:
+      - If the issue has subtasks → check each subtask's timeoriginalestimate.
+      - If no subtasks → check the issue itself.
     """
-    types_jql = ", ".join(f'"{t}"' for t in QA_ISSUE_TYPES)
-    try:
-        qa_issues = jira_jql(
-            jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}" '
-                f'AND issuetype in ({types_jql})',
-            fields=["subtasks", "timeoriginalestimate"],
-        )
-    except Exception:
-        return {"missing": 0, "total": 0}
+    result = {cat: {"missing": 0, "total": 0} for cat in ESTIMATE_CATEGORIES}
 
-    if not qa_issues:
-        return {"missing": 0, "total": 0}
-
-    missing = total = 0
-    parent_keys = []
-
-    for issue in qa_issues:
-        subtasks = issue["fields"].get("subtasks") or []
-        if subtasks:
-            parent_keys.append(issue["key"])
-        else:
-            total += 1
-            if not issue["fields"].get("timeoriginalestimate"):
-                missing += 1
-
-    if parent_keys:
-        keys_clause = ", ".join(parent_keys)
+    for category, types in ESTIMATE_CATEGORIES.items():
+        types_jql = ", ".join(f'"{t}"' for t in types)
         try:
-            subs = jira_jql(
-                jql=f"parent in ({keys_clause})",
-                fields=["timeoriginalestimate"],
+            issues = jira_jql(
+                jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}" '
+                    f'AND issuetype in ({types_jql})',
+                fields=["subtasks", "timeoriginalestimate"],
             )
-            for sub in subs:
-                total += 1
-                if not sub["fields"].get("timeoriginalestimate"):
-                    missing += 1
         except Exception:
-            pass
+            continue
 
-    return {"missing": missing, "total": total}
+        if not issues:
+            continue
+
+        parent_keys = []
+        for issue in issues:
+            subtasks = issue["fields"].get("subtasks") or []
+            if subtasks:
+                parent_keys.append(issue["key"])
+            else:
+                result[category]["total"] += 1
+                if not issue["fields"].get("timeoriginalestimate"):
+                    result[category]["missing"] += 1
+
+        if parent_keys:
+            try:
+                subs = jira_jql(
+                    jql=f'parent in ({", ".join(parent_keys)})',
+                    fields=["timeoriginalestimate"],
+                )
+                for sub in subs:
+                    result[category]["total"] += 1
+                    if not sub["fields"].get("timeoriginalestimate"):
+                        result[category]["missing"] += 1
+            except Exception:
+                pass
+
+    return result
 
 
 # ── Step 3c: Game issues list ─────────────────────────────────────────────────
@@ -413,37 +489,57 @@ def days_until(release_date_str):
 def compute_eta(stats, release_date_str):
     """
     Returns (eta_date: date|None, confidence: 'hi'|'med'|'lo'|None).
-    Tier 1 hi  — estimate-based with measured 14-day velocity
-    Tier 1b med — estimate-based with assumed 12 h/day capacity
-    Tier 2 med — count velocity (≥3 issues resolved in last 14 days)
-    Tier 3 lo  — planned release date or pct extrapolation
+
+    Tier 1   hi  — real estimates ≥70% coverage + measured 14-day velocity
+    Tier 1b  med — real estimates ≥70% coverage + assumed 12 h/day capacity
+    Tier 2   med — real + AI-filled estimates + measured velocity
+    Tier 2b  lo  — real + AI-filled estimates + 12 h/day capacity
+    Tier 3   med — count velocity (≥3 issues resolved in last 14 days)
+    Tier 4   lo  — planned release date or pct extrapolation
+
+    AI-filled (Tier 2 / 2b) uses per-issuetype median imputation for
+    unestimated open tickets — see fetch_version_stats() imputation pass.
+    Confidence drops to "lo" when 12h/day fallback is used.
     """
-    remaining_secs        = stats.get("remaining_secs", 0)
+    real_secs             = stats.get("remaining_secs", 0)
+    imputed_secs          = stats.get("imputed_secs", 0)
     estimate_coverage     = stats.get("estimate_coverage", 0)
     velocity_secs_per_day = stats.get("velocity_secs_per_day", 0)
     recent_done_count     = stats.get("recent_done_count", 0)
     open_count            = stats.get("open_count", 0)
     pct                   = stats.get("pct", 0)
 
+    total_secs = real_secs + imputed_secs
+
     if open_count == 0 and pct > 0:
         return TODAY, "hi"
 
-    # Tier 1: good estimates + real velocity
-    if estimate_coverage >= 0.5 and velocity_secs_per_day > 0 and remaining_secs > 0:
-        days = ceil(remaining_secs / velocity_secs_per_day)
+    # Tier 1: high real coverage + measured velocity
+    if estimate_coverage >= 0.7 and velocity_secs_per_day > 0 and real_secs > 0:
+        days = ceil(real_secs / velocity_secs_per_day)
         return TODAY + timedelta(days=min(days, 365)), "hi"
 
-    # Tier 1b: good estimates + assumed 12 h/day capacity
-    if estimate_coverage >= 0.5 and remaining_secs > 0:
-        days = ceil(remaining_secs / (12 * 3600))
+    # Tier 1b: high real coverage + 12 h/day capacity
+    if estimate_coverage >= 0.7 and real_secs > 0:
+        days = ceil(real_secs / (12 * 3600))
         return TODAY + timedelta(days=min(days, 365)), "med"
 
-    # Tier 2: count velocity
+    # Tier 2: AI-filled hours + measured velocity
+    if total_secs > 0 and velocity_secs_per_day > 0:
+        days = ceil(total_secs / velocity_secs_per_day)
+        return TODAY + timedelta(days=min(days, 365)), "med"
+
+    # Tier 2b: AI-filled hours + 12 h/day capacity
+    if total_secs > 0:
+        days = ceil(total_secs / (12 * 3600))
+        return TODAY + timedelta(days=min(days, 365)), "lo"
+
+    # Tier 3: count velocity
     if recent_done_count >= 3 and open_count > 0:
         days = ceil(open_count / (recent_done_count / 14))
         return TODAY + timedelta(days=min(days, 365)), "med"
 
-    # Tier 3: planned date or overdue extrapolation
+    # Tier 4: planned date or overdue extrapolation
     if release_date_str:
         try:
             rd = date.fromisoformat(release_date_str)
@@ -464,24 +560,34 @@ def compute_eta(stats, release_date_str):
 def build_releases():
     print("  Fetching PRF overrides...")
     prf_overrides = fetch_prf_overrides()
-    print(f"  Found {len(prf_overrides)} shipped via PRF")
+    print(f"  Found {len(prf_overrides)} shipped via PRF (Release-ticket resolution)")
 
     print("  Fetching fix versions from Jira...")
-    versions = fetch_fix_versions(prf_overrides)
-    print(f"  Found {len(versions)} valid fix versions")
+    versions = fetch_fix_versions()
+    released_count = sum(1 for v in versions if v.get("jira_released"))
+    print(f"  Found {len(versions)} valid fix versions ({released_count} marked Released)")
 
-    active_versions  = [v for v in versions if v["name"] not in prf_overrides]
-    shipped_versions = [v for v in versions if v["name"] in prf_overrides]
+    active_versions, shipped_versions = [], []
+    for v in versions:
+        if v.get("jira_released") or v["name"] in prf_overrides:
+            shipped_versions.append(v)
+        else:
+            active_versions.append(v)
 
-    active  = []
-    shipped = []
+    active, shipped = [], []
 
     for v in shipped_versions:
+        # Authoritative date: Jira fix-version releaseDate.
+        # Fallback: PRF Release-ticket resolutiondate.
+        ship_date = v.get("releaseDate") or prf_overrides.get(v["name"]) or ""
+        if not ship_date:
+            print(f"  ⚠ {v['name']} flagged as shipped but has no date — skipping")
+            continue
         shipped.append({
             "name":          v["name"],
             "id":            v["id"],
             "section":       v["section"],
-            "shipped_date":  prf_overrides[v["name"]],
+            "shipped_date":  ship_date,
             "description":   v.get("jira_desc", ""),
             "jira_released": v.get("jira_released", False),
         })
@@ -494,7 +600,7 @@ def build_releases():
             # Fix version exists in Jira but has no associated issues — skip
             # to avoid cluttering the dashboard with 0/0 placeholder rows.
             continue
-        qa_est       = fetch_qa_estimate_status(name, projects)
+        unestimated  = fetch_unestimated_status(name, projects)
         release_date = v.get("releaseDate")
         health       = classify_health(stats, release_date)
         od           = overdue_days(release_date)
@@ -523,10 +629,14 @@ def build_releases():
             "release_date":   release_date,
             "overdue_days":   od,
             "days_until":     du,
-            "qa_unestimated":  qa_est["missing"],
-            "qa_total":        qa_est["total"],
+            "unestimated":     unestimated,
+            "imputed_count":   stats.get("imputed_count", 0),
             "eta_date":        eta_date,
             "eta_confidence":  eta_confidence,
+            # Hour-weighted progress (seconds; render as hours in HTML)
+            "hours_done":      stats.get("hours_done_credit", 0),
+            "hours_total":     stats.get("hours_total", 0),
+            "pct_hours":       stats.get("pct_hours", 0),
         })
 
     # Sort: by section order, then red → yellow → green within each section
@@ -604,8 +714,17 @@ def render_active_row(r):
     health_label = {"red": "Red Flag", "yel": "At Risk", "grn": "On Track"}[r["health"]]
     phase_label  = "In QA" if r["phase"] == "qa" else "In Dev"
     phase_cls    = "ph-qa" if r["phase"] == "qa" else "ph-dev"
-    pct          = r["pct"]
-    pc           = prog_class(r["phase"], pct)
+
+    # Primary progress = hour-weighted when hour data exists; fall back to count.
+    hours_done_h  = round((r.get("hours_done")  or 0) / 3600)
+    hours_total_h = round((r.get("hours_total") or 0) / 3600)
+    if hours_total_h > 0:
+        pct   = r.get("pct_hours", 0)
+        label = f'{pct}% by hours · {hours_done_h}h / {hours_total_h}h logged'
+    else:
+        pct   = r["pct"]
+        label = f'{pct}% · {r["done"] + r["qa_count"]}/{r["total"]} tickets'
+    pc = prog_class(r["phase"], pct)
 
     tags = []
     if r["overdue_days"] > 0:
@@ -615,14 +734,18 @@ def render_active_row(r):
     if r["blockers"] > 0:
         word = "blocker" if r["blockers"] == 1 else "blockers"
         tags.append(f'<span class="tag t-blk">🔴 {r["blockers"]} {word}</span>')
-    if r.get("qa_unestimated", 0) > 0:
-        n = r["qa_unestimated"]
-        word = "subtask" if n == 1 else "subtasks"
-        tags.append(f'<span class="tag t-qa-warn">🔶 QA: {n} {word} unestimated</span>')
+    # Per-category unestimated callouts (QA / Math / Creative / Sound).
+    # Rule per fetch_unestimated_status: subtasks if present, else parent.
+    for cat, counts in (r.get("unestimated") or {}).items():
+        n = counts.get("missing", 0)
+        if n > 0:
+            word = "ticket" if n == 1 else "tickets"
+            tags.append(f'<span class="tag t-qa-warn">🔶 {cat}: {n} {word} unestimated</span>')
     if r.get("eta_date"):
         conf = r.get("eta_confidence", "lo")
         cls  = {"hi": "eta-hi", "med": "eta-med", "lo": "eta-lo"}.get(conf, "eta-lo")
-        tags.append(f'<span class="tag {cls}">📅 Est. {fmt_date(r["eta_date"])}</span>')
+        ai_suffix = " · 🤖 AI-filled" if r.get("imputed_count", 0) > 0 else ""
+        tags.append(f'<span class="tag {cls}">📅 Est. {fmt_date(r["eta_date"])}{ai_suffix}</span>')
 
     scope = r.get("description") or "Scope being defined."
 
@@ -633,7 +756,7 @@ def render_active_row(r):
       <span class="ph {phase_cls}">{phase_label}</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill {pc}" style="width:{max(pct,1)}%"></div></div>
-        <div class="prog-lbl">{pct}% · {r['done'] + r['qa_count']}/{r['total']}</div>
+        <div class="prog-lbl">{label}</div>
       </div>
       <div class="dc">{''.join(tags)}<div class="scope-text">{scope}</div></div>
     </div>"""
@@ -662,46 +785,55 @@ def render_shipped_row(r):
 def generate_html(active, shipped, kpis):
     run_date = fmt_date(TODAY) + f", {TODAY.year}"
 
-    sections_html = ""
-    for sec_key in ["v2", "ig", "cs"]:
-        meta = SECTION_META[sec_key]
-        rows = [r for r in active if r["section"] == sec_key]
-        if not rows:
-            continue
-        row_html = "".join(render_active_row(r) for r in rows)
-        sections_html += f"""
-  <div class="sec-label sec-{sec_key}">{meta['label']}</div>
-  <div class="card {meta['card']}">
-    <div class="card-head">
-      <span style="font-size:16px">{meta['icon']}</span>
-      <span class="card-head-title">{meta['title']}</span>
-      <span class="card-head-count">{len(rows)} active</span>
-    </div>
-    <div class="col-head">
-      <span>Release</span><span>Health</span><span>Phase</span>
-      <span>Progress</span><span>Scope &amp; Details</span>
-    </div>
-    {row_html}
-  </div>"""
-
     month_label   = TODAY.strftime("%B %Y")
     month_prefix  = TODAY.strftime("%Y-%m")
     shipped_month = [r for r in shipped if r["shipped_date"].startswith(month_prefix)]
-    shipped_rows  = "".join(render_shipped_row(r) for r in shipped_month)
-    if shipped_month:
+
+    sections_html = ""
+
+    # For each team, render: shipped this month (if any) then active releases.
+    for sec_key in ["v2", "ig", "cs"]:
+        meta        = SECTION_META[sec_key]
+        sec_shipped = [r for r in shipped_month if r["section"] == sec_key]
+        sec_active  = [r for r in active        if r["section"] == sec_key]
+        if not sec_shipped and not sec_active:
+            continue
+
         sections_html += f"""
-  <div class="sec-label sec-done">✅ Shipped — {month_label}</div>
+  <div class="sec-label sec-{sec_key}">{meta['label']}</div>"""
+
+        # Shipped sub-card (this team, current month)
+        if sec_shipped:
+            shipped_rows = "".join(render_shipped_row(r) for r in sec_shipped)
+            sections_html += f"""
   <div class="card card-done">
     <div class="card-head">
       <span style="font-size:16px">🎉</span>
-      <span class="card-head-title">Shipped this month</span>
-      <span class="card-head-count">{len(shipped_month)} releases</span>
+      <span class="card-head-title">{meta['title']} — Shipped {month_label}</span>
+      <span class="card-head-count">{len(sec_shipped)} shipped</span>
     </div>
     <div class="col-head">
       <span>Release</span><span>Health</span><span>Phase</span>
       <span>Date</span><span>Scope</span>
     </div>
     {shipped_rows}
+  </div>"""
+
+        # Active sub-card (this team, in-progress)
+        if sec_active:
+            row_html = "".join(render_active_row(r) for r in sec_active)
+            sections_html += f"""
+  <div class="card {meta['card']}">
+    <div class="card-head">
+      <span style="font-size:16px">{meta['icon']}</span>
+      <span class="card-head-title">{meta['title']} — In Progress</span>
+      <span class="card-head-count">{len(sec_active)} active</span>
+    </div>
+    <div class="col-head">
+      <span>Release</span><span>Health</span><span>Phase</span>
+      <span>Progress</span><span>Scope &amp; Details</span>
+    </div>
+    {row_html}
   </div>"""
 
     return f"""<!DOCTYPE html>
@@ -761,7 +893,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .pf-qa   {{ background:linear-gradient(90deg,#10B981,#065F46); }}
 .pf-ship {{ background:linear-gradient(90deg,#34D399,#059669); }}
 .pf-zero {{ background:#D1D5DB; }}
-.prog-lbl {{ font-size:10px; color:#6B7280; }}
+.prog-lbl {{ font-size:10px; color:#6B7280; font-variant-numeric: tabular-nums; }}
 .dc {{ display:flex; flex-direction:column; gap:3px; padding-top:1px; }}
 .tag {{ display:inline-flex; align-items:center; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; width:fit-content; white-space:nowrap; }}
 .t-apr {{ background:#EDE9FE; color:#5B21B6; }}
