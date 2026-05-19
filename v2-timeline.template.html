@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V2 Release Timeline — Pong Game Studios</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --dev:#2563eb;--dev-bg:rgba(37,99,235,.10);
+  --qa:#d97706;--qa-bg:rgba(217,119,6,.12);
+  --done:#16a34a;--done-bg:rgba(22,163,74,.11);
+  --oth:#7c3aed;--oth-bg:rgba(124,58,237,.10);
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);padding:28px 36px 60px;min-width:1140px}
+
+/* HEADER */
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:28px}
+.hdr h1{font-size:19px;font-weight:600;letter-spacing:-.2px}
+.hdr p{font-size:12px;color:var(--muted);margin-top:3px}
+.legend{display:flex;gap:16px;align-items:center}
+.lg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.lg-sw{width:24px;height:9px;border-radius:3px}
+
+/* AXIS */
+.axis{margin-left:214px;position:relative;height:50px;margin-bottom:6px}
+.ax-date{position:absolute;font-size:10px;color:var(--sub);transform:translateX(-50%);top:0;white-space:nowrap}
+.sp-chip{position:absolute;font-size:10px;font-weight:600;color:var(--muted);background:#fff;border:1px solid var(--border);padding:3px 7px 4px;border-radius:4px;transform:translateX(-50%);top:16px;letter-spacing:.4px;text-align:center;line-height:1.25}
+.sp-chip small{display:block;font-size:9px;font-weight:400;color:var(--sub)}
+
+/* GANTT ROW */
+.fv-row{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s;position:relative;overflow:visible}
+.fv-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rc,#fff);border-radius:8px 0 0 8px}
+.fv-row:hover{border-color:rgba(255,255,255,.1);background:var(--surf2)}
+.fv-row.active{border-color:var(--rc,#fff);background:var(--surf2)}
+
+.fv-label{width:214px;flex-shrink:0;padding:12px 14px 12px 18px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
+.fv-name{font-size:13px;font-weight:600}
+.fv-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.fv-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:5px;letter-spacing:.3px;border:1px solid}
+.oth-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--oth);margin-left:5px;vertical-align:middle;title:'Has creative/sound/math work'}
+
+.fv-track{flex:1;position:relative;padding:10px 38px 10px 10px}
+.sp-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.04);pointer-events:none}
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(185,28,28,.55);pointer-events:none;z-index:3}
+.today-tag{position:absolute;top:4px;font-size:9px;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.25);padding:1px 5px;border-radius:3px;transform:translateX(-50%);z-index:4;white-space:nowrap;pointer-events:none}
+
+.bar{position:absolute;height:22px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;border:1px solid;pointer-events:none;transition:left .3s,width .3s}
+.bar-dev {background:var(--dev-bg);border-color:rgba(59,130,246,.5);color:#1d4ed8;top:8px}
+.bar-qa  {background:var(--qa-bg); border-color:rgba(245,158,11,.5); color:#92400e;top:8px}
+.bar-live{background:var(--done-bg);border-color:rgba(34,197,94,.5);color:#14532d;top:8px}
+.bar-oth {background:var(--oth-bg);border-color:rgba(167,139,250,.4);color:#4c1d95;height:14px;top:34px;font-size:9.5px}
+
+.bar-meta{position:absolute;top:52px;left:10px;right:38px;display:flex;flex-wrap:wrap;gap:4px}
+.res-pill{font-size:10px;padding:2px 8px;border-radius:3px;border:1px solid;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.pill-d{border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.07);color:#1e40af}
+.pill-w{border-color:rgba(220,38,38,.35);background:rgba(220,38,38,.07);color:#991b1b}
+.pill-o{border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07);color:#4c1d95}
+
+.chevron{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--sub);transition:transform .2s,color .2s;pointer-events:none}
+.fv-row.active .chevron{transform:translateY(-50%) rotate(180deg);color:var(--text)}
+
+/* DETAIL PANEL */
+.dp{display:none;background:var(--surf2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.dp.open{display:block}
+
+.dp-head{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid var(--border);gap:16px}
+.dp-title{font-size:14px;font-weight:600}
+.dp-subtitle{font-size:11px;color:var(--muted);margin-top:3px}
+.dp-stats{display:flex;gap:18px;flex-shrink:0}
+.dp-stat{text-align:right}
+.dp-stat-v{font-size:18px;font-weight:600;font-family:'IBM Plex Mono'}
+.dp-stat-l{font-size:10px;color:var(--muted);letter-spacing:.3px;white-space:nowrap}
+
+/* TABS */
+.dp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 18px}
+.dp-tab{font-size:11px;font-weight:600;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--sub);letter-spacing:.3px;transition:color .15s,border-color .15s;margin-bottom:-1px;user-select:none}
+.dp-tab:hover{color:var(--muted)}
+.dp-tab.active{color:var(--text);border-bottom-color:var(--rc,#fff)}
+
+/* PERSON COLUMNS */
+.dp-body{display:flex;overflow-x:auto}
+.p-col{min-width:210px;flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column}
+.p-col:last-child{border-right:none}
+.p-head{padding:12px 14px 10px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.02)}
+.p-name{font-size:12px;font-weight:600}
+.p-hrs{font-size:21px;font-weight:600;font-family:'IBM Plex Mono';line-height:1.1;margin-top:2px}
+.p-hrs span{font-size:11px;font-weight:400;color:var(--muted)}
+.p-type{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.2px}
+
+/* BUFFER CONTROL */
+.buf-ctrl{padding:8px 14px;background:rgba(0,0,0,.03);border-bottom:1px solid var(--border)}
+.buf-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.buf-lbl{font-size:10px;color:var(--sub);letter-spacing:.3px}
+.buf-val{font-size:11px;font-weight:600;font-family:'IBM Plex Mono';color:var(--text)}
+.buf-hpd{font-size:10px;color:var(--muted);margin-top:2px}
+input[type=range]{width:100%;height:4px;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;border-radius:50%;background:var(--rc,#60a5fa);cursor:pointer;border:2px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--rc,#60a5fa);cursor:pointer;border:2px solid var(--bg)}
+
+/* TASK LIST */
+.p-tasks{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:380px}
+.t-item{padding:7px 9px;border-radius:5px;background:#f8fafc;border:1px solid var(--border);font-size:11px;line-height:1.4}
+.t-item.done{opacity:.42}
+.t-key{font-family:'IBM Plex Mono';font-size:10px;color:var(--sub)}
+.t-key a{color:inherit;text-decoration:none}
+.t-key a:hover{color:var(--text);text-decoration:underline}
+.t-bot-lbl{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.4px}
+.t-sum{color:var(--text);margin:2px 0 4px}
+.t-bot{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap}
+.t-hrs{font-family:'IBM Plex Mono';font-size:10px;font-weight:500}
+.hr{color:#dc2626}.ha{color:#b45309}.hg{color:#15803d}.hn{color:var(--sub)}
+.t-st{font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;letter-spacing:.3px}
+.s-todo{background:rgba(100,116,139,.12);color:#475569}
+.s-prog{background:rgba(37,99,235,.12);color:#1e40af}
+.s-rdy{background:rgba(124,58,237,.12);color:#4c1d95}
+.s-inqa{background:rgba(217,119,6,.12);color:#78350f}
+.s-done{background:rgba(22,163,74,.12);color:#14532d}
+.s-new{background:rgba(100,116,139,.10);color:#475569}
+.s-pp{background:rgba(234,88,12,.12);color:#7c2d12}
+
+.done-tog{padding:6px 12px;font-size:11px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:5px;border-top:1px solid var(--border);user-select:none}
+.done-tog:hover{color:var(--muted)}
+.done-tog svg{transition:transform .2s;flex-shrink:0}
+.done-tog.open svg{transform:rotate(180deg)}
+.done-sec{display:none;padding:0 12px 8px;gap:4px;flex-direction:column}
+.done-sec.open{display:flex}
+.no-task{font-size:11px;color:var(--sub);padding:4px 0;font-style:italic}
+
+/* NOTE / FOOTER */
+.note{margin-top:26px;padding:11px 16px;background:rgba(217,119,6,.05);border:1px solid rgba(217,119,6,.2);border-radius:7px;font-size:12px;color:var(--muted);line-height:1.75}
+.note strong{color:#92400e}
+.footer{margin-top:16px;font-size:11px;color:var(--sub);border-top:1px solid var(--border);padding-top:12px}
+
+/* SHARED TAB NAV (same markup as exec dashboard) */
+.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px}
+.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB}
+.site-tab{padding:9px 16px;font-size:13px;font-weight:500;color:#6B7280;text-decoration:none;border-bottom:2px solid transparent;transition:color .12s,border-color .12s}
+.site-tab:hover{color:#111827}
+.site-tab.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
+</style>
+</head>
+<body>
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab">Overview</a>
+    <a href="v2-timeline.html" class="site-tab active">V2 Timeline</a>
+  </div>
+</nav>
+<div class="hdr">
+  <div>
+    <h1>V2 Release Timeline — Fix Version Delivery Forecast</h1>
+    <p>Pong Game Studios · May 14, 2026 · Click any row to drill in · Adjust per-person buffers inline</p>
+  </div>
+  <div class="legend">
+    <div class="lg"><div class="lg-sw" style="background:var(--dev-bg);border:1.5px solid rgba(59,130,246,.5)"></div>Dev</div>
+    <div class="lg"><div class="lg-sw" style="background:var(--qa-bg);border:1.5px solid rgba(245,158,11,.5)"></div>QA</div>
+    <div class="lg"><div class="lg-sw" style="background:var(--done-bg);border:1.5px solid rgba(34,197,94,.5)"></div>Dev Complete</div>
+    <div class="lg"><div class="lg-sw" style="background:var(--oth-bg);border:1.5px solid rgba(167,139,250,.4)"></div>Creative/Sound/Math</div>
+  </div>
+</div>
+
+<div class="axis" id="axis"></div>
+<div id="rows"></div>
+
+<div class="note">
+  <strong>⚠ Notes:</strong>
+  Availability: <strong>75% (6h/day)</strong> all resources · <strong>Rejosh 50% (4h/day)</strong> due to cross-release load. May 18 holiday excluded.
+  Rejosh's queued hours include higher-priority release commitments. Many tasks show <strong>0h remaining</strong> — estimates may not be logged.
+  Release &amp; Merge sub-tasks excluded from dev totals. QA = 2 weeks for SW/PT/HHR · <strong>3 weeks for P2P &amp; PT 14.00</strong>.
+  <strong>"V2 SW P2P 16.00"</strong> matched to <strong>V2 SW 16.00</strong> in Jira — confirm this is correct.
+</div>
+<div class="footer">Pong Game Studios PMO · V2 Project · ponggamestudios.atlassian.net · Excludes: Bugs, Enhancements, QA Tasks, Release &amp; Merge Tasks/Sub-tasks</div>
+
+<script>
+// ─── CONSTANTS ─────────────────────────────────────────
+const D=s=>new Date(s);
+const TODAY=D('__TODAY__');
+const CHART_START=D('2026-05-10');
+const CHART_END=D('2026-08-12');
+const BASE='https://ponggamestudios.atlassian.net/browse/';
+const HOLIDAYS=['2026-05-18'];
+
+// ─── HELPERS ───────────────────────────────────────────
+function pct(d){const t=CHART_END-CHART_START;return Math.max(0,Math.min(100,((D(d)-CHART_START)/t)*100)).toFixed(3)}
+function addWD(date,hours,hpd){
+  if(hours<=0)return new Date(date);
+  const days=Math.ceil(hours/hpd);
+  let r=new Date(date),a=0;
+  while(a<days){r.setDate(r.getDate()+1);const ds=r.toISOString().slice(0,10);if(r.getDay()!==0&&r.getDay()!==6&&!HOLIDAYS.includes(ds))a++;}
+  return r;
+}
+function addCal(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
+function fmtD(d){return new Date(d).toLocaleDateString('en-CA',{month:'short',day:'numeric'})}
+function isDone(s){return s==='Closed'||s==='Done'}
+function hCls(h){return h>=40?'hr':h>=16?'ha':h>0?'hg':'hn'}
+function stCls(s){return({'To Do':'s-todo','In Progress':'s-prog','Ready':'s-rdy','In QA':'s-inqa','Closed':'s-done','Done':'s-done','New':'s-new','Pre-Prod In Progress':'s-pp'})[s]||'s-todo'}
+
+// ─── BUFFER STATE ──────────────────────────────────────
+const BUFFERS={};
+function getBuffer(fvKey,name){
+  const k=`${fvKey}::${name}`;
+  return BUFFERS[k]??=(name==='Rejosh Samuel'?50:75);
+}
+function setBuffer(fvKey,name,val){
+  BUFFERS[`${fvKey}::${name}`]=val;
+  refreshAll();
+}
+function hpd(fvKey,name){return 8*getBuffer(fvKey,name)/100}
+
+// ─── CALCULATIONS ──────────────────────────────────────
+function calcDevEnd(fv){
+  if(!fv.devStart)return new Date(TODAY);
+  let latest=new Date(TODAY);
+  for(const p of fv.devPeople){
+    const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    const total=openH+(p.queuedHours||0);
+    if(total<=0)continue;
+    const done=addWD(TODAY,total,hpd(fv.key,p.name));
+    if(done>latest)latest=done;
+  }
+  return latest;
+}
+function calcOthersEnd(fv){
+  let latest=new Date(TODAY);
+  for(const p of(fv.otherPeople||[])){
+    const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    if(openH<=0)continue;
+    const done=addWD(TODAY,openH,hpd(fv.key,p.name));
+    if(done>latest)latest=done;
+  }
+  return latest;
+}
+function hasOthersHours(fv){
+  return(fv.otherPeople||[]).some(p=>p.tasks.filter(t=>!isDone(t.status)).some(t=>t.hours>0));
+}
+
+// ─── FV DATA ───────────────────────────────────────────
+const FV=__FV_DATA__;
+// Normalize: convert ISO date strings to Date objects for fields that expect Dates
+FV.forEach(fv=>{ if(typeof fv.devStart==='string') fv.devStart=D(fv.devStart); });
+
+// ─── SPRINTS ───────────────────────────────────────────
+const SPRINTS=__SPRINTS_DATA__;
+SPRINTS.forEach(s=>{ if(typeof s.start==='string') s.start=D(s.start); });
+
+// ─── BUILD AXIS ────────────────────────────────────────
+const axisEl=document.getElementById('axis');
+let mc=new Date(CHART_START.getFullYear(),CHART_START.getMonth(),1);
+while(mc<=CHART_END){
+  const el=document.createElement('div');el.className='ax-date';el.style.left=pct(mc)+'%';
+  el.textContent=mc.toLocaleString('en-CA',{month:'short',year:'2-digit'});
+  axisEl.appendChild(el);
+  mc=new Date(mc.getFullYear(),mc.getMonth()+1,1);
+}
+SPRINTS.slice(0,-1).forEach((s,i)=>{
+  const next=SPRINTS[i+1].start;
+  const mid=new Date((s.start.getTime()+next.getTime())/2);
+  const chip=document.createElement('div');chip.className='sp-chip';chip.style.left=pct(mid)+'%';
+  chip.innerHTML=`${s.label}<small>${s.start.toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</small>`;
+  axisEl.appendChild(chip);
+});
+
+// ─── BAR ELEMENT REGISTRY ──────────────────────────────
+const barEls={};   // { 'devbar-0': el, 'qabar-0': el, 'othbar-0': el }
+const pillEls={};   // { 'pills-0': [el, el, ...] }
+const panelRefs={}; // idx → { panel, tabState }
+
+// ─── REFRESH ALL ───────────────────────────────────────
+function refreshAll(){
+  FV.forEach((fv,idx)=>{
+    const devEnd=calcDevEnd(fv);
+    const othEnd=calcOthersEnd(fv);
+    const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
+    const devStart=fv.devStart||TODAY;
+
+    // Dev bar
+    const db=barEls[`devbar-${idx}`];
+    if(db){
+      if(!fv.devStart){
+        db.style.left='0%'; db.style.width=pct(TODAY)+'%';
+        db.textContent='DEV COMPLETE';
+      } else {
+        const l=+pct(devStart),w=+pct(devEnd)-l;
+        db.style.left=l+'%'; db.style.width=Math.max(w,.3)+'%';
+        db.textContent=w>3?`Dev → ${fmtD(devEnd)}`:'';
+      }
+    }
+    // QA bar
+    const qb=barEls[`qabar-${idx}`];
+    if(qb){
+      const l=+pct(devEnd),w=+pct(qaEnd)-l;
+      qb.style.left=l+'%'; qb.style.width=Math.max(w,.3)+'%';
+      qb.textContent=w>3?`QA → ${fmtD(qaEnd)}`:'';
+    }
+    // Others bar
+    const ob=barEls[`othbar-${idx}`];
+    if(ob){
+      const hasH=hasOthersHours(fv);
+      ob.style.display=hasH?'flex':'none';
+      if(hasH){const l=+pct(TODAY),w=+pct(othEnd)-l;ob.style.left=l+'%';ob.style.width=Math.max(w,.3)+'%';ob.textContent=w>6?`Others → ${fmtD(othEnd)}`:''}
+    }
+
+    // Refresh pills on gantt row
+    (pillEls[`pills-${idx}`]||[]).forEach(pill=>{
+      const pname=pill.dataset.pname, fvkey=pill.dataset.fvkey;
+      const ph=+pill.dataset.ph;
+      const isBot=pill.dataset.isbot==='1';
+      const buf=getBuffer(fvkey,pname);
+      const fn=pname.split(' ');
+      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
+    });
+
+    // Refresh open panel
+    const pr=panelRefs[idx];
+    if(pr&&pr.panel.classList.contains('open')){
+      pr.panel.querySelector('.dp-subtitle').textContent=
+        `${fv.note||fv.sub} · Dev: ${fv.devStart?fmtD(devEnd):'Complete'} · QA done: ${fmtD(qaEnd)}`;
+      // Update per-person projected dates in dev tab
+      pr.panel.querySelectorAll('[data-proj]').forEach(el=>{
+        const pname=el.dataset.proj,fvkey=el.dataset.fv;
+        const p=(fv.devPeople||[]).find(x=>x.name===pname)||(fv.otherPeople||[]).find(x=>x.name===pname);
+        if(!p)return;
+        const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+        const total=openH+(p.queuedHours||0);
+        const rate=hpd(fvkey,pname);
+        const proj=total>0?fmtD(addWD(TODAY,total,rate)):'—';
+        el.textContent=`→ ${proj}`;
+      });
+      // Update buffer display values
+      pr.panel.querySelectorAll('[data-buf-val]').forEach(el=>{
+        const pname=el.dataset.bufVal,fvkey=el.dataset.fv;
+        const b=getBuffer(fvkey,pname);
+        el.textContent=`${b}%`;
+      });
+      pr.panel.querySelectorAll('[data-buf-hpd]').forEach(el=>{
+        const pname=el.dataset.bufHpd,fvkey=el.dataset.fv;
+        el.textContent=`${(8*getBuffer(fvkey,pname)/100).toFixed(1)}h/day effective`;
+      });
+    }
+  });
+}
+
+// ─── BUILD PERSON COLUMN ───────────────────────────────
+function buildPersonCol(fv,person,group){
+  const isBot=person.bottleneck||person.tasks.some(t=>t.bottleneck);
+  const openT=person.tasks.filter(t=>!isDone(t.status));
+  const doneT=person.tasks.filter(t=>isDone(t.status));
+  const openH=openT.reduce((s,t)=>s+t.hours,0);
+  const total=openH+(person.queuedHours||0);
+  const rate=hpd(fv.key,person.name);
+  const projDate=total>0?fmtD(addWD(TODAY,total,rate)):'—';
+  const nameColor=isBot?'#991b1b':(group==='others'?'#4c1d95':'var(--text)');
+  const hrsColor=isBot?'#dc2626':(group==='others'?'var(--oth)':fv.color);
+  const buf=getBuffer(fv.key,person.name);
+
+  const col=document.createElement('div');col.className='p-col';
+
+  // Head
+  col.innerHTML=`
+    <div class="p-head">
+      <div class="p-name" style="color:${nameColor}">${isBot?'⛓ ':''}${person.name}</div>
+      ${person.type?`<div class="p-type">${person.type}</div>`:''}
+      <div class="p-hrs" style="color:${hrsColor}">${openH}h <span>remaining${person.queuedHours>0?` <span style="font-size:10px;color:var(--sub)">(+${person.queuedHours}h queued)</span>`:''}</span></div>
+    </div>`;
+
+  // Buffer control
+  const bc=document.createElement('div');bc.className='buf-ctrl';
+  bc.innerHTML=`
+    <div class="buf-label">
+      <span class="buf-lbl">AVAILABILITY BUFFER</span>
+      <span class="buf-val" data-buf-val="${person.name}" data-fv="${fv.key}">${buf}%</span>
+    </div>
+    <input type="range" min="10" max="100" step="5" value="${buf}" style="--rc:${fv.color}" 
+      oninput="setBuffer('${fv.key}','${person.name}',+this.value)">
+    <div class="buf-hpd" data-buf-hpd="${person.name}" data-fv="${fv.key}">${(8*buf/100).toFixed(1)}h/day effective</div>
+    ${person.queuedHours>0?`<div style="font-size:10px;color:var(--sub);margin-top:2px">Incl. ${person.queuedHours}h cross-release queue</div>`:''}
+    <div style="font-size:10px;color:var(--sub);margin-top:2px">Proj. done: <span data-proj="${person.name}" data-fv="${fv.key}" style="color:${fv.color}">${projDate!=='—'?'→ '+projDate:'—'}</span></div>`;
+  col.appendChild(bc);
+
+  // Tasks
+  const tl=document.createElement('div');tl.className='p-tasks';
+  if(openT.length===0){tl.innerHTML='<div class="no-task">No open tasks</div>';}
+  else{
+    openT.forEach(t=>{
+      const ti=document.createElement('div');ti.className='t-item';
+      ti.innerHTML=`<div class="t-key"><a href="${BASE}${t.key}" target="_blank">${t.key}</a>${t.bottleneck?' <span class="t-bot-lbl" style="background:rgba(220,38,38,.10);color:#991b1b">⛓ BOTTLENECK</span>':''}</div>
+        <div class="t-sum">${t.summary}</div>
+        <div class="t-bot">
+          <span class="t-hrs ${hCls(t.hours)}">${t.hours>0?t.hours+'h':'0h logged'}</span>
+          <span class="t-st ${stCls(t.status)}">${t.status}</span>
+        </div>`;
+      tl.appendChild(ti);
+    });
+  }
+  col.appendChild(tl);
+
+  // Done toggle
+  if(doneT.length>0){
+    const tog=document.createElement('div');tog.className='done-tog';
+    tog.innerHTML=`<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5l3.5 3.5 3.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${doneT.length} completed`;
+    const ds=document.createElement('div');ds.className='done-sec';
+    doneT.forEach(t=>{
+      const ti=document.createElement('div');ti.className='t-item done';
+      ti.innerHTML=`<div class="t-key"><a href="${BASE}${t.key}" target="_blank">${t.key}</a></div>
+        <div class="t-sum">${t.summary}</div>
+        <div class="t-bot"><span class="t-hrs hn">Closed</span><span class="t-st s-done">${t.status}</span></div>`;
+      ds.appendChild(ti);
+    });
+    tog.addEventListener('click',e=>{e.stopPropagation();tog.classList.toggle('open');ds.classList.toggle('open');});
+    col.appendChild(tog);col.appendChild(ds);
+  }
+  return col;
+}
+
+// ─── BUILD ROWS ────────────────────────────────────────
+const rowsEl=document.getElementById('rows');
+
+FV.forEach((fv,idx)=>{
+  const devEnd=calcDevEnd(fv);
+  const othEnd=calcOthersEnd(fv);
+  const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
+  const devStart=fv.devStart||TODAY;
+  const hasOth=(fv.otherPeople||[]).length>0;
+  const hasOthH=hasOthersHours(fv);
+  const allDevT=fv.devPeople.flatMap(p=>p.tasks);
+  const devRemH=allDevT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+  const devOpenN=allDevT.filter(t=>!isDone(t.status)).length;
+  const devDoneN=allDevT.filter(t=>isDone(t.status)).length;
+  const allOthT=(fv.otherPeople||[]).flatMap(p=>p.tasks);
+  const othRemH=allOthT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+  const othOpenN=allOthT.filter(t=>!isDone(t.status)).length;
+  const othDoneN=allOthT.filter(t=>isDone(t.status)).length;
+  const minH=hasOth?(hasOthH?90:76):62;
+
+  // Active pills
+  const devPills=fv.devPeople.filter(p=>{
+    const h=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    const hasActive=p.tasks.some(t=>t.status==='In Progress'||t.status==='Ready'||t.status==='In QA'||t.status==='To Do'||t.status==='New');
+    return h>0||(p.queuedHours||0)>0||hasActive;
+  });
+  // ── GANTT ROW ──
+  const row=document.createElement('div');
+  row.className='fv-row';row.style.setProperty('--rc',fv.color);
+
+  const lbl=document.createElement('div');lbl.className='fv-label';
+  lbl.innerHTML=`<div class="fv-name" style="color:${fv.color}">${fv.key}${hasOth?'<span class="oth-dot" title="Has creative/sound/math work"></span>':''}</div>
+    <div class="fv-sub">${fv.sub}</div>
+    <span class="fv-badge" style="${fv.statusStyle}">${fv.statusLabel}</span>`;
+
+  const track=document.createElement('div');track.className='fv-track';track.style.minHeight=minH+'px';
+
+  SPRINTS.forEach(s=>{const l=document.createElement('div');l.className='sp-line';l.style.left=pct(s.start)+'%';track.appendChild(l);});
+  const tl=document.createElement('div');tl.className='today-line';tl.style.left=pct(TODAY)+'%';track.appendChild(tl);
+  if(idx===0){const tt=document.createElement('div');tt.className='today-tag';tt.style.left=pct(TODAY)+'%';tt.textContent='TODAY';track.appendChild(tt);}
+
+  // Dev/QA bars
+  const db=document.createElement('div');db.id=`devbar-${idx}`;
+  if(!fv.devStart){db.className='bar bar-live';db.style.cssText=`left:0%;width:${pct(TODAY)}%;`;db.textContent='DEV COMPLETE';}
+  else{db.className='bar bar-dev';const l=+pct(devStart),w=+pct(devEnd)-l;db.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;`;if(w>3)db.textContent=`Dev → ${fmtD(devEnd)}`;}
+  barEls[`devbar-${idx}`]=db;track.appendChild(db);
+
+  const qb=document.createElement('div');qb.id=`qabar-${idx}`;qb.className='bar bar-qa';
+  const ql=+pct(devEnd),qw=+pct(qaEnd)-ql;
+  qb.style.cssText=`left:${ql}%;width:${Math.max(qw,.3)}%;`;if(qw>3)qb.textContent=`QA → ${fmtD(qaEnd)}`;
+  barEls[`qabar-${idx}`]=qb;track.appendChild(qb);
+
+  // Others bar
+  const ob=document.createElement('div');ob.id=`othbar-${idx}`;ob.className='bar bar-oth';
+  ob.style.display=hasOthH?'flex':'none';
+  if(hasOthH){const l=+pct(TODAY),w=+pct(othEnd)-l;ob.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;top:34px;display:flex;`;if(w>6)ob.textContent=`Others → ${fmtD(othEnd)}`;}
+  barEls[`othbar-${idx}`]=ob;track.appendChild(ob);
+
+  // Resource pills
+  if(devPills.length>0){
+    const meta=document.createElement('div');meta.className='bar-meta';
+    pillEls[`pills-${idx}`]=[];
+    devPills.forEach(p=>{
+      const ph=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+      const isBot=p.bottleneck||p.tasks.some(t=>t.bottleneck);
+      const pill=document.createElement('span');
+      pill.className='res-pill '+(isBot?'pill-w':'pill-d');
+      pill.dataset.pname=p.name; pill.dataset.fvkey=fv.key; pill.dataset.ph=ph; pill.dataset.isbot=isBot?'1':'';
+      const fn=p.name.split(' ');
+      const buf=getBuffer(fv.key,p.name);
+      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
+      meta.appendChild(pill);
+      pillEls[`pills-${idx}`].push(pill);
+    });
+    // Others indicator pill
+    if(hasOth){
+      const op=document.createElement('span');op.className='res-pill pill-o';
+      op.textContent=`Others · ${othOpenN} task${othOpenN!==1?'s':''} · ${othRemH}h`;
+      meta.appendChild(op);
+    }
+    track.appendChild(meta);
+  }
+
+  const chev=document.createElement('div');chev.className='chevron';
+  chev.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  row.appendChild(lbl);row.appendChild(track);row.appendChild(chev);
+
+  // ── DETAIL PANEL ──
+  const panel=document.createElement('div');panel.className='dp';panel.id=`panel-${idx}`;
+
+  // Header
+  const head=document.createElement('div');head.className='dp-head';
+  head.innerHTML=`<div>
+    <div class="dp-title" style="color:${fv.color}">${fv.key} — Work Breakdown</div>
+    <div class="dp-subtitle">${fv.note||fv.sub} · Dev: ${fv.devStart?fmtD(devEnd):'Complete'} · QA done: ${fmtD(qaEnd)}</div>
+  </div>
+  <div class="dp-stats">
+    <div class="dp-stat"><div class="dp-stat-v" style="color:${fv.color}">${devRemH}h</div><div class="dp-stat-l">DEV REMAINING</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${devOpenN}</div><div class="dp-stat-l">DEV OPEN</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${devDoneN}</div><div class="dp-stat-l">DEV DONE</div></div>
+    ${hasOth?`<div class="dp-stat"><div class="dp-stat-v" style="color:var(--oth)">${othRemH}h</div><div class="dp-stat-l">OTHERS REM.</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${othOpenN}</div><div class="dp-stat-l">OTHERS OPEN</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${othDoneN}</div><div class="dp-stat-l">OTHERS DONE</div></div>`:''}
+  </div>`;
+  panel.appendChild(head);
+
+  // Tabs (only show Others tab if there are others tasks)
+  let activeTab='dev';
+  if(hasOth){
+    const tabs=document.createElement('div');tabs.className='dp-tabs';
+    tabs.style.setProperty('--rc',fv.color);
+    tabs.innerHTML=`<div class="dp-tab active" data-tab="dev">DEV WORK</div><div class="dp-tab" data-tab="others">CREATIVE · SOUND · MATH</div>`;
+    tabs.querySelectorAll('.dp-tab').forEach(t=>{
+      t.addEventListener('click',e=>{
+        e.stopPropagation();
+        tabs.querySelectorAll('.dp-tab').forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        activeTab=t.dataset.tab;
+        devBody.style.display=activeTab==='dev'?'flex':'none';
+        othBody.style.display=activeTab==='others'?'flex':'none';
+      });
+    });
+    panel.appendChild(tabs);
+  }
+
+  // Dev body
+  const devBody=document.createElement('div');devBody.className='dp-body';
+  fv.devPeople.forEach(p=>devBody.appendChild(buildPersonCol(fv,p,'dev')));
+  panel.appendChild(devBody);
+
+  // Others body
+  const othBody=document.createElement('div');othBody.className='dp-body';othBody.style.display='none';
+  if(hasOth)(fv.otherPeople||[]).forEach(p=>othBody.appendChild(buildPersonCol(fv,p,'others')));
+  panel.appendChild(othBody);
+
+  panelRefs[idx]={panel,activeTab};
+
+  // Toggle
+  row.addEventListener('click',()=>{
+    const wasOpen=panel.classList.contains('open');
+    document.querySelectorAll('.dp').forEach(p=>p.classList.remove('open'));
+    document.querySelectorAll('.fv-row').forEach(r=>r.classList.remove('active'));
+    if(!wasOpen){panel.classList.add('open');row.classList.add('active');setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),60);}
+  });
+
+  rowsEl.appendChild(row);
+  rowsEl.appendChild(panel);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>V2 Release Timeline — Pong Game Studios</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --dev:#2563eb;--dev-bg:rgba(37,99,235,.10);
+  --qa:#d97706;--qa-bg:rgba(217,119,6,.12);
+  --done:#16a34a;--done-bg:rgba(22,163,74,.11);
+  --oth:#7c3aed;--oth-bg:rgba(124,58,237,.10);
+}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);padding:28px 36px 60px;min-width:1140px}
+
+/* HEADER */
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:28px}
+.hdr h1{font-size:19px;font-weight:600;letter-spacing:-.2px}
+.hdr p{font-size:12px;color:var(--muted);margin-top:3px}
+.legend{display:flex;gap:16px;align-items:center}
+.lg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.lg-sw{width:24px;height:9px;border-radius:3px}
+
+/* AXIS */
+.axis{margin-left:214px;position:relative;height:50px;margin-bottom:6px}
+.ax-date{position:absolute;font-size:10px;color:var(--sub);transform:translateX(-50%);top:0;white-space:nowrap}
+.sp-chip{position:absolute;font-size:10px;font-weight:600;color:var(--muted);background:#fff;border:1px solid var(--border);padding:3px 7px 4px;border-radius:4px;transform:translateX(-50%);top:16px;letter-spacing:.4px;text-align:center;line-height:1.25}
+.sp-chip small{display:block;font-size:9px;font-weight:400;color:var(--sub)}
+
+/* GANTT ROW */
+.fv-row{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s;position:relative;overflow:visible}
+.fv-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rc,#fff);border-radius:8px 0 0 8px}
+.fv-row:hover{border-color:rgba(255,255,255,.1);background:var(--surf2)}
+.fv-row.active{border-color:var(--rc,#fff);background:var(--surf2)}
+
+.fv-label{width:214px;flex-shrink:0;padding:12px 14px 12px 18px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
+.fv-name{font-size:13px;font-weight:600}
+.fv-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.fv-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:5px;letter-spacing:.3px;border:1px solid}
+.oth-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--oth);margin-left:5px;vertical-align:middle;title:'Has creative/sound/math work'}
+
+.fv-track{flex:1;position:relative;padding:10px 38px 10px 10px}
+.sp-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.04);pointer-events:none}
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(185,28,28,.55);pointer-events:none;z-index:3}
+.today-tag{position:absolute;top:4px;font-size:9px;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.25);padding:1px 5px;border-radius:3px;transform:translateX(-50%);z-index:4;white-space:nowrap;pointer-events:none}
+
+.bar{position:absolute;height:22px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;border:1px solid;pointer-events:none;transition:left .3s,width .3s}
+.bar-dev {background:var(--dev-bg);border-color:rgba(59,130,246,.5);color:#1d4ed8;top:8px}
+.bar-qa  {background:var(--qa-bg); border-color:rgba(245,158,11,.5); color:#92400e;top:8px}
+.bar-live{background:var(--done-bg);border-color:rgba(34,197,94,.5);color:#14532d;top:8px}
+.bar-oth {background:var(--oth-bg);border-color:rgba(167,139,250,.4);color:#4c1d95;height:14px;top:34px;font-size:9.5px}
+
+.bar-meta{position:absolute;top:52px;left:10px;right:38px;display:flex;flex-wrap:wrap;gap:4px}
+.res-pill{font-size:10px;padding:2px 8px;border-radius:3px;border:1px solid;font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.pill-d{border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.07);color:#1e40af}
+.pill-w{border-color:rgba(220,38,38,.35);background:rgba(220,38,38,.07);color:#991b1b}
+.pill-o{border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07);color:#4c1d95}
+
+.chevron{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--sub);transition:transform .2s,color .2s;pointer-events:none}
+.fv-row.active .chevron{transform:translateY(-50%) rotate(180deg);color:var(--text)}
+
+/* DETAIL PANEL */
+.dp{display:none;background:var(--surf2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.dp.open{display:block}
+
+.dp-head{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 18px 12px;border-bottom:1px solid var(--border);gap:16px}
+.dp-title{font-size:14px;font-weight:600}
+.dp-subtitle{font-size:11px;color:var(--muted);margin-top:3px}
+.dp-stats{display:flex;gap:18px;flex-shrink:0}
+.dp-stat{text-align:right}
+.dp-stat-v{font-size:18px;font-weight:600;font-family:'IBM Plex Mono'}
+.dp-stat-l{font-size:10px;color:var(--muted);letter-spacing:.3px;white-space:nowrap}
+
+/* TABS */
+.dp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 18px}
+.dp-tab{font-size:11px;font-weight:600;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;color:var(--sub);letter-spacing:.3px;transition:color .15s,border-color .15s;margin-bottom:-1px;user-select:none}
+.dp-tab:hover{color:var(--muted)}
+.dp-tab.active{color:var(--text);border-bottom-color:var(--rc,#fff)}
+
+/* PERSON COLUMNS */
+.dp-body{display:flex;overflow-x:auto}
+.p-col{min-width:210px;flex:1;border-right:1px solid var(--border);display:flex;flex-direction:column}
+.p-col:last-child{border-right:none}
+.p-head{padding:12px 14px 10px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.02)}
+.p-name{font-size:12px;font-weight:600}
+.p-hrs{font-size:21px;font-weight:600;font-family:'IBM Plex Mono';line-height:1.1;margin-top:2px}
+.p-hrs span{font-size:11px;font-weight:400;color:var(--muted)}
+.p-type{font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.2px}
+
+/* BUFFER CONTROL */
+.buf-ctrl{padding:8px 14px;background:rgba(0,0,0,.03);border-bottom:1px solid var(--border)}
+.buf-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.buf-lbl{font-size:10px;color:var(--sub);letter-spacing:.3px}
+.buf-val{font-size:11px;font-weight:600;font-family:'IBM Plex Mono';color:var(--text)}
+.buf-hpd{font-size:10px;color:var(--muted);margin-top:2px}
+input[type=range]{width:100%;height:4px;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;border-radius:50%;background:var(--rc,#60a5fa);cursor:pointer;border:2px solid var(--bg)}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--rc,#60a5fa);cursor:pointer;border:2px solid var(--bg)}
+
+/* TASK LIST */
+.p-tasks{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;max-height:380px}
+.t-item{padding:7px 9px;border-radius:5px;background:#f8fafc;border:1px solid var(--border);font-size:11px;line-height:1.4}
+.t-item.done{opacity:.42}
+.t-key{font-family:'IBM Plex Mono';font-size:10px;color:var(--sub)}
+.t-key a{color:inherit;text-decoration:none}
+.t-key a:hover{color:var(--text);text-decoration:underline}
+.t-bot-lbl{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.4px}
+.t-sum{color:var(--text);margin:2px 0 4px}
+.t-bot{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap}
+.t-hrs{font-family:'IBM Plex Mono';font-size:10px;font-weight:500}
+.hr{color:#dc2626}.ha{color:#b45309}.hg{color:#15803d}.hn{color:var(--sub)}
+.t-st{font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;letter-spacing:.3px}
+.s-todo{background:rgba(100,116,139,.12);color:#475569}
+.s-prog{background:rgba(37,99,235,.12);color:#1e40af}
+.s-rdy{background:rgba(124,58,237,.12);color:#4c1d95}
+.s-inqa{background:rgba(217,119,6,.12);color:#78350f}
+.s-done{background:rgba(22,163,74,.12);color:#14532d}
+.s-new{background:rgba(100,116,139,.10);color:#475569}
+.s-pp{background:rgba(234,88,12,.12);color:#7c2d12}
+
+.done-tog{padding:6px 12px;font-size:11px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:5px;border-top:1px solid var(--border);user-select:none}
+.done-tog:hover{color:var(--muted)}
+.done-tog svg{transition:transform .2s;flex-shrink:0}
+.done-tog.open svg{transform:rotate(180deg)}
+.done-sec{display:none;padding:0 12px 8px;gap:4px;flex-direction:column}
+.done-sec.open{display:flex}
+.no-task{font-size:11px;color:var(--sub);padding:4px 0;font-style:italic}
+
+/* NOTE / FOOTER */
+.note{margin-top:26px;padding:11px 16px;background:rgba(217,119,6,.05);border:1px solid rgba(217,119,6,.2);border-radius:7px;font-size:12px;color:var(--muted);line-height:1.75}
+.note strong{color:#92400e}
+.footer{margin-top:16px;font-size:11px;color:var(--sub);border-top:1px solid var(--border);padding-top:12px}
+
+/* SHARED TAB NAV (same markup as exec dashboard) */
+.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px}
+.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB}
+.site-tab{padding:9px 16px;font-size:13px;font-weight:500;color:#6B7280;text-decoration:none;border-bottom:2px solid transparent;transition:color .12s,border-color .12s}
+.site-tab:hover{color:#111827}
+.site-tab.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
+</style>
+</head>
+<body>
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab">Overview</a>
+    <a href="v2-timeline.html" class="site-tab active">V2 Timeline</a>
+  </div>
+</nav>
+<div class="hdr">
+  <div>
+    <h1>V2 Release Timeline — Fix Version Delivery Forecast</h1>
+    <p>Pong Game Studios · May 14, 2026 · Click any row to drill in · Adjust per-person buffers inline</p>
+  </div>
+  <div class="legend">
+    <div class="lg"><div class="lg-sw" style="background:var(--dev-bg);border:1.5px solid rgba(59,130,246,.5)"></div>Dev</div>
+    <div class="lg"><div class="lg-sw" style="background:var(--qa-bg);border:1.5px solid rgba(245,158,11,.5)"></div>QA</div>
+    <div class="lg"><div class="lg-sw" style="background:var(--done-bg);border:1.5px solid rgba(34,197,94,.5)"></div>Dev Complete</div>
+    <div class="lg"><div class="lg-sw" style="background:var(--oth-bg);border:1.5px solid rgba(167,139,250,.4)"></div>Creative/Sound/Math</div>
+  </div>
+</div>
+
+<div class="axis" id="axis"></div>
+<div id="rows"></div>
+
+<div class="note">
+  <strong>⚠ Notes:</strong>
+  Availability: <strong>75% (6h/day)</strong> all resources · <strong>Rejosh 50% (4h/day)</strong> due to cross-release load. May 18 holiday excluded.
+  Rejosh's queued hours include higher-priority release commitments. Many tasks show <strong>0h remaining</strong> — estimates may not be logged.
+  Release &amp; Merge sub-tasks excluded from dev totals. QA = 2 weeks for SW/PT/HHR · <strong>3 weeks for P2P &amp; PT 14.00</strong>.
+  <strong>"V2 SW P2P 16.00"</strong> matched to <strong>V2 SW 16.00</strong> in Jira — confirm this is correct.
+</div>
+<div class="footer">Pong Game Studios PMO · V2 Project · ponggamestudios.atlassian.net · Excludes: Bugs, Enhancements, QA Tasks, Release &amp; Merge Tasks/Sub-tasks</div>
+
+<script>
+// ─── CONSTANTS ─────────────────────────────────────────
+const D=s=>new Date(s);
+const TODAY=D('2026-05-19');
+const CHART_START=D('2026-05-10');
+const CHART_END=D('2026-08-12');
+const BASE='https://ponggamestudios.atlassian.net/browse/';
+const HOLIDAYS=['2026-05-18'];
+
+// ─── HELPERS ───────────────────────────────────────────
+function pct(d){const t=CHART_END-CHART_START;return Math.max(0,Math.min(100,((D(d)-CHART_START)/t)*100)).toFixed(3)}
+function addWD(date,hours,hpd){
+  if(hours<=0)return new Date(date);
+  const days=Math.ceil(hours/hpd);
+  let r=new Date(date),a=0;
+  while(a<days){r.setDate(r.getDate()+1);const ds=r.toISOString().slice(0,10);if(r.getDay()!==0&&r.getDay()!==6&&!HOLIDAYS.includes(ds))a++;}
+  return r;
+}
+function addCal(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
+function fmtD(d){return new Date(d).toLocaleDateString('en-CA',{month:'short',day:'numeric'})}
+function isDone(s){return s==='Closed'||s==='Done'}
+function hCls(h){return h>=40?'hr':h>=16?'ha':h>0?'hg':'hn'}
+function stCls(s){return({'To Do':'s-todo','In Progress':'s-prog','Ready':'s-rdy','In QA':'s-inqa','Closed':'s-done','Done':'s-done','New':'s-new','Pre-Prod In Progress':'s-pp'})[s]||'s-todo'}
+
+// ─── BUFFER STATE ──────────────────────────────────────
+const BUFFERS={};
+function getBuffer(fvKey,name){
+  const k=`${fvKey}::${name}`;
+  return BUFFERS[k]??=(name==='Rejosh Samuel'?50:75);
+}
+function setBuffer(fvKey,name,val){
+  BUFFERS[`${fvKey}::${name}`]=val;
+  refreshAll();
+}
+function hpd(fvKey,name){return 8*getBuffer(fvKey,name)/100}
+
+// ─── CALCULATIONS ──────────────────────────────────────
+function calcDevEnd(fv){
+  if(!fv.devStart)return new Date(TODAY);
+  let latest=new Date(TODAY);
+  for(const p of fv.devPeople){
+    const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    const total=openH+(p.queuedHours||0);
+    if(total<=0)continue;
+    const done=addWD(TODAY,total,hpd(fv.key,p.name));
+    if(done>latest)latest=done;
+  }
+  return latest;
+}
+function calcOthersEnd(fv){
+  let latest=new Date(TODAY);
+  for(const p of(fv.otherPeople||[])){
+    const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    if(openH<=0)continue;
+    const done=addWD(TODAY,openH,hpd(fv.key,p.name));
+    if(done>latest)latest=done;
+  }
+  return latest;
+}
+function hasOthersHours(fv){
+  return(fv.otherPeople||[]).some(p=>p.tasks.filter(t=>!isDone(t.status)).some(t=>t.hours>0));
+}
+
+// ─── FV DATA ───────────────────────────────────────────
+const FV=[{"key": "V2 SW 15.00", "color": "#60a5fa", "sub": "Sweepstakes · Games", "devStart": "2026-05-19", "qaWeeks": 2, "statusLabel": "In Development", "statusStyle": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)", "devPeople": [{"name": "Justin Kwon", "tasks": [{"key": "V2-29193", "summary": "Game Menu - Add UPC support in Sweeps game menu dashboards.", "hours": 3, "status": "In Progress"}, {"key": "V2-26812", "summary": "System/Game Updates - Update all remaining common system popups with the new design popups in the Sweeps package.", "hours": 5, "status": "In Progress", "bottleneck": true}], "queuedHours": 0, "bottleneck": true}, {"name": "Krupa Kanani", "tasks": [{"key": "V2-29349", "summary": "Retiring 5 games - Sweeps", "hours": 2, "status": "To Do"}], "queuedHours": 0}, {"name": "Linda Zhang", "tasks": [{"key": "V2-29198", "summary": "Game Menu - Add UPC support in Sweeps game menu dashboards.", "hours": 0, "status": "In QA"}, {"key": "V2-28913", "summary": "Game: Lost Totem - SW", "hours": 0, "status": "In QA"}, {"key": "V2-27682", "summary": "Game: Day of the Dead [V] - SW", "hours": 0, "status": "In QA"}, {"key": "V2-27676", "summary": "Game: Pirates Rising [V] - SW", "hours": 0, "status": "In QA"}, {"key": "V2-27670", "summary": "Game: Lanterns Rising [V] - SW", "hours": 0, "status": "In QA"}, {"key": "V2-27664", "summary": "Game: Mayan Madness - SW", "hours": 0, "status": "In QA"}, {"key": "V2-27147", "summary": "Add support for Weighted Pools for all Sequential pool games- SW", "hours": 0, "status": "In QA"}, {"key": "V2-22558", "summary": "Server-POS API Code Improvement - Part 2 POST list of APIs", "hours": 0, "status": "In QA"}, {"key": "V2-9322", "summary": "Game: Arctic Buffalo - SW", "hours": 0, "status": "In QA"}], "queuedHours": 0}, {"name": "Rejosh Samuel", "tasks": [{"key": "V2-28918", "summary": "Lost Totem - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-28915", "summary": "Server - Lost Totem - Add Game to Sweeps Server", "hours": 0, "status": "Closed"}, {"key": "V2-28914", "summary": "Lost Totem - Convert Game to Sweeps", "hours": 0, "status": "Closed"}, {"key": "V2-28099", "summary": "Server - Sweeps - Code cleanup to remove unused methods/classes and testing.", "hours": 0, "status": "Closed"}, {"key": "V2-27899", "summary": "Server - Update the sweeps game scripts to add an update query to set the RTP for each payout record.", "hours": 0, "status": "Closed"}, {"key": "V2-27716", "summary": "Game: Arctic Buffalo - SW - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-27715", "summary": "Game: Arctic Buffalo - SW - Help Pages", "hours": 0, "status": "Closed"}, {"key": "V2-27703", "summary": "POS - Update the API / getTxnDetail to the new framework format.", "hours": 0, "status": "Closed"}, {"key": "V2-27702", "summary": "Server - Update the POS API /getTxnDetail to the new framework to fix and issue with the query in this API.", "hours": 0, "status": "Closed"}, {"key": "V2-27687", "summary": "Game: Day of the Dead [V] - SW - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-27686", "summary": "Game: Day of the Dead [V] - SW - Help Pages", "hours": 0, "status": "Closed"}, {"key": "V2-27684", "summary": "Game: Day of the Dead [V] - SW - Convert Game to Sweeps", "hours": 0, "status": "Closed"}, {"key": "V2-27683", "summary": "Game: Day of the Dead [V] - SW - Add Game to Sweeps Server", "hours": 0, "status": "Closed"}, {"key": "V2-27681", "summary": "Game: Pirates Rising [V] - SW - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-27680", "summary": "Game: Pirates Rising [V] - SW - Help Pages", "hours": 0, "status": "Closed"}, {"key": "V2-27678", "summary": "Game: Pirates Rising [V] - SW - Convert Game to Sweeps", "hours": 0, "status": "Closed"}, {"key": "V2-27677", "summary": "Game: Pirates Rising [V] - SW - Add Game to Sweeps Server", "hours": 0, "status": "Closed"}, {"key": "V2-27675", "summary": "Game: Lanterns Rising [V] - SW - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-27674", "summary": "Game: Lanterns Rising [V] - SW - Help Pages", "hours": 0, "status": "Closed"}, {"key": "V2-27672", "summary": "Game: Lanterns Rising [V] - SW - Convert Game to Sweeps", "hours": 0, "status": "Closed"}, {"key": "V2-27671", "summary": "Game: Lanterns Rising [V] - SW - Add Game to Sweeps Server", "hours": 0, "status": "Closed"}, {"key": "V2-27669", "summary": "Game: Mayan Madness - SW - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-27668", "summary": "Game: Mayan Madness - SW - Help Pages", "hours": 0, "status": "Closed"}, {"key": "V2-27666", "summary": "Game: Mayan Madness - SW - Convert Game to Sweeps", "hours": 0, "status": "Closed"}, {"key": "V2-27665", "summary": "Game: Mayan Madness - SW - Add Game to Sweeps Server", "hours": 0, "status": "Closed"}, {"key": "V2-26895", "summary": "Game Core - Fix a few issues with the Demo menu command (non clickable options, other fixes)", "hours": 0, "status": "Closed"}, {"key": "V2-26415", "summary": "Server (TH related) - Fix the Session Count TH field in the Analytics report to show Quick play sessions.", "hours": 0, "status": "Closed"}, {"key": "V2-22150", "summary": "POS - Implement and test all POST POS API changes.", "hours": 0, "status": "Closed"}, {"key": "V2-16615", "summary": "Server - Arctic Buffalo - Add the game to the Sweeps server", "hours": 0, "status": "Closed"}, {"key": "V2-16614", "summary": "Game: Arctic Buffalo - Sweeps Conversion", "hours": 0, "status": "Closed"}], "queuedHours": 0}, {"name": "Yves Griber", "tasks": [{"key": "V2-28917", "summary": "Lost Totem - Help Pages", "hours": 0, "status": "To Do"}], "queuedHours": 0}], "otherPeople": [{"name": "Amanda Langford", "tasks": [{"key": "V2-29343", "summary": "TomSays - Help pg fix for Sweeps", "hours": 0, "status": "Pre-Prod In Progress"}, {"key": "V2-29334", "summary": "V2 SW RSJ | Proper Promo Messages required.", "hours": 0, "status": "Pre-Prod In Progress"}, {"key": "V2-29294", "summary": "V2 SW | UPC button position in Game Menu", "hours": 2, "status": "Pre-Prod In Progress"}], "type": "Creative"}, {"name": "James Zhang", "tasks": [{"key": "V2-29351", "summary": "Lost Totem - Help page fix", "hours": 0, "status": "Closed"}], "type": "Creative"}, {"name": "John Di Mauro", "tasks": [{"key": "V2-29320", "summary": "V2 SW | Get a Bonus Help page", "hours": 0, "status": "Closed"}, {"key": "V2-29293", "summary": "V2 SW RSJ | Help pages to update.", "hours": 0, "status": "Pre-Prod In Progress"}, {"key": "V2-29267", "summary": "V2 | New Style Messages", "hours": 0, "status": "To Do"}], "type": "Creative"}, {"name": "Sonali.Mehra", "tasks": [{"key": "V2-28916", "summary": "Lost Totem - Help Pages", "hours": 0, "status": "To Do"}, {"key": "V2-27713", "summary": "Game: Arctic Buffalo - SW - Help Pages", "hours": 0, "status": "To Do"}, {"key": "V2-27685", "summary": "Game: Day of the Dead [V] - SW - Help Pages", "hours": 0, "status": "To Do"}, {"key": "V2-27679", "summary": "Game: Pirates Rising [V] - SW - Help Pages", "hours": 0, "status": "To Do"}, {"key": "V2-27673", "summary": "Game: Lanterns Rising [V] - SW - Help Pages", "hours": 0, "status": "To Do"}, {"key": "V2-27667", "summary": "Game: Mayan Madness - SW - Help Pages", "hours": 0, "status": "To Do"}], "type": "Math"}]}, {"key": "V2 SW 16.00", "color": "#93c5fd", "sub": "Offline Upgrader · Pay It Forward", "devStart": "2026-05-19", "qaWeeks": 2, "statusLabel": "In Development", "statusStyle": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)", "devPeople": [{"name": "Asif Masood", "tasks": [{"key": "V2-29150", "summary": "[Server - Security] Replace Hardcoded DB Credentials with Centralised Encrypted   Credential Store Across All Server Applications", "hours": 0, "status": "Ready"}, {"key": "V2-29110", "summary": "Server - Create a new API to orchestrate the offline update process - separation of concerns approach, API is responsible to copy and invoke tools and game server.", "hours": 0, "status": "Ready"}, {"key": "V2-27984", "summary": "Server Deploy Manager - Create an upgrade status file in the shared folder that can be read by pgsLoader to report back to the user. ", "hours": 0, "status": "Ready"}, {"key": "V2-27983", "summary": "Server Deploy Manager - Implement auto deployment of the server tools prior to starting the server deployment.", "hours": 0, "status": "Ready"}, {"key": "V2-26803", "summary": "Server VM - Resize VM to 100 GB, exporting and testing.", "hours": 0, "status": "Ready"}, {"key": "V2-26802", "summary": "Server - Analyzing and rewriting logic for deprecated methods ( as needed)", "hours": 2, "status": "In Progress"}, {"key": "V2-26801", "summary": "Server - Application compatibility and regression testing", "hours": 0, "status": "In Progress"}, {"key": "V2-26800", "summary": "Server VM - Install and configure new JDK (Java and WildFly) New VM", "hours": 0, "status": "Ready"}, {"key": "V2-26799", "summary": "Server VM - Extract current configuration (Java and WildFly)", "hours": 0, "status": "Ready"}], "queuedHours": 0}, {"name": "Hemmat Rezvani", "tasks": [{"key": "V2-27963", "summary": "System - Add a button to initiate the software Upgrade from a USB.", "hours": 0, "status": "In Progress"}, {"key": "V2-23823", "summary": "System - For Faulty devices like printer sensors that can repeatedly send error and error clear, avoid sending repeated events to the server for a duration. ", "hours": 16, "status": "In Progress"}, {"key": "V2-23822", "summary": "System - For Faulty devices like BV and door switches that can repeatedly send error and error clear, stop the terminal and show a special error. ", "hours": 12, "status": "In Progress"}], "queuedHours": 0}, {"name": "Rejosh Samuel", "tasks": [{"key": "V2-28934", "summary": "Server - Investigate to see why the deploy manager tool does not complete the offline upgrade task.", "hours": 0, "status": "Ready"}, {"key": "V2-28016", "summary": "Offline Upgrader - Perform validation of the USB stick contents and manifest file before beginning the upgrade.", "hours": 0, "status": "Ready"}, {"key": "V2-27988", "summary": "Offline Upgrader - Implement Server and server tools Upgrade process.", "hours": 0, "status": "Ready"}, {"key": "V2-27987", "summary": "Offline Upgrader - Implement Game Clients Upgrade process.", "hours": 0, "status": "Ready"}, {"key": "V2-27986", "summary": "Offline Upgrader - Implement Loader Upgrade process.", "hours": 0, "status": "Ready"}, {"key": "V2-27985", "summary": "Offline Upgrader - Copy packages to Staging environment [Loader, Game clients, Server and Server tools] from the USB.", "hours": 0, "status": "Ready"}, {"key": "V2-27959", "summary": "Offline Upgrader - Design document review and discussions.", "hours": 0, "status": "Ready"}, {"key": "V2-27895", "summary": "Pay it Forward - SW", "hours": 0, "status": "Ready"}, {"key": "V2-27894", "summary": "Offline Upgrader", "hours": 0, "status": "In Progress"}, {"key": "V2-27535", "summary": "POS - Add support for SecurityProtocolType.Tls12 security level for communication with server JDK v1.8.301.", "hours": 3, "status": "In Progress"}, {"key": "V2-27491", "summary": "Server - JDK upgrade to 17 - Dev Investigation and conversion. [phase 2]", "hours": 0, "status": "Closed"}, {"key": "V2-26798", "summary": "Server VM Upgrade - (JDK version, Rabbit MQ Queues, Increasing the VM Disk size to 100GB)", "hours": 0, "status": "In Progress"}, {"key": "V2-23931", "summary": "For IR #23817 - CRM Issue - High Volume events are sent from TH.", "hours": 2, "status": "In Progress"}], "queuedHours": 0}, {"name": "Yves Griber", "tasks": [{"key": "V2-29356", "summary": "Test the entire offline update process and fix issues", "hours": 40, "status": "In Progress", "bottleneck": true}, {"key": "V2-28000", "summary": "Update Packager - Create a tool that is responsible for creating the USB upgrade stick with the necessary packages and manifest file.", "hours": 0, "status": "Closed"}, {"key": "V2-27989", "summary": "PGS Loader - Design the interface to show the process state of the upgrade.", "hours": 0, "status": "In Progress"}, {"key": "V2-27961", "summary": "Offline Upgrader - Implement state based recovery in case of upgrade failure.", "hours": 4, "status": "In Progress"}, {"key": "V2-27960", "summary": "Offline Upgrader - Implement the state based software upgrader process within pgsLoader. ", "hours": 0, "status": "In Progress"}], "queuedHours": 0, "bottleneck": true}], "otherPeople": [], "note": "Jira fix version \"V2 SW 16.00\""}, {"key": "V2 PT 13.30", "color": "#c4b5fd", "sub": "8× Game Ports · Server Cleanup", "devStart": "2026-05-19", "qaWeeks": 2, "statusLabel": "In Development", "statusStyle": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)", "devPeople": [{"name": "Aleksey Vorotilin", "tasks": [{"key": "V2-29169", "summary": "Quick Wins Diamond 7s - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-29166", "summary": "Quick Wins Diamond 7s - PT Conversion", "hours": 0, "status": "To Do"}, {"key": "V2-29162", "summary": "Viking Voyage of Fortune - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-29159", "summary": "Viking Voyage of Fortune - PT Conversion", "hours": 0, "status": "To Do"}, {"key": "V2-28441", "summary": "Steampunk Fortune - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28438", "summary": "Steampunk Fortune - PT Conversion", "hours": 0, "status": "To Do"}, {"key": "V2-26456", "summary": "Aleksey's PT games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 24, "status": "To Do"}, {"key": "V2-26455", "summary": "Cathy's PT games [Aleksey will work on it] - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 24, "status": "To Do"}], "queuedHours": 0}, {"name": "Asif Masood", "tasks": [{"key": "V2-27144", "summary": "Server - After generating a cashable voucher on PRE_CLOSE, the server should not create a Free play voucher in the response when system requests it.", "hours": 0, "status": "To Do"}], "queuedHours": 2}, {"name": "Hemmat Rezvani", "tasks": [{"key": "V2-27420", "summary": "System - For thig Bug #V2-27178 - Apply a system fix to allow disabling denoms in a Pull Tabs game.", "hours": 2, "status": "In Progress"}], "queuedHours": 28}, {"name": "Justin Kwon", "tasks": [{"key": "V2-28423", "summary": "Fruit Splitter - Prepare & Verify Flares", "hours": 8, "status": "To Do"}, {"key": "V2-28420", "summary": "Fruit Splitter - PT Conversion", "hours": 16, "status": "To Do"}, {"key": "V2-27099", "summary": "Game Menu/core - Show a free play balance warning in the cashout popup in TITO when configured with a receipt printer.", "hours": 4, "status": "In Progress"}, {"key": "V2-26454", "summary": "Justin's PT games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 40, "status": "To Do", "bottleneck": true}], "queuedHours": 8, "bottleneck": true}, {"name": "Krupa Kanani", "tasks": [{"key": "V2-29195", "summary": "Server - PT - Testing after Code cleanup by removing unused methods/classes.", "hours": 24, "status": "To Do"}, {"key": "V2-29180", "summary": "Server - Retire 6 games - V2 PT 14.00", "hours": 0, "status": "To Do"}, {"key": "V2-29171", "summary": "Quick Wins Diamond 7s - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-29164", "summary": "Viking Voyage of Fortune - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28455", "summary": "Zombie Hunt - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28449", "summary": "Jewels of Cleopatra - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28443", "summary": "Steampunk Fortune - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28437", "summary": "Lost Totem - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28431", "summary": "Blade of Fortune - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28425", "summary": "Fruit Splitter - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}, {"key": "V2-28419", "summary": "Arctic Buffalo - Server - Add Game to Pull Tab Server.", "hours": 0, "status": "To Do"}], "queuedHours": 2}, {"name": "Maria Vlah", "tasks": [{"key": "V2-28447", "summary": "Jewels of Cleopatra - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28444", "summary": "Jewels of Cleopatra - PT Conversion", "hours": 10, "status": "In Progress"}, {"key": "V2-28417", "summary": "Arctic Buffalo - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28414", "summary": "Arctic Buffalo - PT Conversion", "hours": 8, "status": "In Progress"}, {"key": "V2-26457", "summary": "Maria's PT games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 0, "status": "To Do"}], "queuedHours": 0}, {"name": "Niloo Tehrani", "tasks": [{"key": "V2-29179", "summary": "Niloo's PT games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 8, "status": "To Do"}, {"key": "V2-28450", "summary": "Zombie Hunt - PT Conversion", "hours": 27, "status": "In Progress"}], "queuedHours": 0}, {"name": "Rejosh Samuel", "tasks": [{"key": "V2-29178", "summary": "Retire 6 games - V2 PT 14.00", "hours": 0, "status": "To Do"}, {"key": "V2-29165", "summary": "Game: Quick Wins Diamond 7s [V] - PT", "hours": 0, "status": "To Do"}, {"key": "V2-29158", "summary": "Game: Viking Voyage of Fortune - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28453", "summary": "Zombie Hunt - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28413", "summary": "Game: Zombie Hunt - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28412", "summary": "Game: Jewels of Cleopatra - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28411", "summary": "Game: Steampunk Fortune - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28410", "summary": "Game: Lost Totem - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28409", "summary": "Game: Blade of Fortune - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28408", "summary": "Game: Fruit Splitter - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-28407", "summary": "Game: Arctic Buffalo - PT", "hours": 0, "status": "In Progress"}, {"key": "V2-27153", "summary": "Update scripts in each game", "hours": 0, "status": "Ready"}, {"key": "V2-27152", "summary": "Re-structure the all popups aligning into a same super class for popup specific", "hours": 0, "status": "Ready"}, {"key": "V2-27151", "summary": "Investigating the current all popups", "hours": 0, "status": "Ready"}, {"key": "V2-27137", "summary": "Game Core - Unify the popup logic so that we can share some properties between our standard popups. ", "hours": 0, "status": "Ready"}, {"key": "V2-26453", "summary": "Game - Investigate to see if we can add the volume button in Free spin and Bonus scenes. ", "hours": 0, "status": "Closed"}, {"key": "V2-26452", "summary": "Add Volume Control Button to Bonus Screens - PT", "hours": 0, "status": "In Progress"}], "queuedHours": 5}, {"name": "Yves Griber", "tasks": [{"key": "V2-28435", "summary": "Lost Totem - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28432", "summary": "Lost Totem - PT Conversion", "hours": 1, "status": "In Progress"}, {"key": "V2-28429", "summary": "Blade of Fortune - Prepare & Verify Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28426", "summary": "Blade of Fortune - PT Conversion", "hours": 1, "status": "In Progress"}, {"key": "V2-26458", "summary": "Yves's PT games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 2, "status": "In Progress"}], "queuedHours": 44}], "otherPeople": [{"name": "Amanda Langford", "tasks": [{"key": "V2-29167", "summary": "Quick Wins Diamond 7s - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-29160", "summary": "Viking Voyage of Fortune - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28451", "summary": "Zombie Hunt - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28445", "summary": "Jewels of Cleopatra - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28439", "summary": "Steampunk Fortune - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28433", "summary": "Lost Totem - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28427", "summary": "Blade of Fortune - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28421", "summary": "Fruit Splitter - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-28415", "summary": "Arctic Buffalo - PT Art Assets", "hours": 0, "status": "To Do"}, {"key": "V2-26897", "summary": "Golden Pride - Icon Quality Fix - Spine/Renders", "hours": 0, "status": "Closed"}], "type": "Creative"}, {"name": "Sonali.Mehra", "tasks": [{"key": "V2-29170", "summary": "Quick Wins Diamond 7s - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-29168", "summary": "Quick Wins Diamond 7s - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-29163", "summary": "Viking Voyage of Fortune - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-29161", "summary": "Viking Voyage of Fortune - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28454", "summary": "Zombie Hunt - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28452", "summary": "Zombie Hunt - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28448", "summary": "Jewels of Cleopatra - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28446", "summary": "Jewels of Cleopatra - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28442", "summary": "Steampunk Fortune - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28440", "summary": "Steampunk Fortune - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28436", "summary": "Lost Totem - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28434", "summary": "Lost Totem - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28430", "summary": "Blade of Fortune - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28428", "summary": "Blade of Fortune - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28424", "summary": "Fruit Splitter - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28422", "summary": "Fruit Splitter - Flares", "hours": 0, "status": "To Do"}, {"key": "V2-28418", "summary": "Arctic Buffalo - Help Pages - PT", "hours": 0, "status": "To Do"}, {"key": "V2-28416", "summary": "Arctic Buffalo - Flares", "hours": 0, "status": "To Do"}], "type": "Math"}]}, {"key": "V2 P2P 16.00", "color": "#fb923c", "sub": "Georgia P2P · Task Handler R7", "devStart": "2026-05-19", "qaWeeks": 3, "statusLabel": "In Development", "statusStyle": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)", "devPeople": [{"name": "Aleksey Vorotilin", "tasks": [{"key": "V2-28470", "summary": "Game - Viking Voyage of Fortune - Changes requested by Frank.", "hours": 0, "status": "In Progress"}, {"key": "V2-28353", "summary": "Game Core - TH - Send a new tag called GAME_WIN on PLAY_END request which reports the final win of the game from the original ticket and no other sources.", "hours": 0, "status": "To Do"}, {"key": "V2-27914", "summary": "Game Updates - Please ensure that all old games in P2P 16.00 still support the older version of wwise (2016).", "hours": 0, "status": "To Do"}, {"key": "V2-25593", "summary": "Wwise version update - Game Support for the new version and Sound bank updates.", "hours": 40, "status": "In Progress"}, {"key": "V2-23534", "summary": "Aleksey's games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 24, "status": "To Do"}, {"key": "V2-23533", "summary": "Cathy's games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 24, "status": "To Do"}, {"key": "V2-17573", "summary": "Game: Viking’s Voyage of Fortune - Mechanic and Prototyping", "hours": 10, "status": "Closed"}], "queuedHours": 48}, {"name": "Asif Masood", "tasks": [{"key": "V2-29355", "summary": "Server - Implement a new close session and shutdown broadcast mechanism for VLT and POS for fix redempetion", "hours": 2, "status": "In Progress"}, {"key": "V2-29186", "summary": "Server - Implement Redemption Calculation Logic for Fixed Redemption Amounts", "hours": 1, "status": "In Progress"}, {"key": "V2-29185", "summary": "Server - Push Updated Redemption Configuration to All Terminals on Settings Change", "hours": 2, "status": "In Progress"}, {"key": "V2-29184", "summary": "Server - Add FIXED_REDEMPTION Setting in POS Advanced Settings for Comma-Separated Numeric Values", "hours": 0, "status": "Ready"}, {"key": "V2-29183", "summary": "Server - Add Minimum Redemption Amount and Allowed Redemption Denominations settings", "hours": 0, "status": "Ready"}, {"key": "V2-27764", "summary": "Server - Hand count resets to 0 on cash-out or $0 balance.  Session remains open.", "hours": 2, "status": "In Progress"}, {"key": "V2-27763", "summary": "Server - Ensure that the REDEEM_CAP value is a multiple of the preconfigured denominations only ($5, $10, $20). ", "hours": 1, "status": "In Progress"}, {"key": "V2-27762", "summary": "Server - Report the correct value for REDEEM_CAP on PLAY and PLAY_END response. ", "hours": 2, "status": "In Progress"}, {"key": "V2-27657", "summary": "Server - Average Win related play count increment should only be for Cash balance play. (at least 1 cent) ", "hours": 1, "status": "In Progress"}], "queuedHours": 2}, {"name": "Hemmat Rezvani", "tasks": [{"key": "V2-29202", "summary": "System - Investigate if there is any missing restricted meters not sent to hard meter like AFT promo.", "hours": 8, "status": "In Progress"}, {"key": "V2-29201", "summary": "System - Show pending hard meter updates in MM.", "hours": 24, "status": "In Progress"}, {"key": "V2-29200", "summary": "System - Apply hard meter possible updates and support for control board changes including hardware.xml settings for Meters.", "hours": 15, "status": "In Progress"}, {"key": "V2-29189", "summary": "VLT Maintenance Menu - Implement Save, Config Sync and Local Redemption Logic", "hours": 20, "status": "In Progress"}, {"key": "V2-29188", "summary": "VLT Maintenance Menu - Implement Editing UI for Redemption Rules Tile", "hours": 20, "status": "In Progress"}, {"key": "V2-29187", "summary": "VLT Maintenance Menu - Add Redemption Rules Tile to Terminal Configuration", "hours": 24, "status": "In Progress"}, {"key": "V2-29116", "summary": "System Mechanical Meters - analysis and task breakdown", "hours": 5, "status": "In Progress"}, {"key": "V2-28355", "summary": "System - TH - Report a new tag in HARDWARE_INFO request called TRT to report whether the pyramid TRT system is enabled or not. ", "hours": 4, "status": "In Progress"}, {"key": "V2-23756", "summary": "System - System SAS Poll LP2F - 1C meter should not include internal progressive win, 1D meter should include internal progressive win.", "hours": 16, "status": "In Progress"}], "queuedHours": 30}, {"name": "Justin Kwon", "tasks": [{"key": "V2-29342", "summary": "Control Board Test Tool - Update the Tool to be able to test the hardware meters.", "hours": 2, "status": "In Progress"}, {"key": "V2-29277", "summary": "Game Menu - If PIF Threshold amount is configurable, then Game menu needs to also read this setting to show cashout calculation in the popup. ", "hours": 8, "status": "To Do"}, {"key": "V2-29276", "summary": "Game Menu - If partial redemption is performed by the server, then the game menu needs to be able to handle Average Win cashout logic for showing the calculation for cashout.", "hours": 8, "status": "To Do"}, {"key": "V2-29275", "summary": "Game Menu - Determine if we need to disable the cashout button if the balance is less than the minimum Redemption amount.", "hours": 8, "status": "To Do"}, {"key": "V2-29199", "summary": "Control Board - EFCO - Add support for each hard meter (hardware) that we want to support.", "hours": 3, "status": "In Progress"}, {"key": "V2-27658", "summary": "Game Updates - Replace the words \"Balance\" with \"Credits\" and \"Cashout\" with \"Redeem\" in this market.", "hours": 4, "status": "To Do"}, {"key": "V2-26263", "summary": "Game Updates - Add a small logo for Got Skill to the bottom of the top screen in games.", "hours": 8, "status": "To Do"}, {"key": "V2-26262", "summary": "Game Updates - Add a small logo for Missouri E-Raffle to the bottom of the top screen in games.", "hours": 8, "status": "To Do"}, {"key": "V2-26256", "summary": "Game Menu - Add a logo for Got Skill for the top screen of the Dual screen Game menu.", "hours": 4, "status": "To Do"}, {"key": "V2-25842", "summary": "System - Review and cleanup old system popups that are no longer needed (if necessary)", "hours": 16, "status": "To Do"}, {"key": "V2-23757", "summary": "Game Updates - Report Actual win after Full skill for Game and Progressive win separately for the System SAS Poll LP2F.", "hours": 6, "status": "To Do"}, {"key": "V2-23532", "summary": "Justin's games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 40, "status": "To Do", "bottleneck": true}], "queuedHours": 76, "bottleneck": true}, {"name": "Krupa Kanani", "tasks": [{"key": "V2-29208", "summary": "Game: Viking's Voyage of Fortune - Update the pools for this game in the server.", "hours": 0, "status": "In Progress"}, {"key": "V2-29194", "summary": "Server - P2P - Testing after Code cleanup by removing unused methods/classes.", "hours": 12, "status": "To Do"}, {"key": "V2-29182", "summary": "Server - Apply Configurable PIF Threshold to PIF Out Calculation on Cash-Out", "hours": 2, "status": "In Progress"}, {"key": "V2-29181", "summary": "Server - Add Configurable Pay It Forward Threshold Setting", "hours": 1, "status": "In Progress"}, {"key": "V2-28354", "summary": "Server - TH - Read a new tag on PLAY_END called GAME_WIN to record the win reported by the game that originated from the ticket. ", "hours": 3, "status": "In Progress"}, {"key": "V2-28351", "summary": "Task Handler - Rev 7.00 - Apply Updates for Configuration v2.03 spec.", "hours": 0, "status": "In Progress"}, {"key": "V2-28350", "summary": "Task Handler - Rev 7.00 - Apply Updates for Analytics v5.05 spec.", "hours": 1, "status": "In Progress"}], "queuedHours": 26}, {"name": "Maria Vlah", "tasks": [{"key": "V2-23535", "summary": "Maria's games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 0, "status": "To Do"}], "queuedHours": 18}, {"name": "Niloo Tehrani", "tasks": [{"key": "V2-28371", "summary": "Niloo's games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 8, "status": "To Do"}], "queuedHours": 35}, {"name": "Rejosh Samuel", "tasks": [{"key": "V2-29190", "summary": "POS - Verify Redemption Settings in Advanced Settings Table and Surface Validation Errors", "hours": 4, "status": "To Do"}, {"key": "V2-29177", "summary": "Pay It Forward (PIF) Configurable Threshold", "hours": 0, "status": "In Progress"}, {"key": "V2-29173", "summary": "Fixed Redemption Amounts for Cash Sessions", "hours": 0, "status": "In Progress"}, {"key": "V2-29115", "summary": "System Mechanical Meters (including MM changes)  control board Mechanical meters ", "hours": 0, "status": "In Progress"}, {"key": "V2-28986", "summary": "Game: Viking's Voyage of Fortune - Prepare new Pools", "hours": 0, "status": "Ready"}, {"key": "V2-28985", "summary": "Game: Viking's Voyage of Fortune - Apply the math changes and regenerate stats and Tickets.", "hours": 0, "status": "Ready"}, {"key": "V2-28352", "summary": "Task Handler - Rev 7.00 - Apply Updates for Status v4.01 spec.", "hours": 0, "status": "Ready"}, {"key": "V2-28349", "summary": "Task Handler - Revision 7.00", "hours": 0, "status": "In Progress"}, {"key": "V2-27661", "summary": "Server - Investigate server side implementation of REDEEM_CAP and AVG_WIN tag.", "hours": 0, "status": "Ready"}, {"key": "V2-27659", "summary": "POS - Design a redeem form with pre-configured denominations only ($5 / $10 / $20)", "hours": 23, "status": "In Progress"}, {"key": "V2-27656", "summary": "POS - Prepare a POS preset for Hand count/Average Win enabled.", "hours": 2, "status": "To Do"}, {"key": "V2-27655", "summary": "Game Core/Game Menu - Test our current implementation of Average win calculation to see if it still works and how much changes are needed to satisfy new requirements.", "hours": 0, "status": "Ready"}, {"key": "V2-27654", "summary": "Win payout based on Hand Count/Average Win logic. ", "hours": 0, "status": "In Progress"}, {"key": "V2-26261", "summary": "Horizontal Top Screen - Logo Cleanup", "hours": 0, "status": "To Do"}, {"key": "V2-24624", "summary": "Game: Flaming Skulls", "hours": 0, "status": "In Progress"}, {"key": "V2-23531", "summary": "Game - Investigate to see if we can add the volume button in Free spin and Bonus scenes. ", "hours": 0, "status": "Closed"}, {"key": "V2-20686", "summary": "Game: Viking's Voyage of Fortune - Implement Sounds.", "hours": 0, "status": "Closed"}, {"key": "V2-18842", "summary": "Game Core - Common Dashboard update to show an indicator for starting Auto play.", "hours": 0, "status": "Ready"}, {"key": "V2-17595", "summary": "Game: Viking’s Voyage of Fortune - Review - Dev", "hours": 0, "status": "Closed"}, {"key": "V2-17592", "summary": "Game: Viking’s Voyage of Fortune - Prepare and Verify Pools", "hours": 0, "status": "Closed"}, {"key": "V2-17583", "summary": "Game: Viking’s Voyage of Fortune - Configure Bet Levels & add to Server", "hours": 0, "status": "Closed"}, {"key": "V2-17579", "summary": "Game: Viking’s Voyage of Fortune - Prizes, Tickets, Stats", "hours": 0, "status": "Closed"}, {"key": "V2-17577", "summary": "Game: Viking’s Voyage of Fortune - Game Engine", "hours": 0, "status": "Closed"}, {"key": "V2-17575", "summary": "Game: Viking’s Voyage of Fortune - Game Client Development", "hours": 0, "status": "Closed"}, {"key": "V2-17574", "summary": "Game: Viking’s Voyage of Fortune - Review & Refinement - Dev", "hours": 0, "status": "Closed"}, {"key": "V2-17560", "summary": "Game: Viking’s Voyage of Fortune - P2P", "hours": 0, "status": "In Progress"}], "queuedHours": 5}, {"name": "Yves Griber", "tasks": [{"key": "V2-23536", "summary": "Yves's games - Add support to show the volume button in the Free spin and Bonus scenes.", "hours": 2, "status": "To Do"}], "queuedHours": 48}, {"name": "Unassigned", "tasks": [{"key": "V2-23530", "summary": "Add Volume Control Button to Bonus Screens - P2P", "hours": 0, "status": "To Do"}], "queuedHours": 0}], "otherPeople": [{"name": "Amanda Langford", "tasks": [{"key": "V2-17596", "summary": "Game: Viking’s Voyage of Fortune - Studio Final Delivery & Sign off", "hours": 0, "status": "Closed"}, {"key": "V2-17591", "summary": "Game: Viking’s Voyage of Fortune - Colour Renders", "hours": 0, "status": "Closed"}, {"key": "V2-17568", "summary": "Game: Viking’s Voyage of Fortune  - Project Brief with Studio", "hours": 0, "status": "Closed"}, {"key": "V2-17567", "summary": "Game: Viking’s Voyage of Fortune - Miro board set up", "hours": 0, "status": "Closed"}, {"key": "V2-17566", "summary": "Game: Viking’s Voyage of Fortune - Estimate Assessments/Approval", "hours": 0, "status": "Closed"}, {"key": "V2-17564", "summary": "Game: Viking’s Voyage of Fortune  - Review & Refinement - Creative Director", "hours": 0, "status": "Closed"}, {"key": "V2-17561", "summary": "Game: Viking’s Voyage of Fortune - Concept Icons/BG Colour Renders/Msgs", "hours": 0, "status": "Closed"}, {"key": "V2-17345", "summary": "Game: Viking’s Voyage of Fortune - Concept layout, rough design", "hours": 0, "status": "Closed"}, {"key": "V2-15447", "summary": "Game: Viking’s Voyage of Fortune -  Template/Wire frame/Game Asset List/Mood board", "hours": 0, "status": "Closed"}], "type": "Creative"}, {"name": "Amer Nabulsi", "tasks": [{"key": "V2-26265", "summary": "Create a small logo for Missouri E-Raffle for the bottom of the top screen in games.", "hours": 0, "status": "To Do"}, {"key": "V2-26264", "summary": "Create a small logo for Got Skill for the bottom of the top screen in games.", "hours": 0, "status": "To Do"}, {"key": "V2-26258", "summary": "Create a logo for Got Skill for the top screen of the Dual screen game menu.", "hours": 0, "status": "To Do"}], "type": "Creative"}, {"name": "Izabelle.Moraleja", "tasks": [{"key": "V2-17571", "summary": "Game: Viking’s Voyage of Fortune  - Marketing Material", "hours": 0, "status": "Closed"}], "type": "Creative"}, {"name": "Joel Kazmi", "tasks": [{"key": "V2-28471", "summary": "Game: Viking's Voyage of Fortune - lengthen block symbol reel SFX to accommodate timing change.", "hours": 0, "status": "Closed"}, {"key": "V2-26490", "summary": "Wwise version update - Game Support for the new version and Sound bank updates - Steve", "hours": 0, "status": "Closed"}, {"key": "V2-26090", "summary": "Wwise version update - Game Support for the new version and Sound bank updates - Joel", "hours": 12, "status": "Pre-Prod In Progress"}, {"key": "V2-17598", "summary": "Game: Viking’s Voyage of Fortune - Review & Refinement - Sound", "hours": 0, "status": "Closed"}, {"key": "V2-17593", "summary": "Game: Viking’s Voyage of Fortune - Wwise Implementation", "hours": 0, "status": "Closed"}, {"key": "V2-17589", "summary": "Game: Viking’s Voyage of Fortune - Game Bank Mix", "hours": 0, "status": "Closed"}, {"key": "V2-17587", "summary": "Game: Viking’s Voyage of Fortune - SFX/Transitions ", "hours": 0, "status": "Closed"}, {"key": "V2-17562", "summary": "Game: Viking’s Voyage of Fortune - Game Soundtracks", "hours": 0, "status": "Closed"}], "type": "Sound"}, {"name": "John Di Mauro", "tasks": [{"key": "V2-26772", "summary": "Game: Viking's Voyage of Fortune - BG Anims", "hours": 0, "status": "Closed"}, {"key": "V2-21950", "summary": "Game: Viking's Voyage of Fortune - In House Prep, additional assets", "hours": 0, "status": "Closed"}, {"key": "V2-17569", "summary": "Game: Viking’s Voyage of Fortune  -  Missing Message Assets", "hours": 0, "status": "Closed"}, {"key": "V2-17565", "summary": "Game: Viking’s Voyage of Fortune  -  Final GIP and GDD ready for Studio", "hours": 0, "status": "Closed"}, {"key": "V2-17563", "summary": "Game: Viking’s Voyage of Fortune  -  Review & Refinement - Artist", "hours": 0, "status": "Closed"}], "type": "Creative"}, {"name": "Seyeon Oh", "tasks": [{"key": "V2-20733", "summary": "Game: Viking's Voyage of Fortune - PAR Sheet, simulation and verification", "hours": 0, "status": "In Progress"}, {"key": "V2-16231", "summary": "Game: Viking’s Voyage of Fortune - GDD - Math", "hours": 14, "status": "In Progress"}], "type": "Math"}, {"name": "Unassigned", "tasks": [{"key": "V2-17597", "summary": "Game: Viking’s Voyage of Fortune - Help Pages - Math ", "hours": 0, "status": "In Progress"}, {"key": "V2-17578", "summary": "Game: Viking’s Voyage of Fortune - Math Models/weighted outcomes", "hours": 0, "status": "In Progress"}, {"key": "V2-15880", "summary": "Game: Viking’s Voyage of Fortune -  Pools/Flares", "hours": 0, "status": "In Progress"}, {"key": "V2-15144", "summary": "Game: Viking’s Voyage of Fortune - Review & Refinement - Math", "hours": 0, "status": "In Progress"}], "type": "Math"}]}, {"key": "V2 HHR 3.00", "color": "#4ade80", "sub": "User Role Restrictions · Maintenance Menu", "devStart": "2026-05-19", "qaWeeks": 2, "statusLabel": "In Development", "statusStyle": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)", "devPeople": [{"name": "Asif Masood", "tasks": [{"key": "V2-28121", "summary": "Server - Enhanced User Roles - Create a POS/VLT API to get the All users permission list.", "hours": 0, "status": "Ready"}, {"key": "V2-28120", "summary": "Server - Enhanced User Roles - Push the MM user list with the user role permission list also.", "hours": 0, "status": "Ready"}, {"key": "V2-28119", "summary": "Server - Enhanced User Roles - VLT_START API changes to send user role/permissions list.", "hours": 0, "status": "Ready"}, {"key": "V2-28118", "summary": "Server - Enhanced User Roles - Define Insert queries to add the current default permissions for all user roles.", "hours": 0, "status": "Ready"}, {"key": "V2-28117", "summary": "Server - Enhanced User Roles - Database scripts for new tables/changes.", "hours": 0, "status": "Ready"}, {"key": "V2-28052", "summary": "Server - Investigate the scope of work needed for implementing Dynamic permissions for MM and POS User Roles.", "hours": 0, "status": "Ready"}], "queuedHours": 13}, {"name": "Hemmat Rezvani", "tasks": [{"key": "V2-28292", "summary": "System - Enhanced User Roles - Create a new role type for MM Limited Attendant with the option to create this user type.", "hours": 14, "status": "In Progress"}, {"key": "V2-28141", "summary": "System - Enhanced User Roles - Apply Permissions for MM Terminal Diagnostics.", "hours": 16, "status": "In Progress", "bottleneck": true}, {"key": "V2-28140", "summary": "System - Enhanced User Roles - Apply Permissions for MM Terminal Configuration.", "hours": 16, "status": "In Progress"}, {"key": "V2-28139", "summary": "System - Enhanced User Roles - Apply Permissions for MM Game Settings.", "hours": 6, "status": "In Progress"}, {"key": "V2-28138", "summary": "System - Enhanced User Roles - Apply Permissions for MM Meters and Reports.", "hours": 2, "status": "In Progress"}], "queuedHours": 166, "bottleneck": true}, {"name": "Krupa Kanani", "tasks": [{"key": "V2-29196", "summary": "Server - HHR - Testing after Code cleanup by removing unused methods/classes.", "hours": 12, "status": "To Do"}], "queuedHours": 45}, {"name": "Rejosh Samuel", "tasks": [{"key": "V2-28293", "summary": "POS - Enhanced User Roles - Create a new role type for MM Limited Attendant in the User create form.", "hours": 0, "status": "In Progress"}, {"key": "V2-28137", "summary": "System - Enhanced User Roles - Apply Permissions for MM Player Session.", "hours": 0, "status": "Ready"}, {"key": "V2-28136", "summary": "System - Enhanced User Roles - Apply Permissions for MM Main Screen.", "hours": 0, "status": "Ready"}, {"key": "V2-28054", "summary": "POS - Investigate the scope of work needed for implementing Dynamic permissions for POS User Roles.", "hours": 0, "status": "Ready"}, {"key": "V2-28053", "summary": "System - Investigate the scope of work needed for implementing Dynamic permissions for MM User Roles.", "hours": 0, "status": "Ready"}, {"key": "V2-28051", "summary": "Maintenance Menu User Role Restrictions", "hours": 0, "status": "In Progress"}], "queuedHours": 34}], "otherPeople": []}, {"key": "V2 PT 14.00", "color": "#f87171", "sub": "Ohio Central Server · Location Server", "devStart": "2026-05-19", "qaWeeks": 3, "statusLabel": "In Development", "statusStyle": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)", "devPeople": [{"name": "Asif Masood", "tasks": [{"key": "V2-29266", "summary": "Stress-test the outbox buffer under sustained network failures and verify store-and-forward", "hours": 6, "status": "New"}, {"key": "V2-29265", "summary": "Handle TERMINATE_DEAL command received over the socket", "hours": 6, "status": "New"}, {"key": "V2-29264", "summary": "Publish deal.terminated message when a deal is forcibly ended", "hours": 4, "status": "New"}, {"key": "V2-29263", "summary": "Handle powered-off queuing: buffer door access events when terminal is offline", "hours": 6, "status": "New"}, {"key": "V2-29262", "summary": "Publish terminal.event message for door access events per regulatory audit requirements", "hours": 6, "status": "New"}, {"key": "V2-29261", "summary": "Role A: Location Server Audit Events and Stabilization", "hours": 28, "status": "New"}, {"key": "V2-29260", "summary": "Handle powered-off device queuing: buffer device.disabled messages when terminal is offline", "hours": 10, "status": "New"}, {"key": "V2-29259", "summary": "Publish device.disabled and device.enabled messages with reason and source on state change", "hours": 6, "status": "New"}, {"key": "V2-29258", "summary": "Publish device.registered message on VLT_START when the Ohio flag is enabled", "hours": 6, "status": "New"}, {"key": "V2-29257", "summary": "Handle ENABLE_DEVICE command and publish device.enabled message", "hours": 6, "status": "New"}, {"key": "V2-29256", "summary": "Handle DISABLE_DEVICE command and publish device.disabled message", "hours": 6, "status": "New"}, {"key": "V2-29255", "summary": "Handle REACTIVATE_LOCATION command received over the socket", "hours": 6, "status": "New"}, {"key": "V2-29254", "summary": "Handle SHUTDOWN_LOCATION command received over the socket", "hours": 6, "status": "New"}, {"key": "V2-29253", "summary": "Role A: Location Server Commands", "hours": 46, "status": "New"}, {"key": "V2-29252", "summary": "Extend the active license by the configured number of days on heartbeat ACK", "hours": 6, "status": "New"}, {"key": "V2-29251", "summary": "Send heartbeat messages over the socket on the configured interval", "hours": 4, "status": "New"}, {"key": "V2-29250", "summary": "Implement socket authentication handling: accepted, unregistered, and rejected response paths", "hours": 4, "status": "New"}, {"key": "V2-29249", "summary": "Establish a persistent TLS socket connection to the Central Server with exponential backoff", "hours": 6, "status": "New"}, {"key": "V2-29248", "summary": "Publish deal.completed messages with full prize summary to the Central Server exchange", "hours": 8, "status": "New"}, {"key": "V2-29247", "summary": "Publish deal.opened messages to the Central Server exchange", "hours": 4, "status": "New"}, {"key": "V2-29246", "summary": "Implement the deal prize ledger for persistent prize tracking across a deal", "hours": 8, "status": "New"}, {"key": "V2-29245", "summary": "Implement the deal model for Ohio non-comingled configuration", "hours": 8, "status": "New"}, {"key": "V2-29244", "summary": "Role A: Location Server Deal Messages and Socket", "hours": 48, "status": "New", "bottleneck": true}, {"key": "V2-29243", "summary": "Continue including licenseState in taskRequest payload regardless of Ohio flag", "hours": 6, "status": "New"}, {"key": "V2-29242", "summary": "Skip the Pong license task when the Ohio feature flag is enabled", "hours": 2, "status": "New"}, {"key": "V2-29241", "summary": "Publish location.startup message with expanded payload including location metadata", "hours": 6, "status": "New"}, {"key": "V2-29240", "summary": "Publish cash.adjustments messages to the Central Server exchange", "hours": 6, "status": "New"}, {"key": "V2-29239", "summary": "Publish analytics messages to the Central Server exchange", "hours": 6, "status": "New"}, {"key": "V2-29238", "summary": "Publish accounting messages to the Central Server exchange", "hours": 6, "status": "New"}, {"key": "V2-29237", "summary": "Role A: Location Server Message Publishing", "hours": 32, "status": "New"}, {"key": "V2-29236", "summary": "Publish terminals.snapshot messages to the Central Server exchange", "hours": 6, "status": "New"}, {"key": "V2-29235", "summary": "Publish terminal.status messages to the Central Server exchange", "hours": 6, "status": "New"}, {"key": "V2-29234", "summary": "Implement local outbox buffer for store-and-forward when the broker is unreachable", "hours": 6, "status": "New"}, {"key": "V2-29233", "summary": "Enable publisher confirms on the publishing channel", "hours": 2, "status": "New"}, {"key": "V2-29232", "summary": "Declare all queues as durable with persistent message delivery mode", "hours": 2, "status": "New"}, {"key": "V2-29231", "summary": "Configure RabbitMQ Shovel to forward messages to the Central Server over TLS", "hours": 6, "status": "New"}, {"key": "V2-29230", "summary": "Create a separate local RabbitMQ exchange and queue dedicated to the Central Server", "hours": 4, "status": "New"}, {"key": "V2-29229", "summary": "Role A: Location Server First Flow", "hours": 32, "status": "New"}, {"key": "V2-29228", "summary": "Spike: publish a test message to a local RabbitMQ instance and confirm receipt", "hours": 6, "status": "New"}, {"key": "V2-29227", "summary": "Map all deal lifecycle event locations in the codebase", "hours": 8, "status": "New"}, {"key": "V2-29226", "summary": "Map all Task Handler callback locations in the codebase", "hours": 8, "status": "New"}, {"key": "V2-29225", "summary": "Review pgsSysInfo registry-read path and document relevant keys", "hours": 4, "status": "New"}, {"key": "V2-29224", "summary": "Review Big Data RabbitMQ and Shovel code to understand existing publish patterns", "hours": 6, "status": "New"}, {"key": "V2-29223", "summary": "Add Ohio feature flag to Advanced Settings, configurable per Location Server instance", "hours": 4, "status": "New"}, {"key": "V2-29222", "summary": "Role A: Location Server Setup", "hours": 36, "status": "New"}, {"key": "V2-27389", "summary": "pgsQueueManager - Big Data Report - Prepare Progressive Data report(s).", "hours": 16, "status": "In Progress"}, {"key": "V2-27388", "summary": "pgsQueueManager - Big Data Report - Prepare Account Data report.", "hours": 12, "status": "In Progress"}, {"key": "V2-25461", "summary": "pgsQueueManager - Create a new log for the producer dispatch and response.", "hours": 0, "status": "Ready"}, {"key": "V2-25460", "summary": "pgsQueueManager - Test class - Create a Java test tool or simulator to generate transaction load", "hours": 2, "status": "In Progress"}, {"key": "V2-25459", "summary": "pgsQueueManager - Test class - Add unit tests for dispatcher logic and message formats", "hours": 2, "status": "In Progress"}, {"key": "V2-25458", "summary": "Java health monitoring tool - Add log/monitoring hook for message publishing and federation health", "hours": 0, "status": "Ready"}, {"key": "V2-25457", "summary": "pgsQueueManager - Test class - Test network failure scenario: verify messages queue locally and sync when connection is restored", "hours": 4, "status": "In Progress"}, {"key": "V2-25456", "summary": "pgsQueueManager - Test class - Test transaction message send on VM and verify local delivery", "hours": 0, "status": "Ready"}, {"key": "V2-25455", "summary": "VM RabbitMQ Setup - Open RabbitMQ port (5672) on firewall and verify connectivity to central broker", "hours": 0, "status": "Ready"}, {"key": "V2-25454", "summary": "VM Wildfly setup - Update WildFly configuration to support RabbitMQ client (add module or shaded JAR)", "hours": 0, "status": "Ready"}, {"key": "V2-25453", "summary": "pgsQueueManager - Implement dynamic loading of RabbitMQ connection settings from DB at startup", "hours": 0, "status": "Ready"}, {"key": "V2-25452", "summary": "pgsQueueManager - Add fallback handling (retry or DLQ setup) in dispatcher", "hours": 0, "status": "Ready"}, {"key": "V2-25451", "summary": "pgsQueueManager - Implement PlayDataProducer to send player/session data messages via dispatcher", "hours": 0, "status": "In Progress"}, {"key": "V2-25450", "summary": "pgsQueueManager - Implement FinancialTransactionProducer to send financial messages via dispatcher", "hours": 0, "status": "Ready"}, {"key": "V2-25449", "summary": "pgsQueueManager - Implement TransactionQueueDispatcher to send messages to RabbitMQ", "hours": 0, "status": "Ready"}, {"key": "V2-25448", "summary": "pgsQueueManager - Add Spring RabbitMQ configuration (ConnectionFactory, RabbitTemplate)", "hours": 0, "status": "Ready"}, {"key": "V2-25447", "summary": "pgsQueueManager - Add DTOs for transaction message payloads (e.g., TransactionDTO)", "hours": 0, "status": "Ready"}, {"key": "V2-25446", "summary": "VM RabbitMQ setup - Define local queue/exchange naming convention to be created per VM", "hours": 0, "status": "Ready"}, {"key": "V2-25445", "summary": "VM RabbitMQ setup - Configure shovel plugin and policy on local RabbitMQ using DB-stored settings", "hours": 0, "status": "Ready"}, {"key": "V2-25444", "summary": "VM RabbitMQ setup - Add required new settings in system values for RabbitMQ federation settings (URI, credentials, etc.)", "hours": 0, "status": "Ready"}, {"key": "V2-25443", "summary": "VM RabbitMQ setup - Set up local RabbitMQ server on VM and validate standalone operation.", "hours": 0, "status": "Ready"}, {"key": "V2-25279", "summary": "Server - Big Data Project - Design and architecture for Rabbit MQ.", "hours": 0, "status": "Ready"}], "queuedHours": 13, "bottleneck": true}, {"name": "Hemmat Rezvani", "tasks": [{"key": "V2-28971", "summary": "System - Optional Receipt printer configuration when Ticket Slip printing is enabled in No TITO case. ", "hours": 40, "status": "In Progress"}, {"key": "V2-28936", "summary": "System - Implement Final Ticket slip print for account based mode on sign out (no Voucher generation).", "hours": 24, "status": "In Progress"}], "queuedHours": 220}, {"name": "Krupa Kanani", "tasks": [{"key": "V2-29016", "summary": "Central Server [Meeting and discussion] - Team", "hours": 20, "status": "In Progress"}, {"key": "V2-28953", "summary": "Server - Pull Tab - In account based market, update the print count on Sign out (before closing the session)", "hours": 6, "status": "To Do"}], "queuedHours": 57}, {"name": "Rejosh Samuel", "tasks": [{"key": "V2-29029", "summary": "Disabling Receipt printer in ticket slip mode", "hours": 0, "status": "In Progress"}, {"key": "V2-29027", "summary": "Account based ticket slip printing", "hours": 0, "status": "In Progress"}, {"key": "V2-29010", "summary": "A.4.01 — Establish and maintain a persistent TLS socket connection", "hours": 0, "status": "New"}, {"key": "V2-29009", "summary": "A.3.07 — Publish terminal event messages", "hours": 0, "status": "New"}, {"key": "V2-29008", "summary": "A.3.06 — Publish device status change messages", "hours": 0, "status": "New"}, {"key": "V2-29007", "summary": "A.3.05 — Publish device registered messages", "hours": 0, "status": "New"}, {"key": "V2-29006", "summary": "A.3.04 — Publish deal terminated messages [DEFERRED]", "hours": 0, "status": "New"}, {"key": "V2-29005", "summary": "A.3.03 — Publish deal completed messages", "hours": 0, "status": "New"}, {"key": "V2-29004", "summary": "A.3.02 — Publish deal opened messages", "hours": 0, "status": "New"}, {"key": "V2-29003", "summary": "A.3.01 — Publish location startup message on service start and configuration change", "hours": 0, "status": "New"}, {"key": "V2-29002", "summary": "A.2.05 — Publish terminal snapshot messages", "hours": 0, "status": "New"}, {"key": "V2-29001", "summary": "A.2.04 — Publish terminal status messages", "hours": 0, "status": "New"}, {"key": "V2-29000", "summary": "A.2.03 — Publish cash adjustment messages", "hours": 0, "status": "New"}, {"key": "V2-28999", "summary": "A.2.02 — Publish analytics messages", "hours": 0, "status": "New"}, {"key": "V2-28998", "summary": "A.2.01 — Publish accounting messages", "hours": 0, "status": "New"}, {"key": "V2-28997", "summary": "A.1.06 — Implement a local outbox buffer for store-and-forward during connectivity loss", "hours": 0, "status": "New"}, {"key": "V2-28996", "summary": "A.1.05 — Enable publisher confirms", "hours": 0, "status": "New"}, {"key": "V2-28995", "summary": "A.1.04 — Use durable queues with persistent message delivery", "hours": 0, "status": "New"}, {"key": "V2-28994", "summary": "A.1.03 — Configure a RabbitMQ Shovel to forward messages to the Central Server", "hours": 0, "status": "New"}, {"key": "V2-28993", "summary": "A.1.02 — Provision a separate local RabbitMQ exchange and queue for Central Server messages", "hours": 0, "status": "New"}, {"key": "V2-28992", "summary": "A.1.01 — Gate all Ohio behavior behind an Advanced Settings feature flag", "hours": 0, "status": "New"}, {"key": "V2-28945", "summary": "Server - Ohio - Central Server: Implement Message Type 8 - device.reactivated", "hours": 0, "status": "To Do"}, {"key": "V2-28944", "summary": "Server - Ohio - Central Server: Implement Message Type 7 - device.deactivated", "hours": 0, "status": "To Do"}, {"key": "V2-28943", "summary": "Server - Ohio - Central Server: Implement Message Type 6 - device.registered", "hours": 0, "status": "To Do"}, {"key": "V2-28942", "summary": "Server - Ohio - Central Server: Implement Message Type 5 - deal.terminated", "hours": 0, "status": "To Do"}, {"key": "V2-28941", "summary": "Server - Ohio - Central Server: Implement Message Type 4 - deal.completed", "hours": 0, "status": "To Do"}, {"key": "V2-28940", "summary": "Server - Ohio - Central Server: Implement Message Type 3 - deal.opened", "hours": 0, "status": "To Do"}, {"key": "V2-28939", "summary": "Server - Ohio - Central Server: Implement Message Type 2 - transaction.play", "hours": 0, "status": "To Do"}, {"key": "V2-28938", "summary": "Server - Ohio - Central Server: Implement Message Type 1 - location.startup", "hours": 0, "status": "To Do"}, {"key": "V2-28937", "summary": "Server - Ohio - Central Server: Implement Message Envelope (All Messages)", "hours": 0, "status": "To Do"}, {"key": "V2-28114", "summary": " Ohio - Central server", "hours": 0, "status": "In Progress"}, {"key": "V2-27391", "summary": "Documentation - Please help to prepare some documentation for describing our raw tables structure and columns.", "hours": 0, "status": "Ready"}], "queuedHours": 34}], "otherPeople": []}];
+// Normalize: convert ISO date strings to Date objects for fields that expect Dates
+FV.forEach(fv=>{ if(typeof fv.devStart==='string') fv.devStart=D(fv.devStart); });
+
+// ─── SPRINTS ───────────────────────────────────────────
+const SPRINTS=[{"label": "S1", "start": "2026-05-11"}, {"label": "S2", "start": "2026-05-25"}, {"label": "S3", "start": "2026-06-08"}, {"label": "S4", "start": "2026-06-22"}, {"label": "S5", "start": "2026-07-06"}, {"label": "S6", "start": "2026-07-20"}, {"label": "", "start": "2026-08-12"}];
+SPRINTS.forEach(s=>{ if(typeof s.start==='string') s.start=D(s.start); });
+
+// ─── BUILD AXIS ────────────────────────────────────────
+const axisEl=document.getElementById('axis');
+let mc=new Date(CHART_START.getFullYear(),CHART_START.getMonth(),1);
+while(mc<=CHART_END){
+  const el=document.createElement('div');el.className='ax-date';el.style.left=pct(mc)+'%';
+  el.textContent=mc.toLocaleString('en-CA',{month:'short',year:'2-digit'});
+  axisEl.appendChild(el);
+  mc=new Date(mc.getFullYear(),mc.getMonth()+1,1);
+}
+SPRINTS.slice(0,-1).forEach((s,i)=>{
+  const next=SPRINTS[i+1].start;
+  const mid=new Date((s.start.getTime()+next.getTime())/2);
+  const chip=document.createElement('div');chip.className='sp-chip';chip.style.left=pct(mid)+'%';
+  chip.innerHTML=`${s.label}<small>${s.start.toLocaleDateString('en-CA',{month:'short',day:'numeric'})}</small>`;
+  axisEl.appendChild(chip);
+});
+
+// ─── BAR ELEMENT REGISTRY ──────────────────────────────
+const barEls={};   // { 'devbar-0': el, 'qabar-0': el, 'othbar-0': el }
+const pillEls={};   // { 'pills-0': [el, el, ...] }
+const panelRefs={}; // idx → { panel, tabState }
+
+// ─── REFRESH ALL ───────────────────────────────────────
+function refreshAll(){
+  FV.forEach((fv,idx)=>{
+    const devEnd=calcDevEnd(fv);
+    const othEnd=calcOthersEnd(fv);
+    const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
+    const devStart=fv.devStart||TODAY;
+
+    // Dev bar
+    const db=barEls[`devbar-${idx}`];
+    if(db){
+      if(!fv.devStart){
+        db.style.left='0%'; db.style.width=pct(TODAY)+'%';
+        db.textContent='DEV COMPLETE';
+      } else {
+        const l=+pct(devStart),w=+pct(devEnd)-l;
+        db.style.left=l+'%'; db.style.width=Math.max(w,.3)+'%';
+        db.textContent=w>3?`Dev → ${fmtD(devEnd)}`:'';
+      }
+    }
+    // QA bar
+    const qb=barEls[`qabar-${idx}`];
+    if(qb){
+      const l=+pct(devEnd),w=+pct(qaEnd)-l;
+      qb.style.left=l+'%'; qb.style.width=Math.max(w,.3)+'%';
+      qb.textContent=w>3?`QA → ${fmtD(qaEnd)}`:'';
+    }
+    // Others bar
+    const ob=barEls[`othbar-${idx}`];
+    if(ob){
+      const hasH=hasOthersHours(fv);
+      ob.style.display=hasH?'flex':'none';
+      if(hasH){const l=+pct(TODAY),w=+pct(othEnd)-l;ob.style.left=l+'%';ob.style.width=Math.max(w,.3)+'%';ob.textContent=w>6?`Others → ${fmtD(othEnd)}`:''}
+    }
+
+    // Refresh pills on gantt row
+    (pillEls[`pills-${idx}`]||[]).forEach(pill=>{
+      const pname=pill.dataset.pname, fvkey=pill.dataset.fvkey;
+      const ph=+pill.dataset.ph;
+      const isBot=pill.dataset.isbot==='1';
+      const buf=getBuffer(fvkey,pname);
+      const fn=pname.split(' ');
+      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
+    });
+
+    // Refresh open panel
+    const pr=panelRefs[idx];
+    if(pr&&pr.panel.classList.contains('open')){
+      pr.panel.querySelector('.dp-subtitle').textContent=
+        `${fv.note||fv.sub} · Dev: ${fv.devStart?fmtD(devEnd):'Complete'} · QA done: ${fmtD(qaEnd)}`;
+      // Update per-person projected dates in dev tab
+      pr.panel.querySelectorAll('[data-proj]').forEach(el=>{
+        const pname=el.dataset.proj,fvkey=el.dataset.fv;
+        const p=(fv.devPeople||[]).find(x=>x.name===pname)||(fv.otherPeople||[]).find(x=>x.name===pname);
+        if(!p)return;
+        const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+        const total=openH+(p.queuedHours||0);
+        const rate=hpd(fvkey,pname);
+        const proj=total>0?fmtD(addWD(TODAY,total,rate)):'—';
+        el.textContent=`→ ${proj}`;
+      });
+      // Update buffer display values
+      pr.panel.querySelectorAll('[data-buf-val]').forEach(el=>{
+        const pname=el.dataset.bufVal,fvkey=el.dataset.fv;
+        const b=getBuffer(fvkey,pname);
+        el.textContent=`${b}%`;
+      });
+      pr.panel.querySelectorAll('[data-buf-hpd]').forEach(el=>{
+        const pname=el.dataset.bufHpd,fvkey=el.dataset.fv;
+        el.textContent=`${(8*getBuffer(fvkey,pname)/100).toFixed(1)}h/day effective`;
+      });
+    }
+  });
+}
+
+// ─── BUILD PERSON COLUMN ───────────────────────────────
+function buildPersonCol(fv,person,group){
+  const isBot=person.bottleneck||person.tasks.some(t=>t.bottleneck);
+  const openT=person.tasks.filter(t=>!isDone(t.status));
+  const doneT=person.tasks.filter(t=>isDone(t.status));
+  const openH=openT.reduce((s,t)=>s+t.hours,0);
+  const total=openH+(person.queuedHours||0);
+  const rate=hpd(fv.key,person.name);
+  const projDate=total>0?fmtD(addWD(TODAY,total,rate)):'—';
+  const nameColor=isBot?'#991b1b':(group==='others'?'#4c1d95':'var(--text)');
+  const hrsColor=isBot?'#dc2626':(group==='others'?'var(--oth)':fv.color);
+  const buf=getBuffer(fv.key,person.name);
+
+  const col=document.createElement('div');col.className='p-col';
+
+  // Head
+  col.innerHTML=`
+    <div class="p-head">
+      <div class="p-name" style="color:${nameColor}">${isBot?'⛓ ':''}${person.name}</div>
+      ${person.type?`<div class="p-type">${person.type}</div>`:''}
+      <div class="p-hrs" style="color:${hrsColor}">${openH}h <span>remaining${person.queuedHours>0?` <span style="font-size:10px;color:var(--sub)">(+${person.queuedHours}h queued)</span>`:''}</span></div>
+    </div>`;
+
+  // Buffer control
+  const bc=document.createElement('div');bc.className='buf-ctrl';
+  bc.innerHTML=`
+    <div class="buf-label">
+      <span class="buf-lbl">AVAILABILITY BUFFER</span>
+      <span class="buf-val" data-buf-val="${person.name}" data-fv="${fv.key}">${buf}%</span>
+    </div>
+    <input type="range" min="10" max="100" step="5" value="${buf}" style="--rc:${fv.color}" 
+      oninput="setBuffer('${fv.key}','${person.name}',+this.value)">
+    <div class="buf-hpd" data-buf-hpd="${person.name}" data-fv="${fv.key}">${(8*buf/100).toFixed(1)}h/day effective</div>
+    ${person.queuedHours>0?`<div style="font-size:10px;color:var(--sub);margin-top:2px">Incl. ${person.queuedHours}h cross-release queue</div>`:''}
+    <div style="font-size:10px;color:var(--sub);margin-top:2px">Proj. done: <span data-proj="${person.name}" data-fv="${fv.key}" style="color:${fv.color}">${projDate!=='—'?'→ '+projDate:'—'}</span></div>`;
+  col.appendChild(bc);
+
+  // Tasks
+  const tl=document.createElement('div');tl.className='p-tasks';
+  if(openT.length===0){tl.innerHTML='<div class="no-task">No open tasks</div>';}
+  else{
+    openT.forEach(t=>{
+      const ti=document.createElement('div');ti.className='t-item';
+      ti.innerHTML=`<div class="t-key"><a href="${BASE}${t.key}" target="_blank">${t.key}</a>${t.bottleneck?' <span class="t-bot-lbl" style="background:rgba(220,38,38,.10);color:#991b1b">⛓ BOTTLENECK</span>':''}</div>
+        <div class="t-sum">${t.summary}</div>
+        <div class="t-bot">
+          <span class="t-hrs ${hCls(t.hours)}">${t.hours>0?t.hours+'h':'0h logged'}</span>
+          <span class="t-st ${stCls(t.status)}">${t.status}</span>
+        </div>`;
+      tl.appendChild(ti);
+    });
+  }
+  col.appendChild(tl);
+
+  // Done toggle
+  if(doneT.length>0){
+    const tog=document.createElement('div');tog.className='done-tog';
+    tog.innerHTML=`<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5l3.5 3.5 3.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${doneT.length} completed`;
+    const ds=document.createElement('div');ds.className='done-sec';
+    doneT.forEach(t=>{
+      const ti=document.createElement('div');ti.className='t-item done';
+      ti.innerHTML=`<div class="t-key"><a href="${BASE}${t.key}" target="_blank">${t.key}</a></div>
+        <div class="t-sum">${t.summary}</div>
+        <div class="t-bot"><span class="t-hrs hn">Closed</span><span class="t-st s-done">${t.status}</span></div>`;
+      ds.appendChild(ti);
+    });
+    tog.addEventListener('click',e=>{e.stopPropagation();tog.classList.toggle('open');ds.classList.toggle('open');});
+    col.appendChild(tog);col.appendChild(ds);
+  }
+  return col;
+}
+
+// ─── BUILD ROWS ────────────────────────────────────────
+const rowsEl=document.getElementById('rows');
+
+FV.forEach((fv,idx)=>{
+  const devEnd=calcDevEnd(fv);
+  const othEnd=calcOthersEnd(fv);
+  const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
+  const devStart=fv.devStart||TODAY;
+  const hasOth=(fv.otherPeople||[]).length>0;
+  const hasOthH=hasOthersHours(fv);
+  const allDevT=fv.devPeople.flatMap(p=>p.tasks);
+  const devRemH=allDevT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+  const devOpenN=allDevT.filter(t=>!isDone(t.status)).length;
+  const devDoneN=allDevT.filter(t=>isDone(t.status)).length;
+  const allOthT=(fv.otherPeople||[]).flatMap(p=>p.tasks);
+  const othRemH=allOthT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+  const othOpenN=allOthT.filter(t=>!isDone(t.status)).length;
+  const othDoneN=allOthT.filter(t=>isDone(t.status)).length;
+  const minH=hasOth?(hasOthH?90:76):62;
+
+  // Active pills
+  const devPills=fv.devPeople.filter(p=>{
+    const h=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    const hasActive=p.tasks.some(t=>t.status==='In Progress'||t.status==='Ready'||t.status==='In QA'||t.status==='To Do'||t.status==='New');
+    return h>0||(p.queuedHours||0)>0||hasActive;
+  });
+  // ── GANTT ROW ──
+  const row=document.createElement('div');
+  row.className='fv-row';row.style.setProperty('--rc',fv.color);
+
+  const lbl=document.createElement('div');lbl.className='fv-label';
+  lbl.innerHTML=`<div class="fv-name" style="color:${fv.color}">${fv.key}${hasOth?'<span class="oth-dot" title="Has creative/sound/math work"></span>':''}</div>
+    <div class="fv-sub">${fv.sub}</div>
+    <span class="fv-badge" style="${fv.statusStyle}">${fv.statusLabel}</span>`;
+
+  const track=document.createElement('div');track.className='fv-track';track.style.minHeight=minH+'px';
+
+  SPRINTS.forEach(s=>{const l=document.createElement('div');l.className='sp-line';l.style.left=pct(s.start)+'%';track.appendChild(l);});
+  const tl=document.createElement('div');tl.className='today-line';tl.style.left=pct(TODAY)+'%';track.appendChild(tl);
+  if(idx===0){const tt=document.createElement('div');tt.className='today-tag';tt.style.left=pct(TODAY)+'%';tt.textContent='TODAY';track.appendChild(tt);}
+
+  // Dev/QA bars
+  const db=document.createElement('div');db.id=`devbar-${idx}`;
+  if(!fv.devStart){db.className='bar bar-live';db.style.cssText=`left:0%;width:${pct(TODAY)}%;`;db.textContent='DEV COMPLETE';}
+  else{db.className='bar bar-dev';const l=+pct(devStart),w=+pct(devEnd)-l;db.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;`;if(w>3)db.textContent=`Dev → ${fmtD(devEnd)}`;}
+  barEls[`devbar-${idx}`]=db;track.appendChild(db);
+
+  const qb=document.createElement('div');qb.id=`qabar-${idx}`;qb.className='bar bar-qa';
+  const ql=+pct(devEnd),qw=+pct(qaEnd)-ql;
+  qb.style.cssText=`left:${ql}%;width:${Math.max(qw,.3)}%;`;if(qw>3)qb.textContent=`QA → ${fmtD(qaEnd)}`;
+  barEls[`qabar-${idx}`]=qb;track.appendChild(qb);
+
+  // Others bar
+  const ob=document.createElement('div');ob.id=`othbar-${idx}`;ob.className='bar bar-oth';
+  ob.style.display=hasOthH?'flex':'none';
+  if(hasOthH){const l=+pct(TODAY),w=+pct(othEnd)-l;ob.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;top:34px;display:flex;`;if(w>6)ob.textContent=`Others → ${fmtD(othEnd)}`;}
+  barEls[`othbar-${idx}`]=ob;track.appendChild(ob);
+
+  // Resource pills
+  if(devPills.length>0){
+    const meta=document.createElement('div');meta.className='bar-meta';
+    pillEls[`pills-${idx}`]=[];
+    devPills.forEach(p=>{
+      const ph=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+      const isBot=p.bottleneck||p.tasks.some(t=>t.bottleneck);
+      const pill=document.createElement('span');
+      pill.className='res-pill '+(isBot?'pill-w':'pill-d');
+      pill.dataset.pname=p.name; pill.dataset.fvkey=fv.key; pill.dataset.ph=ph; pill.dataset.isbot=isBot?'1':'';
+      const fn=p.name.split(' ');
+      const buf=getBuffer(fv.key,p.name);
+      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
+      meta.appendChild(pill);
+      pillEls[`pills-${idx}`].push(pill);
+    });
+    // Others indicator pill
+    if(hasOth){
+      const op=document.createElement('span');op.className='res-pill pill-o';
+      op.textContent=`Others · ${othOpenN} task${othOpenN!==1?'s':''} · ${othRemH}h`;
+      meta.appendChild(op);
+    }
+    track.appendChild(meta);
+  }
+
+  const chev=document.createElement('div');chev.className='chevron';
+  chev.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  row.appendChild(lbl);row.appendChild(track);row.appendChild(chev);
+
+  // ── DETAIL PANEL ──
+  const panel=document.createElement('div');panel.className='dp';panel.id=`panel-${idx}`;
+
+  // Header
+  const head=document.createElement('div');head.className='dp-head';
+  head.innerHTML=`<div>
+    <div class="dp-title" style="color:${fv.color}">${fv.key} — Work Breakdown</div>
+    <div class="dp-subtitle">${fv.note||fv.sub} · Dev: ${fv.devStart?fmtD(devEnd):'Complete'} · QA done: ${fmtD(qaEnd)}</div>
+  </div>
+  <div class="dp-stats">
+    <div class="dp-stat"><div class="dp-stat-v" style="color:${fv.color}">${devRemH}h</div><div class="dp-stat-l">DEV REMAINING</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${devOpenN}</div><div class="dp-stat-l">DEV OPEN</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${devDoneN}</div><div class="dp-stat-l">DEV DONE</div></div>
+    ${hasOth?`<div class="dp-stat"><div class="dp-stat-v" style="color:var(--oth)">${othRemH}h</div><div class="dp-stat-l">OTHERS REM.</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${othOpenN}</div><div class="dp-stat-l">OTHERS OPEN</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${othDoneN}</div><div class="dp-stat-l">OTHERS DONE</div></div>`:''}
+  </div>`;
+  panel.appendChild(head);
+
+  // Tabs (only show Others tab if there are others tasks)
+  let activeTab='dev';
+  if(hasOth){
+    const tabs=document.createElement('div');tabs.className='dp-tabs';
+    tabs.style.setProperty('--rc',fv.color);
+    tabs.innerHTML=`<div class="dp-tab active" data-tab="dev">DEV WORK</div><div class="dp-tab" data-tab="others">CREATIVE · SOUND · MATH</div>`;
+    tabs.querySelectorAll('.dp-tab').forEach(t=>{
+      t.addEventListener('click',e=>{
+        e.stopPropagation();
+        tabs.querySelectorAll('.dp-tab').forEach(x=>x.classList.remove('active'));
+        t.classList.add('active');
+        activeTab=t.dataset.tab;
+        devBody.style.display=activeTab==='dev'?'flex':'none';
+        othBody.style.display=activeTab==='others'?'flex':'none';
+      });
+    });
+    panel.appendChild(tabs);
+  }
+
+  // Dev body
+  const devBody=document.createElement('div');devBody.className='dp-body';
+  fv.devPeople.forEach(p=>devBody.appendChild(buildPersonCol(fv,p,'dev')));
+  panel.appendChild(devBody);
+
+  // Others body
+  const othBody=document.createElement('div');othBody.className='dp-body';othBody.style.display='none';
+  if(hasOth)(fv.otherPeople||[]).forEach(p=>othBody.appendChild(buildPersonCol(fv,p,'others')));
+  panel.appendChild(othBody);
+
+  panelRefs[idx]={panel,activeTab};
+
+  // Toggle
+  row.addEventListener('click',()=>{
+    const wasOpen=panel.classList.contains('open');
+    document.querySelectorAll('.dp').forEach(p=>p.classList.remove('open'));
+    document.querySelectorAll('.fv-row').forEach(r=>r.classList.remove('active'));
+    if(!wasOpen){panel.classList.add('open');row.classList.add('active');setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),60);}
+  });
+
+  rowsEl.appendChild(row);
+  rowsEl.appendChild(panel);
+});
+</script>
+</body>
+</html>

@@ -74,9 +74,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .footer { font-size:10px; color:#9CA3AF; margin:8px 2px 0; }
 .rel-link { color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(0,0,0,0.25); }
 .rel-link:hover { border-bottom-color: currentColor; border-bottom-style: solid; }
+/* Shared tab nav (same markup as v2-timeline.html) */
+.site-tabs { max-width: 1100px; margin: 0 auto 14px; padding: 0 4px; }
+.site-tabs-inner { display: flex; gap: 4px; border-bottom: 1px solid #E5E7EB; }
+.site-tab { padding: 9px 16px; font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none; border-bottom: 2px solid transparent; transition: color .12s, border-color .12s; }
+.site-tab:hover { color: #111827; }
+.site-tab.active { color: #4F46E5; border-bottom-color: #4F46E5; font-weight: 600; }
 </style>
 </head>
 <body>
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab active">Overview</a>
+    <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
+  </div>
+</nav>
 <div class="db">
   <div class="db-header">
     <h1>🎮 Pong Game Studios — Release Dashboard</h1>
@@ -373,8 +385,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="hc yel"><span class="hc-dot"></span>At Risk</div>
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
-        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:50%"></div></div>
-        <div class="prog-lbl">50% · 1/2</div>
+        <div class="prog-bg"><div class="prog-fill pf-dev" style="width:33%"></div></div>
+        <div class="prog-lbl">33% · 1/3</div>
       </div>
       <div class="dc"><span class="tag t-tbd">TBD</span><span class="tag eta-med">📅 Est. May 20</span><div class="scope-text">Patch to fix access when over 2000 locations</div></div>
     </div>
