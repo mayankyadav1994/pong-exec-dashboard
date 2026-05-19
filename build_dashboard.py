@@ -13,19 +13,16 @@ from math import ceil
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 
+from jira_client import jira_get, jira_post, jira_jql, JSON_HEADERS
+
 load_dotenv()
 
 # ── Credentials ───────────────────────────────────────────────────────────────
 JIRA_EMAIL           = os.environ["JIRA_EMAIL"]
-JIRA_API_TOKEN       = os.environ["JIRA_API_TOKEN"]
 CONFLUENCE_API_TOKEN = os.environ["CONFLUENCE_API_TOKEN"]
 
-JIRA_BASE      = "https://api.atlassian.com/ex/jira/85005dc7-cde3-4a2c-8e65-2d746db228ed/rest/api/3"
 CONFLUENCE_BASE = "https://ponggamestudios.atlassian.net/wiki/rest/api"
-
-JIRA_AUTH       = (JIRA_EMAIL, JIRA_API_TOKEN)
 CONFLUENCE_AUTH = (JIRA_EMAIL, CONFLUENCE_API_TOKEN)
-JSON_HEADERS    = {"Accept": "application/json"}
 
 # ── Project / section config ──────────────────────────────────────────────────
 # Each dashboard section is backed by one Jira project. Cloud Services work
@@ -53,39 +50,7 @@ GAME_ISSUE_TYPES = ["New Game", "Game"]
 TODAY = date.today()
 
 
-# ── Jira helpers ──────────────────────────────────────────────────────────────
-
-def jira_get(path, params=None):
-    r = requests.get(f"{JIRA_BASE}{path}", auth=JIRA_AUTH,
-                     headers=JSON_HEADERS, params=params)
-    r.raise_for_status()
-    return r.json()
-
-
-def jira_post(path, body):
-    r = requests.post(f"{JIRA_BASE}{path}", auth=JIRA_AUTH,
-                      headers={**JSON_HEADERS, "Content-Type": "application/json"},
-                      json=body)
-    r.raise_for_status()
-    return r.json()
-
-
-def jira_jql(jql, fields, max_results=100):
-    """Paginate all JQL results using POST /search/jql (GET /search is 410 Gone)."""
-    issues, token = [], None
-    while True:
-        body = {"jql": jql, "fields": fields, "maxResults": max_results}
-        if token:
-            body["nextPageToken"] = token
-        data = jira_post("/search/jql", body)
-        issues.extend(data.get("issues", []))
-        if data.get("isLast", True):
-            break
-        token = data.get("nextPageToken")
-        if not token:
-            break
-    return issues
-
+# ── Jira / FV helpers ─────────────────────────────────────────────────────────
 
 def is_valid_fv(name):
     return name not in EXCLUDED_FV and bool(VERSION_RE.search(name))
@@ -815,9 +780,21 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .footer {{ font-size:10px; color:#9CA3AF; margin:8px 2px 0; }}
 .rel-link {{ color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(0,0,0,0.25); }}
 .rel-link:hover {{ border-bottom-color: currentColor; border-bottom-style: solid; }}
+/* Shared tab nav (same markup as v2-timeline.html) */
+.site-tabs {{ max-width: 1100px; margin: 0 auto 14px; padding: 0 4px; }}
+.site-tabs-inner {{ display: flex; gap: 4px; border-bottom: 1px solid #E5E7EB; }}
+.site-tab {{ padding: 9px 16px; font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none; border-bottom: 2px solid transparent; transition: color .12s, border-color .12s; }}
+.site-tab:hover {{ color: #111827; }}
+.site-tab.active {{ color: #4F46E5; border-bottom-color: #4F46E5; font-weight: 600; }}
 </style>
 </head>
 <body>
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab active">Overview</a>
+    <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
+  </div>
+</nav>
 <div class="db">
   <div class="db-header">
     <h1>🎮 Pong Game Studios — Release Dashboard</h1>
