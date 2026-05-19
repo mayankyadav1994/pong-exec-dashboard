@@ -28,14 +28,12 @@ CONFLUENCE_AUTH = (JIRA_EMAIL, CONFLUENCE_API_TOKEN)
 JSON_HEADERS    = {"Accept": "application/json"}
 
 # ── Project / section config ──────────────────────────────────────────────────
-# Each dashboard section can be backed by multiple Jira projects. Cloud Services
-# is split across CS (legacy) and CSS (Scrum migration) — both projects hold
-# issues for the same fix versions, so we must query them together.
+# Each dashboard section is backed by one Jira project. Cloud Services work
+# lives in CSS (Scrum); the legacy CS project is no longer tracked.
 SECTION_PROJECTS = {
     "v2":  ["V2"],
     "ig":  ["IG"],
-    "pfh": ["PFH"],
-    "cs":  ["CS", "CSS"],
+    "cs":  ["CSS"],
 }
 
 PROJECTS = sorted({p for projs in SECTION_PROJECTS.values() for p in projs})
@@ -43,8 +41,7 @@ PROJECTS = sorted({p for projs in SECTION_PROJECTS.values() for p in projs})
 SECTION_META = {
     "v2":  {"label": "🔵 V2 — Vendor 2",              "card": "card-v2",  "icon": "🎮", "title": "V2 Releases"},
     "ig":  {"label": "🟢 iGaming — ELG & PFH2 Games", "card": "card-ig",  "icon": "🎰", "title": "iGaming — ELG & PFH2 Games"},
-    "pfh": {"label": "🟡 PFH — Services",              "card": "card-pfh", "icon": "⚙️", "title": "PFH Services"},
-    "cs":  {"label": "🩷 CS — Cloud Services",         "card": "card-cs",  "icon": "☁️", "title": "Cloud Services"},
+    "cs":  {"label": "🩷 CSS — Cloud Services",        "card": "card-cs",  "icon": "☁️", "title": "Cloud Services"},
 }
 
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
@@ -568,7 +565,7 @@ def build_releases():
         })
 
     # Sort: by section order, then red → yellow → green within each section
-    section_order = ["v2", "ig", "pfh", "cs"]
+    section_order = ["v2", "ig", "cs"]
     health_order  = {"red": 0, "yel": 1, "grn": 2}
     active.sort(key=lambda r: (
         section_order.index(r["section"]),
@@ -701,7 +698,7 @@ def generate_html(active, shipped, kpis):
     run_date = fmt_date(TODAY) + f", {TODAY.year}"
 
     sections_html = ""
-    for sec_key in ["v2", "ig", "pfh", "cs"]:
+    for sec_key in ["v2", "ig", "cs"]:
         meta = SECTION_META[sec_key]
         rows = [r for r in active if r["section"] == sec_key]
         if not rows:
