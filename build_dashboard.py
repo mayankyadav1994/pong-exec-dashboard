@@ -36,9 +36,9 @@ SECTION_PROJECTS = {
 PROJECTS = sorted({p for projs in SECTION_PROJECTS.values() for p in projs})
 
 SECTION_META = {
-    "v2":  {"label": "🔵 V2 — Vendor 2",              "card": "card-v2",  "icon": "🎮", "title": "V2 Releases"},
-    "ig":  {"label": "🟢 iGaming — ELG & PFH2 Games", "card": "card-ig",  "icon": "🎰", "title": "iGaming — ELG & PFH2 Games"},
-    "cs":  {"label": "🩷 CSS — Cloud Services",        "card": "card-cs",  "icon": "☁️", "title": "Cloud Services"},
+    "v2":  {"label": "🔵 V2 — Vendor 2",              "icon": "🎮", "title": "V2 Releases"},
+    "ig":  {"label": "🟢 iGaming — ELG & PFH2 Games", "icon": "🎰", "title": "iGaming — ELG & PFH2 Games"},
+    "cs":  {"label": "🩷 CSS — Cloud Services",        "icon": "☁️", "title": "Cloud Services"},
 }
 
 EXCLUDED_FV    = {"Trello", "PFH - Side Projects", "FC Backlog"}
@@ -817,8 +817,12 @@ def render_shipped_row(r):
     except Exception:
         lbl = r["shipped_date"]
     scope = r.get("description", "")
+    # Tag triggers when the fix-version's `released` flag is still False in
+    # Jira, even though a PRF Release ticket has a resolutiondate. The wording
+    # is imperative ("you should mark this Released") — phrased explicitly to
+    # avoid being mis-read as a status label.
     jira_flag = (
-        '<span class="tag t-jira-open">⚠️ Mark Released in Jira</span>'
+        '<span class="tag t-jira-open">⚠️ Not yet marked Released in Jira</span>'
         if not r.get("jira_released", True) else ""
     )
     return f"""
@@ -868,11 +872,11 @@ def generate_html(active, shipped, kpis):
     {shipped_rows}
   </div>"""
 
-        # Active sub-card (this team, in-progress)
+        # Active sub-card (this team, in-progress) — uniform blue regardless of team
         if sec_active:
             row_html = "".join(render_active_row(r) for r in sec_active)
             sections_html += f"""
-  <div class="card {meta['card']}">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">{meta['icon']}</span>
       <span class="card-head-title">{meta['title']} — In Progress</span>
@@ -910,15 +914,15 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .sec-label {{ font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin: 16px 0 7px 2px; }}
 .sec-v2 {{ color:#1D4ED8; }} .sec-ig {{ color:#065F46; }} .sec-pfh {{ color:#B45309; }} .sec-cs {{ color:#9D174D; }} .sec-done {{ color:#064E3B; }}
 .card {{ border-radius: 14px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
-.card-v2   {{ background:#EFF6FF; border:1.5px solid #BFDBFE; }}
-.card-ig   {{ background:#ECFDF5; border:1.5px solid #6EE7B7; }}
-.card-pfh  {{ background:#FFFBEB; border:1.5px solid #FCD34D; }}
-.card-cs   {{ background:#FDF2F8; border:1.5px solid #F9A8D4; }}
-.card-done {{ background:#F0FDF4; border:1.5px solid #86EFAC; }}
+/* Two card styles, applied uniformly across all teams:
+   - card-active = blue (every "In Progress" sub-card)
+   - card-done   = green (every "Shipped this month" sub-card)
+   Team identity is carried by the section label color, not the card. */
+.card-active {{ background:#EFF6FF; border:1.5px solid #BFDBFE; }}
+.card-done   {{ background:#F0FDF4; border:1.5px solid #86EFAC; }}
 .card-head {{ display:flex; align-items:center; gap:8px; padding:11px 16px 9px; border-bottom:1px solid rgba(0,0,0,0.07); }}
-.card-v2  .card-head {{ background:#DBEAFE; }} .card-ig .card-head {{ background:#D1FAE5; }}
-.card-pfh .card-head {{ background:#FEF3C7; }} .card-cs .card-head {{ background:#FCE7F3; }}
-.card-done .card-head {{ background:#DCFCE7; }}
+.card-active .card-head {{ background:#DBEAFE; }}
+.card-done   .card-head {{ background:#DCFCE7; }}
 .card-head-title {{ font-size:13px; font-weight:600; color:#111; flex:1; }}
 .card-head-count {{ font-size:11px; background:rgba(0,0,0,0.09); color:#333; padding:2px 10px; border-radius:20px; font-weight:600; }}
 .col-head {{ display:grid; grid-template-columns:155px 76px 68px 82px 1fr; gap:6px; padding:6px 16px; font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,0.05); background:rgba(255,255,255,0.4); }}

@@ -23,15 +23,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .sec-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; margin: 16px 0 7px 2px; }
 .sec-v2 { color:#1D4ED8; } .sec-ig { color:#065F46; } .sec-pfh { color:#B45309; } .sec-cs { color:#9D174D; } .sec-done { color:#064E3B; }
 .card { border-radius: 14px; overflow: hidden; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.card-v2   { background:#EFF6FF; border:1.5px solid #BFDBFE; }
-.card-ig   { background:#ECFDF5; border:1.5px solid #6EE7B7; }
-.card-pfh  { background:#FFFBEB; border:1.5px solid #FCD34D; }
-.card-cs   { background:#FDF2F8; border:1.5px solid #F9A8D4; }
-.card-done { background:#F0FDF4; border:1.5px solid #86EFAC; }
+/* Two card styles, applied uniformly across all teams:
+   - card-active = blue (every "In Progress" sub-card)
+   - card-done   = green (every "Shipped this month" sub-card)
+   Team identity is carried by the section label color, not the card. */
+.card-active { background:#EFF6FF; border:1.5px solid #BFDBFE; }
+.card-done   { background:#F0FDF4; border:1.5px solid #86EFAC; }
 .card-head { display:flex; align-items:center; gap:8px; padding:11px 16px 9px; border-bottom:1px solid rgba(0,0,0,0.07); }
-.card-v2  .card-head { background:#DBEAFE; } .card-ig .card-head { background:#D1FAE5; }
-.card-pfh .card-head { background:#FEF3C7; } .card-cs .card-head { background:#FCE7F3; }
-.card-done .card-head { background:#DCFCE7; }
+.card-active .card-head { background:#DBEAFE; }
+.card-done   .card-head { background:#DCFCE7; }
 .card-head-title { font-size:13px; font-weight:600; color:#111; flex:1; }
 .card-head-count { font-size:11px; background:rgba(0,0,0,0.09); color:#333; padding:2px 10px; border-radius:20px; font-weight:600; }
 .col-head { display:grid; grid-template-columns:155px 76px 68px 82px 1fr; gap:6px; padding:6px 16px; font-size:10px; color:#6B7280; font-weight:700; text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid rgba(0,0,0,0.05); background:rgba(255,255,255,0.4); }
@@ -122,7 +122,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="scope-text">Trunk Release + New Games</div>
     </div>
   </div>
-  <div class="card card-v2">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">🎮</span>
       <span class="card-head-title">V2 Releases — In Progress</span>
@@ -215,7 +215,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
   </div>
   <div class="sec-label sec-ig">🟢 iGaming — ELG & PFH2 Games</div>
-  <div class="card card-ig">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">🎰</span>
       <span class="card-head-title">iGaming — ELG & PFH2 Games — In Progress</span>
@@ -232,9 +232,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <span class="ph ph-dev">In Dev</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill pf-dev" style="width:91%"></div></div>
-        <div class="prog-lbl">91% by hours · 1239h / 1354h logged</div>
+        <div class="prog-lbl">91% by hours · 1239h / 1359h logged</div>
       </div>
-      <div class="dc"><span class="tag t-apr">🚀 May 29</span><span class="tag t-qa-warn">🔶 QA: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Math: 1 ticket unestimated</span><span class="tag eta-med">📅 Est. Jun 29 · 🤖 AI-filled</span><div class="scope-text">Game Engine</div></div>
+      <div class="dc"><span class="tag t-apr">🚀 May 29</span><span class="tag t-qa-warn">🔶 QA: 1 ticket unestimated</span><span class="tag t-qa-warn">🔶 Math: 1 ticket unestimated</span><span class="tag eta-med">📅 Est. Jul 6 · 🤖 AI-filled</span><div class="scope-text">Game Engine</div></div>
     </div>
     <div class="rel-row">
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22PFH2%20Games%202.00%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">PFH2 Games 2.00</a></div></div>
@@ -313,7 +313,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div><div class="rel-name"><a href="https://ponggamestudios.atlassian.net/issues/?jql=fixVersion%20%3D%20%22CS%20VGTC%207.01%22%20ORDER%20BY%20issuetype%20DESC" target="_blank" rel="noopener" class="rel-link">CS VGTC 7.01</a></div></div>
       <div class="hc grn"><span class="hc-dot"></span>Shipped</div>
       <span class="ph ph-ship">Shipped</span>
-      <div class="dc"><span class="tag t-ship">May 13</span><span class="tag t-jira-open">⚠️ Mark Released in Jira</span></div>
+      <div class="dc"><span class="tag t-ship">May 13</span><span class="tag t-jira-open">⚠️ Not yet marked Released in Jira</span></div>
       <div class="scope-text">Patch to fix access when over 2000 locations</div>
     </div>
     <div class="rel-row">
@@ -338,7 +338,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="scope-text">Targeted Promo</div>
     </div>
   </div>
-  <div class="card card-cs">
+  <div class="card card-active">
     <div class="card-head">
       <span style="font-size:16px">☁️</span>
       <span class="card-head-title">Cloud Services — In Progress</span>
