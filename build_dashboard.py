@@ -132,20 +132,21 @@ def fetch_confluence_scope(version_names):
 
 # ── Step 1: Fix versions ──────────────────────────────────────────────────────
 
-def fetch_fix_versions(prf_overrides=None):
+def fetch_fix_versions():
     """
-    Fetch active fix versions. A version with the same name can exist in more
-    than one Jira project (e.g. `PFH2 Services 2.00` is defined in both PFH and
-    CSS; `CS VGTC 8.00` is in both CS and CSS after the Scrum migration).
-    Dedupe globally by name: first-seen section wins (iteration order is v2 →
-    ig → pfh → cs), and the `projects` list expands to every project where the
-    version was found so issue queries hit all of them.
+    Fetch every non-archived, valid fix version (released + unreleased).
+    A version with the same name can exist in more than one project
+    (`PFH2 Services 2.00` is in both PFH and CSS; `CS VGTC 8.00` is in both
+    CS and CSS after the Scrum migration). Dedupe globally by name: first-seen
+    section wins (iteration order is v2 → ig → cs), and the `projects` list
+    expands to every project where the version is defined so issue queries
+    hit all of them.
 
-    Versions marked 'released' in Jira are normally excluded, but kept if they
-    have a PRF override so recently-shipped releases stay visible after the
-    team marks them released.
+    Classification of shipped vs active happens in build_releases():
+        - jira_released=True            → SHIPPED (authoritative)
+        - jira_released=False + PRF     → SHIPPED (fallback; flag "Mark Released")
+        - otherwise                     → ACTIVE
     """
-    prf_overrides = prf_overrides or {}
     seen = {}  # name -> entry
 
     for section, projs in SECTION_PROJECTS.items():
@@ -158,8 +159,6 @@ def fetch_fix_versions(prf_overrides=None):
                 if not is_valid_fv(name):
                     continue
                 is_released = bool(v.get("released"))
-                if is_released and name not in prf_overrides:
-                    continue
                 existing = seen.get(name)
                 if existing is None:
                     seen[name] = {
@@ -523,24 +522,34 @@ def compute_eta(stats, release_date_str):
 def build_releases():
     print("  Fetching PRF overrides...")
     prf_overrides = fetch_prf_overrides()
-    print(f"  Found {len(prf_overrides)} shipped via PRF")
+    print(f"  Found {len(prf_overrides)} shipped via PRF (Release-ticket resolution)")
 
     print("  Fetching fix versions from Jira...")
-    versions = fetch_fix_versions(prf_overrides)
-    print(f"  Found {len(versions)} valid fix versions")
+    versions = fetch_fix_versions()
+    released_count = sum(1 for v in versions if v.get("jira_released"))
+    print(f"  Found {len(versions)} valid fix versions ({released_count} marked Released)")
 
-    active_versions  = [v for v in versions if v["name"] not in prf_overrides]
-    shipped_versions = [v for v in versions if v["name"] in prf_overrides]
+    active_versions, shipped_versions = [], []
+    for v in versions:
+        if v.get("jira_released") or v["name"] in prf_overrides:
+            shipped_versions.append(v)
+        else:
+            active_versions.append(v)
 
-    active  = []
-    shipped = []
+    active, shipped = [], []
 
     for v in shipped_versions:
+        # Authoritative date: Jira fix-version releaseDate.
+        # Fallback: PRF Release-ticket resolutiondate.
+        ship_date = v.get("releaseDate") or prf_overrides.get(v["name"]) or ""
+        if not ship_date:
+            print(f"  ⚠ {v['name']} flagged as shipped but has no date — skipping")
+            continue
         shipped.append({
             "name":          v["name"],
             "id":            v["id"],
             "section":       v["section"],
-            "shipped_date":  prf_overrides[v["name"]],
+            "shipped_date":  ship_date,
             "description":   v.get("jira_desc", ""),
             "jira_released": v.get("jira_released", False),
         })
