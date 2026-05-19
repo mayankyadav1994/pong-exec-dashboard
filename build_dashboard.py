@@ -218,7 +218,7 @@ def fetch_version_stats(fv_name, projects):
     issues = jira_jql(
         jql=f'project in ({_projects_clause(projects)}) AND fixVersion = "{fv_name}"',
         fields=["status", "priority", "subtasks", "issuetype",
-                "timeestimate", "timeoriginalestimate", "resolutiondate"],
+                "timeestimate", "timeoriginalestimate", "timespent", "resolutiondate"],
     )
 
     # Build the set of countable "leaf" issues:
@@ -244,7 +244,7 @@ def fetch_version_stats(fv_name, projects):
         subs = jira_jql(
             jql=f'parent in ({", ".join(parent_keys[i:i+chunk])})',
             fields=["status", "priority", "issuetype",
-                    "timeestimate", "timeoriginalestimate", "resolutiondate"],
+                    "timeestimate", "timeoriginalestimate", "timespent", "resolutiondate"],
         )
         leaf_issues.extend(subs)
 
@@ -255,6 +255,16 @@ def fetch_version_stats(fv_name, projects):
     open_with_estimate = 0
     open_total = 0
     cutoff = TODAY - timedelta(days=14)
+
+    # Hour-weighted progress accumulators (in seconds):
+    #   hours_done_credit = effort credited as "complete"
+    #     = sum(timeoriginalestimate || timespent) for done tickets
+    #     + sum(timespent) for open tickets (partial credit for work logged so far)
+    #   hours_total       = effort that should be done
+    #     = sum(max(timeoriginalestimate, timespent + timeestimate)) per ticket
+    hours_done_credit = 0
+    hours_total       = 0
+    hours_spent_open  = 0   # logged time across open tickets (for display)
 
     # For AI-fill (imputation) of missing estimates: group open-ticket estimates
     # by issue type so we can use the median to fill in unestimated tickets.
@@ -268,11 +278,19 @@ def fetch_version_stats(fv_name, projects):
         priority    = (fields.get("priority") or {}).get("name", "")
         timeest     = fields.get("timeestimate") or 0
         timeorig    = fields.get("timeoriginalestimate") or 0
+        timespent   = fields.get("timespent") or 0
         resdate_str = (fields.get("resolutiondate") or "")[:10]
         itype       = (fields.get("issuetype") or {}).get("name", "Unknown")
 
+        # Ticket "scope" = best estimate of total effort for this ticket
+        ticket_scope = max(timeorig, timespent + timeest)
+        hours_total += ticket_scope
+
         if status_cat == "done":
             done += 1
+            # Done tickets: credit whichever signal is larger — the original
+            # estimate (planned effort) or the time actually spent.
+            hours_done_credit += max(timeorig, timespent)
             if resdate_str:
                 try:
                     if date.fromisoformat(resdate_str) >= cutoff:
@@ -284,6 +302,8 @@ def fetch_version_stats(fv_name, projects):
         elif status_nm in QA_STATUSES:
             qa_count += 1
             open_total += 1
+            hours_done_credit += timespent
+            hours_spent_open  += timespent
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
@@ -293,6 +313,8 @@ def fetch_version_stats(fv_name, projects):
         else:
             dev_count += 1
             open_total += 1
+            hours_done_credit += timespent
+            hours_spent_open  += timespent
             if timeest:
                 remaining_secs += timeest
                 open_with_estimate += 1
@@ -329,6 +351,7 @@ def fetch_version_stats(fv_name, projects):
     phase = "qa" if qa_count > 0 and dev_count == 0 else "dev"
     estimate_coverage     = open_with_estimate / open_total if open_total else 0
     velocity_secs_per_day = recent_done_secs / 14 if recent_done_secs > 0 else 0
+    pct_hours = int(hours_done_credit / hours_total * 100) if hours_total > 0 else 0
 
     return {
         "done": done, "qa_count": qa_count, "total": total, "pct": pct,
@@ -340,6 +363,11 @@ def fetch_version_stats(fv_name, projects):
         "velocity_secs_per_day": velocity_secs_per_day,
         "recent_done_count": recent_done_count,
         "open_count": open_total,
+        # Hour-weighted progress (in seconds for arithmetic; format later)
+        "hours_done_credit": hours_done_credit,
+        "hours_total":       hours_total,
+        "hours_spent_open":  hours_spent_open,
+        "pct_hours":         pct_hours,
     }
 
 
@@ -596,6 +624,10 @@ def build_releases():
             "imputed_count":   stats.get("imputed_count", 0),
             "eta_date":        eta_date,
             "eta_confidence":  eta_confidence,
+            # Hour-weighted progress (seconds; render as hours in HTML)
+            "hours_done":      stats.get("hours_done_credit", 0),
+            "hours_total":     stats.get("hours_total", 0),
+            "pct_hours":       stats.get("pct_hours", 0),
         })
 
     # Sort: by section order, then red → yellow → green within each section
@@ -696,6 +728,16 @@ def render_active_row(r):
 
     scope = r.get("description") or "Scope being defined."
 
+    # Hour-weighted progress line (only shown when meaningful hour data exists)
+    hours_done_h  = round((r.get("hours_done") or 0) / 3600)
+    hours_total_h = round((r.get("hours_total") or 0) / 3600)
+    hours_line = ""
+    if hours_total_h > 0:
+        hours_line = (
+            f'<div class="prog-hrs">{r.get("pct_hours", 0)}% by hours · '
+            f'{hours_done_h}h / {hours_total_h}h logged</div>'
+        )
+
     return f"""
     <div class="rel-row">
       <div><div class="rel-name"><a href="{jira_fv_url(r['id'], r['name'])}" target="_blank" rel="noopener" class="rel-link">{r['name']}</a></div></div>
@@ -703,7 +745,8 @@ def render_active_row(r):
       <span class="ph {phase_cls}">{phase_label}</span>
       <div class="prog-col">
         <div class="prog-bg"><div class="prog-fill {pc}" style="width:{max(pct,1)}%"></div></div>
-        <div class="prog-lbl">{pct}% · {r['done'] + r['qa_count']}/{r['total']}</div>
+        <div class="prog-lbl">{pct}% · {r['done'] + r['qa_count']}/{r['total']} tickets</div>
+        {hours_line}
       </div>
       <div class="dc">{''.join(tags)}<div class="scope-text">{scope}</div></div>
     </div>"""
@@ -733,6 +776,29 @@ def generate_html(active, shipped, kpis):
     run_date = fmt_date(TODAY) + f", {TODAY.year}"
 
     sections_html = ""
+
+    # 1. Shipped first (current month) — the win column at the top
+    month_label   = TODAY.strftime("%B %Y")
+    month_prefix  = TODAY.strftime("%Y-%m")
+    shipped_month = [r for r in shipped if r["shipped_date"].startswith(month_prefix)]
+    shipped_rows  = "".join(render_shipped_row(r) for r in shipped_month)
+    if shipped_month:
+        sections_html += f"""
+  <div class="sec-label sec-done">✅ Shipped — {month_label}</div>
+  <div class="card card-done">
+    <div class="card-head">
+      <span style="font-size:16px">🎉</span>
+      <span class="card-head-title">Shipped this month</span>
+      <span class="card-head-count">{len(shipped_month)} releases</span>
+    </div>
+    <div class="col-head">
+      <span>Release</span><span>Health</span><span>Phase</span>
+      <span>Date</span><span>Scope</span>
+    </div>
+    {shipped_rows}
+  </div>"""
+
+    # 2. Active sections by team
     for sec_key in ["v2", "ig", "cs"]:
         meta = SECTION_META[sec_key]
         rows = [r for r in active if r["section"] == sec_key]
@@ -752,26 +818,6 @@ def generate_html(active, shipped, kpis):
       <span>Progress</span><span>Scope &amp; Details</span>
     </div>
     {row_html}
-  </div>"""
-
-    month_label   = TODAY.strftime("%B %Y")
-    month_prefix  = TODAY.strftime("%Y-%m")
-    shipped_month = [r for r in shipped if r["shipped_date"].startswith(month_prefix)]
-    shipped_rows  = "".join(render_shipped_row(r) for r in shipped_month)
-    if shipped_month:
-        sections_html += f"""
-  <div class="sec-label sec-done">✅ Shipped — {month_label}</div>
-  <div class="card card-done">
-    <div class="card-head">
-      <span style="font-size:16px">🎉</span>
-      <span class="card-head-title">Shipped this month</span>
-      <span class="card-head-count">{len(shipped_month)} releases</span>
-    </div>
-    <div class="col-head">
-      <span>Release</span><span>Health</span><span>Phase</span>
-      <span>Date</span><span>Scope</span>
-    </div>
-    {shipped_rows}
   </div>"""
 
     return f"""<!DOCTYPE html>
@@ -832,6 +878,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
 .pf-ship {{ background:linear-gradient(90deg,#34D399,#059669); }}
 .pf-zero {{ background:#D1D5DB; }}
 .prog-lbl {{ font-size:10px; color:#6B7280; }}
+.prog-hrs {{ font-size:9px; color:#9CA3AF; margin-top:1px; font-variant-numeric: tabular-nums; }}
 .dc {{ display:flex; flex-direction:column; gap:3px; padding-top:1px; }}
 .tag {{ display:inline-flex; align-items:center; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; width:fit-content; white-space:nowrap; }}
 .t-apr {{ background:#EDE9FE; color:#5B21B6; }}
