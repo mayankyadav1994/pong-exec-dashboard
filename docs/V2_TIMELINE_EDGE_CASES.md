@@ -212,7 +212,47 @@ Each entry follows the same shape: **what the auto-calc does → why a human rea
 
 ---
 
-## 16. The producer's tacit knowledge isn't in Jira
+## 16. Mechanical status classifier misses "In QA" and "Scheduled" — [Resolved May 20, 2026]
+
+**Original auto-calc behaviour.** `classify_status_label()` in `v2_timeline.py` originally read the set of open ticket statuses and emitted:
+- `In QA` only when **every** open ticket was in a QA-like status
+- `Scheduled` only when **every** open ticket was `New`
+- `In Development` otherwise
+
+**Why it failed.** A few stray tickets in non-matching statuses were enough to push a release into "In Development" even when it was effectively In QA or Scheduled.
+
+**Live evidence (May 20, 2026).**
+
+| FV | Producer label | Open ticket mix | Original output |
+|---|---|---|---|
+| V2 SW 15.00 | In QA | 9 In QA (50%) · 7 In Progress · 2 To Do | In Development |
+| V2 PT 14.00 | Scheduled | 64 New (64%) · 14 Ready · 12 In Progress · 10 To Do | In Development |
+
+For PT 14.00, "New"-status tickets held 444h / 848h of original-estimated work (52%). The "In Progress" tickets were mostly Rejosh's exploratory items with 0h estimate — placeholders, not real dev activity.
+
+**Signals that *didn't* work.**
+- Jira fix-version `startDate` / `releaseDate` — PT 14 had `startDate=2026-04-07` and `releaseDate=2026-08-14` set, yet no work had begun. Dates are set by planning, not by activity.
+- Release-type issue workflow status — only 1 of 6 V2 FVs had a Release ticket (SW 15), and it was on the dev-done release, not the unstarted one. So Release-ticket status couldn't generally distinguish Scheduled from In Dev.
+
+**Resolution — 50% threshold.** Replaced the strict subset check with a majority check on the open-ticket status mix:
+
+```python
+n_qa  = sum(1 for t in open_tasks if t["status"] in QA_LIKE)
+n_new = sum(1 for t in open_tasks if t["status"] == "New")
+if n_qa  / n_total >= 0.5: return ("In QA",      None)
+if n_new / n_total >= 0.5: return ("Scheduled",  TODAY.isoformat())
+return ("In Development", TODAY.isoformat())
+```
+
+QA check runs first so a hypothetical 50/50 QA/New tie lands on "In QA" (QA is the later phase). Inclusive `>= 0.5` so SW 15.00 at exactly 50% stays in QA.
+
+**Self-correcting behaviour.** When PT 14.00's team is told to start, "New" tickets will move to "In Progress" / "Ready" / "To Do". As soon as "New" share drops below 50% the label auto-flips to "In Development" on the next refresh. Same on the other end: once a release's QA share crosses 50% it auto-flips to "In QA". No manual touch required.
+
+**Previously-shipped stopgap (now removed).** A `force_status` field on `FV_CONFIG` entries used to pin SW 15 → "In QA" and PT 14 → "Scheduled". Both overrides have been deleted; the heuristic produces the correct labels on its own.
+
+---
+
+## 17. The producer's tacit knowledge isn't in Jira
 
 **Meta-issue.** Most of the heuristics above ("Rejosh isn't really the bottleneck on PT 13.30, Krupa is", "PT 14.00 hasn't actually been kicked off yet", "Blazesoft dependency is blocking everything") live in the producer's head and side conversations, not in Jira fields.
 
