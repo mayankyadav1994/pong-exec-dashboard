@@ -252,7 +252,51 @@ QA check runs first so a hypothetical 50/50 QA/New tie lands on "In QA" (QA is t
 
 ---
 
-## 17. The producer's tacit knowledge isn't in Jira
+## 17. Scope tab uses direct parent only (no grandparent epic resolution)
+
+**Auto-calc behaviour.** `compute_scope()` in `v2_timeline.py` groups issues by their direct `parent` field. When the parent is a Story (which itself is a child of an Epic), the Story appears as a scope item — not the grandparent Epic.
+
+**Why this matters.** In Jira, a common hierarchy looks like:
+
+```
+Epic (V2-29114 — "System Mechanical Meters")
+ └─ Story (V2-29116 — "System Mechanical Meters — analysis & breakdown")
+     └─ Dev Subtask (V2-29201 — "Show pending hard meter updates in MM")
+```
+
+Today, `compute_scope()` reads V2-29201's parent as V2-29116 (the Story), so the Scope tab groups under the Story key, not the Epic. The hand-tuned prototype used the Epic key (V2-29114). Cosmetic mismatch, but it means a single Epic can appear as multiple Story rows in the dashboard.
+
+**Suggested refinement.**
+- After the first pass, collect any parent whose `issuetype.name == "Story"`, fetch that Story's own `parent` field in a second JQL, and re-key the scope entry to the grandparent.
+- Edge case: a Story whose parent is also a Story (rare in V2 but possible). Walk up at most 2 levels then bail out.
+- Cache parent lookups across FVs to avoid duplicate queries for shared Epics.
+
+**Workaround until then.** The Scope tab still works — it just shows finer-grained scope items than the prototype. Click-through to Jira still resolves correctly because the keys are real Jira keys.
+
+---
+
+## 18. Sprint Activity is empty (Tempo/worklog integration deferred)
+
+**Auto-calc behaviour.** `main()` in `v2_timeline.py` emits `SPRINT_LOGS = {}` to the template. The detail panel's per-person Sprint Activity section renders "No hours logged this sprint" for every developer.
+
+**Why we deferred.** The prototype's `SPRINT_LOGS` contains rich Tempo data — per-person totals and per-issue hour breakdowns. Pulling this needs either:
+
+1. **Tempo Cloud REST API** (`https://api.tempo.io/4/worklogs?from=...&to=...`). Separate auth (Tempo API token), separate secrets, separate rate limits. Tempo log attribution is by *service account*; we'd need to map back to the issue's assignee.
+2. **Jira native worklog endpoint** (`/rest/api/3/issue/{key}/worklog`). One request per issue — slow if we have hundreds of open issues per refresh.
+3. **JQL `worklogAuthor` + `worklogDate`** — can filter issues that have a worklog in a sprint range, but the response doesn't include the per-author breakdown we need for the UI.
+
+None of these are blocked, but each adds enough surface area (auth, rate limits, attribution edge cases) to warrant a dedicated PR.
+
+**Suggested refinement.**
+- Start with the Jira native endpoint. For each open issue across all FVs, GET its worklog and accumulate hours by author in the current sprint window.
+- Cache per-issue worklog responses for 5 minutes (Jira API politeness).
+- The Tempo "service account writes hours under issue's assignee" quirk from the prototype's notes is documented in the knowledge base §11 — surface that note in the Sprint Activity UI as a small disclaimer.
+
+**Workaround until then.** The Sprint Activity panel renders gracefully ("No hours logged this sprint") — no broken UI. Total team velocity is still visible via the ETA tier's measured-velocity input (`velocity_secs_per_day` from `recent_done_count`), so the projection math doesn't suffer.
+
+---
+
+## 19. The producer's tacit knowledge isn't in Jira
 
 **Meta-issue.** Most of the heuristics above ("Rejosh isn't really the bottleneck on PT 13.30, Krupa is", "PT 14.00 hasn't actually been kicked off yet", "Blazesoft dependency is blocking everything") live in the producer's head and side conversations, not in Jira fields.
 
