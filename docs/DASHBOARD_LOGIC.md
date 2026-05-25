@@ -173,11 +173,15 @@ For each fix version, the **bottleneck** is the person whose projected completio
 
 ---
 
-## 10. V2 Timeline — queued hours
+## 10. V2 Timeline — queued hours (computed at render time, not in the generator)
 
 Some people work across multiple fix versions. We don't want their work on a later release to start at "today" — it should start *after* their work on higher-priority releases finishes.
 
-**For each person, on each release `n`:** sum their open hours from releases `1` through `n-1`, store that as `queuedHours` on release `n`. Their projected start on release `n` is `today + queuedHours / hpd(person)`.
+**The math:** for each person on release `n`, sum their open hours from releases `1` through `n-1`. Their projected start on release `n` is `today + queuedHours / hpd(person)`.
+
+**Where it runs:** entirely in the browser. The template's `getDynamicQueued(fvIdx, name)` function walks the current FV order (which the user can drag to reorder) and computes queued hours on the fly. The generator does **not** emit `queuedHours` on person records — that would freeze the order at build time and break the drag-to-reprioritize feature.
+
+**Generator-side use:** `mark_bottleneck_for_fv()` does the same calculation just to set the precomputed `bottleneck: true` flag for visual styling (red ⛓ pill). The JS uses this flag for the chip styling, but recomputes the dev-end *date* dynamically — so dragging a row updates projection dates correctly even if the chip's ⛓ flag is stale.
 
 **Why this matters:** without queued hours, Rejosh appears to "start" 6 things simultaneously and projection dates ignore the fact that he's one human.
 
@@ -220,7 +224,61 @@ Below the Dev/QA bar, each fix version can have up to three additional rows — 
 
 ---
 
-## 14. Shared infrastructure
+## 14. V2 Timeline — Scope tab (epics + tasks)
+
+Each FV row's detail panel has a third tab, **SCOPE**, listing the parent epics (or stories) of the tickets in that release. Click the epic header to expand a list of the child tasks.
+
+**How the data is built:** `compute_scope()` in `v2_timeline.py` walks every fetched issue's `parent` field. For each unique parent it emits one scope entry with: epic key, name (from `parent.fields.summary`), status, `done`/`total` counts, and the list of child task keys.
+
+**Known limitation (V2_TIMELINE_EDGE_CASES.md §17):** we use the *direct* parent only. When an issue's direct parent is a Story rather than an Epic, the Story appears as the scope item — so a single Epic can split into multiple Story rows in the dashboard. Fixing this needs a second JQL pass to resolve Story→Epic. The keys are still real Jira keys so the click-through works.
+
+---
+
+## 15. V2 Timeline — Sprint Activity (currently empty)
+
+Each person column in the detail panel has a Sprint Activity section that shows logged hours vs expected for the current sprint.
+
+**Where the expected number comes from:** `sprintExpected(name)` in the template — `8 * (buffer/100) * workDaysToDate`. For Rejosh: `8 × 50% × 9 = 36h` expected by mid-sprint S1. For others at 75% buffer: `8 × 75% × 9 = 54h`.
+
+**Where the actual logged hours come from:** **nowhere yet.** The generator emits `SPRINT_LOGS = {}` because Tempo / Jira-worklog integration is deferred (V2_TIMELINE_EDGE_CASES.md §18). The Sprint Activity panel renders "No hours logged this sprint" for every developer.
+
+**What works today:** `SPRINT` info (sprint label, period, workdays elapsed/total) *is* computed by `current_sprint_info()` from the SPRINTS array and TODAY's date. The dashboard correctly shows which sprint is active and how many work days are elapsed. Only the per-person logged hours are missing.
+
+---
+
+## 16. V2 Timeline — drag-to-reprioritize
+
+The drag handle (⠿) on each row lets the user reorder fix versions. Drop above/below a target to splice in. The reorder triggers a full `buildRows()` rebuild — every `getDynamicQueued()` recalculates, ETA dates shift, bottleneck flags stay (the JS uses the precomputed flag for chip styling but recomputes the projected date dynamically).
+
+**Generator-side implication:** none. The generator emits FVs in priority order and the JS handles the rest. The reordered state lives only in the user's browser — not persisted to localStorage in this iteration.
+
+---
+
+## 17. V2 Timeline — What-If Scenario Planner
+
+Orange ⚡ FAB (bottom-right) opens a slide-in panel where the user can model hypothetical work assignments. Scenarios add hypothetical tasks that cascade through queued hours downstream.
+
+**Two placement modes:**
+- **New standalone FV** — adds a dashed-orange "scenario" row to the timeline.
+- **Inject into existing FV** — adds the hypothetical hours to a specific FV's person record; downstream FVs pick up the extra hours via `getInjectedHours()` in `getDynamicQueued()`.
+
+**Persistence:** scenarios are stored in `localStorage` under `v2_scenarios` and a master enable/disable toggle under `v2_scenarios_master`. Survives page refresh. Per-user (not shared).
+
+**Generator-side implication:** none. Scenarios are 100% client-side. The generator emits the baseline FV data and the JS handles all scenario math.
+
+---
+
+## 18. V2 Timeline — unlogged hours badge
+
+Each FV label can show an amber `⚠ N tasks 0h logged` badge. It fires when there are tasks in active statuses (`In Progress`, `Ready`, `In QA`, `Pre-Prod In Progress`) but `hours === 0`.
+
+**Why it matters:** if the team is working on a ticket but hasn't estimated it, the ETA model treats that ticket as zero remaining hours — projection becomes optimistic. The badge surfaces the data-hygiene gap so the right person can add an estimate.
+
+**Generator-side implication:** none. Counted client-side from the same task data the generator already emits.
+
+---
+
+## 19. Shared infrastructure
 
 ### `jira_client.py`
 Both generators import `jira_get` / `jira_post` / `jira_jql` from here. Single source of truth for HTTP auth (Basic auth via env vars `JIRA_EMAIL` and `JIRA_API_TOKEN`) and JQL pagination.
@@ -242,7 +300,7 @@ Both pages have a shared header with two tabs (Overview / V2 Timeline). The HTML
 
 ---
 
-## 15. Where to look when something on the dashboard looks wrong
+## 20. Where to look when something on the dashboard looks wrong
 
 | Symptom | Likely cause | Where to debug |
 |---|---|---|
@@ -251,9 +309,11 @@ Both pages have a shared header with two tabs (Overview / V2 Timeline). The HTML
 | ETA shown as `May 19 2027` (year visible) | Tier hit the 365-day cap; underlying velocity is very low | Check `velocity_secs_per_day` for that FV — usually means no recent done tickets with `timeoriginalestimate` set |
 | Unestimated callout is wrong | Subtask-or-parent rule's view of the issue tree | Check the FV in Jira — does the parent have subtasks? If yes, every subtask without `timeoriginalestimate` counts |
 | V2 Timeline status label looks wrong | Open-ticket status mix shifted past the 50% threshold | Run the §16 status-distribution query in `V2_TIMELINE_EDGE_CASES.md` against that FV |
+| V2 Timeline Scope tab shows a Story instead of an Epic | Direct-parent grouping in `compute_scope` — see `V2_TIMELINE_EDGE_CASES.md` §17 | Look up the Story in Jira; its `parent` field will point at the Epic. Grandparent resolution is a planned refinement |
+| V2 Timeline Sprint Activity is empty everywhere | `SPRINT_LOGS = {}` by design — Tempo/worklog integration is deferred (§18) | Not a bug. Awaiting the follow-up PR that wires up the worklog endpoint |
 | Same dashboard issue is "Mark Released in Jira" but the version IS released | The data refresh is stale | Manually trigger the workflow; or wait for the next cron |
 | A release vanished from Active and isn't in Shipped either | Fix-version became `released=true` and no PRF override (also empty in Shipped section if shipped_date isn't current month) | Check the version's `released` flag and `releaseDate` in Jira |
 
 ---
 
-*Last updated: 2026-05-20. Keep this file in sync when you ship a logic change — touch the section, leave the rest. If a heuristic gets resolved or replaced, mark it `[Resolved]` and keep the explanation so future-you can see the reasoning trail.*
+*Last updated: 2026-05-25. Keep this file in sync when you ship a logic change — touch the section, leave the rest. If a heuristic gets resolved or replaced, mark it `[Resolved]` and keep the explanation so future-you can see the reasoning trail.*

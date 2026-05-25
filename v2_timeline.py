@@ -60,6 +60,11 @@ FV_CONFIG = [
      "qaWeeks": 3,
      "isLab": True, "lab1Weeks": 4, "pilotWeeks": 2, "lab2Weeks": 4,
      "salesTrip": {"tbd": True, "label": "Sales Trip · Ohio"}},
+
+    {"key": "V2 C2 5.10",   "color": "#a78bfa",
+     "sub": "C2 Game Ports · Bingo Paytables · 4 Games",
+     "qaWeeks": 2,
+     "indev_style": "color:#3b0764;border-color:rgba(124,58,237,.25);background:rgba(124,58,237,.07)"},
 ]
 
 DEV_TYPES   = ["Story", "Dev Task", "Dev Subtask"]
@@ -189,15 +194,30 @@ def classify_status_label(dev_people):
     return ("In Development", TODAY.isoformat())
 
 
-def mark_bottleneck(dev_people):
-    """Knowledge base §11: bottleneck = person whose projected done date is latest."""
+def mark_bottleneck_for_fv(fv, fvs_before):
+    """
+    Mark the bottleneck person + their highest-hour open task on a single FV.
+    Bottleneck = person whose (open_hours + queued_hours from prior FVs) / hpd is
+    the largest. Note: we don't *emit* queuedHours — the template's getDynamicQueued
+    computes it at render time so it stays in sync with drag-reorder and scenarios.
+    The bottleneck flag is precomputed for visual styling (red ⛓ pill).
+    """
+    def queued_for(name):
+        total = 0
+        for prev in fvs_before:
+            prev_p = next((x for x in prev["devPeople"] if x["name"] == name), None)
+            if prev_p:
+                total += sum(t["hours"] for t in prev_p["tasks"] if not is_done(t["status"]))
+        return total
+
     best_days, best_person = -1, None
-    for p in dev_people:
+    for p in fv["devPeople"]:
         open_h = sum(t["hours"] for t in p["tasks"] if not is_done(t["status"]))
-        total  = open_h + p.get("queuedHours", 0)
+        total  = open_h + queued_for(p["name"])
         days   = total / hpd(p["name"]) if total > 0 else 0
         if days > best_days:
             best_days, best_person = days, p
+
     if best_person and best_days > 0:
         best_person["bottleneck"] = True
         open_tasks = [t for t in best_person["tasks"] if not is_done(t["status"])]
@@ -208,16 +228,92 @@ def mark_bottleneck(dev_people):
     return best_person, best_days
 
 
-def compute_queued_hours(fvs):
-    """Knowledge base §12.4: per person, sum open hours from higher-priority FVs."""
-    for idx, fv in enumerate(fvs):
-        for person in fv["devPeople"]:
-            queued = 0
-            for prev in fvs[:idx]:
-                prev_p = next((x for x in prev["devPeople"] if x["name"] == person["name"]), None)
-                if prev_p:
-                    queued += sum(t["hours"] for t in prev_p["tasks"] if not is_done(t["status"]))
-            person["queuedHours"] = round(queued)
+# ── Scope (epic grouping) ────────────────────────────────────────────────────
+
+def compute_scope(all_issues):
+    """
+    Group issues by their direct Jira parent (epic or story) for the Scope tab.
+
+    For each parent, emit one entry with key/name/status/done/total/taskKeys.
+    Tasks without a parent are dropped (they have no scope context).
+
+    Known limitation (docs/V2_TIMELINE_EDGE_CASES.md §17): when an issue's
+    direct parent is a Story rather than an Epic, the grouping shows the Story
+    as the scope item. Grandparent-epic resolution would need a second query.
+    """
+    by_parent = {}
+    for issue in all_issues:
+        if parent_is_admin(issue):
+            continue
+        fields = issue["fields"]
+        parent = fields.get("parent")
+        if not parent:
+            continue
+        pkey = parent.get("key")
+        if not pkey:
+            continue
+        pfields = parent.get("fields") or {}
+        entry = by_parent.setdefault(pkey, {
+            "key":      pkey,
+            "name":     pfields.get("summary", pkey),
+            "status":   ((pfields.get("status") or {}).get("name") or "New"),
+            "done":     0,
+            "total":    0,
+            "taskKeys": [],
+        })
+        entry["taskKeys"].append(issue["key"])
+        entry["total"] += 1
+        status_cat = (fields.get("status") or {}).get("statusCategory", {}).get("key")
+        if status_cat == "done":
+            entry["done"] += 1
+    # Sort: by descending total tasks (most active scope items first)
+    return sorted(by_parent.values(), key=lambda x: -x["total"])
+
+
+# ── Sprint info (current sprint, workdays elapsed) ───────────────────────────
+
+HOLIDAYS = {"2026-05-18"}  # Victoria Day (Canada) — keep in sync with template
+
+def count_workdays(start, end_exclusive):
+    """Mon-Fri days in [start, end_exclusive) excluding holidays."""
+    from datetime import timedelta
+    n = 0
+    d = start
+    while d < end_exclusive:
+        if d.weekday() < 5 and d.isoformat() not in HOLIDAYS:
+            n += 1
+        d += timedelta(days=1)
+    return n
+
+
+def _fmt_period(start, end_inclusive):
+    """'May 11 – May 24' (cross-platform)."""
+    try:
+        return f"{start.strftime('%b %-d')} – {end_inclusive.strftime('%b %-d')}"
+    except ValueError:
+        return f"{start.strftime('%b %#d')} – {end_inclusive.strftime('%b %#d')}"
+
+
+def current_sprint_info():
+    """
+    Detect which sprint TODAY falls into and compute work-days elapsed / total.
+    Returns the dict the template expects:
+      { label, period, workDaysToDate, workDaysTotal }
+    """
+    from datetime import timedelta
+    for i, s in enumerate(SPRINTS[:-1]):
+        start = date.fromisoformat(s["start"])
+        next_start = date.fromisoformat(SPRINTS[i + 1]["start"])
+        if start <= TODAY < next_start:
+            end_inclusive = next_start - timedelta(days=1)
+            return {
+                "label":          s["label"],
+                "period":         _fmt_period(start, end_inclusive),
+                # workDaysToDate is inclusive of TODAY (we count today as elapsed)
+                "workDaysToDate": count_workdays(start, TODAY + timedelta(days=1)),
+                "workDaysTotal":  count_workdays(start, next_start),
+            }
+    return {"label": "—", "period": "—", "workDaysToDate": 0, "workDaysTotal": 0}
 
 
 # ── Build one FV ──────────────────────────────────────────────────────────────
@@ -243,6 +339,11 @@ def build_fv(cfg):
     else:
         status_style = STATUS_STYLES[status_label]
 
+    # Scope: group dev + other issues by Jira parent (epic/story)
+    scope = compute_scope(dev_issues + other_issues)
+    if scope:
+        print(f"  scope: {len(scope)} parent groups")
+
     fv = {
         "key":          cfg["key"],
         "color":        cfg["color"],
@@ -253,6 +354,7 @@ def build_fv(cfg):
         "statusStyle":  status_style,
         "devPeople":    dev_people,
         "otherPeople":  other_people,
+        "scope":        scope,
     }
     if cfg.get("note"):
         fv["note"] = cfg["note"]
@@ -272,20 +374,36 @@ def build_fv(cfg):
 def main():
     print(f"▶ Building V2 timeline — {TODAY}")
     fvs = [build_fv(cfg) for cfg in FV_CONFIG]
-    compute_queued_hours(fvs)
     print()
-    for fv in fvs:
-        bp, days = mark_bottleneck(fv["devPeople"])
+
+    # Bottleneck per FV — uses fvs[:i] as the "higher priority" baseline,
+    # matching what JS getDynamicQueued sees at default order.
+    for i, fv in enumerate(fvs):
+        bp, days = mark_bottleneck_for_fv(fv, fvs[:i])
         if bp:
-            print(f"  {fv['key']}: bottleneck = {bp['name']} (~{days:.1f} business days remaining)")
+            print(f"  {fv['key']}: critical path = {bp['name']} (~{days:.1f} business days remaining)")
         else:
-            print(f"  {fv['key']}: no bottleneck (no open dev work)")
+            print(f"  {fv['key']}: no critical path (no open dev work)")
+
+    # Sprint info (label, period, workdays elapsed / total)
+    sprint_info  = current_sprint_info()
+    sprint_logs  = {}  # SPRINT_LOGS: live Tempo/worklog fetch deferred — see
+                       # docs/V2_TIMELINE_EDGE_CASES.md §18. With {}, the
+                       # Sprint Activity panel renders "No hours logged".
+
+    refresh_label  = f"{TODAY.strftime('%B')} {TODAY.day}, {TODAY.year}"
+    sprint_header  = f"{sprint_info['label']}: {sprint_info['period']}"
+    print(f"\n  sprint: {sprint_header} · {sprint_info['workDaysToDate']}/{sprint_info['workDaysTotal']} work days elapsed")
 
     template = Path("v2-timeline.template.html").read_text(encoding="utf-8")
     rendered = (template
-        .replace("__TODAY__",        TODAY.isoformat())
-        .replace("__FV_DATA__",      json.dumps(fvs, ensure_ascii=False))
-        .replace("__SPRINTS_DATA__", json.dumps(SPRINTS, ensure_ascii=False))
+        .replace("__TODAY__",         TODAY.isoformat())
+        .replace("__FV_DATA__",       json.dumps(fvs, ensure_ascii=False))
+        .replace("__SPRINTS_DATA__",  json.dumps(SPRINTS, ensure_ascii=False))
+        .replace("__SPRINT__",        json.dumps(sprint_info, ensure_ascii=False))
+        .replace("__SPRINT_LOGS__",   json.dumps(sprint_logs, ensure_ascii=False))
+        .replace("__REFRESH_LABEL__", refresh_label)
+        .replace("__SPRINT_HEADER__", sprint_header)
     )
     Path("v2-timeline.html").write_text(rendered, encoding="utf-8")
     print("\n✅ v2-timeline.html written")

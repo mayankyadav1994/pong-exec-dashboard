@@ -25,21 +25,41 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .lg-sw{width:24px;height:9px;border-radius:3px}
 
 /* AXIS */
-.axis{margin-left:214px;position:relative;height:56px;margin-bottom:6px}
-.ax-date{position:absolute;font-size:10px;color:var(--sub);transform:translateX(-50%);top:0;white-space:nowrap}
-.sp-chip{position:absolute;font-size:10px;font-weight:600;color:var(--muted);background:#fff;border:1px solid var(--border);padding:3px 8px 4px;border-radius:4px;transform:translateX(-50%);top:16px;letter-spacing:.3px;text-align:center;line-height:1.3;min-width:72px}
+.axis{margin-left:214px;position:relative;height:64px;margin-bottom:6px}
+.ax-date{position:absolute;font-size:10px;color:var(--sub);transform:translateX(-50%);top:14px;white-space:nowrap}
+.sp-chip{position:absolute;font-size:10px;font-weight:600;color:var(--muted);background:#fff;border:1px solid var(--border);padding:3px 8px 4px;border-radius:4px;transform:translateX(-50%);top:30px;letter-spacing:.3px;text-align:center;line-height:1.3;min-width:72px}
 .sp-chip small{display:block;font-size:8px;font-weight:400;color:var(--sub)}
 /* TODAY shown in axis, above the rows */
-.ax-today{position:absolute;bottom:3px;font-size:9px;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.3);padding:2px 6px;border-radius:3px;transform:translateX(-50%);z-index:10;white-space:nowrap;pointer-events:none}
+.ax-today{position:absolute;top:0;font-size:9px;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.3);padding:2px 6px;border-radius:3px;transform:translateX(-50%);z-index:10;white-space:nowrap;pointer-events:none}
 .ax-today::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:rgba(185,28,28,.5)}
 
 /* GANTT ROW */
-.fv-row{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s;position:relative;overflow:visible}
+.fv-item{position:relative}
+.fv-row{display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s,opacity .15s,box-shadow .15s;position:relative;overflow:visible}
 .fv-row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--rc,#fff);border-radius:8px 0 0 8px}
 .fv-row:hover{border-color:rgba(255,255,255,.1);background:var(--surf2)}
 .fv-row.active{border-color:var(--rc,#fff);background:var(--surf2)}
+.fv-row.dragging{opacity:.4;box-shadow:none}
 
-.fv-label{width:214px;flex-shrink:0;padding:12px 14px 12px 18px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
+/* Drop zone highlight */
+.fv-item.drag-over-above::before{content:'';display:block;height:3px;background:var(--dev);border-radius:2px;margin-bottom:3px;animation:pulse-line .6s ease-in-out infinite}
+.fv-item.drag-over-below::after{content:'';display:block;height:3px;background:var(--dev);border-radius:2px;margin-top:3px;animation:pulse-line .6s ease-in-out infinite}
+@keyframes pulse-line{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* Drag handle */
+.drag-handle{width:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:grab;color:var(--border2);border-right:1px solid var(--border);transition:color .15s;user-select:none}
+.drag-handle:hover{color:var(--sub)}
+.drag-handle:active{cursor:grabbing}
+.drag-handle svg{pointer-events:none}
+
+/* Priority badge */
+.priority-badge{font-size:9px;font-weight:700;color:var(--sub);background:var(--surf3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;letter-spacing:.3px;margin-bottom:4px;display:inline-block;font-family:'IBM Plex Mono',monospace}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:#1a2035;color:#fff;font-size:12px;padding:8px 16px;border-radius:6px;z-index:999;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.fv-label{width:196px;flex-shrink:0;padding:10px 12px 10px 12px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
 .fv-name{font-size:13px;font-weight:600}
 .fv-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
 .fv-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:5px;letter-spacing:.3px;border:1px solid}
@@ -89,7 +109,35 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .chevron{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--sub);transition:transform .2s,color .2s;pointer-events:none}
 .fv-row.active .chevron{transform:translateY(-50%) rotate(180deg);color:var(--text)}
 
-/* DETAIL PANEL */
+/* SCOPE TAB */
+.scope-body{padding:12px 18px;display:flex;flex-direction:column;gap:8px}
+.scope-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .15s}
+.scope-item.open{border-color:var(--border2)}
+.scope-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;cursor:pointer;user-select:none;gap:8px}
+.scope-header:hover{background:var(--surf2)}
+.scope-title{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.scope-epic-key{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;color:var(--sub);flex-shrink:0;text-decoration:none}
+.scope-epic-key:hover{color:var(--text);text-decoration:underline}
+.scope-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scope-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.scope-meta{font-size:10px;color:var(--sub);font-family:'IBM Plex Mono',monospace;white-space:nowrap}
+.scope-chevron{color:var(--sub);transition:transform .2s;flex-shrink:0}
+.scope-item.open .scope-chevron{transform:rotate(180deg)}
+.scope-progress{height:3px;background:var(--surf3);margin:0 12px}
+.scope-progress-fill{height:100%;background:#16a34a;transition:width .4s;border-radius:1px}
+.scope-tasks{display:none;border-top:1px solid var(--border);padding:6px 0}
+.scope-item.open .scope-tasks{display:block}
+.scope-task{display:flex;align-items:flex-start;justify-content:space-between;padding:5px 12px;gap:8px;border-radius:0}
+.scope-task:hover{background:var(--surf2)}
+.scope-task-left{display:flex;align-items:flex-start;gap:8px;min-width:0;flex:1}
+.scope-task-key{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);flex-shrink:0;text-decoration:none;white-space:nowrap}
+.scope-task-key:hover{color:var(--text);text-decoration:underline}
+.scope-task-sum{font-size:11px;color:var(--text);line-height:1.35}
+.scope-task-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.scope-task-hrs{font-family:'IBM Plex Mono',monospace;font-size:10px}
+.scope-no-tasks{font-size:11px;color:var(--sub);font-style:italic;padding:6px 12px}
+
+
 .dp{display:none;background:var(--surf2);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
 .dp.open{display:block}
 
@@ -156,7 +204,86 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .done-sec.open{display:flex}
 .no-task{font-size:11px;color:var(--sub);padding:4px 0;font-style:italic}
 
-/* NOTE / FOOTER */
+/* REFRESH TIMESTAMP */
+.refresh-meta{font-size:11px;color:var(--sub);margin-top:4px;display:flex;align-items:center;gap:6px}
+.refresh-dot{width:7px;height:7px;border-radius:50%;background:#16a34a;flex-shrink:0}
+
+/* UNLOGGED WARNING */
+.unlogged-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#92400e;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.3);border-radius:3px;padding:1px 6px;margin-left:6px;letter-spacing:.2px;vertical-align:middle}
+
+/* SPRINT ACTIVITY */
+.sprint-section{border-top:1px solid var(--border);padding:10px 12px 8px}
+.sprint-heading{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center}
+.sprint-bar-wrap{height:6px;background:var(--surf3);border-radius:3px;overflow:hidden;margin-bottom:5px}
+.sprint-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.sprint-stat{font-size:18px;font-weight:600;font-family:'IBM Plex Mono';line-height:1}
+.sprint-stat-label{font-size:10px;color:var(--muted)}
+.sprint-issues{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.sprint-issue{display:flex;align-items:baseline;gap:6px;font-size:10px}
+.sprint-issue-key{font-family:'IBM Plex Mono';color:var(--sub);flex-shrink:0;text-decoration:none}
+.sprint-issue-key:hover{color:var(--text);text-decoration:underline}
+.sprint-issue-sum{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.sprint-issue-hrs{font-family:'IBM Plex Mono';font-size:10px;font-weight:600;flex-shrink:0}
+.sprint-none{font-size:11px;color:var(--sub);font-style:italic}
+
+/* ── SCENARIO / WHAT-IF ─────────────────────────────── */
+.fv-row.is-scenario{border-style:dashed;border-color:rgba(234,88,12,.5)}
+.fv-row.is-scenario::before{background:repeating-linear-gradient(45deg,#fb923c,#fb923c 3px,transparent 3px,transparent 7px)}
+.bar-scenario{background:rgba(234,88,12,.12);border:1.5px dashed rgba(251,146,60,.7);color:#c2410c}
+.scenario-badge{font-size:9px;font-weight:700;color:#c2410c;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:3px;padding:1px 6px;margin-top:4px;display:inline-block;letter-spacing:.3px}
+.scenario-fab{position:fixed;bottom:28px;right:28px;background:#fb923c;color:#fff;border:none;border-radius:24px;padding:10px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(251,146,60,.4);z-index:100;display:flex;align-items:center;gap:8px;transition:box-shadow .15s,transform .15s}
+.scenario-fab:hover{box-shadow:0 6px 20px rgba(251,146,60,.55);transform:translateY(-1px)}
+.scenario-fab.has-scenarios::after{content:attr(data-count);position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:16px;text-align:center}
+.sp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:199;display:none}
+.sp-overlay.open{display:block}
+.scenario-panel{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transition:right .25s ease}
+.scenario-panel.open{right:0}
+.sp-hdr{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.sp-hdr h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.sp-close{background:none;border:none;cursor:pointer;color:var(--sub);padding:4px;border-radius:4px;display:flex;line-height:1}
+.sp-close:hover{background:var(--surf2);color:var(--text)}
+.sp-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.sp-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.sp-field{display:flex;flex-direction:column;gap:5px}
+.sp-label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px}
+.sp-input{border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-size:12px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;width:100%}
+.sp-input:focus{border-color:rgba(251,146,60,.7);box-shadow:0 0 0 2px rgba(251,146,60,.12)}
+.sp-people{display:flex;flex-wrap:wrap;gap:6px}
+.sp-person{font-size:11px;padding:4px 10px;border-radius:4px;border:1px solid var(--border2);cursor:pointer;user-select:none;background:var(--surf2);color:var(--muted);transition:all .15s}
+.sp-person.sel{background:rgba(251,146,60,.12);border-color:rgba(251,146,60,.6);color:#c2410c;font-weight:600}
+.sp-fv-opts{display:flex;flex-direction:column;gap:5px}
+.sp-fv-opt{display:flex;align-items:center;gap:8px;font-size:11px;padding:6px 10px;border-radius:5px;border:1px solid var(--border);cursor:pointer;user-select:none;background:var(--surf2);transition:border-color .15s}
+.sp-fv-opt:hover{border-color:var(--border2)}
+.sp-fv-opt.sel{border-color:rgba(251,146,60,.6);background:rgba(251,146,60,.07)}
+.sp-fv-opt input[type=radio]{accent-color:#fb923c;cursor:pointer;flex-shrink:0}
+.sp-fv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sp-scenario-list{display:flex;flex-direction:column;gap:6px}
+.sp-sc-card{padding:9px 11px;border:1px solid rgba(251,146,60,.4);border-radius:6px;background:rgba(249,115,22,.05);transition:opacity .2s,border-color .2s}
+.sp-sc-card.disabled{opacity:.4;border-color:var(--border);background:var(--surf2)}
+.sp-sc-card.disabled .sp-sc-name{color:var(--muted)}
+.sp-sc-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.sp-sc-name{font-size:12px;font-weight:600;color:#c2410c}
+.sp-sc-actions{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.sp-sc-eye{background:none;border:none;cursor:pointer;color:var(--sub);padding:2px 4px;border-radius:3px;line-height:1;font-size:13px}
+.sp-sc-eye:hover{background:var(--surf2);color:var(--text)}
+.sp-sc-del{background:none;border:none;cursor:pointer;color:var(--sub);font-size:16px;padding:0 2px;line-height:1;flex-shrink:0}
+.sp-sc-del:hover{color:#dc2626}
+/* Master toggle */
+.sp-master-toggle{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:5px;background:var(--surf2);border:1px solid var(--border);cursor:pointer;user-select:none;font-size:11px;font-weight:600;color:var(--muted);transition:all .15s}
+.sp-master-toggle.active{background:rgba(251,146,60,.10);border-color:rgba(251,146,60,.4);color:#c2410c}
+.sp-toggle-track{width:28px;height:15px;border-radius:8px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0}
+.sp-toggle-track.on{background:#fb923c}
+.sp-toggle-thumb{width:11px;height:11px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.sp-toggle-track.on .sp-toggle-thumb{left:15px}
+/* FAB all-off state */
+.scenario-fab.all-off{background:#6b7a99;box-shadow:0 4px 16px rgba(107,122,153,.3)}
+.sp-sc-meta{font-size:10px;color:var(--sub);margin-top:3px}
+.sp-btn{flex:1;padding:8px 14px;border-radius:5px;border:1px solid;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.sp-btn-add{background:rgba(251,146,60,.12);color:#c2410c;border-color:rgba(251,146,60,.4)}
+.sp-btn-add:hover{background:rgba(251,146,60,.22)}
+.sp-btn-clear{background:var(--surf2);color:var(--muted);border-color:var(--border)}
+.sp-btn-clear:hover{background:var(--surf3);color:var(--text)}
+.sp-section-title{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .note{margin-top:26px;padding:11px 16px;background:rgba(217,119,6,.05);border:1px solid rgba(217,119,6,.2);border-radius:7px;font-size:12px;color:var(--muted);line-height:1.75}
 .note strong{color:#92400e}
 .footer{margin-top:16px;font-size:11px;color:var(--sub);border-top:1px solid var(--border);padding-top:12px}
@@ -179,7 +306,8 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div class="hdr">
   <div>
     <h1>V2 Release Timeline — Fix Version Delivery Forecast</h1>
-    <p>Pong Game Studios · May 19, 2026 · Click any row to drill in · Adjust per-person buffers inline</p>
+    <p>Pong Game Studios · Click any row to drill in · Adjust per-person buffers inline</p>
+    <div class="refresh-meta"><div class="refresh-dot"></div>Last refreshed from Jira: <strong>__REFRESH_LABEL__</strong>&nbsp;·&nbsp;Sprint __SPRINT_HEADER__</div>
   </div>
   <div class="legend">
     <div class="lg"><div class="lg-sw" style="background:var(--dev-bg);border:1.5px solid rgba(59,130,246,.5)"></div>Dev</div>
@@ -193,6 +321,26 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 
 <div class="axis" id="axis"></div>
 <div id="rows"></div>
+<div class="toast" id="toast"></div>
+
+<!-- SCENARIO PANEL -->
+<div class="sp-overlay" id="spOverlay"></div>
+<div class="scenario-panel" id="scenarioPanel">
+  <div class="sp-hdr">
+    <h2>⚡ What-If Scenario Planner</h2>
+    <button class="sp-close" id="spClose" title="Close">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="sp-body" id="spBody">
+    <!-- built by JS -->
+  </div>
+  <div class="sp-foot">
+    <button class="sp-btn sp-btn-add" id="spAddBtn">⚡ Add Scenario</button>
+    <button class="sp-btn sp-btn-clear" id="spClearBtn">Clear All</button>
+  </div>
+</div>
+<button class="scenario-fab" id="scenarioFab">⚡ What-If</button>
 
 <div class="note">
   <strong>⚠ Notes:</strong>
@@ -211,6 +359,16 @@ const CHART_START=D('2026-05-11');
 const CHART_END=D('2026-12-07');
 const BASE='https://ponggamestudios.atlassian.net/browse/';
 const HOLIDAYS=['2026-05-18'];
+
+// ─── SPRINT WORKLOG DATA (from Jira/Tempo, May 20 2026) ────────────────────
+const SPRINT=__SPRINT__;
+// Hours logged per person this sprint (Tempo data attributed by issue assignee)
+const SPRINT_LOGS=__SPRINT_LOGS__;
+// Expected hours per day by person (8h day × buffer)
+function sprintExpected(name){
+  const buf=name==='Rejosh Samuel'?50:75;
+  return Math.round(8*(buf/100)*SPRINT.workDaysToDate*10)/10;
+}
 
 // ─── HELPERS ───────────────────────────────────────────
 function pct(d){const t=CHART_END-CHART_START;return Math.max(0,Math.min(100,((D(d)-CHART_START)/t)*100)).toFixed(3)}
@@ -240,17 +398,83 @@ function setBuffer(fvKey,name,val){
 function hpd(fvKey,name){return 8*getBuffer(fvKey,name)/100}
 
 // ─── CALCULATIONS ──────────────────────────────────────
-function calcDevEnd(fv){
+// Dynamic queued hours: sum of a person's open dev hours on all higher-priority FVs
+// ─── SCENARIOS ─────────────────────────────────────────
+// Each scenario: {id, label, hours, assignees:[], placement:'new'|fvKey, color:'#fb923c', devStart:TODAY}
+let SCENARIOS=[];
+let scenariosMasterEnabled=true;
+try{
+  const saved=JSON.parse(localStorage.getItem('v2_scenarios')||'[]');
+  SCENARIOS=saved;
+}catch(e){}
+try{scenariosMasterEnabled=JSON.parse(localStorage.getItem('v2_scenarios_master')??'true');}catch(e){}
+
+// Merged ordered list — only includes enabled scenarios
+function allFvOrdered(){
+  const base=[...FV];
+  if(!scenariosMasterEnabled)return base;
+  const newScenarios=SCENARIOS.filter(s=>s.placement==='new'&&!s.disabled);
+  newScenarios.forEach(s=>{
+    const pos=Math.min(s.priority??0, base.length);
+    base.splice(pos,0,scenarioToFv(s));
+  });
+  return base;
+}
+function scenarioToFv(s){
+  return {
+    key:`⚡ ${s.label}`,
+    color:'#fb923c',
+    sub:`Scenario · ${s.assignees.join(', ')} · ${s.hours}h each`,
+    devStart:TODAY,
+    qaWeeks:0,
+    isScenario:true,
+    scenarioId:s.id,
+    scenarioPriority:s.priority??0,
+    devPeople:s.assignees.map(name=>({
+      name,
+      tasks:[{key:'SCENARIO',summary:s.label,hours:s.hours,status:'To Do'}],
+    })),
+    otherPeople:[],scope:[],
+  };
+}
+
+// Extra hours injected into an existing FV for a person via scenario
+function getInjectedHours(fvKey, personName){
+  if(!scenariosMasterEnabled) return 0;
+  return SCENARIOS
+    .filter(s=>s.placement===fvKey&&!s.disabled&&s.assignees.includes(personName))
+    .reduce((sum,s)=>sum+s.hours, 0);
+}
+
+function getDynamicQueued(fvIdx, personName){
+  const ordered=allFvOrdered();
+  let q=0;
+  for(let i=0;i<fvIdx;i++){
+    const fv=ordered[i];
+    const p=fv.devPeople.find(x=>x.name===personName);
+    if(p)q+=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    // Also include scenario hours injected into this existing FV for this person
+    if(!fv.isScenario) q+=getInjectedHours(fv.key, personName);
+  }
+  return q;
+}
+function calcDevEnd(fv,fvIdx){
   if(!fv.devStart)return new Date(TODAY);
   let latest=new Date(TODAY);
   for(const p of fv.devPeople){
     const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
-    const total=openH+(p.queuedHours||0);
+    const total=openH+getDynamicQueued(fvIdx,p.name);
     if(total<=0)continue;
     const done=addWD(TODAY,total,hpd(fv.key,p.name));
     if(done>latest)latest=done;
   }
   return latest;
+}
+// Count open tasks with 0h remaining (potential unlogged work)
+function countUnlogged(fv){
+  const ACTIVE=['In Progress','Ready','In QA','Pre-Prod In Progress'];
+  return fv.devPeople.flatMap(p=>p.tasks)
+    .filter(t=>ACTIVE.includes(t.status)&&t.hours===0).length;
 }
 function calcOthersEnd(fv){
   let latest=new Date(TODAY);
@@ -280,7 +504,7 @@ function hasTypeHours(fv,type){
   return(fv.otherPeople||[]).some(p=>p.type&&p.type.startsWith(type)&&p.tasks.some(t=>!isDone(t.status)&&t.hours>0));
 }
 
-// ─── FV DATA (updated May 19, 2026 from live Jira) ──────────────────────
+// ─── FV DATA (refreshed May 22, 2026 from live Jira) ──────────────────────
 const FV=__FV_DATA__;
 // Normalize: convert ISO date strings → Date objects
 FV.forEach(fv=>{ if(typeof fv.devStart==='string') fv.devStart=D(fv.devStart); });
@@ -320,7 +544,7 @@ const panelRefs={}; // idx → { panel, tabState }
 // ─── REFRESH ALL ───────────────────────────────────────
 function refreshAll(){
   FV.forEach((fv,idx)=>{
-    const devEnd=calcDevEnd(fv);
+    const devEnd=calcDevEnd(fv,idx);
     const othEnd=calcOthersEnd(fv);
     const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
     const devStart=fv.devStart||TODAY;
@@ -397,10 +621,12 @@ function refreshAll(){
       // Update per-person projected dates in dev tab
       pr.panel.querySelectorAll('[data-proj]').forEach(el=>{
         const pname=el.dataset.proj,fvkey=el.dataset.fv;
+        const fvI=FV.findIndex(x=>x.key===fvkey);
         const p=(fv.devPeople||[]).find(x=>x.name===pname)||(fv.otherPeople||[]).find(x=>x.name===pname);
         if(!p)return;
         const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
-        const total=openH+(p.queuedHours||0);
+        const queued=fvI>=0?getDynamicQueued(fvI,pname):0;
+        const total=openH+queued;
         const rate=hpd(fvkey,pname);
         const proj=total>0?fmtD(addWD(TODAY,total,rate)):'—';
         el.textContent=`→ ${proj}`;
@@ -420,12 +646,13 @@ function refreshAll(){
 }
 
 // ─── BUILD PERSON COLUMN ───────────────────────────────
-function buildPersonCol(fv,person,group){
+function buildPersonCol(fv,fvIdx,person,group){
   const isBot=person.bottleneck||person.tasks.some(t=>t.bottleneck);
   const openT=person.tasks.filter(t=>!isDone(t.status));
   const doneT=person.tasks.filter(t=>isDone(t.status));
   const openH=openT.reduce((s,t)=>s+t.hours,0);
-  const total=openH+(person.queuedHours||0);
+  const queued=group==='dev'?getDynamicQueued(fvIdx,person.name):0;
+  const total=openH+queued;
   const rate=hpd(fv.key,person.name);
   const projDate=total>0?fmtD(addWD(TODAY,total,rate)):'—';
   const nameColor=isBot?'#991b1b':(group==='others'?'#4c1d95':'var(--text)');
@@ -439,7 +666,7 @@ function buildPersonCol(fv,person,group){
     <div class="p-head">
       <div class="p-name" style="color:${nameColor}">${isBot?'⛓ ':''}${person.name}</div>
       ${person.type?`<div class="p-type">${person.type}</div>`:''}
-      <div class="p-hrs" style="color:${hrsColor}">${openH}h <span>remaining${person.queuedHours>0?` <span style="font-size:10px;color:var(--sub)">(+${person.queuedHours}h queued)</span>`:''}</span></div>
+      <div class="p-hrs" style="color:${hrsColor}">${openH}h <span>remaining${queued>0?` <span style="font-size:10px;color:var(--sub)">(+${Math.round(queued)}h queued)</span>`:''}</span></div>
     </div>`;
 
   // Buffer control
@@ -452,7 +679,7 @@ function buildPersonCol(fv,person,group){
     <input type="range" min="10" max="100" step="5" value="${buf}" style="--rc:${fv.color}" 
       oninput="setBuffer('${fv.key}','${person.name}',+this.value)">
     <div class="buf-hpd" data-buf-hpd="${person.name}" data-fv="${fv.key}">${(8*buf/100).toFixed(1)}h/day effective</div>
-    ${person.queuedHours>0?`<div style="font-size:10px;color:var(--sub);margin-top:2px">Incl. ${person.queuedHours}h cross-release queue</div>`:''}
+    ${queued>0?`<div style="font-size:10px;color:var(--sub);margin-top:2px">Incl. ${Math.round(queued)}h cross-release queue</div>`:''}
     <div style="font-size:10px;color:var(--sub);margin-top:2px">Proj. done: <span data-proj="${person.name}" data-fv="${fv.key}" style="color:${fv.color}">${projDate!=='—'?'→ '+projDate:'—'}</span></div>`;
   col.appendChild(bc);
 
@@ -462,7 +689,7 @@ function buildPersonCol(fv,person,group){
   else{
     openT.forEach(t=>{
       const ti=document.createElement('div');ti.className='t-item';
-      ti.innerHTML=`<div class="t-key"><a href="${BASE}${t.key}" target="_blank">${t.key}</a>${t.bottleneck?' <span class="t-bot-lbl" style="background:rgba(220,38,38,.10);color:#991b1b">⛓ BOTTLENECK</span>':''}</div>
+      ti.innerHTML=`<div class="t-key"><a href="${BASE}${t.key}" target="_blank">${t.key}</a>${t.bottleneck?' <span class="t-bot-lbl" style="background:rgba(220,38,38,.10);color:#991b1b">⛓ CRITICAL PATH</span>':''}</div>
         <div class="t-sum">${t.summary}</div>
         <div class="t-bot">
           <span class="t-hrs ${hCls(t.hours)}">${t.hours>0?t.hours+'h':'0h logged'}</span>
@@ -488,114 +715,275 @@ function buildPersonCol(fv,person,group){
     tog.addEventListener('click',e=>{e.stopPropagation();tog.classList.toggle('open');ds.classList.toggle('open');});
     col.appendChild(tog);col.appendChild(ds);
   }
+
+  // Sprint activity
+  const sprintData=SPRINT_LOGS[person.name];
+  const sprintSec=document.createElement('div');sprintSec.className='sprint-section';
+  const expected=sprintExpected(person.name);
+  if(sprintData&&sprintData.hours>0){
+    const pct2=Math.min(100,Math.round(sprintData.hours/expected*100));
+    const barColor=pct2>=80?'#16a34a':pct2>=40?'#d97706':'#dc2626';
+    sprintSec.innerHTML=`<div class="sprint-heading"><span>SPRINT ${SPRINT.label} ACTIVITY</span><span style="font-size:9px;color:var(--sub)">${SPRINT.period}</span></div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:5px">
+        <span class="sprint-stat" style="color:${barColor}">${sprintData.hours}h</span>
+        <span class="sprint-stat-label">logged · ${pct2}% of ~${expected}h expected</span>
+      </div>
+      <div class="sprint-bar-wrap"><div class="sprint-bar-fill" style="width:${pct2}%;background:${barColor}"></div></div>
+      <div class="sprint-issues">${
+        sprintData.issues.map(e=>`<div class="sprint-issue">
+          <a class="sprint-issue-key" href="${BASE}${e.key}" target="_blank">${e.key}</a>
+          <span class="sprint-issue-sum">${e.summary}</span>
+          <span class="sprint-issue-hrs" style="color:${barColor}">${e.hours}h</span>
+        </div>`).join('')
+      }</div>`;
+  } else {
+    sprintSec.innerHTML=`<div class="sprint-heading"><span>SPRINT ${SPRINT.label} ACTIVITY</span><span style="font-size:9px;color:var(--sub)">${SPRINT.period}</span></div>
+      <div class="sprint-none">No hours logged this sprint</div>`;
+  }
+  col.appendChild(sprintSec);
   return col;
 }
 
-// ─── BUILD ROWS ────────────────────────────────────────
-const rowsEl=document.getElementById('rows');
+// ─── TOAST ─────────────────────────────────────────────
+const toastEl=document.getElementById('toast');
+let toastTimer;
+function showToast(msg){
+  toastEl.textContent=msg;toastEl.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.remove('show'),2800);
+}
 
-FV.forEach((fv,idx)=>{
-  const devEnd=calcDevEnd(fv);
-  const othEnd=calcOthersEnd(fv);
-  const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
-  const devStart=fv.devStart||TODAY;
-  const hasOth=(fv.otherPeople||[]).length>0;
-  const hasOthH=hasOthersHours(fv);
-  const allDevT=fv.devPeople.flatMap(p=>p.tasks);
+// ─── BUILD SCOPE BODY ──────────────────────────────────
+function epicStatusCls(s){
+  if(s==='In Progress') return 's-prog';
+  if(s==='Done'||s==='Closed') return 's-done';
+  if(s==='In QA') return 's-inqa';
+  return 's-todo';
+}
+function buildScopeBody(fv){
+  // Build task lookup from devPeople + otherPeople
+  const taskLookup={};
+  [...fv.devPeople,...(fv.otherPeople||[])].forEach(p=>{
+    p.tasks.forEach(t=>{taskLookup[t.key]=t;});
+  });
+
+  const body=document.createElement('div');body.className='scope-body';
+
+  (fv.scope||[]).forEach(epic=>{
+    const pctDone=epic.total>0?(epic.done/epic.total*100):0;
+    const open=epic.total-epic.done;
+
+    // Look up tasks for this epic
+    const epicTasks=(epic.taskKeys||[]).map(k=>taskLookup[k]).filter(Boolean);
+
+    const card=document.createElement('div');card.className='scope-item';
+
+    // Header (always visible)
+    const hdr=document.createElement('div');hdr.className='scope-header';
+    hdr.innerHTML=`
+      <div class="scope-title">
+        <a class="scope-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>
+        <span class="scope-name">${epic.name}</span>
+      </div>
+      <div class="scope-right">
+        <span class="t-st ${epicStatusCls(epic.status)}">${epic.status}</span>
+        <span class="scope-meta">${epic.done}/${epic.total}</span>
+        <svg class="scope-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M2.5 4.5l3.5 3.5 3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>`;
+
+    // Thin progress bar below header
+    const prog=document.createElement('div');prog.className='scope-progress';
+    prog.innerHTML=`<div class="scope-progress-fill" style="width:${pctDone.toFixed(1)}%"></div>`;
+
+    // Task list (hidden until expanded)
+    const taskList=document.createElement('div');taskList.className='scope-tasks';
+
+    if(epicTasks.length===0){
+      const msg=document.createElement('div');msg.className='scope-no-tasks';
+      msg.textContent=open>0?`${open} task${open!==1?'s':''} tracked in Jira (not yet estimated)`:'All tasks complete';
+      taskList.appendChild(msg);
+    } else {
+      epicTasks.forEach(t=>{
+        const isD=isDone(t.status);
+        const row=document.createElement('div');row.className='scope-task';
+        const hrsCol=t.hours>0?`<span class="scope-task-hrs ${hCls(t.hours)}">${t.hours}h</span>`:'';
+        row.innerHTML=`
+          <div class="scope-task-left" style="${isD?'opacity:.45':''}">
+            <a class="scope-task-key" href="${BASE}${t.key}" target="_blank">${t.key}</a>
+            <span class="scope-task-sum">${t.summary}</span>
+          </div>
+          <div class="scope-task-right">
+            ${hrsCol}
+            <span class="t-st ${stCls(t.status)}">${t.status}</span>
+          </div>`;
+        taskList.appendChild(row);
+      });
+    }
+
+    // Toggle on header click
+    hdr.addEventListener('click',()=>{card.classList.toggle('open');});
+
+    card.appendChild(hdr);
+    card.appendChild(prog);
+    card.appendChild(taskList);
+    body.appendChild(card);
+  });
+
+  if(!body.children.length){
+    body.innerHTML='<div style="font-size:11px;color:var(--sub);font-style:italic;padding:16px 18px">No epics defined for this release.</div>';
+  }
+  return body;
+}
+
+
+const rowsEl=document.getElementById('rows');
+let dragSrcIdx=null;
+
+function buildRows(){
+  // Clear registries + DOM
+  rowsEl.innerHTML='';
+  Object.keys(barEls).forEach(k=>delete barEls[k]);
+  Object.keys(pillEls).forEach(k=>delete pillEls[k]);
+  Object.keys(panelRefs).forEach(k=>delete panelRefs[k]);
+
+  // Merged ordered FV list (real + new-scenario FVs)
+  const ordered=allFvOrdered();
+
+ordered.forEach((fv,idx)=>{
+  // For existing FVs, add any injected scenario tasks (if master on and not disabled)
+  const injected=scenariosMasterEnabled
+    ? SCENARIOS.filter(s=>s.placement===fv.key&&!fv.isScenario&&!s.disabled)
+    : [];
+  let effectiveFv=fv;
+  if(injected.length>0){
+    effectiveFv={...fv,devPeople:fv.devPeople.map(p=>{
+      const sc=injected.filter(s=>s.assignees.includes(p.name));
+      if(!sc.length)return p;
+      const extraTasks=sc.map(s=>({key:'SCENARIO',summary:`⚡ ${s.label}`,hours:s.hours,status:'To Do',isScenario:true}));
+      return {...p,tasks:[...p.tasks,...extraTasks]};
+    })};
+    // Also add new people from scenarios not already in devPeople
+    injected.forEach(s=>{
+      s.assignees.forEach(name=>{
+        if(!effectiveFv.devPeople.find(p=>p.name===name)){
+          effectiveFv={...effectiveFv,devPeople:[...effectiveFv.devPeople,{
+            name,tasks:[{key:'SCENARIO',summary:`⚡ ${s.label}`,hours:s.hours,status:'To Do',isScenario:true}]
+          }]};
+        }
+      });
+    });
+  }
+
+  const devEnd=calcDevEnd(effectiveFv,idx);
+  const othEnd=calcOthersEnd(effectiveFv);
+  const qaEnd=addWD(devEnd,effectiveFv.qaWeeks*5*8,8);
+  const devStart=effectiveFv.devStart||TODAY;
+  const hasOth=(effectiveFv.otherPeople||[]).length>0;
+  const hasOthH=hasOthersHours(effectiveFv);
+  const allDevT=effectiveFv.devPeople.flatMap(p=>p.tasks);
   const devRemH=allDevT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
   const devOpenN=allDevT.filter(t=>!isDone(t.status)).length;
   const devDoneN=allDevT.filter(t=>isDone(t.status)).length;
-  const allOthT=(fv.otherPeople||[]).flatMap(p=>p.tasks);
+  const allOthT=(effectiveFv.otherPeople||[]).flatMap(p=>p.tasks);
   const othRemH=allOthT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
   const othOpenN=allOthT.filter(t=>!isDone(t.status)).length;
   const othDoneN=allOthT.filter(t=>isDone(t.status)).length;
-  const hasCreH=hasTypeHours(fv,'Creative');
-  const hasMatH=hasTypeHours(fv,'Math');
-  const hasSndH=hasTypeHours(fv,'Sound');
+  const hasCreH=hasTypeHours(effectiveFv,'Creative');
+  const hasMatH=hasTypeHours(effectiveFv,'Math');
+  const hasSndH=hasTypeHours(effectiveFv,'Sound');
   const typeRowCount=[hasCreH,hasMatH,hasSndH].filter(Boolean).length;
 
-  // Active pills (defined here so minH can use it)
-  const devPills=fv.devPeople.filter(p=>{
+  const devPills=effectiveFv.devPeople.filter(p=>{
     const h=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
-    const hasActive=p.tasks.some(t=>t.status==='In Progress'||t.status==='Ready'||t.status==='In QA'||t.status==='To Do'||t.status==='New');
-    return h>0||(p.queuedHours||0)>0||hasActive;
+    const queued=getDynamicQueued(idx,p.name);
+    const hasActive=p.tasks.some(t=>['In Progress','Ready','In QA','To Do','New'].includes(t.status));
+    return h>0||queued>0||hasActive;
   });
 
-  // minH: 8 top + 22 dev/qa + gap + typeRows*20 + gap + pills(~20) + bottom pad
-  const pillsTop = 34 + typeRowCount * 20 + (typeRowCount > 0 ? 4 : 0);
-  const minH = pillsTop + (devPills.length>0 ? 30 : 12);
+  const pillsTop=34+typeRowCount*20+(typeRowCount>0?4:0);
+  const minH=pillsTop+(devPills.length>0?30:12);
+
+  // ── FV ITEM WRAPPER ──
+  const item=document.createElement('div');item.className='fv-item';item.dataset.idx=idx;
 
   // ── GANTT ROW ──
   const row=document.createElement('div');
-  row.className='fv-row';row.style.setProperty('--rc',fv.color);
+  row.className='fv-row'+(effectiveFv.isScenario?' is-scenario':'');
+  row.style.setProperty('--rc',effectiveFv.color);
+
+  // Drag handle (suppress for scenario-only rows but still show)
+  const dh=document.createElement('div');dh.className='drag-handle';dh.title='Drag to reprioritize';
+  dh.innerHTML=`<svg width="10" height="16" viewBox="0 0 10 16" fill="none"><circle cx="3" cy="3" r="1.2" fill="currentColor"/><circle cx="7" cy="3" r="1.2" fill="currentColor"/><circle cx="3" cy="8" r="1.2" fill="currentColor"/><circle cx="7" cy="8" r="1.2" fill="currentColor"/><circle cx="3" cy="13" r="1.2" fill="currentColor"/><circle cx="7" cy="13" r="1.2" fill="currentColor"/></svg>`;
 
   const lbl=document.createElement('div');lbl.className='fv-label';
-  lbl.innerHTML=`<div class="fv-name" style="color:${fv.color}">${fv.key}${hasOth?'<span class="oth-dot" title="Has creative/sound/math work"></span>':''}</div>
-    <div class="fv-sub">${fv.sub}</div>
-    <span class="fv-badge" style="${fv.statusStyle}">${fv.statusLabel}</span>
-    ${fv.isLab?'<div class="fv-regulated">🔬 Regulated · Lab Required</div>':''}`;
+  lbl.innerHTML=`<div class="priority-badge">#${idx+1}</div>
+    <div class="fv-name" style="color:${effectiveFv.color}">${effectiveFv.key}${hasOth?'<span class="oth-dot"></span>':''}</div>
+    <div class="fv-sub">${effectiveFv.sub}</div>
+    ${effectiveFv.isScenario
+      ? `<span class="scenario-badge">⚡ SCENARIO</span>`
+      : `<span class="fv-badge" style="${effectiveFv.statusStyle}">${effectiveFv.statusLabel}</span>`}
+    ${effectiveFv.isLab?'<div class="fv-regulated">🔬 Regulated · Lab Required</div>':''}
+    ${!effectiveFv.isScenario&&countUnlogged(effectiveFv)>0?`<div style="margin-top:4px"><span class="unlogged-badge">⚠ ${countUnlogged(effectiveFv)} tasks 0h logged</span></div>`:''}`;
 
   const track=document.createElement('div');track.className='fv-track';track.style.minHeight=minH+'px';
 
   SPRINTS.forEach(s=>{const l=document.createElement('div');l.className='sp-line';l.style.left=pct(s.start)+'%';track.appendChild(l);});
   const tl=document.createElement('div');tl.className='today-line';tl.style.left=pct(TODAY)+'%';track.appendChild(tl);
 
-  // Dev/QA bars
+  // Dev bar
   const db=document.createElement('div');db.id=`devbar-${idx}`;
-  if(!fv.devStart){db.className='bar bar-live';db.style.cssText=`left:0%;width:${pct(TODAY)}%;`;db.textContent='DEV COMPLETE';}
-  else{db.className='bar bar-dev';const l=+pct(devStart),w=+pct(devEnd)-l;db.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;`;if(w>3)db.textContent=`Dev → ${fmtD(devEnd)}`;}
+  if(!effectiveFv.devStart){
+    db.className='bar bar-live';db.style.cssText=`left:0%;width:${pct(TODAY)}%;`;db.textContent='DEV COMPLETE';
+  } else {
+    db.className=`bar ${effectiveFv.isScenario?'bar-scenario':'bar-dev'}`;
+    const l=+pct(devStart),w=+pct(devEnd)-l;
+    db.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;`;
+    if(w>3)db.textContent=effectiveFv.isScenario?`⚡ ${fmtD(devEnd)}`:`Dev → ${fmtD(devEnd)}`;
+  }
   barEls[`devbar-${idx}`]=db;track.appendChild(db);
 
+  // QA bar (skip for zero-QA scenarios)
   const qb=document.createElement('div');qb.id=`qabar-${idx}`;qb.className='bar bar-qa';
-  const ql=+pct(devEnd),qw=+pct(qaEnd)-ql;
-  qb.style.cssText=`left:${ql}%;width:${Math.max(qw,.3)}%;`;if(qw>3)qb.textContent=`QA → ${fmtD(qaEnd)}`;
+  if(effectiveFv.qaWeeks>0){
+    const ql=+pct(devEnd),qw=+pct(qaEnd)-ql;
+    qb.style.cssText=`left:${ql}%;width:${Math.max(qw,.3)}%;`;if(qw>3)qb.textContent=`QA → ${fmtD(qaEnd)}`;
+  } else {qb.style.display='none';}
   barEls[`qabar-${idx}`]=qb;track.appendChild(qb);
 
-  // Lab phases (regulated releases only)
-  if(fv.isLab){
-    const lab1End=addWD(qaEnd,fv.lab1Weeks*5*8,8);
-    const pilotEnd=addWD(lab1End,fv.pilotWeeks*5*8,8);
-    const lab2End=addWD(pilotEnd,fv.lab2Weeks*5*8,8);
-
+  // Lab phases
+  if(effectiveFv.isLab){
+    const lab1End=addWD(qaEnd,effectiveFv.lab1Weeks*5*8,8);
+    const pilotEnd=addWD(lab1End,effectiveFv.pilotWeeks*5*8,8);
+    const lab2End=addWD(pilotEnd,effectiveFv.lab2Weeks*5*8,8);
     const lb1=document.createElement('div');lb1.id=`lab1bar-${idx}`;lb1.className='bar bar-lab1';
     const l1l=+pct(qaEnd),l1w=+pct(lab1End)-l1l;
     lb1.style.cssText=`left:${l1l}%;width:${Math.max(l1w,.3)}%;`;if(l1w>2)lb1.textContent=`Lab 1 + Rev → ${fmtD(lab1End)}`;
     barEls[`lab1bar-${idx}`]=lb1;track.appendChild(lb1);
-
     const plb=document.createElement('div');plb.id=`pilotbar-${idx}`;plb.className='bar bar-pilot';
     const pll=+pct(lab1End),plw=+pct(pilotEnd)-pll;
     plb.style.cssText=`left:${pll}%;width:${Math.max(plw,.3)}%;`;if(plw>2)plb.textContent=`Pilot → ${fmtD(pilotEnd)}`;
     barEls[`pilotbar-${idx}`]=plb;track.appendChild(plb);
-
     const lb2=document.createElement('div');lb2.id=`lab2bar-${idx}`;lb2.className='bar bar-lab2';
     const l2l=+pct(pilotEnd),l2w=+pct(lab2End)-l2l;
     lb2.style.cssText=`left:${l2l}%;width:${Math.max(l2w,.3)}%;`;if(l2w>2)lb2.textContent=`Lab 2 + Rev → ${fmtD(lab2End)}`;
     barEls[`lab2bar-${idx}`]=lb2;track.appendChild(lb2);
-
     const lf=document.createElement('div');lf.className='launch-flag';lf.style.left=pct(lab2End)+'%';lf.textContent='🚀';
     track.appendChild(lf);
-
-    // Sales Trip pin
-    if(fv.salesTrip){
-      if(fv.salesTrip.tbd){
+    if(effectiveFv.salesTrip){
+      if(effectiveFv.salesTrip.tbd){
         const st=document.createElement('div');st.className='sales-tag-tbd';
-        st.textContent=`✈ ${fv.salesTrip.label} (TBD)`;
-        // Place near end of dev bar as a floating note
-        st.style.left=pct(devEnd)+'%'; st.style.top='26px';
+        st.textContent=`✈ ${effectiveFv.salesTrip.label} (TBD)`;st.style.left=pct(devEnd)+'%';st.style.top='32px';
         track.appendChild(st);
       } else {
-        const sp=document.createElement('div');sp.className='sales-pin';sp.style.left=pct(fv.salesTrip.date)+'%';
-        track.appendChild(sp);
         const st=document.createElement('div');st.className='sales-tag';
-        st.textContent=`✈ ${fv.salesTrip.label}`;st.style.left=pct(fv.salesTrip.date)+'%';
+        st.textContent=`✈ ${effectiveFv.salesTrip.label}`;st.style.left=pct(effectiveFv.salesTrip.date)+'%';
         track.appendChild(st);
       }
     }
-    barEls[`lab2end-${idx}`]=lab2End; // store for refreshAll
   }
 
-  // Department rows: Creative, Math, Sound stacked below Dev/QA
-  // Each is a full-width strip: [badge label] [proportional bar]
+  // Dept rows
   const typeConfig=[
     {key:'cre',label:'CREATIVE',type:'Creative',cls:'dept-row-cre'},
     {key:'mat',label:'MATH',    type:'Math',    cls:'dept-row-mat'},
@@ -603,54 +991,41 @@ FV.forEach((fv,idx)=>{
   ];
   let nextTop=34;
   typeConfig.forEach(tc=>{
-    const hasH=hasTypeHours(fv,tc.type);
+    const hasH=hasTypeHours(effectiveFv,tc.type);
     const drow=document.createElement('div');
-    drow.className=`dept-row ${tc.cls}`;
-    drow.id=`${tc.key}row-${idx}`;
-    drow.style.top=hasH?nextTop+'px':'-9999px'; // hide off-screen if no hours
-
+    drow.className=`dept-row ${tc.cls}`;drow.id=`${tc.key}row-${idx}`;
+    drow.style.top=hasH?nextTop+'px':'-9999px';
     const badge=document.createElement('div');badge.className='dept-badge';badge.textContent=tc.label;
     const dtrack=document.createElement('div');dtrack.className='dept-track';
     const dbar=document.createElement('div');dbar.className='dept-bar';dbar.id=`${tc.key}bar-${idx}`;
-
     if(hasH){
-      const end=calcTypeEnd(fv,tc.type);
-      const trackFull=+pct(CHART_END)-+pct(TODAY); // % of chart width available from TODAY
+      const end=calcTypeEnd(effectiveFv,tc.type);
       const l=+pct(TODAY),w=+pct(end)-l;
-      // position bar within dept-track (which starts at left:0 = chart start)
       dbar.style.left=l+'%';dbar.style.width=Math.max(w,.4)+'%';
-      dbar.textContent=`→ ${fmtD(end)}`;
-      nextTop+=20;
-    } else {
-      dbar.style.display='none';
-    }
-    barEls[`${tc.key}bar-${idx}`]=dbar;
-    dtrack.appendChild(dbar);
-    drow.appendChild(badge);drow.appendChild(dtrack);
+      dbar.textContent=`→ ${fmtD(end)}`;nextTop+=20;
+    } else {dbar.style.display='none';}
+    barEls[`${tc.key}bar-${idx}`]=dbar;barEls[`${tc.key}row-${idx}`]=drow;
+    dtrack.appendChild(dbar);drow.appendChild(badge);drow.appendChild(dtrack);
     track.appendChild(drow);
-    barEls[`${tc.key}row-${idx}`]=drow;
   });
-  // legacy othbar (no longer used)
   barEls[`othbar-${idx}`]=null;
 
   // Resource pills
   if(devPills.length>0){
-    const meta=document.createElement('div');meta.className='bar-meta';
-    meta.style.top=pillsTop+'px';
+    const meta=document.createElement('div');meta.className='bar-meta';meta.style.top=pillsTop+'px';
     pillEls[`pills-${idx}`]=[];
     devPills.forEach(p=>{
       const ph=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
       const isBot=p.bottleneck||p.tasks.some(t=>t.bottleneck);
+      const hasScenario=p.tasks.some(t=>t.isScenario);
       const pill=document.createElement('span');
-      pill.className='res-pill '+(isBot?'pill-w':'pill-d');
-      pill.dataset.pname=p.name; pill.dataset.fvkey=fv.key; pill.dataset.ph=ph; pill.dataset.isbot=isBot?'1':'';
+      pill.className='res-pill '+(isBot?'pill-w':hasScenario?'pill-o':'pill-d');
+      pill.dataset.pname=p.name;pill.dataset.fvkey=effectiveFv.key;pill.dataset.ph=ph;pill.dataset.isbot=isBot?'1':'';
       const fn=p.name.split(' ');
-      const buf=getBuffer(fv.key,p.name);
-      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
-      meta.appendChild(pill);
-      pillEls[`pills-${idx}`].push(pill);
+      const buf=getBuffer(effectiveFv.key,p.name);
+      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}${hasScenario?' ⚡':''}`;
+      meta.appendChild(pill);pillEls[`pills-${idx}`].push(pill);
     });
-    // Others indicator pill
     if(hasOth){
       const op=document.createElement('span');op.className='res-pill pill-o';
       op.textContent=`Others · ${othOpenN} task${othOpenN!==1?'s':''} · ${othRemH}h`;
@@ -661,66 +1036,332 @@ FV.forEach((fv,idx)=>{
 
   const chev=document.createElement('div');chev.className='chevron';
   chev.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  row.appendChild(lbl);row.appendChild(track);row.appendChild(chev);
+  row.appendChild(dh);row.appendChild(lbl);row.appendChild(track);row.appendChild(chev);
 
   // ── DETAIL PANEL ──
   const panel=document.createElement('div');panel.className='dp';panel.id=`panel-${idx}`;
-
-  // Header
   const head=document.createElement('div');head.className='dp-head';
   head.innerHTML=`<div>
-    <div class="dp-title" style="color:${fv.color}">${fv.key} — Work Breakdown</div>
-    <div class="dp-subtitle">${fv.note||fv.sub} · Dev: ${fv.devStart?fmtD(devEnd):'Complete'} · QA done: ${fmtD(qaEnd)}</div>
+    <div class="dp-title" style="color:${effectiveFv.color}">${effectiveFv.key} — Work Breakdown</div>
+    <div class="dp-subtitle">${effectiveFv.note||effectiveFv.sub} · Dev: ${effectiveFv.devStart?fmtD(devEnd):'Complete'} · QA done: ${effectiveFv.qaWeeks>0?fmtD(qaEnd):'N/A'}</div>
   </div>
   <div class="dp-stats">
-    <div class="dp-stat"><div class="dp-stat-v" style="color:${fv.color}">${devRemH}h</div><div class="dp-stat-l">DEV REMAINING</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:${effectiveFv.color}">${devRemH}h</div><div class="dp-stat-l">DEV REMAINING</div></div>
     <div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${devOpenN}</div><div class="dp-stat-l">DEV OPEN</div></div>
     <div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${devDoneN}</div><div class="dp-stat-l">DEV DONE</div></div>
     ${hasOth?`<div class="dp-stat"><div class="dp-stat-v" style="color:var(--oth)">${othRemH}h</div><div class="dp-stat-l">OTHERS REM.</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${othOpenN}</div><div class="dp-stat-l">OTHERS OPEN</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${othDoneN}</div><div class="dp-stat-l">OTHERS DONE</div></div>`:''}
   </div>`;
   panel.appendChild(head);
 
-  // Tabs (only show Others tab if there are others tasks)
   let activeTab='dev';
-  if(hasOth){
-    const tabs=document.createElement('div');tabs.className='dp-tabs';
-    tabs.style.setProperty('--rc',fv.color);
-    tabs.innerHTML=`<div class="dp-tab active" data-tab="dev">DEV WORK</div><div class="dp-tab" data-tab="others">CREATIVE · SOUND · MATH</div>`;
+  {
+    const tabs=document.createElement('div');tabs.className='dp-tabs';tabs.style.setProperty('--rc',effectiveFv.color);
+    const tabDefs=[
+      {id:'dev',label:'DEV WORK'},
+      ...(hasOth?[{id:'others',label:'CREATIVE · SOUND · MATH'}]:[]),
+      ...(!effectiveFv.isScenario?[{id:'scope',label:'SCOPE'}]:[]),
+    ];
+    tabDefs.forEach(td=>{
+      const t=document.createElement('div');t.className='dp-tab'+(td.id==='dev'?' active':'');
+      t.dataset.tab=td.id;t.textContent=td.label;tabs.appendChild(t);
+    });
     tabs.querySelectorAll('.dp-tab').forEach(t=>{
       t.addEventListener('click',e=>{
         e.stopPropagation();
         tabs.querySelectorAll('.dp-tab').forEach(x=>x.classList.remove('active'));
-        t.classList.add('active');
-        activeTab=t.dataset.tab;
+        t.classList.add('active');activeTab=t.dataset.tab;
         devBody.style.display=activeTab==='dev'?'flex':'none';
         othBody.style.display=activeTab==='others'?'flex':'none';
+        scopeBody.style.display=activeTab==='scope'?'block':'none';
       });
     });
     panel.appendChild(tabs);
   }
 
-  // Dev body
   const devBody=document.createElement('div');devBody.className='dp-body';
-  fv.devPeople.forEach(p=>devBody.appendChild(buildPersonCol(fv,p,'dev')));
+  effectiveFv.devPeople.forEach(p=>devBody.appendChild(buildPersonCol(effectiveFv,idx,p,'dev')));
   panel.appendChild(devBody);
 
-  // Others body
   const othBody=document.createElement('div');othBody.className='dp-body';othBody.style.display='none';
-  if(hasOth)(fv.otherPeople||[]).forEach(p=>othBody.appendChild(buildPersonCol(fv,p,'others')));
+  if(hasOth)(effectiveFv.otherPeople||[]).forEach(p=>othBody.appendChild(buildPersonCol(effectiveFv,idx,p,'others')));
   panel.appendChild(othBody);
+
+  const scopeBody=buildScopeBody(effectiveFv);scopeBody.style.display='none';
+  panel.appendChild(scopeBody);
 
   panelRefs[idx]={panel,activeTab};
 
-  // Toggle
-  row.addEventListener('click',()=>{
+  row.addEventListener('click',e=>{
+    if(e.target.closest('.drag-handle'))return;
     const wasOpen=panel.classList.contains('open');
     document.querySelectorAll('.dp').forEach(p=>p.classList.remove('open'));
     document.querySelectorAll('.fv-row').forEach(r=>r.classList.remove('active'));
     if(!wasOpen){panel.classList.add('open');row.classList.add('active');setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),60);}
   });
 
-  rowsEl.appendChild(row);
-  rowsEl.appendChild(panel);
+  // ── DRAG & DROP (real FVs only) ──
+  item.draggable=true;
+  dh.addEventListener('mousedown',()=>{item.draggable=true;});
+  item.addEventListener('dragstart',e=>{
+    dragSrcIdx=idx;
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',String(idx));
+    setTimeout(()=>row.classList.add('dragging'),0);
+  });
+  item.addEventListener('dragend',()=>{
+    row.classList.remove('dragging');
+    document.querySelectorAll('.fv-item').forEach(el=>el.classList.remove('drag-over-above','drag-over-below'));
+  });
+  item.addEventListener('dragover',e=>{
+    e.preventDefault();e.dataTransfer.dropEffect='move';
+    if(dragSrcIdx===null||dragSrcIdx===idx)return;
+    const rect=item.getBoundingClientRect();const mid=rect.top+rect.height/2;
+    item.classList.toggle('drag-over-above',e.clientY<mid);
+    item.classList.toggle('drag-over-below',e.clientY>=mid);
+  });
+  item.addEventListener('dragleave',()=>item.classList.remove('drag-over-above','drag-over-below'));
+  item.addEventListener('drop',e=>{
+    e.preventDefault();
+    if(dragSrcIdx===null||dragSrcIdx===idx)return;
+    item.classList.remove('drag-over-above','drag-over-below');
+    const rect=item.getBoundingClientRect();const insertBefore=e.clientY<rect.top+rect.height/2;
+    // Only reorder real FVs (not scenarios)
+    const src=ordered[dragSrcIdx];
+    const tgt=ordered[idx];
+    if(src.isScenario){
+      // update scenario priority
+      const sc=SCENARIOS.find(s=>s.id===src.scenarioId);
+      if(sc){sc.priority=insertBefore?idx:idx+1; saveScenarios();}
+    } else {
+      const [moved]=FV.splice(FV.indexOf(src),1);
+      let ti=FV.indexOf(tgt);if(!insertBefore)ti++;
+      FV.splice(ti,0,moved);
+    }
+    dragSrcIdx=null;
+    buildRows();renderScenarioPanel();
+    showToast(`↕ ${src.key} reprioritized to #${idx+1} · queued hours recalculated`);
+  });
+
+  item.appendChild(row);item.appendChild(panel);
+  rowsEl.appendChild(item);
+});
+} // end buildRows
+
+buildRows();
+
+// ─── SCENARIO PANEL LOGIC ──────────────────────────────
+const DEVS=['Rejosh Samuel','Aleksey Vorotilin','Hemmat Rezvani','Justin Kwon',
+            'Krupa Kanani','Linda Zhang','Asif Masood','Yves Griber','Niloo Tehrani','Maria Vlah'];
+
+function saveScenarios(){
+  try{
+    localStorage.setItem('v2_scenarios',JSON.stringify(SCENARIOS));
+    localStorage.setItem('v2_scenarios_master',JSON.stringify(scenariosMasterEnabled));
+  }catch(e){}
+  updateFab();
+}
+function updateFab(){
+  const fab=document.getElementById('scenarioFab');
+  const active=SCENARIOS.filter(s=>!s.disabled).length;
+  const total=SCENARIOS.length;
+  if(total>0){
+    fab.classList.add('has-scenarios');
+    fab.dataset.count=total;
+    fab.classList.toggle('all-off',!scenariosMasterEnabled);
+  } else {
+    fab.classList.remove('has-scenarios','all-off');
+    delete fab.dataset.count;
+  }
+}
+updateFab();
+
+function renderScenarioPanel(){
+  const body=document.getElementById('spBody');
+  body.innerHTML='';
+
+  // ── Master toggle ──
+  if(SCENARIOS.length>0){
+    const mt=document.createElement('div');
+    mt.className='sp-master-toggle'+(scenariosMasterEnabled?' active':'');
+    mt.innerHTML=`<div class="sp-toggle-track${scenariosMasterEnabled?' on':''}"><div class="sp-toggle-thumb"></div></div>
+      <span>${scenariosMasterEnabled?'Scenarios ON — affecting timeline':'Scenarios OFF — baseline view'}</span>`;
+    mt.addEventListener('click',()=>{
+      scenariosMasterEnabled=!scenariosMasterEnabled;
+      saveScenarios();buildRows();renderScenarioPanel();
+      showToast(scenariosMasterEnabled?'⚡ Scenarios enabled':'📊 Showing baseline timeline');
+    });
+    body.appendChild(mt);
+  }
+
+  // ── Existing scenarios ──
+  if(SCENARIOS.length>0){
+    const sec=document.createElement('div');
+    sec.innerHTML=`<div class="sp-section-title" style="margin-bottom:8px">ACTIVE SCENARIOS (${SCENARIOS.length})</div>`;
+    const list=document.createElement('div');list.className='sp-scenario-list';
+    SCENARIOS.forEach(s=>{
+      const card=document.createElement('div');
+      card.className='sp-sc-card'+(s.disabled?' disabled':'');
+      const placementLabel=s.placement==='new'?`New FV (#${(s.priority??0)+1})`:s.placement;
+      const eyeIcon=s.disabled?'👁️‍🗨️':'👁️';
+      const eyeTitle=s.disabled?'Enable scenario':'Disable scenario';
+      card.innerHTML=`<div class="sp-sc-row">
+        <div>
+          <div class="sp-sc-name">${s.disabled?'':'⚡ '}${s.label}${s.disabled?' <span style="font-size:10px;font-weight:400;color:var(--sub)">(off)</span>':''}</div>
+          <div class="sp-sc-meta">${s.assignees.map(n=>n.split(' ')[0]).join(', ')} · ${s.hours}h · ${placementLabel}</div>
+        </div>
+        <div class="sp-sc-actions">
+          <button class="sp-sc-eye" title="${eyeTitle}">${eyeIcon}</button>
+          <button class="sp-sc-del" data-id="${s.id}" title="Remove">×</button>
+        </div>
+      </div>`;
+      card.querySelector('.sp-sc-eye').addEventListener('click',()=>{
+        s.disabled=!s.disabled;
+        saveScenarios();buildRows();renderScenarioPanel();
+        showToast(s.disabled?`"${s.label}" hidden from timeline`:`"${s.label}" visible in timeline`);
+      });
+      card.querySelector('.sp-sc-del').addEventListener('click',()=>{
+        SCENARIOS=SCENARIOS.filter(x=>x.id!==s.id);
+        saveScenarios();buildRows();renderScenarioPanel();
+        showToast(`Scenario "${s.label}" removed`);
+      });
+      list.appendChild(card);
+    });
+    sec.appendChild(list);
+    body.appendChild(sec);
+    // divider
+    const div=document.createElement('hr');div.style.cssText='border:none;border-top:1px solid var(--border);margin:4px 0';
+    body.appendChild(div);
+  }
+
+  // ── New scenario form ──
+  let selectedDevs=new Map(); // name → hours
+  let selectedPlacement='new';
+
+  const formTitle=document.createElement('div');formTitle.className='sp-section-title';formTitle.style.marginBottom='10px';
+  formTitle.textContent='ADD NEW SCENARIO';
+  body.appendChild(formTitle);
+
+  // Label
+  const lblField=document.createElement('div');lblField.className='sp-field';
+  lblField.innerHTML=`<div class="sp-label">SCENARIO LABEL</div><input class="sp-input" id="spLabelInput" placeholder="e.g. Urgent Auth Fix" maxlength="60">`;
+  body.appendChild(lblField);
+
+  // Assignees with per-person hours
+  const devField=document.createElement('div');devField.className='sp-field';
+  devField.innerHTML=`<div class="sp-label">ASSIGN TO · HOURS PER PERSON</div>`;
+  const peopleWrap=document.createElement('div');
+  peopleWrap.style.cssText='display:flex;flex-direction:column;gap:5px';
+
+  DEVS.forEach(name=>{
+    const fn=name.split(' ');
+    const shortName=`${fn[0]} ${fn[fn.length-1].charAt(0)}.`;
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:8px';
+    row.innerHTML=`
+      <div class="sp-person" data-name="${name}" style="min-width:110px;text-align:center">${shortName}</div>
+      <input type="number" min="1" max="2000" placeholder="hours"
+        style="width:80px;border:1px solid var(--border2);border-radius:4px;padding:4px 8px;font-size:11px;font-family:inherit;display:none;color:var(--text);background:var(--surface)"
+        data-hrs-for="${name}">
+      <span style="font-size:10px;color:var(--sub);display:none" data-lbl-for="${name}">h</span>`;
+
+    const chip=row.querySelector('.sp-person');
+    const inp=row.querySelector(`[data-hrs-for="${name}"]`);
+    const lbl=row.querySelector(`[data-lbl-for="${name}"]`);
+
+    chip.addEventListener('click',()=>{
+      if(selectedDevs.has(name)){
+        selectedDevs.delete(name);
+        chip.classList.remove('sel');
+        inp.style.display='none';lbl.style.display='none';
+        inp.value='';
+      } else {
+        selectedDevs.set(name,120);
+        chip.classList.add('sel');
+        inp.style.display='';lbl.style.display='';
+        inp.value=120;
+        inp.focus();inp.select();
+      }
+    });
+    inp.addEventListener('input',()=>{
+      if(selectedDevs.has(name)) selectedDevs.set(name,+inp.value||0);
+    });
+    peopleWrap.appendChild(row);
+  });
+  devField.appendChild(peopleWrap);
+  body.appendChild(devField);
+
+  // Placement
+  const placeField=document.createElement('div');placeField.className='sp-field';
+  placeField.innerHTML=`<div class="sp-label">PLACEMENT</div>`;
+  const opts=document.createElement('div');opts.className='sp-fv-opts';
+
+  const newOpt=document.createElement('label');newOpt.className='sp-fv-opt sel';
+  newOpt.innerHTML=`<input type="radio" name="spPlace" value="new" checked>
+    <span class="sp-fv-dot" style="background:#fb923c"></span>
+    <span>New standalone fix version (draggable)</span>`;
+  opts.appendChild(newOpt);
+
+  FV.forEach(fv=>{
+    const opt=document.createElement('label');opt.className='sp-fv-opt';
+    opt.innerHTML=`<input type="radio" name="spPlace" value="${fv.key}">
+      <span class="sp-fv-dot" style="background:${fv.color}"></span>
+      <span>Inject into <strong>${fv.key}</strong></span>`;
+    opts.appendChild(opt);
+  });
+
+  opts.querySelectorAll('input[type=radio]').forEach(r=>{
+    r.addEventListener('change',()=>{
+      selectedPlacement=r.value;
+      opts.querySelectorAll('.sp-fv-opt').forEach(o=>o.classList.toggle('sel',o.querySelector('input').checked));
+    });
+  });
+  placeField.appendChild(opts);
+  body.appendChild(placeField);
+
+  // Add button wiring
+  document.getElementById('spAddBtn').onclick=()=>{
+    const label=document.getElementById('spLabelInput').value.trim();
+    if(!label){document.getElementById('spLabelInput').focus();showToast('Please enter a scenario label');return;}
+    if(selectedDevs.size===0){showToast('Please select at least one person');return;}
+    const invalid=[...selectedDevs.entries()].filter(([,h])=>!h||h<1);
+    if(invalid.length>0){showToast(`Enter hours for ${invalid[0][0].split(' ')[0]}`);return;}
+
+    // Create one scenario per person (each with their own hours)
+    const ids=[];
+    selectedDevs.forEach((hours,name)=>{
+      const sc={
+        id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+        label,hours,
+        assignees:[name],
+        placement:selectedPlacement,
+        priority:selectedPlacement==='new'?FV.length:0,
+      };
+      SCENARIOS.push(sc);
+      ids.push(sc.id);
+    });
+    saveScenarios();buildRows();renderScenarioPanel();
+    const people=[...selectedDevs.keys()].map(n=>n.split(' ')[0]).join(', ');
+    showToast(`⚡ "${label}" added for ${people}`);
+  };
+}
+
+// Panel open/close
+function openScenarioPanel(){
+  renderScenarioPanel();
+  document.getElementById('scenarioPanel').classList.add('open');
+  document.getElementById('spOverlay').classList.add('open');
+}
+function closeScenarioPanel(){
+  document.getElementById('scenarioPanel').classList.remove('open');
+  document.getElementById('spOverlay').classList.remove('open');
+}
+document.getElementById('scenarioFab').addEventListener('click',openScenarioPanel);
+document.getElementById('spClose').addEventListener('click',closeScenarioPanel);
+document.getElementById('spOverlay').addEventListener('click',closeScenarioPanel);
+document.getElementById('spClearBtn').addEventListener('click',()=>{
+  if(!SCENARIOS.length)return;
+  SCENARIOS=[];saveScenarios();buildRows();renderScenarioPanel();
+  showToast('All scenarios cleared');
 });
 </script>
 </body>
