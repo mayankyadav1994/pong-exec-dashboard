@@ -2,7 +2,10 @@ name: V2 Timeline
 
 on:
   schedule:
-    - cron: "15 13 * * *"   # 7:15 AM CST daily (10–15 min after exec dashboard)
+    # 06:15 UTC, 15 minutes after exec dashboard. See exec_dashboard.yml for
+    # the reasoning behind the early UTC time — GitHub schedule delays are
+    # absorbed into the night so the dashboards are ready by morning.
+    - cron: "15 6 * * *"
   workflow_dispatch:
 
 # Serialize against exec_dashboard so the two pushes can't race.
