@@ -2,7 +2,11 @@ name: Exec Dashboard
 
 on:
   schedule:
-    - cron: "0 13 * * *"   # 7:00 AM CST daily
+    # 06:00 UTC = 02:00 EDT (summer) / 01:00 EST (winter).
+    # GitHub Actions schedule events run with variable delay (30 min – 3 h
+    # typical on the shared/free tier); aiming this early lets the daily
+    # refresh land before the team starts the day even on the worst day.
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 # Serialize against v2_timeline so the two pushes can't race.
