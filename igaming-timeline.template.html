@@ -216,13 +216,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .fv-row.is-scenario::before{background:repeating-linear-gradient(45deg,#fb923c,#fb923c 3px,transparent 3px,transparent 7px)}
 .bar-scenario{background:rgba(234,88,12,.12);border:1.5px dashed rgba(251,146,60,.7);color:#c2410c}
 .scenario-badge{font-size:9px;font-weight:700;color:#c2410c;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:3px;padding:1px 6px;margin-top:4px;display:inline-block;letter-spacing:.3px}
-.scenario-fab{position:fixed;bottom:28px;right:28px;background:#fb923c;color:#fff;border:none;border-radius:24px;padding:10px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(251,146,60,.4);z-index:100;display:flex;align-items:center;gap:8px;transition:box-shadow .15s,transform .15s}
-.scenario-fab:hover{box-shadow:0 6px 20px rgba(251,146,60,.55);transform:translateY(-1px)}
-.scenario-fab.has-scenarios::after{content:attr(data-count);position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:16px;text-align:center}
-.scenario-fab.all-off{background:#6b7a99;box-shadow:0 4px 16px rgba(107,122,153,.3)}
 .sp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:199;display:none}
 .sp-overlay.open{display:block}
-.scenario-panel{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transition:right .25s ease}
+.scenario-panel{position:fixed;top:0;right:-700px;width:560px;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transition:right .25s ease}
+.scenario-panel.wide{width:680px;right:-820px}
 .scenario-panel.open{right:0}
 .sp-hdr{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .sp-hdr h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
@@ -255,6 +252,16 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sp-sc-eye:hover{background:var(--surf2);color:var(--text)}
 .sp-sc-del{background:none;border:none;cursor:pointer;color:var(--sub);font-size:16px;padding:0 2px;line-height:1;flex-shrink:0}
 .sp-sc-del:hover{color:#dc2626}
+/* Per-mode tab visibility */
+.scenario-panel[data-mode="whatif"] .sp-tabs{display:none}
+.scenario-panel[data-mode="whatif"] .sp-tab[data-tab="fvs"],
+.scenario-panel[data-mode="whatif"] .sp-tab[data-tab="settings"]{display:none}
+.scenario-panel[data-mode="planeditor"] .sp-tab[data-tab="scenarios"]{display:none}
+
+/* What-If button badge (active-scenario count) */
+.site-nav-btn.has-count::after{content:attr(data-count);background:#dc2626;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:14px;text-align:center;margin-left:2px}
+.site-nav-btn.scenarios-off{opacity:.6}
+
 /* Tabs inside the side panel */
 .sp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0}
 .sp-tab{flex:1;background:none;border:none;padding:10px 12px;font-size:11px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s,background .15s;font-family:inherit;letter-spacing:.3px}
@@ -271,14 +278,52 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sp-fv-row .sp-fv-toggle.on{background:#16a34a}
 .sp-fv-row .sp-fv-toggle::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .sp-fv-row .sp-fv-toggle.on::after{left:15px}
-.sp-fv-row-expand{grid-column:1/-1;padding-top:6px;margin-top:6px;border-top:1px dashed var(--border);display:none;grid-template-columns:1fr 1fr;gap:8px}
-.sp-fv-row.open .sp-fv-row-expand{display:grid}
+.sp-fv-row-expand{grid-column:1/-1;padding-top:8px;margin-top:6px;border-top:1px dashed var(--border);display:none;flex-direction:column;gap:10px}
+.sp-fv-row.open .sp-fv-row-expand{display:flex}
+.sp-fv-section{display:flex;flex-direction:column;gap:6px}
+.sp-fv-section-title{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.4px;display:flex;align-items:center;justify-content:space-between}
+.sp-fv-section-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .sp-fv-row-field{display:flex;flex-direction:column;gap:3px}
 .sp-fv-row-field label{font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.3px}
 .sp-fv-row-field input{border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none}
 .sp-fv-row-field input:focus{border-color:rgba(251,146,60,.7)}
 .sp-fv-row-field textarea{border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;resize:vertical;min-height:32px;grid-column:1/-1}
+.sp-fv-row-field.span-2{grid-column:1/-1}
 .sp-fv-row-meta{font-size:9px;color:var(--sub);grid-column:1/-1;margin-top:2px;font-style:italic}
+
+/* Epic list (Scope editor inside FV row) */
+.sp-epic-list{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto}
+.sp-epic-row{display:grid;grid-template-columns:auto 70px 1fr auto;gap:6px;align-items:center;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:11px}
+.sp-epic-row.epic-hidden{opacity:.45;background:var(--surf2)}
+.sp-epic-row.epic-dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
+.sp-epic-toggle{cursor:pointer;width:22px;height:13px;border-radius:7px;background:var(--border2);position:relative;border:none;padding:0;flex-shrink:0;transition:background .15s}
+.sp-epic-toggle.on{background:#16a34a}
+.sp-epic-toggle::after{content:'';position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:#fff;transition:left .15s}
+.sp-epic-toggle.on::after{left:11px}
+.sp-epic-key{font-family:'IBM Plex Mono';font-size:10px;color:var(--sub);text-decoration:none}
+.sp-epic-key:hover{color:var(--text);text-decoration:underline}
+.sp-epic-label{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:2px 4px;border-radius:3px;min-width:0}
+.sp-epic-label:hover{background:var(--surf2)}
+.sp-epic-label.editing{background:#fff;outline:1px solid rgba(251,146,60,.6)}
+.sp-epic-orig{font-size:9px;color:var(--sub);font-style:italic;margin-left:4px}
+.sp-epic-empty{font-size:11px;color:var(--sub);font-style:italic;padding:6px 0}
+
+/* Milestone list */
+.sp-ms-list{display:flex;flex-direction:column;gap:4px}
+.sp-ms-row{display:grid;grid-template-columns:1fr 70px 110px auto;gap:6px;align-items:center;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:11px}
+.sp-ms-row.ms-dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
+.sp-ms-row input,.sp-ms-row select{border:1px solid var(--border2);border-radius:3px;padding:3px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;min-width:0}
+.sp-ms-row input:focus,.sp-ms-row select:focus{border-color:rgba(251,146,60,.7)}
+.sp-ms-row input[type=color]{width:22px;height:22px;padding:0;cursor:pointer}
+.sp-ms-row .sp-ms-del{background:none;border:none;cursor:pointer;color:var(--sub);font-size:14px;line-height:1;padding:0 4px}
+.sp-ms-row .sp-ms-del:hover{color:#dc2626}
+.sp-ms-anchor-pill{font-size:9px;font-weight:700;letter-spacing:.3px;padding:2px 5px;border-radius:3px;background:var(--surf3);color:var(--muted)}
+.sp-add-ms{display:flex;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;padding:5px 8px;border:1px dashed var(--border2);border-radius:4px;justify-content:center;background:none;font-family:inherit;transition:background .15s,border-color .15s}
+.sp-add-ms:hover{background:var(--surf2);border-color:var(--border2);color:var(--text)}
+
+/* Milestone pins on the gantt row */
+.ms-pin{position:absolute;top:0;bottom:0;width:1.5px;z-index:4;pointer-events:none}
+.ms-pin-label{position:absolute;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;border:1px solid;white-space:nowrap;transform:translateX(-50%);z-index:5;pointer-events:none;top:34px;max-width:140px;overflow:hidden;text-overflow:ellipsis}
 .sp-fv-row-chev{cursor:pointer;color:var(--sub);user-select:none;padding:2px 4px;transition:transform .15s;font-size:10px}
 .sp-fv-row.open .sp-fv-row-chev{transform:rotate(180deg)}
 .sp-fv-row.dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
@@ -406,11 +451,18 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sb-totals strong{color:var(--text);font-family:'IBM Plex Mono'}
 
 /* SHARED TAB NAV (same markup as exec dashboard + V2 timeline) */
-.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px}
-.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB}
+.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px;display:flex;align-items:flex-end;gap:12px}
+.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB;flex:1}
 .site-tab{padding:9px 16px;font-size:13px;font-weight:500;color:#6B7280;text-decoration:none;border-bottom:2px solid transparent;transition:color .12s,border-color .12s}
 .site-tab:hover{color:#111827}
 .site-tab.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
+.site-nav-actions{display:flex;gap:6px;padding-bottom:6px;flex-shrink:0}
+.site-nav-btn{padding:5px 11px;font-size:11px;font-weight:600;border:1px solid #E5E7EB;border-radius:5px;background:#fff;color:#374151;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:5px;line-height:1.3}
+.site-nav-btn:hover{background:#F9FAFB;border-color:#D1D5DB}
+.nav-edit-btn{color:#c2410c;border-color:rgba(251,146,60,.45)}
+.nav-edit-btn:hover{background:rgba(251,146,60,.08);border-color:rgba(251,146,60,.7)}
+.nav-whatif-btn{color:#5b21b6;border-color:rgba(124,58,237,.45)}
+.nav-whatif-btn:hover{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.7)}
 </style>
 </head>
 <body>
@@ -419,6 +471,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <a href="index.html" class="site-tab">Overview</a>
     <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
     <a href="igaming-timeline.html" class="site-tab active">iGaming Timeline</a>
+  </div>
+  <div class="site-nav-actions">
+    <button class="site-nav-btn nav-edit-btn" id="editPlanBtn" title="Open the Plan Editor — config that persists for everyone via PR">⚙ Edit Plan</button>
+    <button class="site-nav-btn nav-whatif-btn" id="openWhatIfBtn" title="Open scenario sandbox — browser-local only">⚡ What-If</button>
   </div>
 </nav>
 <div class="hdr">
@@ -460,23 +516,21 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div class="toast" id="toast"></div>
 
 <div class="sp-overlay" id="spOverlay"></div>
-<div class="scenario-panel" id="scenarioPanel">
+<div class="scenario-panel" id="scenarioPanel" data-mode="planeditor">
   <div class="sp-hdr">
-    <h2>⚡ What-If &amp; Config</h2>
+    <h2 id="spTitle">⚙ Edit Plan</h2>
     <button class="sp-close" id="spClose" title="Close">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
     </button>
   </div>
   <div class="sp-tabs" id="spTabs">
-    <button class="sp-tab active" data-tab="scenarios">⚡ Scenarios</button>
-    <button class="sp-tab" data-tab="fvs">📋 Fix Versions</button>
+    <button class="sp-tab" data-tab="scenarios">⚡ Scenarios</button>
+    <button class="sp-tab active" data-tab="fvs">📋 Fix Versions</button>
     <button class="sp-tab" data-tab="settings">⚙ Settings</button>
   </div>
   <div class="sp-body" id="spBody"></div>
   <div class="sp-foot" id="spFoot"></div>
 </div>
-<button class="scenario-fab" id="scenarioFab">⚡ What-If</button>
-
 <!-- Generic modal for PAT setup + Save-as-default confirmation -->
 <div class="sp-modal-overlay" id="spModalOverlay">
   <div class="sp-modal" id="spModal">
@@ -553,10 +607,12 @@ function applyLocalConfigToFvArray(){
   FV.forEach(fv=>{
     const o = LOCAL_CONFIG.fv_meta && LOCAL_CONFIG.fv_meta[fv.key];
     if(!o) return;
-    if(o.color!==undefined) fv.color=o.color;
-    if(o.sub!==undefined) fv.sub=o.sub;
-    if(o.qaWeeks!==undefined) fv.qaWeeks=o.qaWeeks;
-    if(o.release!==undefined) fv.release=o.release;
+    if(o.color!==undefined)    fv.color=o.color;
+    if(o.sub!==undefined)      fv.sub=o.sub;
+    if(o.qaWeeks!==undefined)  fv.qaWeeks=o.qaWeeks;
+    if(o.release!==undefined)  fv.release=o.release;
+    if(o.epic_overrides)       fv.epic_overrides=Object.assign({}, fv.epic_overrides||{}, o.epic_overrides);
+    if(o.milestones)           fv.milestones=o.milestones.slice();
   });
 }
 function applyLocalConfigToHolidays(){
@@ -949,17 +1005,20 @@ function buildScopeBody(fv){
   [...fv.devPeople,...(fv.otherPeople||[])].forEach(p=>{
     p.tasks.forEach(t=>{taskLookup[t.key]=t;});
   });
+  const overrides = fv.epic_overrides || {};
   const body=document.createElement('div');body.className='scope-body';
-  (fv.scope||[]).forEach(epic=>{
+  (fv.scope||[]).filter(epic => !(epic.key && overrides[epic.key] && overrides[epic.key].hidden)).forEach(epic=>{
     const pctDone=epic.total>0?(epic.done/epic.total*100):0;
     const open=epic.total-epic.done;
     const epicTasks=(epic.taskKeys||[]).map(k=>taskLookup[k]).filter(Boolean);
     const card=document.createElement('div');card.className='scope-item';
     const hdr=document.createElement('div');hdr.className='scope-header';
+    const ovr = epic.key ? overrides[epic.key] : null;
+    const displayName = (ovr && ovr.label) ? ovr.label : epic.name;
     hdr.innerHTML=`
       <div class="scope-title">
         ${epic.key?`<a class="scope-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>`:'<span class="scope-epic-key">—</span>'}
-        <span class="scope-name">${epic.name}</span>
+        <span class="scope-name">${displayName.replace(/</g,'&lt;')}${ovr && ovr.label ? ' <span style="font-size:9px;color:var(--sub);font-weight:400">(was: '+epic.name.replace(/</g,'&lt;')+')</span>' : ''}</span>
       </div>
       <div class="scope-right">
         <span class="t-st ${epicStatusCls(epic.status)}">${epic.status}</span>
@@ -1136,6 +1195,38 @@ function buildRows(){
       if(qw>3) qb.textContent=`QA → ${fmtD(qaEnd)}`;
     } else {qb.style.display='none';}
     barEls[`qabar-${idx}`]=qb;track.appendChild(qb);
+
+    // ── Milestone pins ──
+    // Each milestone is either anchored to dev_end + offset_weeks, or a fixed
+    // calendar date. Render as a vertical line + small label above the bar.
+    (effectiveFv.milestones || []).forEach((ms, msIdx) => {
+      let msDate;
+      if(ms.anchor === 'date'){
+        if(!ms.date) return;
+        try { msDate = D(ms.date); } catch(e) { return; }
+      } else {
+        const baseDate = effectiveFv.devStart ? new Date(devEnd) : new Date(TODAY);
+        msDate = new Date(baseDate.getTime() + (ms.offset_weeks||0) * 7 * 86400000);
+      }
+      if(!msDate || isNaN(msDate.getTime())) return;
+      const x = pct(msDate);
+      const pin = document.createElement('div');
+      pin.className = 'ms-pin';
+      pin.style.left = x + '%';
+      pin.style.background = ms.color || '#d97706';
+      const lbl = document.createElement('div');
+      lbl.className = 'ms-pin-label';
+      lbl.style.left = x + '%';
+      // Stagger labels vertically so they don't overlap when close together
+      lbl.style.top = (34 + (msIdx % 3) * 16) + 'px';
+      lbl.style.background = (ms.color || '#d97706') + '22';
+      lbl.style.color = ms.color || '#d97706';
+      lbl.style.borderColor = (ms.color || '#d97706') + '55';
+      lbl.textContent = ms.label || 'Milestone';
+      lbl.title = `${ms.label} · ${fmtD(msDate)}`;
+      track.appendChild(pin);
+      track.appendChild(lbl);
+    });
 
     const typeConfig=[
       {key:'cre',label:'CREATIVE',type:'Creative',cls:'dept-row-cre'},
@@ -1453,15 +1544,18 @@ const DEVS=['Alex Laher','Antonio Tran','Ben Akram','Bin Zhang','Jason Huang',
             'Vladimir Kolotilenko','Warren Ryback','Jesse Pirrotta'];
 
 function updateFab(){
-  const fab=document.getElementById('scenarioFab');
-  const total=SCENARIOS.length;
-  if(total>0){
-    fab.classList.add('has-scenarios');
-    fab.dataset.count=total;
-    fab.classList.toggle('all-off',!scenariosMasterEnabled);
+  // Updates the top-nav What-If button badge with scenario count + on/off state.
+  // (The function name is kept for backwards compat with the many call sites.)
+  const btn = document.getElementById('openWhatIfBtn');
+  if(!btn) return;
+  const total = SCENARIOS.length;
+  if(total > 0){
+    btn.classList.add('has-count');
+    btn.dataset.count = total;
+    btn.classList.toggle('scenarios-off', !scenariosMasterEnabled);
   } else {
-    fab.classList.remove('has-scenarios','all-off');
-    delete fab.dataset.count;
+    btn.classList.remove('has-count','scenarios-off');
+    delete btn.dataset.count;
   }
 }
 
@@ -1521,12 +1615,23 @@ function buildConfigPayload(){
   const fv_meta = {};
   FV.forEach(fv => {
     if(fv.isScenario) return;
-    fv_meta[fv.key] = {
+    const entry = {
       color: fv.color,
       sub: fv.sub,
       qaWeeks: fv.qaWeeks,
       release: fv.release ?? null,
     };
+    // Only persist epic_overrides if any keys actually carry overrides.
+    if(fv.epic_overrides && Object.keys(fv.epic_overrides).length){
+      const ovr = {};
+      Object.keys(fv.epic_overrides).forEach(k => {
+        const v = fv.epic_overrides[k];
+        if(v && Object.keys(v).length) ovr[k] = v;
+      });
+      if(Object.keys(ovr).length) entry.epic_overrides = ovr;
+    }
+    if(fv.milestones && fv.milestones.length) entry.milestones = fv.milestones.slice();
+    fv_meta[fv.key] = entry;
   });
   const fv_order = FV.filter(fv => !fv.isScenario).map(fv => fv.key);
   const hidden_fvs = [...HIDDEN_FVS].filter(k => fv_order.includes(k)).sort();
@@ -1570,6 +1675,38 @@ function diffConfigs(server, local){
         });
       }
     });
+    // Epic overrides diff
+    const sOvr = s.epic_overrides || {};
+    const lOvr = l.epic_overrides || {};
+    const allEpics = new Set([...Object.keys(sOvr), ...Object.keys(lOvr)]);
+    allEpics.forEach(ek => {
+      const sE = sOvr[ek] || {};
+      const lE = lOvr[ek] || {};
+      if((sE.hidden??false) !== (lE.hidden??false)){
+        changes.push({cat:'fv', label:'Scope', text:`${key} · ${ek}: ${lE.hidden?'hide':'show'} in Scope tab`});
+      }
+      if((sE.label||null) !== (lE.label||null)){
+        changes.push({cat:'fv', label:'Scope', text:`${key} · ${ek}: label ${lE.label?`→ "${lE.label}"`:'reset'}`});
+      }
+    });
+    // Milestones diff (treat as opaque list-vs-list — just count changes)
+    const sMs = s.milestones || [];
+    const lMs = l.milestones || [];
+    if(JSON.stringify(sMs) !== JSON.stringify(lMs)){
+      const sIds = new Set(sMs.map(m=>m.id));
+      const lIds = new Set(lMs.map(m=>m.id));
+      const added = lMs.filter(m=>!sIds.has(m.id));
+      const removed = sMs.filter(m=>!lIds.has(m.id));
+      added.forEach(m => changes.push({cat:'fv', label:'Pin +', text:`${key} · add milestone "${m.label}"`}));
+      removed.forEach(m => changes.push({cat:'fv', label:'Pin −', text:`${key} · remove milestone "${m.label}"`}));
+      // Edits to existing milestones
+      lMs.forEach(lM => {
+        const sM = sMs.find(x => x.id === lM.id);
+        if(sM && JSON.stringify(sM) !== JSON.stringify(lM)){
+          changes.push({cat:'fv', label:'Pin', text:`${key} · edit milestone "${lM.label}"`});
+        }
+      });
+    }
   });
   // FVs added/removed from the meta map
   Object.keys(sm).forEach(key => {
@@ -1803,6 +1940,68 @@ function renderScenarioPanel(){
   renderScenariosTab(body,foot);
 }
 
+// ── Per-FV LOCAL_CONFIG helpers (Scope + Milestones) ──
+function _ensureFvMeta(fvKey){
+  LOCAL_CONFIG.fv_meta = LOCAL_CONFIG.fv_meta || {};
+  LOCAL_CONFIG.fv_meta[fvKey] = LOCAL_CONFIG.fv_meta[fvKey] || {};
+  return LOCAL_CONFIG.fv_meta[fvKey];
+}
+function setEpicOverride(fvKey, epicKey, field, value){
+  const meta = _ensureFvMeta(fvKey);
+  meta.epic_overrides = meta.epic_overrides || {};
+  meta.epic_overrides[epicKey] = meta.epic_overrides[epicKey] || {};
+  if(value === undefined || value === null || value === '') delete meta.epic_overrides[epicKey][field];
+  else meta.epic_overrides[epicKey][field] = value;
+  if(Object.keys(meta.epic_overrides[epicKey]).length===0) delete meta.epic_overrides[epicKey];
+  if(Object.keys(meta.epic_overrides).length===0) delete meta.epic_overrides;
+  // Mirror onto the FV array so render code picks it up immediately
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv){
+    fv.epic_overrides = fv.epic_overrides || {};
+    if(meta.epic_overrides && meta.epic_overrides[epicKey]) fv.epic_overrides[epicKey] = meta.epic_overrides[epicKey];
+    else delete fv.epic_overrides[epicKey];
+  }
+  saveLocalConfig();
+}
+function addMilestone(fvKey){
+  const meta = _ensureFvMeta(fvKey);
+  meta.milestones = meta.milestones || [];
+  const ms = {
+    id: 'ms_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+    label: 'Milestone',
+    anchor: 'dev_end',
+    offset_weeks: 1,
+    color: '#d97706',
+  };
+  meta.milestones.push(ms);
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv){ fv.milestones = (fv.milestones || []); fv.milestones.push(ms); }
+  saveLocalConfig();
+  return ms;
+}
+function removeMilestone(fvKey, msId){
+  const meta = _ensureFvMeta(fvKey);
+  meta.milestones = (meta.milestones || []).filter(m => m.id !== msId);
+  if(meta.milestones.length === 0) delete meta.milestones;
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv) fv.milestones = (fv.milestones || []).filter(m => m.id !== msId);
+  saveLocalConfig();
+}
+function updateMilestone(fvKey, msId, field, value){
+  const meta = _ensureFvMeta(fvKey);
+  meta.milestones = meta.milestones || [];
+  const m = meta.milestones.find(x => x.id === msId);
+  if(!m) return;
+  m[field] = value;
+  // Also reflect on the FV array
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv && fv.milestones){
+    const fvMs = fv.milestones.find(x => x.id === msId);
+    if(fvMs) fvMs[field] = value;
+  }
+  saveLocalConfig();
+}
+
 function renderFvsTab(body, foot){
   const banner=document.createElement('div');
   banner.style.cssText='font-size:11px;color:var(--muted);padding:2px 2px 12px;line-height:1.55';
@@ -1845,18 +2044,39 @@ function renderFvsTab(body, foot){
 
     const expand=document.createElement('div');
     expand.className='sp-fv-row-expand';
+    const realEpics = (fv.scope||[]).filter(e => e.key);
     expand.innerHTML=`
-      <div class="sp-fv-row-field">
-        <label>RELEASE DATE</label>
-        <input type="date" data-field="release" value="${fv.release||''}">
+      <div class="sp-fv-section">
+        <div class="sp-fv-section-title"><span>DETAILS</span></div>
+        <div class="sp-fv-section-grid">
+          <div class="sp-fv-row-field">
+            <label>RELEASE DATE</label>
+            <input type="date" data-field="release" value="${fv.release||''}">
+          </div>
+          <div class="sp-fv-row-field">
+            <label>QA WEEKS</label>
+            <input type="number" data-field="qaWeeks" value="${fv.qaWeeks}" min="0" max="12">
+          </div>
+          <div class="sp-fv-row-field span-2">
+            <label>SUBTITLE</label>
+            <textarea data-field="sub" rows="2">${(fv.sub||'').replace(/</g,'&lt;')}</textarea>
+          </div>
+        </div>
       </div>
-      <div class="sp-fv-row-field">
-        <label>QA WEEKS</label>
-        <input type="number" data-field="qaWeeks" value="${fv.qaWeeks}" min="0" max="12">
+      <div class="sp-fv-section" data-section="scope">
+        <div class="sp-fv-section-title">
+          <span>SCOPE</span>
+          <span style="color:var(--sub);font-weight:400">${realEpics.length} epic${realEpics.length!==1?'s':''} · toggle hides from Scope tab · click name to rename</span>
+        </div>
+        <div class="sp-epic-list"></div>
       </div>
-      <div class="sp-fv-row-field" style="grid-column:1/-1">
-        <label>SUBTITLE</label>
-        <textarea data-field="sub" rows="2">${(fv.sub||'').replace(/</g,'&lt;')}</textarea>
+      <div class="sp-fv-section" data-section="milestones">
+        <div class="sp-fv-section-title">
+          <span>MILESTONES</span>
+          <span style="color:var(--sub);font-weight:400">pins on the gantt bar — moves with dev end</span>
+        </div>
+        <div class="sp-ms-list"></div>
+        <button type="button" class="sp-add-ms">+ Add milestone</button>
       </div>`;
 
     row.appendChild(handle);
@@ -1886,7 +2106,8 @@ function renderFvsTab(body, foot){
       row.classList.toggle('open');
     });
 
-    expand.querySelectorAll('input,textarea').forEach(input=>{
+    // Details section: scope input/textarea changes to ONLY this section
+    expand.querySelector('.sp-fv-section-grid').querySelectorAll('input,textarea').forEach(input=>{
       input.addEventListener('change',()=>{
         const field=input.dataset.field;
         let val=input.value;
@@ -1900,6 +2121,104 @@ function renderFvsTab(body, foot){
         row.classList.add('dirty');
         buildRows();
       });
+    });
+
+    // ── Scope section: per-epic toggle + rename ──
+    const epicListEl = expand.querySelector('[data-section="scope"] .sp-epic-list');
+    const epicOverrides = (LOCAL_CONFIG.fv_meta[fv.key] && LOCAL_CONFIG.fv_meta[fv.key].epic_overrides) || {};
+    if(realEpics.length === 0){
+      epicListEl.innerHTML = '<div class="sp-epic-empty">No epics linked to this fix version in Jira yet.</div>';
+    } else {
+      realEpics.forEach(epic => {
+        const ovr = epicOverrides[epic.key] || {};
+        const isHidden = !!ovr.hidden;
+        const displayLabel = ovr.label || epic.name;
+        const isDirty = !!(ovr.hidden !== undefined || ovr.label !== undefined);
+        const er = document.createElement('div');
+        er.className = 'sp-epic-row' + (isHidden ? ' epic-hidden' : '') + (isDirty ? ' epic-dirty' : '');
+        er.innerHTML = `
+          <button type="button" class="sp-epic-toggle ${isHidden?'':'on'}" title="${isHidden?'Hidden from Scope tab':'Visible in Scope tab'}"></button>
+          <a class="sp-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>
+          <span class="sp-epic-label" contenteditable="true" spellcheck="false" data-orig="${epic.name.replace(/"/g,'&quot;')}">${displayLabel.replace(/</g,'&lt;')}</span>
+          <button type="button" class="sp-ms-del" title="Reset to Jira default">↺</button>
+        `;
+        er.querySelector('.sp-epic-toggle').addEventListener('click', () => {
+          setEpicOverride(fv.key, epic.key, 'hidden', !isHidden ? true : undefined);
+          renderScenarioPanel();
+          buildRows();
+        });
+        const lbl = er.querySelector('.sp-epic-label');
+        lbl.addEventListener('focus', () => lbl.classList.add('editing'));
+        lbl.addEventListener('blur', () => {
+          lbl.classList.remove('editing');
+          const newLabel = lbl.textContent.trim();
+          if(!newLabel || newLabel === epic.name) setEpicOverride(fv.key, epic.key, 'label', undefined);
+          else setEpicOverride(fv.key, epic.key, 'label', newLabel);
+          renderScenarioPanel();
+          buildRows();
+        });
+        lbl.addEventListener('keydown', e => {
+          if(e.key === 'Enter'){ e.preventDefault(); lbl.blur(); }
+          if(e.key === 'Escape'){ lbl.textContent = displayLabel; lbl.blur(); }
+        });
+        er.querySelectorAll('.sp-ms-del')[0].addEventListener('click', () => {
+          setEpicOverride(fv.key, epic.key, 'hidden', undefined);
+          setEpicOverride(fv.key, epic.key, 'label', undefined);
+          renderScenarioPanel();
+          buildRows();
+        });
+        epicListEl.appendChild(er);
+      });
+    }
+
+    // ── Milestones section ──
+    const msListEl = expand.querySelector('[data-section="milestones"] .sp-ms-list');
+    function renderMs(){
+      msListEl.innerHTML = '';
+      const list = fv.milestones || [];
+      if(list.length === 0){
+        msListEl.innerHTML = '<div class="sp-epic-empty">No milestones yet — click + Add to place a pin on the bar.</div>';
+        return;
+      }
+      list.forEach(ms => {
+        const mr = document.createElement('div');
+        mr.className = 'sp-ms-row ms-dirty';
+        const valHtml = ms.anchor === 'date'
+          ? `<input type="date" data-msfield="date" value="${ms.date||''}" title="Fixed calendar date">`
+          : `<input type="number" data-msfield="offset_weeks" value="${ms.offset_weeks??0}" step="0.5" min="0" max="52" placeholder="weeks" title="Weeks after dev end">`;
+        mr.innerHTML = `
+          <input type="text" data-msfield="label" value="${(ms.label||'').replace(/"/g,'&quot;')}" placeholder="e.g. QA Round 2">
+          <select data-msfield="anchor">
+            <option value="dev_end" ${ms.anchor!=='date'?'selected':''}>after Dev</option>
+            <option value="date" ${ms.anchor==='date'?'selected':''}>fixed date</option>
+          </select>
+          ${valHtml}
+          <input type="color" data-msfield="color" value="${ms.color||'#d97706'}" title="Pin color">
+          <button type="button" class="sp-ms-del" title="Remove">×</button>
+        `;
+        mr.querySelectorAll('[data-msfield]').forEach(input => {
+          input.addEventListener('change', () => {
+            let v = input.value;
+            if(input.dataset.msfield === 'offset_weeks') v = +v || 0;
+            if(input.dataset.msfield === 'date' && !v) v = null;
+            updateMilestone(fv.key, ms.id, input.dataset.msfield, v);
+            buildRows();
+            if(input.dataset.msfield === 'anchor') renderMs(); // re-render to swap date↔weeks input
+          });
+        });
+        mr.querySelector('.sp-ms-del').addEventListener('click', () => {
+          removeMilestone(fv.key, ms.id);
+          renderMs();
+          buildRows();
+        });
+        msListEl.appendChild(mr);
+      });
+    }
+    renderMs();
+    expand.querySelector('.sp-add-ms').addEventListener('click', () => {
+      addMilestone(fv.key);
+      renderMs();
+      buildRows();
     });
 
     body.appendChild(row);
@@ -2139,7 +2458,22 @@ function renderScenariosTab(body, foot){
   };
 }
 
-function openScenarioPanel(){
+// Panel mode: 'planeditor' or 'whatif'. Drives title, tab visibility, width.
+let panelMode = 'planeditor';
+
+function setPanelMode(mode){
+  panelMode = mode;
+  const panel = document.getElementById('scenarioPanel');
+  panel.dataset.mode = mode;
+  panel.classList.toggle('wide', mode === 'planeditor');
+  document.getElementById('spTitle').textContent =
+    mode === 'whatif' ? '⚡ What-If — Scenario Sandbox' : '⚙ Edit Plan';
+  // Default active tab per mode
+  if(mode === 'whatif')      activeSpTab = 'scenarios';
+  else if(activeSpTab === 'scenarios') activeSpTab = 'fvs';
+}
+function openPanel(mode){
+  setPanelMode(mode);
   renderScenarioPanel();
   document.getElementById('scenarioPanel').classList.add('open');
   document.getElementById('spOverlay').classList.add('open');
@@ -2148,7 +2482,11 @@ function closeScenarioPanel(){
   document.getElementById('scenarioPanel').classList.remove('open');
   document.getElementById('spOverlay').classList.remove('open');
 }
-document.getElementById('scenarioFab').addEventListener('click',openScenarioPanel);
+// Backwards-compat wrapper (still called from a few internal handlers)
+function openScenarioPanel(){ openPanel(panelMode); }
+
+document.getElementById('editPlanBtn').addEventListener('click', () => openPanel('planeditor'));
+document.getElementById('openWhatIfBtn').addEventListener('click', () => openPanel('whatif'));
 document.getElementById('spClose').addEventListener('click',closeScenarioPanel);
 document.getElementById('spOverlay').addEventListener('click',closeScenarioPanel);
 document.querySelectorAll('#spTabs .sp-tab').forEach(t=>{

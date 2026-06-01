@@ -419,17 +419,21 @@ def build_fv_list(fv_struct):
             })
 
         out.append({
-            "key":         fv_name,
-            "color":       meta["color"],
-            "sub":         meta["sub"],
-            "devStart":    dev_start,
-            "qaWeeks":     meta["qaWeeks"],
-            "statusLabel": status_label,
-            "statusStyle": STATUS_STYLES.get(status_label, STATUS_STYLES["Scheduled"]),
-            "release":     meta.get("release"),
-            "devPeople":   dev_people,
-            "otherPeople": other_people,
-            "scope":       scope,
+            "key":            fv_name,
+            "color":          meta["color"],
+            "sub":            meta["sub"],
+            "devStart":       dev_start,
+            "qaWeeks":        meta["qaWeeks"],
+            "statusLabel":    status_label,
+            "statusStyle":    STATUS_STYLES.get(status_label, STATUS_STYLES["Scheduled"]),
+            "release":        meta.get("release"),
+            "devPeople":      dev_people,
+            "otherPeople":    other_people,
+            "scope":          scope,
+            # Config-only fields — passed straight through from config/igaming.json
+            # so the dashboard JS can render scope-tab overrides and milestone pins.
+            "epic_overrides": meta.get("epic_overrides") or {},
+            "milestones":     meta.get("milestones") or [],
         })
 
     return out
