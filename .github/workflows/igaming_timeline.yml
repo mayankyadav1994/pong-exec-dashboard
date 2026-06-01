@@ -9,6 +9,13 @@ on:
     # early UTC time window.
     - cron: "30 6 * * *"
   workflow_dispatch:
+  push:
+    # Rebuild immediately when the editable config changes via the
+    # "Save as default" panel button — gives a ~2-3 min round-trip from
+    # save-click to deployed HTML.
+    branches: [main]
+    paths:
+      - "config/igaming.json"
 
 # Serialize against the exec_dashboard and v2_timeline workflows so the
 # three pushes can't race.
