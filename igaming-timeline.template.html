@@ -1007,13 +1007,16 @@ function buildScopeBody(fv){
   });
   const overrides = fv.epic_overrides || {};
   const body=document.createElement('div');body.className='scope-body';
-  (fv.scope||[]).filter(epic => !(epic.key && overrides[epic.key] && overrides[epic.key].hidden)).forEach(epic=>{
+  // Resolve override storage key (real epic key, or sentinel for the
+  // "Other tasks (no epic)" virtual bucket) — same convention as the editor.
+  const ovrKeyOf = (epic) => epic.key || '__unscoped__';
+  (fv.scope||[]).filter(epic => !(overrides[ovrKeyOf(epic)] && overrides[ovrKeyOf(epic)].hidden)).forEach(epic=>{
     const pctDone=epic.total>0?(epic.done/epic.total*100):0;
     const open=epic.total-epic.done;
     const epicTasks=(epic.taskKeys||[]).map(k=>taskLookup[k]).filter(Boolean);
     const card=document.createElement('div');card.className='scope-item';
     const hdr=document.createElement('div');hdr.className='scope-header';
-    const ovr = epic.key ? overrides[epic.key] : null;
+    const ovr = overrides[ovrKeyOf(epic)];
     const displayName = (ovr && ovr.label) ? ovr.label : epic.name;
     hdr.innerHTML=`
       <div class="scope-title">
@@ -2044,7 +2047,15 @@ function renderFvsTab(body, foot){
 
     const expand=document.createElement('div');
     expand.className='sp-fv-row-expand';
-    const realEpics = (fv.scope||[]).filter(e => e.key);
+    // Scope = all items the dashboard would show in the Scope tab. Includes
+    // the "Other tasks (no epic in this FV)" virtual bucket (key=null) so
+    // FVs without any linked epic can still have their group toggled/renamed.
+    const scopeItems = fv.scope || [];
+    const epicCount = scopeItems.filter(e => e.key).length;
+    const hasUnscoped = scopeItems.some(e => !e.key);
+    const scopeSummary = scopeItems.length === 0
+      ? '0 items'
+      : `${epicCount} epic${epicCount!==1?'s':''}${hasUnscoped ? ` · 1 task group (no epic)` : ''}`;
     expand.innerHTML=`
       <div class="sp-fv-section">
         <div class="sp-fv-section-title"><span>DETAILS</span></div>
@@ -2066,7 +2077,7 @@ function renderFvsTab(body, foot){
       <div class="sp-fv-section" data-section="scope">
         <div class="sp-fv-section-title">
           <span>SCOPE</span>
-          <span style="color:var(--sub);font-weight:400">${realEpics.length} epic${realEpics.length!==1?'s':''} · toggle hides from Scope tab · click name to rename</span>
+          <span style="color:var(--sub);font-weight:400">${scopeSummary} · toggle hides · click name to rename</span>
         </div>
         <div class="sp-epic-list"></div>
       </div>
@@ -2126,24 +2137,35 @@ function renderFvsTab(body, foot){
     // ── Scope section: per-epic toggle + rename ──
     const epicListEl = expand.querySelector('[data-section="scope"] .sp-epic-list');
     const epicOverrides = (LOCAL_CONFIG.fv_meta[fv.key] && LOCAL_CONFIG.fv_meta[fv.key].epic_overrides) || {};
-    if(realEpics.length === 0){
-      epicListEl.innerHTML = '<div class="sp-epic-empty">No epics linked to this fix version in Jira yet.</div>';
+    if(scopeItems.length === 0){
+      epicListEl.innerHTML = '<div class="sp-epic-empty">No scope items for this fix version yet — once Jira issues are tagged with this fixVersion they’ll appear here.</div>';
     } else {
-      realEpics.forEach(epic => {
-        const ovr = epicOverrides[epic.key] || {};
+      scopeItems.forEach(epic => {
+        // Normalize the override-storage key: real epics use their Jira key,
+        // the virtual "Other tasks (no epic)" bucket uses a stable sentinel
+        // so its hide/rename state survives reloads consistently.
+        const storageKey = epic.key || '__unscoped__';
+        const ovr = epicOverrides[storageKey] || {};
         const isHidden = !!ovr.hidden;
         const displayLabel = ovr.label || epic.name;
         const isDirty = !!(ovr.hidden !== undefined || ovr.label !== undefined);
+        const isUnscoped = !epic.key;
         const er = document.createElement('div');
         er.className = 'sp-epic-row' + (isHidden ? ' epic-hidden' : '') + (isDirty ? ' epic-dirty' : '');
+        const keyHtml = isUnscoped
+          ? `<span class="sp-epic-key" title="Virtual group for tasks without an epic">—</span>`
+          : `<a class="sp-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>`;
+        const subHtml = isUnscoped
+          ? `<span style="font-size:9px;color:var(--sub);margin-left:4px">(${epic.total} task${epic.total!==1?'s':''})</span>`
+          : '';
         er.innerHTML = `
           <button type="button" class="sp-epic-toggle ${isHidden?'':'on'}" title="${isHidden?'Hidden from Scope tab':'Visible in Scope tab'}"></button>
-          <a class="sp-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>
-          <span class="sp-epic-label" contenteditable="true" spellcheck="false" data-orig="${epic.name.replace(/"/g,'&quot;')}">${displayLabel.replace(/</g,'&lt;')}</span>
-          <button type="button" class="sp-ms-del" title="Reset to Jira default">↺</button>
+          ${keyHtml}
+          <span class="sp-epic-label" contenteditable="true" spellcheck="false" data-orig="${epic.name.replace(/"/g,'&quot;')}">${displayLabel.replace(/</g,'&lt;')}</span>${subHtml}
+          <button type="button" class="sp-ms-del" title="Reset to default">↺</button>
         `;
         er.querySelector('.sp-epic-toggle').addEventListener('click', () => {
-          setEpicOverride(fv.key, epic.key, 'hidden', !isHidden ? true : undefined);
+          setEpicOverride(fv.key, storageKey, 'hidden', !isHidden ? true : undefined);
           renderScenarioPanel();
           buildRows();
         });
@@ -2152,8 +2174,8 @@ function renderFvsTab(body, foot){
         lbl.addEventListener('blur', () => {
           lbl.classList.remove('editing');
           const newLabel = lbl.textContent.trim();
-          if(!newLabel || newLabel === epic.name) setEpicOverride(fv.key, epic.key, 'label', undefined);
-          else setEpicOverride(fv.key, epic.key, 'label', newLabel);
+          if(!newLabel || newLabel === epic.name) setEpicOverride(fv.key, storageKey, 'label', undefined);
+          else setEpicOverride(fv.key, storageKey, 'label', newLabel);
           renderScenarioPanel();
           buildRows();
         });
@@ -2162,8 +2184,8 @@ function renderFvsTab(body, foot){
           if(e.key === 'Escape'){ lbl.textContent = displayLabel; lbl.blur(); }
         });
         er.querySelectorAll('.sp-ms-del')[0].addEventListener('click', () => {
-          setEpicOverride(fv.key, epic.key, 'hidden', undefined);
-          setEpicOverride(fv.key, epic.key, 'label', undefined);
+          setEpicOverride(fv.key, storageKey, 'hidden', undefined);
+          setEpicOverride(fv.key, storageKey, 'label', undefined);
           renderScenarioPanel();
           buildRows();
         });
