@@ -295,6 +295,43 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 /* Dirty-edits banner */
 .sp-dirty-banner{padding:9px 12px;background:rgba(251,146,60,.10);border:1px solid rgba(251,146,60,.4);border-radius:5px;font-size:11px;color:#c2410c;font-weight:600;display:flex;align-items:center;gap:8px}
 
+/* Generic modal inside the panel (used for PAT setup + Save confirmation) */
+.sp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center}
+.sp-modal-overlay.open{display:flex}
+.sp-modal{background:var(--surface);border-radius:8px;width:min(520px,92vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.sp-modal-hdr{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sp-modal-hdr h3{font-size:14px;font-weight:600;color:var(--text)}
+.sp-modal-close{background:none;border:none;cursor:pointer;color:var(--sub);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.sp-modal-close:hover{background:var(--surf2);color:var(--text)}
+.sp-modal-body{flex:1;overflow-y:auto;padding:16px 18px;font-size:12px;color:var(--text);line-height:1.55}
+.sp-modal-body p{margin-bottom:10px}
+.sp-modal-body code{background:var(--surf3);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono';font-size:11px}
+.sp-modal-body label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;display:block;margin-bottom:5px}
+.sp-modal-body input[type=password],.sp-modal-body input[type=text],.sp-modal-body textarea{width:100%;border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-size:12px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;font-family:'IBM Plex Mono'}
+.sp-modal-body input:focus,.sp-modal-body textarea:focus{border-color:rgba(251,146,60,.7)}
+.sp-modal-body textarea{font-family:inherit;resize:vertical;min-height:60px}
+.sp-modal-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.sp-modal-btn{padding:8px 16px;border-radius:5px;border:1px solid;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.sp-modal-btn-primary{background:rgba(251,146,60,.95);color:#fff;border-color:#fb923c}
+.sp-modal-btn-primary:hover{background:#fb923c}
+.sp-modal-btn-primary:disabled{background:var(--border2);border-color:var(--border2);color:var(--sub);cursor:not-allowed}
+.sp-modal-btn-secondary{background:var(--surface);color:var(--muted);border-color:var(--border2)}
+.sp-modal-btn-secondary:hover{background:var(--surf2);color:var(--text)}
+.sp-diff-list{list-style:none;padding:0;margin:0;font-size:11px;font-family:'IBM Plex Mono';max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:5px;background:var(--surf2)}
+.sp-diff-item{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:baseline}
+.sp-diff-item:last-child{border-bottom:none}
+.sp-diff-cat{font-size:9px;font-weight:700;letter-spacing:.3px;padding:1px 5px;border-radius:3px;flex-shrink:0;font-family:inherit}
+.sp-diff-cat-priority{background:rgba(124,58,237,.12);color:#5b21b6}
+.sp-diff-cat-fv      {background:rgba(37,99,235,.12);color:#1e40af}
+.sp-diff-cat-hide    {background:rgba(220,38,38,.12);color:#991b1b}
+.sp-diff-cat-show    {background:rgba(22,163,74,.12);color:#14532d}
+.sp-diff-cat-holiday {background:rgba(217,119,6,.12);color:#92400e}
+.sp-status-msg{font-size:11px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px}
+.sp-status-msg.ok{color:#15803d}
+.sp-status-msg.err{color:#dc2626}
+.sp-spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:#fb923c;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 .sp-master-toggle{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:5px;background:var(--surf2);border:1px solid var(--border);cursor:pointer;user-select:none;font-size:11px;font-weight:600;color:var(--muted);transition:all .15s}
 .sp-master-toggle.active{background:rgba(251,146,60,.10);border-color:rgba(251,146,60,.4);color:#c2410c}
 .sp-toggle-track{width:28px;height:15px;border-radius:8px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0}
@@ -439,6 +476,18 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
   <div class="sp-foot" id="spFoot"></div>
 </div>
 <button class="scenario-fab" id="scenarioFab">⚡ What-If</button>
+
+<!-- Generic modal for PAT setup + Save-as-default confirmation -->
+<div class="sp-modal-overlay" id="spModalOverlay">
+  <div class="sp-modal" id="spModal">
+    <div class="sp-modal-hdr">
+      <h3 id="spModalTitle">…</h3>
+      <button class="sp-modal-close" id="spModalClose" title="Close">✕</button>
+    </div>
+    <div class="sp-modal-body" id="spModalBody"></div>
+    <div class="sp-modal-foot" id="spModalFoot"></div>
+  </div>
+</div>
 
 <div class="note">
   <strong>⚠ Notes:</strong>
@@ -1416,6 +1465,329 @@ function updateFab(){
   }
 }
 
+// ─── GITHUB API + SAVE-AS-DEFAULT FLOW ────────────────
+// Promotes the current browser-local edits to config/igaming.json by
+// opening (and auto-merging) a PR. See docs/CONFIG_EDITOR_SETUP.md for
+// the one-time PAT setup the user needs to do.
+const GH_OWNER='mayankyadav1994';
+const GH_REPO='pong-exec-dashboard';
+const GH_CONFIG_PATH='config/igaming.json';
+const GH_API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
+const GH_PAT_KEY='ig_github_pat';
+const GH_PAT_USER_KEY='ig_github_pat_user';
+
+function getPat(){ return localStorage.getItem(GH_PAT_KEY) || ''; }
+function setPat(token, login){
+  if(token){
+    localStorage.setItem(GH_PAT_KEY, token);
+    if(login) localStorage.setItem(GH_PAT_USER_KEY, login);
+  } else {
+    localStorage.removeItem(GH_PAT_KEY);
+    localStorage.removeItem(GH_PAT_USER_KEY);
+  }
+}
+function getPatUser(){ return localStorage.getItem(GH_PAT_USER_KEY) || ''; }
+
+async function ghFetch(url, opts){
+  opts = opts || {};
+  const headers = Object.assign({
+    'Authorization': 'token ' + getPat(),
+    'Accept': 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+  }, opts.headers || {});
+  const r = await fetch(url, Object.assign({}, opts, {headers}));
+  if(!r.ok){
+    let msg = `HTTP ${r.status}`;
+    try { const j=await r.json(); msg += `: ${j.message||''}`; } catch(e){}
+    throw new Error(msg);
+  }
+  return r.status===204 ? {} : r.json();
+}
+
+async function verifyPat(){
+  // 1) Token authenticates as a user
+  const user = await ghFetch('https://api.github.com/user');
+  // 2) That user has push access to this repo
+  const repo = await ghFetch(GH_API);
+  if(!repo.permissions || !repo.permissions.push){
+    throw new Error(`${user.login} can't push to ${GH_OWNER}/${GH_REPO} — ask an admin to add you as a collaborator with write access.`);
+  }
+  return { login: user.login };
+}
+
+function buildConfigPayload(){
+  // Compose the config that should be written to config/igaming.json from
+  // the current in-browser state (server config + LOCAL_CONFIG overlays).
+  const fv_meta = {};
+  FV.forEach(fv => {
+    if(fv.isScenario) return;
+    fv_meta[fv.key] = {
+      color: fv.color,
+      sub: fv.sub,
+      qaWeeks: fv.qaWeeks,
+      release: fv.release ?? null,
+    };
+  });
+  const fv_order = FV.filter(fv => !fv.isScenario).map(fv => fv.key);
+  const hidden_fvs = [...HIDDEN_FVS].filter(k => fv_order.includes(k)).sort();
+  const holidays = HOLIDAYS.slice().sort();
+  return { fv_order, fv_meta, hidden_fvs, holidays };
+}
+
+async function fetchServerConfig(){
+  // Anonymous fetch from raw.githubusercontent.com (no auth needed)
+  const r = await fetch(`https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${GH_CONFIG_PATH}?t=${Date.now()}`);
+  if(!r.ok) throw new Error(`Could not fetch server config: ${r.status}`);
+  return r.json();
+}
+
+function diffConfigs(server, local){
+  const changes = [];
+  // FV order
+  const so = server.fv_order || [];
+  const lo = local.fv_order  || [];
+  if(JSON.stringify(so)!==JSON.stringify(lo)){
+    const moved = lo.filter((k,i) => so.indexOf(k)!==i);
+    changes.push({
+      cat:'priority',
+      label:'Reorder',
+      text:`Priority order changed${moved.length?` (${moved.length} FV${moved.length>1?'s':''} moved)`:''}`,
+    });
+  }
+  // Per-FV meta
+  const lm = local.fv_meta || {};
+  const sm = server.fv_meta || {};
+  Object.keys(lm).forEach(key => {
+    const s = sm[key] || {};
+    const l = lm[key];
+    ['color','sub','qaWeeks','release'].forEach(field => {
+      const sv = s[field]; const lv = l[field];
+      if((sv ?? null) !== (lv ?? null)){
+        changes.push({
+          cat:'fv',
+          label:'FV',
+          text:`${key} · ${field}: ${JSON.stringify(sv ?? null)} → ${JSON.stringify(lv ?? null)}`,
+        });
+      }
+    });
+  });
+  // FVs added/removed from the meta map
+  Object.keys(sm).forEach(key => {
+    if(!lm[key]) changes.push({cat:'fv',label:'FV',text:`Removed FV from config: ${key}`});
+  });
+  // Hidden FVs
+  const sh = new Set(server.hidden_fvs||[]);
+  const lh = new Set(local.hidden_fvs||[]);
+  lh.forEach(k => { if(!sh.has(k)) changes.push({cat:'hide',label:'Hide',text:`Hide ${k}`}); });
+  sh.forEach(k => { if(!lh.has(k)) changes.push({cat:'show',label:'Show',text:`Show ${k} (was hidden)`}); });
+  // Holidays
+  const sH = new Set(server.holidays||[]);
+  const lH = new Set(local.holidays||[]);
+  lH.forEach(d => { if(!sH.has(d)) changes.push({cat:'holiday',label:'Hol +',text:`Add holiday ${d}`}); });
+  sH.forEach(d => { if(!lH.has(d)) changes.push({cat:'holiday',label:'Hol −',text:`Remove holiday ${d}`}); });
+  return changes;
+}
+
+function summarizeDiffForCommit(changes){
+  if(!changes.length) return 'No changes';
+  if(changes.length===1) return changes[0].text;
+  const counts = {};
+  changes.forEach(c => { counts[c.cat] = (counts[c.cat]||0)+1; });
+  const parts = [];
+  if(counts.priority) parts.push('reorder');
+  if(counts.fv)       parts.push(`${counts.fv} FV edit${counts.fv>1?'s':''}`);
+  if(counts.hide)     parts.push(`${counts.hide} hide`);
+  if(counts.show)     parts.push(`${counts.show} unhide`);
+  if(counts.holiday)  parts.push(`${counts.holiday} holiday change${counts.holiday>1?'s':''}`);
+  return parts.join(', ');
+}
+
+async function saveConfigToRepo(configContent, commitTitle, commitBody, statusCb){
+  const stat = (msg, cls) => { if(statusCb) statusCb(msg, cls||''); };
+  // 1) Get current SHA of the config file on main
+  stat('Reading current server config…');
+  const file = await ghFetch(`${GH_API}/contents/${GH_CONFIG_PATH}?ref=main`);
+  // 2) Branch from main HEAD
+  stat('Creating branch…');
+  const mainRef = await ghFetch(`${GH_API}/git/refs/heads/main`);
+  const branchName = `config/igaming-${Date.now()}`;
+  await ghFetch(`${GH_API}/git/refs`, {
+    method:'POST',
+    body: JSON.stringify({ ref:`refs/heads/${branchName}`, sha:mainRef.object.sha }),
+  });
+  // 3) Commit the new config on the branch
+  stat('Committing changes…');
+  const newJson = JSON.stringify(configContent, null, 2) + '\n';
+  // unicode-safe base64
+  const b64 = btoa(unescape(encodeURIComponent(newJson)));
+  await ghFetch(`${GH_API}/contents/${GH_CONFIG_PATH}`, {
+    method:'PUT',
+    body: JSON.stringify({
+      message: commitTitle + (commitBody ? '\n\n' + commitBody : ''),
+      content: b64,
+      sha: file.sha,
+      branch: branchName,
+    }),
+  });
+  // 4) Open PR
+  stat('Opening pull request…');
+  const pr = await ghFetch(`${GH_API}/pulls`, {
+    method:'POST',
+    body: JSON.stringify({
+      title: commitTitle,
+      body: commitBody || '_(no description)_',
+      head: branchName,
+      base: 'main',
+    }),
+  });
+  // 5) Auto-merge
+  stat(`PR #${pr.number} opened — merging…`);
+  await ghFetch(`${GH_API}/pulls/${pr.number}/merge`, {
+    method:'PUT',
+    body: JSON.stringify({
+      merge_method: 'merge',
+      commit_title: commitTitle,
+      commit_message: commitBody || '',
+    }),
+  });
+  // 6) Delete the branch (cleanup; non-fatal)
+  try { await ghFetch(`${GH_API}/git/refs/heads/${branchName}`, {method:'DELETE'}); } catch(e) {}
+  stat(`✓ Merged · PR #${pr.number} · workflow will rebuild in ~2-3 min`, 'ok');
+  return { pr_number: pr.number, pr_url: pr.html_url };
+}
+
+// ── Modal helpers ──
+function openModal(title, bodyEl, footEl){
+  document.getElementById('spModalTitle').textContent = title;
+  const body=document.getElementById('spModalBody'); body.innerHTML=''; body.appendChild(bodyEl);
+  const foot=document.getElementById('spModalFoot'); foot.innerHTML=''; if(footEl) foot.appendChild(footEl);
+  document.getElementById('spModalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('spModalOverlay').classList.remove('open'); }
+
+function showPatSetupModal(onSaved){
+  const body=document.createElement('div');
+  const existingUser = getPatUser();
+  body.innerHTML = `
+    <p>To save changes that affect everyone, you need a GitHub Personal Access Token with write access to <code>${GH_OWNER}/${GH_REPO}</code>.</p>
+    <p style="font-size:11px;color:var(--muted)">One-time setup: <a href="docs/CONFIG_EDITOR_SETUP.md" target="_blank" style="color:#fb923c">→ How to mint a fine-grained PAT (~2 min)</a>. The token stays in your browser's localStorage and is never transmitted except to <code>api.github.com</code>.</p>
+    <label>FINE-GRAINED PERSONAL ACCESS TOKEN</label>
+    <input type="password" id="spPatInput" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+    ${existingUser ? `<div style="font-size:10px;color:var(--sub);margin-top:6px">Last verified as <strong>${existingUser}</strong></div>` : ''}
+    <div class="sp-status-msg" id="spPatStatus"></div>`;
+
+  const foot=document.createElement('div');foot.style.display='contents';
+  foot.innerHTML = `
+    <button class="sp-modal-btn sp-modal-btn-secondary" id="spPatCancel">Cancel</button>
+    <button class="sp-modal-btn sp-modal-btn-primary" id="spPatVerify">Verify &amp; Save</button>`;
+  openModal('Set up GitHub access', body, foot);
+
+  const inp = document.getElementById('spPatInput');
+  inp.focus();
+  document.getElementById('spPatCancel').onclick = closeModal;
+  document.getElementById('spPatVerify').onclick = async () => {
+    const status = document.getElementById('spPatStatus');
+    const token = inp.value.trim();
+    if(!token){ status.className='sp-status-msg err'; status.textContent='Paste a token first.'; return; }
+    setPat(token); // tentatively store; we'll clear it if verify fails
+    status.className='sp-status-msg'; status.innerHTML='<span class="sp-spinner"></span> Verifying…';
+    try {
+      const { login } = await verifyPat();
+      setPat(token, login);
+      status.className='sp-status-msg ok'; status.textContent=`✓ Verified as ${login}`;
+      setTimeout(() => { closeModal(); if(onSaved) onSaved(login); }, 500);
+    } catch(e) {
+      setPat(null); // wipe bad token
+      status.className='sp-status-msg err'; status.textContent='✕ ' + e.message;
+    }
+  };
+}
+
+function showSaveModal(){
+  const body=document.createElement('div');
+  body.innerHTML = `<div class="sp-status-msg"><span class="sp-spinner"></span> Comparing local changes against current server config…</div>`;
+  openModal('Save as default for everyone', body, document.createElement('div'));
+
+  (async () => {
+    let server, local, changes;
+    try {
+      server = await fetchServerConfig();
+      local  = buildConfigPayload();
+      changes = diffConfigs(server, local);
+    } catch(e){
+      body.innerHTML = `<div class="sp-status-msg err">✕ ${e.message}</div>`;
+      return;
+    }
+
+    if(changes.length===0){
+      body.innerHTML = `<p>No changes vs. the current server config.</p>
+        <p style="font-size:11px;color:var(--muted)">Your browser-local edits already match what's deployed.</p>`;
+      const foot=document.getElementById('spModalFoot');
+      foot.innerHTML = `<button class="sp-modal-btn sp-modal-btn-secondary" id="spDone">Close</button>`;
+      document.getElementById('spDone').onclick = closeModal;
+      return;
+    }
+
+    const summary = summarizeDiffForCommit(changes);
+    const user = getPatUser() || '?';
+    body.innerHTML = `
+      <p style="font-size:11px;color:var(--muted)">${changes.length} change${changes.length>1?'s':''} will be committed to <code>${GH_CONFIG_PATH}</code> on a new branch, opened as a PR, and auto-merged. The workflow will rebuild the dashboard in ~2-3 min.</p>
+      <ul class="sp-diff-list">
+        ${changes.map(c => `<li class="sp-diff-item">
+          <span class="sp-diff-cat sp-diff-cat-${c.cat}">${c.label}</span>
+          <span>${c.text}</span>
+        </li>`).join('')}
+      </ul>
+      <label style="margin-top:12px">COMMIT MESSAGE</label>
+      <input type="text" id="spCommitTitle" value="config(igaming): ${summary}">
+      <label style="margin-top:8px">DESCRIPTION (optional)</label>
+      <textarea id="spCommitBody" rows="2">Edited via dashboard by @${user}</textarea>
+      <div class="sp-status-msg" id="spSaveStatus"></div>`;
+
+    const foot=document.getElementById('spModalFoot');
+    foot.innerHTML = `
+      <button class="sp-modal-btn sp-modal-btn-secondary" id="spSaveCancel">Cancel</button>
+      <button class="sp-modal-btn sp-modal-btn-primary" id="spSaveConfirm">💾 Save &amp; merge</button>`;
+
+    document.getElementById('spSaveCancel').onclick = closeModal;
+    document.getElementById('spSaveConfirm').onclick = async () => {
+      const title = document.getElementById('spCommitTitle').value.trim() || `config(igaming): ${summary}`;
+      const bodyMsg = document.getElementById('spCommitBody').value.trim();
+      const status = document.getElementById('spSaveStatus');
+      const btn = document.getElementById('spSaveConfirm');
+      btn.disabled = true;
+      try {
+        const result = await saveConfigToRepo(local, title, bodyMsg, (msg, cls) => {
+          status.className='sp-status-msg '+(cls||'');
+          status.innerHTML = cls==='ok' ? msg : `<span class="sp-spinner"></span> ${msg}`;
+        });
+        // Clear LOCAL_CONFIG since it's now the new server default
+        LOCAL_CONFIG = { fv_order:null, fv_meta:{}, hidden_fvs:[], holidays:null };
+        saveLocalConfig();
+        // Show PR link + close button
+        document.getElementById('spModalFoot').innerHTML = `<a class="sp-modal-btn sp-modal-btn-secondary" href="${result.pr_url}" target="_blank">View PR</a><button class="sp-modal-btn sp-modal-btn-primary" id="spDoneBtn">Done</button>`;
+        document.getElementById('spDoneBtn').onclick = () => { closeModal(); location.reload(); };
+      } catch(e){
+        btn.disabled = false;
+        status.className='sp-status-msg err';
+        status.textContent='✕ ' + e.message;
+      }
+    };
+  })();
+}
+
+function onSaveClicked(){
+  if(!hasLocalEdits()){
+    showToast('No local edits to save');
+    return;
+  }
+  if(!getPat()){
+    showPatSetupModal(()=>showSaveModal());
+    return;
+  }
+  showSaveModal();
+}
+
 // ─── PANEL TAB DISPATCH ────────────────────────────────
 let activeSpTab='scenarios'; // 'scenarios' | 'fvs' | 'settings'
 
@@ -1534,7 +1906,7 @@ function renderFvsTab(body, foot){
   });
 
   foot.innerHTML='<button class="sp-btn sp-btn-clear" id="spResetFvsBtn">↺ Reset Local Edits</button>'
-               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn" disabled title="Coming in Phase 3">💾 Save as default</button>';
+               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn">💾 Save as default</button>';
   document.getElementById('spResetFvsBtn').onclick=()=>{
     if(!hasLocalEdits()){showToast('No local edits to reset');return;}
     if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
@@ -1542,6 +1914,7 @@ function renderFvsTab(body, foot){
     localStorage.removeItem('ig_hidden_fvs');
     location.reload();
   };
+  document.getElementById('spSaveCfgBtn').onclick=onSaveClicked;
 }
 function renderSettingsTab(body, foot){
   const banner=document.createElement('div');
@@ -1608,7 +1981,7 @@ function renderSettingsTab(body, foot){
 
   // ── Footer ──
   foot.innerHTML='<button class="sp-btn sp-btn-clear" id="spResetSettingsBtn">↺ Reset Local Edits</button>'
-               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn2" disabled title="Coming in Phase 3">💾 Save as default</button>';
+               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn2">💾 Save as default</button>';
   document.getElementById('spResetSettingsBtn').onclick=()=>{
     if(!hasLocalEdits()){showToast('No local edits to reset');return;}
     if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
@@ -1616,6 +1989,7 @@ function renderSettingsTab(body, foot){
     localStorage.removeItem('ig_hidden_fvs');
     location.reload();
   };
+  document.getElementById('spSaveCfgBtn2').onclick=onSaveClicked;
 }
 
 function renderScenariosTab(body, foot){
@@ -1782,6 +2156,15 @@ document.querySelectorAll('#spTabs .sp-tab').forEach(t=>{
     activeSpTab=t.dataset.tab;
     renderScenarioPanel();
   });
+});
+document.getElementById('spModalClose').addEventListener('click', closeModal);
+document.getElementById('spModalOverlay').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeModal();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.getElementById('spModalOverlay').classList.contains('open')){
+    closeModal();
+  }
 });
 
 // ─── INIT ──────────────────────────────────────────────
