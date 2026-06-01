@@ -230,6 +230,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sp-close:hover{background:var(--surf2);color:var(--text)}
 .sp-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
 .sp-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.sp-foot:empty{display:none}
 .sp-field{display:flex;flex-direction:column;gap:5px}
 .sp-label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px}
 .sp-input{border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-size:12px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;width:100%}
@@ -254,6 +255,46 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sp-sc-eye:hover{background:var(--surf2);color:var(--text)}
 .sp-sc-del{background:none;border:none;cursor:pointer;color:var(--sub);font-size:16px;padding:0 2px;line-height:1;flex-shrink:0}
 .sp-sc-del:hover{color:#dc2626}
+/* Tabs inside the side panel */
+.sp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0}
+.sp-tab{flex:1;background:none;border:none;padding:10px 12px;font-size:11px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s,background .15s;font-family:inherit;letter-spacing:.3px}
+.sp-tab:hover{color:var(--muted);background:rgba(0,0,0,.02)}
+.sp-tab.active{color:#c2410c;border-bottom-color:#fb923c;background:var(--surface)}
+/* Per-FV editor row (Fix Versions tab) */
+.sp-fv-row{display:grid;grid-template-columns:auto auto 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-size:11px;transition:opacity .15s,background .15s}
+.sp-fv-row.hidden-fv{opacity:.45;background:var(--surf2)}
+.sp-fv-row .sp-fv-handle{cursor:grab;color:var(--border2);user-select:none;font-family:'IBM Plex Mono';font-size:9px;padding:2px 4px;line-height:1}
+.sp-fv-row .sp-fv-handle:hover{color:var(--sub)}
+.sp-fv-row .sp-fv-color{width:18px;height:18px;border-radius:3px;border:1px solid var(--border2);cursor:pointer;padding:0;flex-shrink:0}
+.sp-fv-row .sp-fv-name{font-weight:600;color:var(--text);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-fv-row .sp-fv-toggle{cursor:pointer;width:28px;height:15px;border-radius:8px;background:var(--border2);position:relative;transition:background .15s;flex-shrink:0;border:none;padding:0}
+.sp-fv-row .sp-fv-toggle.on{background:#16a34a}
+.sp-fv-row .sp-fv-toggle::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sp-fv-row .sp-fv-toggle.on::after{left:15px}
+.sp-fv-row-expand{grid-column:1/-1;padding-top:6px;margin-top:6px;border-top:1px dashed var(--border);display:none;grid-template-columns:1fr 1fr;gap:8px}
+.sp-fv-row.open .sp-fv-row-expand{display:grid}
+.sp-fv-row-field{display:flex;flex-direction:column;gap:3px}
+.sp-fv-row-field label{font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.3px}
+.sp-fv-row-field input{border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none}
+.sp-fv-row-field input:focus{border-color:rgba(251,146,60,.7)}
+.sp-fv-row-field textarea{border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;resize:vertical;min-height:32px;grid-column:1/-1}
+.sp-fv-row-meta{font-size:9px;color:var(--sub);grid-column:1/-1;margin-top:2px;font-style:italic}
+.sp-fv-row-chev{cursor:pointer;color:var(--sub);user-select:none;padding:2px 4px;transition:transform .15s;font-size:10px}
+.sp-fv-row.open .sp-fv-row-chev{transform:rotate(180deg)}
+.sp-fv-row.dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
+/* Holiday editor */
+.sp-holiday-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.sp-holiday-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'IBM Plex Mono';padding:3px 6px 3px 10px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.sp-holiday-pill.dirty{background:rgba(251,146,60,.10);border-color:rgba(251,146,60,.5);color:#c2410c}
+.sp-holiday-pill button{background:none;border:none;cursor:pointer;color:var(--sub);font-size:13px;padding:0 4px;line-height:1}
+.sp-holiday-pill button:hover{color:#dc2626}
+.sp-add-holiday{display:flex;gap:6px;margin-top:8px}
+.sp-add-holiday input{flex:1;border:1px solid var(--border2);border-radius:4px;padding:5px 8px;font-size:11px;font-family:inherit;outline:none}
+.sp-add-holiday button{padding:5px 10px;font-size:11px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;font-family:inherit}
+.sp-add-holiday button:hover{background:var(--surf3)}
+/* Dirty-edits banner */
+.sp-dirty-banner{padding:9px 12px;background:rgba(251,146,60,.10);border:1px solid rgba(251,146,60,.4);border-radius:5px;font-size:11px;color:#c2410c;font-weight:600;display:flex;align-items:center;gap:8px}
+
 .sp-master-toggle{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:5px;background:var(--surf2);border:1px solid var(--border);cursor:pointer;user-select:none;font-size:11px;font-weight:600;color:var(--muted);transition:all .15s}
 .sp-master-toggle.active{background:rgba(251,146,60,.10);border-color:rgba(251,146,60,.4);color:#c2410c}
 .sp-toggle-track{width:28px;height:15px;border-radius:8px;background:var(--border2);position:relative;transition:background .2s;flex-shrink:0}
@@ -384,16 +425,18 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div class="sp-overlay" id="spOverlay"></div>
 <div class="scenario-panel" id="scenarioPanel">
   <div class="sp-hdr">
-    <h2>⚡ What-If Scenario Planner</h2>
+    <h2>⚡ What-If &amp; Config</h2>
     <button class="sp-close" id="spClose" title="Close">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
     </button>
   </div>
-  <div class="sp-body" id="spBody"></div>
-  <div class="sp-foot">
-    <button class="sp-btn sp-btn-add" id="spAddBtn">⚡ Add Scenario</button>
-    <button class="sp-btn sp-btn-clear" id="spClearBtn">Clear All</button>
+  <div class="sp-tabs" id="spTabs">
+    <button class="sp-tab active" data-tab="scenarios">⚡ Scenarios</button>
+    <button class="sp-tab" data-tab="fvs">📋 Fix Versions</button>
+    <button class="sp-tab" data-tab="settings">⚙ Settings</button>
   </div>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
 </div>
 <button class="scenario-fab" id="scenarioFab">⚡ What-If</button>
 
@@ -413,7 +456,7 @@ const TODAY=D('2026-06-01');
 const CHART_START=D('2026-05-11');
 const CHART_END=D('2026-12-07');
 const BASE='https://ponggamestudios.atlassian.net/browse/';
-const HOLIDAYS=['2026-05-18'];
+const HOLIDAYS=["2026-05-18"];
 const LS_KEY='ig';
 
 // ─── DATA (injected by igaming_timeline.py) ──────────────────────
@@ -424,6 +467,58 @@ const SPRINTS=[{"label": "S6", "start": "2026-05-11"}, {"label": "S7", "start": 
 SPRINTS.forEach(s=>{ if(typeof s.start==='string') s.start=D(s.start); });
 
 const SPRINT_DATA={"name": "IG Sprint 7", "startDate": "2026-05-25", "endDate": "2026-06-08", "boardId": 250, "byAssignee": {"Alex Laher": [{"key": "IG-4491", "summary": "Gen2 Game: Ultimate Goal 10x - QA testing tool ", "status": "In Progress", "origH": 3.0, "spentH": 9.0, "hours": 0.0, "fvs": ["ELG New Games"], "itype": "Dev Subtask"}, {"key": "IG-3771", "summary": "Gen2 Game: Ultimate Goal 10x - Review - Dev", "status": "In Progress", "origH": 4.0, "spentH": 0.33, "hours": 3.67, "fvs": ["ELG New Games"], "itype": "Dev Subtask"}, {"key": "IG-3769", "summary": "Gen2 Game: Ultimate Goal 10x - Sound", "status": "Review", "origH": 1.5, "spentH": 1.5, "hours": 0.0, "fvs": ["ELG New Games"], "itype": "Dev Subtask"}, {"key": "IG-3753", "summary": "Gen2 Game: Ultimate Goal 10x", "status": "In Progress", "origH": 23.0, "spentH": 0.0, "hours": 23.0, "fvs": ["ELG New Games"], "itype": "Story"}, {"key": "IG-306", "summary": "Gen2 Game: Pharaoh's Quest - Code review", "status": "To Do", "origH": 10.0, "spentH": 0.0, "hours": 10.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-305", "summary": "Gen2 Game: Pharaoh's Quest - Bonus - Dev", "status": "In Progress", "origH": 60.0, "spentH": 82.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-304", "summary": "Gen2 Game: Pharaoh's Quest - Sound", "status": "In Progress", "origH": 20.0, "spentH": 9.5, "hours": 10.5, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-303", "summary": "Gen2 Game: Pharaoh's Quest - Prepare and Verify Pools", "status": "In Progress", "origH": 80.0, "spentH": 102.75, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-302", "summary": "Gen2 Game: Pharaoh's Quest - Prizes, Tickets, Stats", "status": "In Progress", "origH": 50.0, "spentH": 17.5, "hours": 32.5, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-300", "summary": "Gen2 Game: Pharaoh's Quest - Info Panels - Buttons, Text, and Digits", "status": "In Progress", "origH": 20.0, "spentH": 18.0, "hours": 2.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-299", "summary": "Gen2 Game: Pharaoh's Quest - Reels, Icons, and Spin Presentation", "status": "In Progress", "origH": 10.0, "spentH": 41.75, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-298", "summary": "Gen2 Game: Pharaoh's Quest - Background & Title Animation", "status": "In Progress", "origH": 4.0, "spentH": 17.75, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-297", "summary": "Gen2 Game: Pharaoh's Quest - Help Pages - Dev", "status": "In Progress", "origH": 20.0, "spentH": 2.0, "hours": 18.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-225", "summary": "Gen2 Game: Pharaoh's Quest", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}], "Bin Zhang": [{"key": "IG-4478", "summary": "Gen2 Game: Lost Totem - Review", "status": "In Progress", "origH": 24.0, "spentH": 12.75, "hours": 11.25, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-3901", "summary": "[FE] - Mega Symbol", "status": "In Progress", "origH": 24.0, "spentH": 7.75, "hours": 16.25, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3899", "summary": "[FE] - Sounds", "status": "New", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3886", "summary": "[FE] - Feature game UI & Assets", "status": "New", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3885", "summary": "[FE] - Feature game logic", "status": "To Do", "origH": 16.0, "spentH": 0.0, "hours": 16.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3884", "summary": "Gen2 Game: Viking Voyage Fortune [Viking Warrior Track]", "status": "To Do", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-3880", "summary": "[Math] - RTP verification", "status": "In Progress", "origH": 16.0, "spentH": 2.25, "hours": 13.75, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3879", "summary": "[FE] - Sounds ", "status": "In Progress", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3875", "summary": "Gen2 Game: Viking Voyage Fortune [Base Game]", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}], "Raman Singh": [{"key": "IG-4464", "summary": "PFH Code review", "status": "In Progress", "origH": 8.0, "spentH": 3.5, "hours": 4.5, "fvs": [], "itype": "Story"}, {"key": "IG-4454", "summary": "Git Hub Action :- Automate deployment on dev and QA server", "status": "In Progress", "origH": 16.0, "spentH": 4.0, "hours": 12.0, "fvs": [], "itype": "Story"}, {"key": "IG-3770", "summary": "Gen2 Game: Ultimate Goal 10x - Bonus -Flag", "status": "Review", "origH": 16.0, "spentH": 23.0, "hours": 0.0, "fvs": ["ELG New Games"], "itype": "Dev Subtask"}, {"key": "IG-3762", "summary": "Gen2 Game: Ultimate Goal 10x - Help Pages - Dev", "status": "Review", "origH": 2.0, "spentH": 2.0, "hours": 0.0, "fvs": ["ELG New Games"], "itype": "Dev Subtask"}, {"key": "IG-3558", "summary": "Replay - FE - Update existing games against user selection", "status": "Ready", "origH": 24.0, "spentH": 17.0, "hours": 7.0, "fvs": [], "itype": "Story"}, {"key": "IG-3557", "summary": "Replay - FE -  Save user selection on server", "status": "Ready", "origH": 16.0, "spentH": 6.0, "hours": 10.0, "fvs": [], "itype": "Story"}, {"key": "IG-3556", "summary": "Replay - FE - Game Load and present Ticket", "status": "Ready", "origH": 6.0, "spentH": 6.0, "hours": 0.0, "fvs": [], "itype": "Story"}, {"key": "IG-540", "summary": "Gen2 Game: Quick Wins Diamond Wild - Game Engine", "status": "In Progress", "origH": 40.0, "spentH": 63.33, "hours": 7.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-208", "summary": "Gen2 Game: Quick Wins Diamond Wild", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}], "Raj Patel": [{"key": "IG-4421", "summary": "Pool Tester Tool - WO & regular pools RTP calculation", "status": "In Progress", "origH": 16.0, "spentH": 6.0, "hours": 10.0, "fvs": [], "itype": "Dev Subtask"}, {"key": "IG-4420", "summary": "Staging Environment setup - BLZ", "status": "In Progress", "origH": 40.0, "spentH": 19.5, "hours": 20.5, "fvs": [], "itype": "Dev Subtask"}, {"key": "IG-4419", "summary": "Flaming Skulls package deploy into Game Engine", "status": "In Progress", "origH": 24.0, "spentH": 10.5, "hours": 13.5, "fvs": [], "itype": "Dev Subtask"}, {"key": "IG-4418", "summary": "GE2 - ELG 4.0 - Azure Kubernetes (Contd -2)", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": [], "itype": "Story"}, {"key": "IG-4167", "summary": "Blazesoft-Real Zappy-60012-5/19/2026", "status": "To Do", "origH": 0.5, "spentH": 0.0, "hours": 0.5, "fvs": ["ELG Game Configs"], "itype": "Dev Subtask"}, {"key": "IG-4166", "summary": "Blazesoft-Real Zappy-60012-5/19/2026", "status": "To Do", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["ELG Game Configs"], "itype": "Story"}], "Jason Huang": [{"key": "IG-4417", "summary": "GE2 - Server - Testing Tool (Contd-3)", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": [], "itype": "Story"}, {"key": "IG-3997", "summary": "Gen2 Game: Ultimate Goal 10x - Adding game to GE", "status": "Ready", "origH": 4.0, "spentH": 6.5, "hours": 0.0, "fvs": ["ELG New Games"], "itype": "Dev Subtask"}, {"key": "IG-3366", "summary": "Real Money Operator 1xbet and melbet", "status": "In Progress", "origH": 4.0, "spentH": 2.0, "hours": 2.0, "fvs": ["ELG Game Configs"], "itype": "Dev Subtask"}, {"key": "IG-3365", "summary": "BetB2B - 1xbet and melbet -110001 ; 110002 4/16/2026", "status": "On Hold", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["ELG Game Configs"], "itype": "Story"}, {"key": "IG-1351", "summary": "Testing Tool : Weighted outcome pool testing setup", "status": "In Progress", "origH": 40.0, "spentH": 54.5, "hours": 0.0, "fvs": ["PFH2 Games Backlog"], "itype": "Dev Subtask"}], "Antonio Tran": [{"key": "IG-4235", "summary": "[Server] - Tickets & Pools", "status": "In Progress", "origH": 12.0, "spentH": 0.0, "hours": 12.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4234", "summary": "[Server] - Math Engine & Ticket Response", "status": "In Progress", "origH": 10.0, "spentH": 0.0, "hours": 10.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4233", "summary": "[Math] - RTP verification", "status": "In Progress", "origH": 6.0, "spentH": 0.0, "hours": 6.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4232", "summary": "[GE] - Simulation - New Feature", "status": "In Progress", "origH": 20.0, "spentH": 0.0, "hours": 20.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4231", "summary": "[GE] - Simulation - XML config & Game Logic", "status": "In Progress", "origH": 12.0, "spentH": 0.0, "hours": 12.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4230", "summary": "[FE] - Assets Replacement", "status": "In Progress", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4229", "summary": "[FE] - Game Clone", "status": "In Progress", "origH": 4.0, "spentH": 0.0, "hours": 4.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-4223", "summary": "Gen2 Game: Wildlife Safari Gold [Base Game]", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-3748", "summary": "Gen2 Game: Flaming Skulls - Review - Dev", "status": "In Progress", "origH": 20.0, "spentH": 45.75, "hours": 12.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3610", "summary": "Gen2 Game: Flaming Skulls - ML", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-3130", "summary": "Gen2 Game: Steampunk Fortune (contd)", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-428", "summary": "Gen2 Game: Steampunk Fortune - Sound", "status": "In Progress", "origH": 40.0, "spentH": 12.75, "hours": 27.25, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-424", "summary": "Gen2 Game: Steampunk Fortune - Info Panels - Buttons, Text, and Digits", "status": "In Progress", "origH": 40.0, "spentH": 31.83, "hours": 9.92, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-422", "summary": "Gen2 Game: Steampunk Fortune - Background & Title Animation", "status": "In Progress", "origH": 40.0, "spentH": 27.17, "hours": 12.83, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}], "Ben Akram": [{"key": "IG-3911", "summary": "[Server] - Math Engine & Ticket Response", "status": "New", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3910", "summary": "[Server] - Tickets & Pools", "status": "New", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3909", "summary": "[Server] - Game config", "status": "New", "origH": 5.0, "spentH": 0.0, "hours": 5.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3908", "summary": "[Math] - RTP verification", "status": "New", "origH": 4.0, "spentH": 0.0, "hours": 4.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3907", "summary": "[GE] - Simulation - New feature: Expanding Wild", "status": "In Progress", "origH": 4.0, "spentH": 9.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3906", "summary": "[FE] - Wild Feature", "status": "New", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3905", "summary": "[GE] - Simulation - XML config & Game Logic", "status": "In Progress", "origH": 8.0, "spentH": 20.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3904", "summary": "Gen2 Game: Amaterasu Rising Game [Base Game]", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-3295", "summary": "Gen2 Game: Northern Buffalo Fortune - Review", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}, {"key": "IG-511", "summary": "Gen 2 Game: Northern Buffalo Fortune - Math Verification", "status": "On Hold", "origH": 30.0, "spentH": 2.0, "hours": 12.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-509", "summary": "Gen2 Game: Northern Buffalo Fortune [V] - Review - Dev", "status": "In Progress", "origH": 16.0, "spentH": 14.5, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-506", "summary": "Gen2 Game: Northern Buffalo Fortune [V] - Prepare and Verify Pools", "status": "On Hold", "origH": 25.0, "spentH": 7.0, "hours": 12.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-330", "summary": "Gen2 Game: Lantern's Rising - Code Review", "status": "In Progress", "origH": 5.0, "spentH": 0.0, "hours": 5.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-329", "summary": "Gen2 Game: Lantern's Rising - Review - Dev", "status": "In Progress", "origH": 10.0, "spentH": 3.5, "hours": 6.5, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}], "Jessie Wu": [{"key": "IG-3813", "summary": "[Server] - Math Engine & Ticket Response", "status": "In Progress", "origH": 8.0, "spentH": 7.0, "hours": 1.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3804", "summary": "[Server] - Tickets & Pools", "status": "In Progress", "origH": 4.0, "spentH": 4.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3799", "summary": "[FE] - Assets Replacement", "status": "To Do", "origH": 8.0, "spentH": 0.0, "hours": 8.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3798", "summary": "[FE] - Game Clone", "status": "To Do", "origH": 4.0, "spentH": 0.0, "hours": 4.0, "fvs": ["New Games - iGaming"], "itype": "Dev Subtask"}, {"key": "IG-3797", "summary": "Gen2 Game: Fruit Splitter [Base Game]", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}], "Matthew Rawlings": [{"key": "IG-3584", "summary": "PFH2 Lobby to display T&C and Promo page in iFrame", "status": "Review", "origH": 16.0, "spentH": 11.75, "hours": 0.0, "fvs": ["PFH2 Games 2.10"], "itype": "Dev Subtask"}, {"key": "IG-3583", "summary": "PFH2 Lobby to display T&C and Promo page in iFrame", "status": "Ready", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["PFH2 Games 2.10"], "itype": "Story"}, {"key": "IG-2910", "summary": "Replace start and end date in T&C with this years date", "status": "Ready", "origH": 1.0, "spentH": 2.0, "hours": 0.0, "fvs": ["PFH2 Games 3.00"], "itype": "Dev Subtask"}, {"key": "IG-2909", "summary": "Dynamic Terms and Conditions", "status": "In Progress", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["PFH2 Games 3.00"], "itype": "Story"}], "Avtar Hothi": [{"key": "IG-232", "summary": "Gen2 Game: Lantern's Rising [V]", "status": "In QA", "origH": 0.0, "spentH": 0.0, "hours": 0.0, "fvs": ["New Games - iGaming"], "itype": "Story"}]}};
+
+// ─── LOCAL CONFIG OVERRIDES (browser-only until Save-as-default) ─
+// Edits in the What-If panel write here, persist to localStorage, and replay
+// over the FV array on every load. Server config (from config/igaming.json)
+// is the baseline this overlay sits on top of.
+let LOCAL_CONFIG = { fv_order:null, fv_meta:{}, hidden_fvs:[], holidays:null };
+try {
+  const saved = JSON.parse(localStorage.getItem('ig_local_config')||'{}');
+  LOCAL_CONFIG = { ...LOCAL_CONFIG, ...saved };
+  if(!LOCAL_CONFIG.fv_meta) LOCAL_CONFIG.fv_meta={};
+  if(!LOCAL_CONFIG.hidden_fvs) LOCAL_CONFIG.hidden_fvs=[];
+} catch(e) {}
+function saveLocalConfig(){
+  try { localStorage.setItem('ig_local_config', JSON.stringify(LOCAL_CONFIG)); } catch(e) {}
+}
+function hasLocalEdits(){
+  return !!(LOCAL_CONFIG.fv_order
+         || Object.keys(LOCAL_CONFIG.fv_meta||{}).length
+         || (LOCAL_CONFIG.hidden_fvs||[]).length
+         || LOCAL_CONFIG.holidays);
+}
+function applyLocalConfigToFvArray(){
+  // Reorder
+  if(LOCAL_CONFIG.fv_order && LOCAL_CONFIG.fv_order.length){
+    const ord=LOCAL_CONFIG.fv_order;
+    FV.sort((a,b)=>{
+      const ai=ord.indexOf(a.key), bi=ord.indexOf(b.key);
+      if(ai===-1 && bi===-1) return 0;
+      if(ai===-1) return 1;
+      if(bi===-1) return -1;
+      return ai-bi;
+    });
+  }
+  // Apply per-FV meta overrides
+  FV.forEach(fv=>{
+    const o = LOCAL_CONFIG.fv_meta && LOCAL_CONFIG.fv_meta[fv.key];
+    if(!o) return;
+    if(o.color!==undefined) fv.color=o.color;
+    if(o.sub!==undefined) fv.sub=o.sub;
+    if(o.qaWeeks!==undefined) fv.qaWeeks=o.qaWeeks;
+    if(o.release!==undefined) fv.release=o.release;
+  });
+}
+function applyLocalConfigToHolidays(){
+  // HOLIDAYS is const-bound but we can mutate the array contents in place.
+  if(LOCAL_CONFIG.holidays && Array.isArray(LOCAL_CONFIG.holidays)){
+    HOLIDAYS.length=0;
+    LOCAL_CONFIG.holidays.forEach(h=>HOLIDAYS.push(h));
+  }
+}
+applyLocalConfigToFvArray();
+applyLocalConfigToHolidays();
 
 // ─── SPRINT BOOKKEEPING ─────────────────────────────────
 const SPRINT = { label:'', period:'', workDaysToDate:0, workDaysTotal:0 };
@@ -866,17 +961,25 @@ let dragSrcIdx=null;
 
 let HIDDEN_FVS=new Set();
 try{ HIDDEN_FVS=new Set(JSON.parse(localStorage.getItem('ig_hidden_fvs')||'[]')); }catch(e){}
+// Merge in panel-driven hide list (kept separate so we can distinguish in the editor)
+(LOCAL_CONFIG.hidden_fvs||[]).forEach(k=>HIDDEN_FVS.add(k));
 function saveHidden(){
   try{localStorage.setItem('ig_hidden_fvs',JSON.stringify([...HIDDEN_FVS]));}catch(e){}
 }
 function hideFv(key){
-  HIDDEN_FVS.add(key);saveHidden();
-  buildRows();renderHiddenChip();
+  HIDDEN_FVS.add(key);
+  if(!LOCAL_CONFIG.hidden_fvs.includes(key)) LOCAL_CONFIG.hidden_fvs.push(key);
+  saveHidden(); saveLocalConfig();
+  buildRows(); renderHiddenChip();
+  if(activeSpTab==='fvs') renderScenarioPanel();
   showToast(`✕ ${key} hidden — restore from the chip above`);
 }
 function restoreFv(key){
-  HIDDEN_FVS.delete(key);saveHidden();
-  buildRows();renderHiddenChip();
+  HIDDEN_FVS.delete(key);
+  LOCAL_CONFIG.hidden_fvs = LOCAL_CONFIG.hidden_fvs.filter(k=>k!==key);
+  saveHidden(); saveLocalConfig();
+  buildRows(); renderHiddenChip();
+  if(activeSpTab==='fvs') renderScenarioPanel();
   showToast(`↩ ${key} restored`);
 }
 
@@ -1141,6 +1244,10 @@ function buildRows(){
         const [moved]=FV.splice(FV.indexOf(src),1);
         let ti=FV.indexOf(tgt);if(!insertBefore)ti++;
         FV.splice(ti,0,moved);
+        // Persist new order into LOCAL_CONFIG so a page reload (and a future
+        // "Save as default" commit) keeps the drag-reorder result.
+        LOCAL_CONFIG.fv_order = FV.map(f=>f.key);
+        saveLocalConfig();
       }
       dragSrcIdx=null;
       buildRows();renderScenarioPanel();
@@ -1309,9 +1416,209 @@ function updateFab(){
   }
 }
 
+// ─── PANEL TAB DISPATCH ────────────────────────────────
+let activeSpTab='scenarios'; // 'scenarios' | 'fvs' | 'settings'
+
 function renderScenarioPanel(){
   const body=document.getElementById('spBody');
-  body.innerHTML='';
+  const foot=document.getElementById('spFoot');
+  body.innerHTML=''; foot.innerHTML='';
+  document.querySelectorAll('#spTabs .sp-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab===activeSpTab);
+  });
+  if(activeSpTab==='fvs')      return renderFvsTab(body,foot);
+  if(activeSpTab==='settings') return renderSettingsTab(body,foot);
+  renderScenariosTab(body,foot);
+}
+
+function renderFvsTab(body, foot){
+  const banner=document.createElement('div');
+  banner.style.cssText='font-size:11px;color:var(--muted);padding:2px 2px 12px;line-height:1.55';
+  banner.innerHTML='Drag rows on the chart to reorder · toggle to hide · click <strong>▾</strong> to edit details. Edits save to your browser only until you click <strong>Save as default for everyone</strong>.';
+  body.appendChild(banner);
+
+  if(hasLocalEdits()){
+    const dirty=document.createElement('div');
+    dirty.className='sp-dirty-banner';
+    dirty.innerHTML='● You have unsaved local edits — refresh this browser to keep them, or save to push them to all viewers.';
+    body.appendChild(dirty);
+  }
+
+  FV.forEach(fv=>{
+    if(fv.isScenario) return;
+    const row=document.createElement('div');
+    row.className='sp-fv-row'+(HIDDEN_FVS.has(fv.key)?' hidden-fv':'');
+    const isDirty = !!(LOCAL_CONFIG.fv_meta && LOCAL_CONFIG.fv_meta[fv.key] && Object.keys(LOCAL_CONFIG.fv_meta[fv.key]).length);
+    if(isDirty) row.classList.add('dirty');
+    row.dataset.fvkey=fv.key;
+
+    const handle=document.createElement('div');
+    handle.className='sp-fv-handle';handle.textContent='⋮⋮';
+    handle.title='Drag on the gantt chart to reorder';
+
+    const color=document.createElement('input');
+    color.type='color';color.className='sp-fv-color';
+    color.value=fv.color;color.title='Click to change color';
+
+    const name=document.createElement('div');
+    name.className='sp-fv-name';name.textContent=fv.key;
+
+    const toggle=document.createElement('button');
+    toggle.className='sp-fv-toggle'+(HIDDEN_FVS.has(fv.key)?'':' on');
+    toggle.title=HIDDEN_FVS.has(fv.key)?'Hidden — click to show':'Visible — click to hide';
+    toggle.setAttribute('aria-label','Toggle visibility');
+
+    const chev=document.createElement('div');
+    chev.className='sp-fv-row-chev';chev.textContent='▾';chev.title='Edit details';
+
+    const expand=document.createElement('div');
+    expand.className='sp-fv-row-expand';
+    expand.innerHTML=`
+      <div class="sp-fv-row-field">
+        <label>RELEASE DATE</label>
+        <input type="date" data-field="release" value="${fv.release||''}">
+      </div>
+      <div class="sp-fv-row-field">
+        <label>QA WEEKS</label>
+        <input type="number" data-field="qaWeeks" value="${fv.qaWeeks}" min="0" max="12">
+      </div>
+      <div class="sp-fv-row-field" style="grid-column:1/-1">
+        <label>SUBTITLE</label>
+        <textarea data-field="sub" rows="2">${(fv.sub||'').replace(/</g,'&lt;')}</textarea>
+      </div>`;
+
+    row.appendChild(handle);
+    row.appendChild(color);
+    row.appendChild(name);
+    row.appendChild(toggle);
+    row.appendChild(chev);
+    row.appendChild(expand);
+
+    toggle.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(HIDDEN_FVS.has(fv.key)) restoreFv(fv.key);
+      else hideFv(fv.key);
+    });
+
+    color.addEventListener('input',()=>{
+      fv.color=color.value;
+      LOCAL_CONFIG.fv_meta[fv.key]=LOCAL_CONFIG.fv_meta[fv.key]||{};
+      LOCAL_CONFIG.fv_meta[fv.key].color=color.value;
+      saveLocalConfig();
+      row.classList.add('dirty');
+      buildRows();
+    });
+
+    chev.addEventListener('click',e=>{
+      e.stopPropagation();
+      row.classList.toggle('open');
+    });
+
+    expand.querySelectorAll('input,textarea').forEach(input=>{
+      input.addEventListener('change',()=>{
+        const field=input.dataset.field;
+        let val=input.value;
+        if(field==='qaWeeks') val=Math.max(0,+val||0);
+        if(field==='release' && !val) val=null;
+        if(field==='sub') val=String(val||'');
+        fv[field]=val;
+        LOCAL_CONFIG.fv_meta[fv.key]=LOCAL_CONFIG.fv_meta[fv.key]||{};
+        LOCAL_CONFIG.fv_meta[fv.key][field]=val;
+        saveLocalConfig();
+        row.classList.add('dirty');
+        buildRows();
+      });
+    });
+
+    body.appendChild(row);
+  });
+
+  foot.innerHTML='<button class="sp-btn sp-btn-clear" id="spResetFvsBtn">↺ Reset Local Edits</button>'
+               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn" disabled title="Coming in Phase 3">💾 Save as default</button>';
+  document.getElementById('spResetFvsBtn').onclick=()=>{
+    if(!hasLocalEdits()){showToast('No local edits to reset');return;}
+    if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
+    localStorage.removeItem('ig_local_config');
+    localStorage.removeItem('ig_hidden_fvs');
+    location.reload();
+  };
+}
+function renderSettingsTab(body, foot){
+  const banner=document.createElement('div');
+  banner.style.cssText='font-size:11px;color:var(--muted);padding:2px 2px 12px;line-height:1.55';
+  banner.innerHTML='Edits save to your browser only until you click <strong>Save as default for everyone</strong>.';
+  body.appendChild(banner);
+
+  if(hasLocalEdits()){
+    const dirty=document.createElement('div');
+    dirty.className='sp-dirty-banner';
+    dirty.innerHTML='● You have unsaved local edits — refresh this browser to keep them, or save to push them to all viewers.';
+    body.appendChild(dirty);
+  }
+
+  // ── Holidays ──
+  const holSection=document.createElement('div');
+  holSection.className='sp-field';
+  holSection.innerHTML=`<div class="sp-label">HOLIDAYS · skipped when projecting dev/QA end dates</div>`;
+  const list=document.createElement('div');
+  list.className='sp-holiday-list';
+  const localDirty = !!LOCAL_CONFIG.holidays;
+  HOLIDAYS.slice().sort().forEach(date=>{
+    const pill=document.createElement('div');
+    pill.className='sp-holiday-pill'+(localDirty?' dirty':'');
+    pill.innerHTML=`${date}<button type="button" data-date="${date}" title="Remove">×</button>`;
+    pill.querySelector('button').addEventListener('click',()=>{
+      const idx=HOLIDAYS.indexOf(date);
+      if(idx>=0) HOLIDAYS.splice(idx,1);
+      LOCAL_CONFIG.holidays = HOLIDAYS.slice();
+      saveLocalConfig();
+      buildRows();
+      renderScenarioPanel();
+      showToast(`Removed holiday ${date}`);
+    });
+    list.appendChild(pill);
+  });
+  if(HOLIDAYS.length===0){
+    const empty=document.createElement('div');
+    empty.style.cssText='font-size:11px;color:var(--sub);font-style:italic;padding:4px 2px';
+    empty.textContent='No holidays configured.';
+    list.appendChild(empty);
+  }
+  holSection.appendChild(list);
+
+  // Add-holiday input
+  const addRow=document.createElement('div');
+  addRow.className='sp-add-holiday';
+  addRow.innerHTML=`<input type="date" id="spHolidayInput"><button type="button" id="spHolidayAddBtn">+ Add</button>`;
+  holSection.appendChild(addRow);
+  body.appendChild(holSection);
+
+  addRow.querySelector('#spHolidayAddBtn').addEventListener('click',()=>{
+    const inp=addRow.querySelector('#spHolidayInput');
+    const v=inp.value;
+    if(!v){showToast('Pick a date first');return;}
+    if(HOLIDAYS.includes(v)){showToast(`${v} is already on the list`);return;}
+    HOLIDAYS.push(v);
+    LOCAL_CONFIG.holidays = HOLIDAYS.slice();
+    saveLocalConfig();
+    buildRows();
+    renderScenarioPanel();
+    showToast(`Added holiday ${v}`);
+  });
+
+  // ── Footer ──
+  foot.innerHTML='<button class="sp-btn sp-btn-clear" id="spResetSettingsBtn">↺ Reset Local Edits</button>'
+               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn2" disabled title="Coming in Phase 3">💾 Save as default</button>';
+  document.getElementById('spResetSettingsBtn').onclick=()=>{
+    if(!hasLocalEdits()){showToast('No local edits to reset');return;}
+    if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
+    localStorage.removeItem('ig_local_config');
+    localStorage.removeItem('ig_hidden_fvs');
+    location.reload();
+  };
+}
+
+function renderScenariosTab(body, foot){
   if(SCENARIOS.length>0){
     const mt=document.createElement('div');
     mt.className='sp-master-toggle'+(scenariosMasterEnabled?' active':'');
@@ -1426,6 +1733,10 @@ function renderScenarioPanel(){
   placeField.appendChild(opts);
   body.appendChild(placeField);
 
+  // Tab footer: scenario-specific Add / Clear actions
+  foot.innerHTML = '<button class="sp-btn sp-btn-add" id="spAddBtn">⚡ Add Scenario</button>'
+                 + '<button class="sp-btn sp-btn-clear" id="spClearBtn">Clear All</button>';
+
   document.getElementById('spAddBtn').onclick=()=>{
     const label=document.getElementById('spLabelInput').value.trim();
     if(!label){document.getElementById('spLabelInput').focus();showToast('Please enter a scenario label');return;}
@@ -1446,6 +1757,12 @@ function renderScenarioPanel(){
     const people=[...selectedDevs.keys()].map(n=>n.split(' ')[0]).join(', ');
     showToast(`⚡ "${label}" added for ${people}`);
   };
+
+  document.getElementById('spClearBtn').onclick=()=>{
+    if(!SCENARIOS.length)return;
+    SCENARIOS=[];saveScenarios();buildRows();renderScenarioPanel();
+    showToast('All scenarios cleared');
+  };
 }
 
 function openScenarioPanel(){
@@ -1460,10 +1777,11 @@ function closeScenarioPanel(){
 document.getElementById('scenarioFab').addEventListener('click',openScenarioPanel);
 document.getElementById('spClose').addEventListener('click',closeScenarioPanel);
 document.getElementById('spOverlay').addEventListener('click',closeScenarioPanel);
-document.getElementById('spClearBtn').addEventListener('click',()=>{
-  if(!SCENARIOS.length)return;
-  SCENARIOS=[];saveScenarios();buildRows();renderScenarioPanel();
-  showToast('All scenarios cleared');
+document.querySelectorAll('#spTabs .sp-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    activeSpTab=t.dataset.tab;
+    renderScenarioPanel();
+  });
 });
 
 // ─── INIT ──────────────────────────────────────────────
