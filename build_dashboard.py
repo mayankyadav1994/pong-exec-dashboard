@@ -978,6 +978,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
   <div class="site-tabs-inner">
     <a href="index.html" class="site-tab active">Overview</a>
     <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
+    <a href="igaming-timeline.html" class="site-tab">iGaming Timeline</a>
   </div>
 </nav>
 <div class="db">

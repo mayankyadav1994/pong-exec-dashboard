@@ -326,9 +326,23 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .sb-no-tasks{font-size:11px;color:var(--sub);font-style:italic}
 .sb-totals{padding:12px 18px;border-top:1px solid var(--border);background:var(--surf2);display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
 .sb-totals strong{color:var(--text);font-family:'IBM Plex Mono'}
+
+/* SHARED TAB NAV (same markup as exec dashboard + V2 timeline) */
+.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px}
+.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB}
+.site-tab{padding:9px 16px;font-size:13px;font-weight:500;color:#6B7280;text-decoration:none;border-bottom:2px solid transparent;transition:color .12s,border-color .12s}
+.site-tab:hover{color:#111827}
+.site-tab.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
 </style>
 </head>
 <body>
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab">Overview</a>
+    <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
+    <a href="igaming-timeline.html" class="site-tab active">iGaming Timeline</a>
+  </div>
+</nav>
 <div class="hdr">
   <div>
     <h1>iGaming Release Timeline — Fix Version Delivery Forecast</h1>
