@@ -9,12 +9,21 @@ in docs/V2_TIMELINE_EDGE_CASES.md are intentionally not implemented yet.
 """
 
 import json
+import sys
 from datetime import date
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 from jira_client import jira_jql
+
+# Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
+# default cp1252 stdout encoding can't handle them. No-op on Linux CI.
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 load_dotenv()
 
@@ -27,7 +36,11 @@ TODAY = date.today()
 # Regulated releases (P2P 16.00, PT 14.00) carry the lab pipeline config and
 # Sales Trip pin. "indev_style" lets each release's "In Development" badge
 # pick up the FV's accent colour.
-FV_CONFIG = [
+#
+# These are *defaults*. Live values come from config/v2.json if present
+# (see load_config below). Fallback values here keep working if the config
+# file is missing or unparseable.
+DEFAULT_FV_CONFIG = [
     {"key": "V2 SW 15.00",  "color": "#60a5fa",
      "sub": "Sweepstakes · Games",
      "qaWeeks": 2},
@@ -66,6 +79,52 @@ FV_CONFIG = [
      "qaWeeks": 2,
      "indev_style": "color:#3b0764;border-color:rgba(124,58,237,.25);background:rgba(124,58,237,.07)"},
 ]
+DEFAULT_HIDDEN_FVS: list = []
+DEFAULT_HOLIDAYS = {"2026-05-18"}  # Victoria Day
+
+
+def load_config():
+    """Read config/v2.json if present. Returns a dict with fv_order, fv_meta,
+    holidays, hidden_fvs keys (any may be missing → fall back to defaults).
+    Never raises — bad JSON falls through silently so the workflow can't be
+    bricked by a malformed save from the panel."""
+    cfg_path = Path(__file__).parent / "config" / "v2.json"
+    if not cfg_path.exists():
+        print(f"  ℹ no config file at {cfg_path.name}; using hardcoded defaults")
+        return {}
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        print(f"  ✓ loaded config/{cfg_path.name}")
+        return cfg
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"  ⚠ could not parse config/{cfg_path.name} ({e}); using defaults")
+        return {}
+
+
+def _build_fv_config(cfg):
+    """Compose the FV_CONFIG list the rest of the script consumes from either
+    the loaded JSON config or the hardcoded defaults.
+
+    Each entry merges fv_meta[key] with {"key": key} so the schema matches
+    DEFAULT_FV_CONFIG exactly. Order comes from fv_order; FVs missing from
+    fv_meta keep their DEFAULT_FV_CONFIG values."""
+    if not cfg:
+        return list(DEFAULT_FV_CONFIG)
+    default_by_key = {c["key"]: c for c in DEFAULT_FV_CONFIG}
+    meta = cfg.get("fv_meta") or {}
+    order = cfg.get("fv_order") or [c["key"] for c in DEFAULT_FV_CONFIG]
+    out = []
+    for key in order:
+        merged = dict(default_by_key.get(key, {}))
+        merged.update(meta.get(key, {}))
+        merged["key"] = key
+        out.append(merged)
+    return out
+
+
+_CONFIG = load_config()
+FV_CONFIG = _build_fv_config(_CONFIG)
+HIDDEN_FVS_DEFAULT = _CONFIG.get("hidden_fvs") or DEFAULT_HIDDEN_FVS
 
 DEV_TYPES   = ["Story", "Dev Task", "Dev Subtask"]
 OTHER_TYPES = ["Creative Task", "Creative Subtask", "Sound Task", "Sound Subtask",
@@ -272,7 +331,7 @@ def compute_scope(all_issues):
 
 # ── Sprint info (current sprint, workdays elapsed) ───────────────────────────
 
-HOLIDAYS = {"2026-05-18"}  # Victoria Day (Canada) — keep in sync with template
+HOLIDAYS = set(_CONFIG.get("holidays") or DEFAULT_HOLIDAYS)  # keep in sync with template
 
 def count_workdays(start, end_exclusive):
     """Mon-Fri days in [start, end_exclusive) excluding holidays."""
@@ -366,6 +425,10 @@ def build_fv(cfg):
         fv["lab2Weeks"]  = cfg["lab2Weeks"]
     if cfg.get("salesTrip"):
         fv["salesTrip"] = cfg["salesTrip"]
+    # Config-only fields — passed straight through from config/v2.json so
+    # the dashboard JS can render scope-tab overrides and milestone pins.
+    fv["epic_overrides"] = cfg.get("epic_overrides") or {}
+    fv["milestones"]     = cfg.get("milestones") or []
     return fv
 
 
@@ -402,6 +465,7 @@ def main():
         .replace("__SPRINTS_DATA__",  json.dumps(SPRINTS, ensure_ascii=False))
         .replace("__SPRINT__",        json.dumps(sprint_info, ensure_ascii=False))
         .replace("__SPRINT_LOGS__",   json.dumps(sprint_logs, ensure_ascii=False))
+        .replace("__HOLIDAYS__",      json.dumps(sorted(HOLIDAYS), ensure_ascii=False))
         .replace("__REFRESH_LABEL__", refresh_label)
         .replace("__SPRINT_HEADER__", sprint_header)
     )

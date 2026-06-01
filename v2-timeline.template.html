@@ -231,13 +231,136 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .fv-row.is-scenario::before{background:repeating-linear-gradient(45deg,#fb923c,#fb923c 3px,transparent 3px,transparent 7px)}
 .bar-scenario{background:rgba(234,88,12,.12);border:1.5px dashed rgba(251,146,60,.7);color:#c2410c}
 .scenario-badge{font-size:9px;font-weight:700;color:#c2410c;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:3px;padding:1px 6px;margin-top:4px;display:inline-block;letter-spacing:.3px}
-.scenario-fab{position:fixed;bottom:28px;right:28px;background:#fb923c;color:#fff;border:none;border-radius:24px;padding:10px 18px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(251,146,60,.4);z-index:100;display:flex;align-items:center;gap:8px;transition:box-shadow .15s,transform .15s}
-.scenario-fab:hover{box-shadow:0 6px 20px rgba(251,146,60,.55);transform:translateY(-1px)}
-.scenario-fab.has-scenarios::after{content:attr(data-count);position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:16px;text-align:center}
+/* Bottom-right FAB removed — buttons now live in the top-right nav. CSS
+   block kept as legacy no-op in case any reference lingers. */
+.scenario-fab{display:none}
 .sp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:199;display:none}
 .sp-overlay.open{display:block}
-.scenario-panel{position:fixed;top:0;right:-440px;width:420px;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transition:right .25s ease}
+.scenario-panel{position:fixed;top:0;right:-700px;width:560px;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transition:right .25s ease}
+.scenario-panel.wide{width:680px;right:-820px}
 .scenario-panel.open{right:0}
+/* Per-mode tab visibility */
+.scenario-panel[data-mode="whatif"] .sp-tabs{display:none}
+.scenario-panel[data-mode="whatif"] .sp-tab[data-tab="fvs"],
+.scenario-panel[data-mode="whatif"] .sp-tab[data-tab="settings"]{display:none}
+.scenario-panel[data-mode="planeditor"] .sp-tab[data-tab="scenarios"]{display:none}
+.sp-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0}
+.sp-tab{flex:1;background:none;border:none;padding:10px 12px;font-size:11px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s,background .15s;font-family:inherit;letter-spacing:.3px}
+.sp-tab:hover{color:var(--muted);background:rgba(0,0,0,.02)}
+.sp-tab.active{color:#c2410c;border-bottom-color:#fb923c;background:var(--surface)}
+
+/* What-If button badge */
+.site-nav-btn.has-count::after{content:attr(data-count);background:#dc2626;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:14px;text-align:center;margin-left:2px}
+.site-nav-btn.scenarios-off{opacity:.6}
+
+/* FV row editor (Fix Versions tab) */
+.sp-fv-row{display:grid;grid-template-columns:auto auto 1fr auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-size:11px;transition:opacity .15s,background .15s}
+.sp-fv-row.hidden-fv{opacity:.45;background:var(--surf2)}
+.sp-fv-row .sp-fv-handle{cursor:grab;color:var(--border2);user-select:none;font-family:'IBM Plex Mono';font-size:9px;padding:2px 4px;line-height:1}
+.sp-fv-row .sp-fv-handle:hover{color:var(--sub)}
+.sp-fv-row .sp-fv-color{width:18px;height:18px;border-radius:3px;border:1px solid var(--border2);cursor:pointer;padding:0;flex-shrink:0}
+.sp-fv-row .sp-fv-name{font-weight:600;color:var(--text);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-fv-row .sp-fv-toggle{cursor:pointer;width:28px;height:15px;border-radius:8px;background:var(--border2);position:relative;transition:background .15s;flex-shrink:0;border:none;padding:0}
+.sp-fv-row .sp-fv-toggle.on{background:#16a34a}
+.sp-fv-row .sp-fv-toggle::after{content:'';position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:#fff;transition:left .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.sp-fv-row .sp-fv-toggle.on::after{left:15px}
+.sp-fv-row-expand{grid-column:1/-1;padding-top:8px;margin-top:6px;border-top:1px dashed var(--border);display:none;flex-direction:column;gap:10px}
+.sp-fv-row.open .sp-fv-row-expand{display:flex}
+.sp-fv-section{display:flex;flex-direction:column;gap:6px}
+.sp-fv-section-title{font-size:9px;font-weight:700;color:var(--sub);letter-spacing:.4px;display:flex;align-items:center;justify-content:space-between}
+.sp-fv-section-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sp-fv-row-field{display:flex;flex-direction:column;gap:3px}
+.sp-fv-row-field label{font-size:9px;color:var(--sub);font-weight:700;letter-spacing:.3px}
+.sp-fv-row-field input{border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none}
+.sp-fv-row-field input:focus{border-color:rgba(251,146,60,.7)}
+.sp-fv-row-field textarea{border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;resize:vertical;min-height:32px;grid-column:1/-1}
+.sp-fv-row-field.span-2{grid-column:1/-1}
+.sp-fv-row-chev{cursor:pointer;color:var(--sub);user-select:none;padding:2px 4px;transition:transform .15s;font-size:10px}
+.sp-fv-row.open .sp-fv-row-chev{transform:rotate(180deg)}
+.sp-fv-row.dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
+
+/* Epic list (Scope editor inside FV row) */
+.sp-epic-list{display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto}
+.sp-epic-row{display:grid;grid-template-columns:auto 70px 1fr auto;gap:6px;align-items:center;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:11px}
+.sp-epic-row.epic-hidden{opacity:.45;background:var(--surf2)}
+.sp-epic-row.epic-dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
+.sp-epic-toggle{cursor:pointer;width:22px;height:13px;border-radius:7px;background:var(--border2);position:relative;border:none;padding:0;flex-shrink:0;transition:background .15s}
+.sp-epic-toggle.on{background:#16a34a}
+.sp-epic-toggle::after{content:'';position:absolute;top:2px;left:2px;width:9px;height:9px;border-radius:50%;background:#fff;transition:left .15s}
+.sp-epic-toggle.on::after{left:11px}
+.sp-epic-key{font-family:'IBM Plex Mono';font-size:10px;color:var(--sub);text-decoration:none}
+.sp-epic-key:hover{color:var(--text);text-decoration:underline}
+.sp-epic-label{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:text;padding:2px 4px;border-radius:3px;min-width:0}
+.sp-epic-label:hover{background:var(--surf2)}
+.sp-epic-label.editing{background:#fff;outline:1px solid rgba(251,146,60,.6)}
+.sp-epic-empty{font-size:11px;color:var(--sub);font-style:italic;padding:6px 0}
+
+/* Milestone list */
+.sp-ms-list{display:flex;flex-direction:column;gap:4px}
+.sp-ms-row{display:grid;grid-template-columns:1fr 70px 110px auto;gap:6px;align-items:center;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:11px}
+.sp-ms-row.ms-dirty{background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.4)}
+.sp-ms-row input,.sp-ms-row select{border:1px solid var(--border2);border-radius:3px;padding:3px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;min-width:0}
+.sp-ms-row input[type=color]{width:22px;height:22px;padding:0;cursor:pointer}
+.sp-ms-row .sp-ms-del{background:none;border:none;cursor:pointer;color:var(--sub);font-size:14px;line-height:1;padding:0 4px}
+.sp-ms-row .sp-ms-del:hover{color:#dc2626}
+.sp-add-ms{display:flex;gap:6px;font-size:11px;color:var(--muted);cursor:pointer;padding:5px 8px;border:1px dashed var(--border2);border-radius:4px;justify-content:center;background:none;font-family:inherit;transition:background .15s,border-color .15s}
+.sp-add-ms:hover{background:var(--surf2);border-color:var(--border2);color:var(--text)}
+
+/* Milestone pins on the gantt row */
+.ms-pin{position:absolute;top:0;bottom:0;width:1.5px;z-index:4;pointer-events:none}
+.ms-pin-label{position:absolute;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;border:1px solid;white-space:nowrap;transform:translateX(-50%);z-index:5;pointer-events:none;top:34px;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+
+/* Holiday editor */
+.sp-holiday-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.sp-holiday-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'IBM Plex Mono';padding:3px 6px 3px 10px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+.sp-holiday-pill.dirty{background:rgba(251,146,60,.10);border-color:rgba(251,146,60,.5);color:#c2410c}
+.sp-holiday-pill button{background:none;border:none;cursor:pointer;color:var(--sub);font-size:13px;padding:0 4px;line-height:1}
+.sp-holiday-pill button:hover{color:#dc2626}
+.sp-add-holiday{display:flex;gap:6px;margin-top:8px}
+.sp-add-holiday input{flex:1;border:1px solid var(--border2);border-radius:4px;padding:5px 8px;font-size:11px;font-family:inherit;outline:none}
+.sp-add-holiday button{padding:5px 10px;font-size:11px;border-radius:4px;border:1px solid var(--border2);background:var(--surf2);cursor:pointer;font-family:inherit}
+.sp-add-holiday button:hover{background:var(--surf3)}
+
+/* Dirty-edits banner */
+.sp-dirty-banner{padding:9px 12px;background:rgba(251,146,60,.10);border:1px solid rgba(251,146,60,.4);border-radius:5px;font-size:11px;color:#c2410c;font-weight:600;display:flex;align-items:center;gap:8px}
+
+/* Save modal */
+.sp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center}
+.sp-modal-overlay.open{display:flex}
+.sp-modal{background:var(--surface);border-radius:8px;width:min(520px,92vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.sp-modal-hdr{padding:16px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sp-modal-hdr h3{font-size:14px;font-weight:600;color:var(--text)}
+.sp-modal-close{background:none;border:none;cursor:pointer;color:var(--sub);font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+.sp-modal-close:hover{background:var(--surf2);color:var(--text)}
+.sp-modal-body{flex:1;overflow-y:auto;padding:16px 18px;font-size:12px;color:var(--text);line-height:1.55}
+.sp-modal-body p{margin-bottom:10px}
+.sp-modal-body code{background:var(--surf3);padding:1px 5px;border-radius:3px;font-family:'IBM Plex Mono';font-size:11px}
+.sp-modal-body label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;display:block;margin-bottom:5px}
+.sp-modal-body input[type=password],.sp-modal-body input[type=text],.sp-modal-body textarea{width:100%;border:1px solid var(--border2);border-radius:5px;padding:7px 10px;font-size:12px;font-family:'IBM Plex Mono';color:var(--text);background:var(--surface);outline:none}
+.sp-modal-body input:focus,.sp-modal-body textarea:focus{border-color:rgba(251,146,60,.7)}
+.sp-modal-body textarea{font-family:inherit;resize:vertical;min-height:60px}
+.sp-modal-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+.sp-modal-btn{padding:8px 16px;border-radius:5px;border:1px solid;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.sp-modal-btn-primary{background:rgba(251,146,60,.95);color:#fff;border-color:#fb923c}
+.sp-modal-btn-primary:hover{background:#fb923c}
+.sp-modal-btn-primary:disabled{background:var(--border2);border-color:var(--border2);color:var(--sub);cursor:not-allowed}
+.sp-modal-btn-secondary{background:var(--surface);color:var(--muted);border-color:var(--border2)}
+.sp-modal-btn-secondary:hover{background:var(--surf2);color:var(--text)}
+.sp-diff-list{list-style:none;padding:0;margin:0;font-size:11px;font-family:'IBM Plex Mono';max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:5px;background:var(--surf2)}
+.sp-diff-item{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:baseline}
+.sp-diff-item:last-child{border-bottom:none}
+.sp-diff-cat{font-size:9px;font-weight:700;letter-spacing:.3px;padding:1px 5px;border-radius:3px;flex-shrink:0;font-family:inherit}
+.sp-diff-cat-priority{background:rgba(124,58,237,.12);color:#5b21b6}
+.sp-diff-cat-fv      {background:rgba(37,99,235,.12);color:#1e40af}
+.sp-diff-cat-hide    {background:rgba(220,38,38,.12);color:#991b1b}
+.sp-diff-cat-show    {background:rgba(22,163,74,.12);color:#14532d}
+.sp-diff-cat-holiday {background:rgba(217,119,6,.12);color:#92400e}
+.sp-status-msg{font-size:11px;color:var(--muted);margin-top:8px;display:flex;align-items:center;gap:6px}
+.sp-status-msg.ok{color:#15803d}
+.sp-status-msg.err{color:#dc2626}
+.sp-spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:#fb923c;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sp-foot:empty{display:none}
 .sp-hdr{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .sp-hdr h2{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
 .sp-close{background:none;border:none;cursor:pointer;color:var(--sub);padding:4px;border-radius:4px;display:flex;line-height:1}
@@ -289,11 +412,18 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .footer{margin-top:16px;font-size:11px;color:var(--sub);border-top:1px solid var(--border);padding-top:12px}
 
 /* SHARED TAB NAV (same markup as exec dashboard) */
-.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px}
-.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB}
+.site-tabs{max-width:1140px;margin:0 auto 14px;padding:0 4px;display:flex;align-items:flex-end;gap:12px}
+.site-tabs-inner{display:flex;gap:4px;border-bottom:1px solid #E5E7EB;flex:1}
 .site-tab{padding:9px 16px;font-size:13px;font-weight:500;color:#6B7280;text-decoration:none;border-bottom:2px solid transparent;transition:color .12s,border-color .12s}
 .site-tab:hover{color:#111827}
 .site-tab.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
+.site-nav-actions{display:flex;gap:6px;padding-bottom:6px;flex-shrink:0}
+.site-nav-btn{padding:5px 11px;font-size:11px;font-weight:600;border:1px solid #E5E7EB;border-radius:5px;background:#fff;color:#374151;cursor:pointer;font-family:inherit;transition:all .15s;display:inline-flex;align-items:center;gap:5px;line-height:1.3}
+.site-nav-btn:hover{background:#F9FAFB;border-color:#D1D5DB}
+.nav-edit-btn{color:#c2410c;border-color:rgba(251,146,60,.45)}
+.nav-edit-btn:hover{background:rgba(251,146,60,.08);border-color:rgba(251,146,60,.7)}
+.nav-whatif-btn{color:#5b21b6;border-color:rgba(124,58,237,.45)}
+.nav-whatif-btn:hover{background:rgba(124,58,237,.08);border-color:rgba(124,58,237,.7)}
 </style>
 </head>
 <body>
@@ -302,6 +432,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <a href="index.html" class="site-tab">Overview</a>
     <a href="v2-timeline.html" class="site-tab active">V2 Timeline</a>
     <a href="igaming-timeline.html" class="site-tab">iGaming Timeline</a>
+  </div>
+  <div class="site-nav-actions">
+    <button class="site-nav-btn nav-edit-btn" id="editPlanBtn" title="Open the Plan Editor — config that persists for everyone via PR">⚙ Edit Plan</button>
+    <button class="site-nav-btn nav-whatif-btn" id="openWhatIfBtn" title="Open scenario sandbox — browser-local only">⚡ What-If</button>
   </div>
 </nav>
 <div class="hdr">
@@ -324,24 +458,35 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div id="rows"></div>
 <div class="toast" id="toast"></div>
 
-<!-- SCENARIO PANEL -->
+<!-- PLAN EDITOR + WHAT-IF PANEL (mode toggled by the two top-right nav buttons) -->
 <div class="sp-overlay" id="spOverlay"></div>
-<div class="scenario-panel" id="scenarioPanel">
+<div class="scenario-panel" id="scenarioPanel" data-mode="planeditor">
   <div class="sp-hdr">
-    <h2>⚡ What-If Scenario Planner</h2>
+    <h2 id="spTitle">⚙ Edit Plan</h2>
     <button class="sp-close" id="spClose" title="Close">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
     </button>
   </div>
-  <div class="sp-body" id="spBody">
-    <!-- built by JS -->
+  <div class="sp-tabs" id="spTabs">
+    <button class="sp-tab" data-tab="scenarios">⚡ Scenarios</button>
+    <button class="sp-tab active" data-tab="fvs">📋 Fix Versions</button>
+    <button class="sp-tab" data-tab="settings">⚙ Settings</button>
   </div>
-  <div class="sp-foot">
-    <button class="sp-btn sp-btn-add" id="spAddBtn">⚡ Add Scenario</button>
-    <button class="sp-btn sp-btn-clear" id="spClearBtn">Clear All</button>
+  <div class="sp-body" id="spBody"></div>
+  <div class="sp-foot" id="spFoot"></div>
+</div>
+
+<!-- Generic modal for PAT setup + Save-as-default confirmation -->
+<div class="sp-modal-overlay" id="spModalOverlay">
+  <div class="sp-modal" id="spModal">
+    <div class="sp-modal-hdr">
+      <h3 id="spModalTitle">…</h3>
+      <button class="sp-modal-close" id="spModalClose" title="Close">✕</button>
+    </div>
+    <div class="sp-modal-body" id="spModalBody"></div>
+    <div class="sp-modal-foot" id="spModalFoot"></div>
   </div>
 </div>
-<button class="scenario-fab" id="scenarioFab">⚡ What-If</button>
 
 <div class="note">
   <strong>⚠ Notes:</strong>
@@ -359,7 +504,7 @@ const TODAY=D('__TODAY__');
 const CHART_START=D('2026-05-11');
 const CHART_END=D('2026-12-07');
 const BASE='https://ponggamestudios.atlassian.net/browse/';
-const HOLIDAYS=['2026-05-18'];
+const HOLIDAYS=__HOLIDAYS__;
 
 // ─── SPRINT WORKLOG DATA (from Jira/Tempo, May 20 2026) ────────────────────
 const SPRINT=__SPRINT__;
@@ -505,7 +650,7 @@ function hasTypeHours(fv,type){
   return(fv.otherPeople||[]).some(p=>p.type&&p.type.startsWith(type)&&p.tasks.some(t=>!isDone(t.status)&&t.hours>0));
 }
 
-// ─── FV DATA (refreshed May 22, 2026 from live Jira) ──────────────────────
+// ─── FV DATA (refreshed from live Jira) ─────────────────────────────────
 const FV=__FV_DATA__;
 // Normalize: convert ISO date strings → Date objects
 FV.forEach(fv=>{ if(typeof fv.devStart==='string') fv.devStart=D(fv.devStart); });
@@ -513,6 +658,80 @@ FV.forEach(fv=>{ if(typeof fv.devStart==='string') fv.devStart=D(fv.devStart); }
 // ─── SPRINTS ───────────────────────────────────────────
 const SPRINTS=__SPRINTS_DATA__;
 SPRINTS.forEach(s=>{ if(typeof s.start==='string') s.start=D(s.start); });
+
+// ─── LOCAL CONFIG OVERRIDES (browser-only until Save-as-default) ─
+// Edits in the Plan Editor write here, persist to localStorage, and replay
+// over the FV array on every load. Server config (from config/v2.json)
+// is the baseline this overlay sits on top of.
+let LOCAL_CONFIG = { fv_order:null, fv_meta:{}, hidden_fvs:[], holidays:null };
+try {
+  const saved = JSON.parse(localStorage.getItem('v2_local_config')||'{}');
+  LOCAL_CONFIG = { ...LOCAL_CONFIG, ...saved };
+  if(!LOCAL_CONFIG.fv_meta) LOCAL_CONFIG.fv_meta={};
+  if(!LOCAL_CONFIG.hidden_fvs) LOCAL_CONFIG.hidden_fvs=[];
+} catch(e) {}
+function saveLocalConfig(){
+  try { localStorage.setItem('v2_local_config', JSON.stringify(LOCAL_CONFIG)); } catch(e) {}
+}
+function hasLocalEdits(){
+  return !!(LOCAL_CONFIG.fv_order
+         || Object.keys(LOCAL_CONFIG.fv_meta||{}).length
+         || (LOCAL_CONFIG.hidden_fvs||[]).length
+         || LOCAL_CONFIG.holidays);
+}
+function applyLocalConfigToFvArray(){
+  if(LOCAL_CONFIG.fv_order && LOCAL_CONFIG.fv_order.length){
+    const ord=LOCAL_CONFIG.fv_order;
+    FV.sort((a,b)=>{
+      const ai=ord.indexOf(a.key), bi=ord.indexOf(b.key);
+      if(ai===-1 && bi===-1) return 0;
+      if(ai===-1) return 1;
+      if(bi===-1) return -1;
+      return ai-bi;
+    });
+  }
+  FV.forEach(fv=>{
+    const o = LOCAL_CONFIG.fv_meta && LOCAL_CONFIG.fv_meta[fv.key];
+    if(!o) return;
+    if(o.color!==undefined)    fv.color=o.color;
+    if(o.sub!==undefined)      fv.sub=o.sub;
+    if(o.qaWeeks!==undefined)  fv.qaWeeks=o.qaWeeks;
+    if(o.epic_overrides)       fv.epic_overrides=Object.assign({}, fv.epic_overrides||{}, o.epic_overrides);
+    if(o.milestones)           fv.milestones=o.milestones.slice();
+  });
+}
+function applyLocalConfigToHolidays(){
+  if(LOCAL_CONFIG.holidays && Array.isArray(LOCAL_CONFIG.holidays)){
+    HOLIDAYS.length=0;
+    LOCAL_CONFIG.holidays.forEach(h=>HOLIDAYS.push(h));
+  }
+}
+applyLocalConfigToFvArray();
+applyLocalConfigToHolidays();
+
+// HIDDEN_FVS Set seeded from the panel-managed list (V2 doesn't have the
+// inline ✕ hover button that iGaming added — Plan Editor toggle is the
+// only way to hide FVs on V2 for now).
+let HIDDEN_FVS = new Set();
+try { HIDDEN_FVS = new Set(JSON.parse(localStorage.getItem('v2_hidden_fvs')||'[]')); } catch(e) {}
+(LOCAL_CONFIG.hidden_fvs||[]).forEach(k => HIDDEN_FVS.add(k));
+function saveHidden(){
+  try{ localStorage.setItem('v2_hidden_fvs', JSON.stringify([...HIDDEN_FVS])); }catch(e){}
+}
+function hideFv(key){
+  HIDDEN_FVS.add(key);
+  if(!LOCAL_CONFIG.hidden_fvs.includes(key)) LOCAL_CONFIG.hidden_fvs.push(key);
+  saveHidden(); saveLocalConfig();
+  buildRows();
+  if(activeSpTab==='fvs') renderScenarioPanel();
+}
+function restoreFv(key){
+  HIDDEN_FVS.delete(key);
+  LOCAL_CONFIG.hidden_fvs = LOCAL_CONFIG.hidden_fvs.filter(k=>k!==key);
+  saveHidden(); saveLocalConfig();
+  buildRows();
+  if(activeSpTab==='fvs') renderScenarioPanel();
+}
 
 // ─── BUILD AXIS ────────────────────────────────────────
 const axisEl=document.getElementById('axis');
@@ -767,9 +986,13 @@ function buildScopeBody(fv){
     p.tasks.forEach(t=>{taskLookup[t.key]=t;});
   });
 
+  const overrides = fv.epic_overrides || {};
+  // Resolve override storage key — real epic key or sentinel for unscoped bucket
+  const ovrKeyOf = (epic) => epic.key || '__unscoped__';
+
   const body=document.createElement('div');body.className='scope-body';
 
-  (fv.scope||[]).forEach(epic=>{
+  (fv.scope||[]).filter(epic => !(overrides[ovrKeyOf(epic)] && overrides[ovrKeyOf(epic)].hidden)).forEach(epic=>{
     const pctDone=epic.total>0?(epic.done/epic.total*100):0;
     const open=epic.total-epic.done;
 
@@ -777,13 +1000,15 @@ function buildScopeBody(fv){
     const epicTasks=(epic.taskKeys||[]).map(k=>taskLookup[k]).filter(Boolean);
 
     const card=document.createElement('div');card.className='scope-item';
+    const ovr = overrides[ovrKeyOf(epic)];
+    const displayName = (ovr && ovr.label) ? ovr.label : epic.name;
 
     // Header (always visible)
     const hdr=document.createElement('div');hdr.className='scope-header';
     hdr.innerHTML=`
       <div class="scope-title">
-        <a class="scope-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>
-        <span class="scope-name">${epic.name}</span>
+        ${epic.key?`<a class="scope-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>`:'<span class="scope-epic-key">—</span>'}
+        <span class="scope-name">${displayName.replace(/</g,'&lt;')}${ovr && ovr.label ? ' <span style="font-size:9px;color:var(--sub);font-weight:400">(was: '+epic.name.replace(/</g,'&lt;')+')</span>' : ''}</span>
       </div>
       <div class="scope-right">
         <span class="t-st ${epicStatusCls(epic.status)}">${epic.status}</span>
@@ -984,6 +1209,37 @@ ordered.forEach((fv,idx)=>{
     }
   }
 
+  // ── Milestone pins ──
+  // dev_end-anchored milestones move when dev complete moves; date-anchored
+  // ones stay put. Renders as a vertical line + small label above the bar.
+  (effectiveFv.milestones || []).forEach((ms, msIdx) => {
+    let msDate;
+    if(ms.anchor === 'date'){
+      if(!ms.date) return;
+      try { msDate = D(ms.date); } catch(e) { return; }
+    } else {
+      const baseDate = effectiveFv.devStart ? new Date(devEnd) : new Date(TODAY);
+      msDate = new Date(baseDate.getTime() + (ms.offset_weeks||0) * 7 * 86400000);
+    }
+    if(!msDate || isNaN(msDate.getTime())) return;
+    const x = pct(msDate);
+    const pin = document.createElement('div');
+    pin.className = 'ms-pin';
+    pin.style.left = x + '%';
+    pin.style.background = ms.color || '#d97706';
+    const lbl = document.createElement('div');
+    lbl.className = 'ms-pin-label';
+    lbl.style.left = x + '%';
+    lbl.style.top = (34 + (msIdx % 3) * 16) + 'px';
+    lbl.style.background = (ms.color || '#d97706') + '22';
+    lbl.style.color = ms.color || '#d97706';
+    lbl.style.borderColor = (ms.color || '#d97706') + '55';
+    lbl.textContent = ms.label || 'Milestone';
+    lbl.title = `${ms.label} · ${fmtD(msDate)}`;
+    track.appendChild(pin);
+    track.appendChild(lbl);
+  });
+
   // Dept rows
   const typeConfig=[
     {key:'cre',label:'CREATIVE',type:'Creative',cls:'dept-row-cre'},
@@ -1162,23 +1418,757 @@ function saveScenarios(){
   updateFab();
 }
 function updateFab(){
-  const fab=document.getElementById('scenarioFab');
-  const active=SCENARIOS.filter(s=>!s.disabled).length;
-  const total=SCENARIOS.length;
-  if(total>0){
-    fab.classList.add('has-scenarios');
-    fab.dataset.count=total;
-    fab.classList.toggle('all-off',!scenariosMasterEnabled);
+  // Updates the top-nav What-If button badge with scenario count + on/off state.
+  // (Function name kept for backwards compat with the many call sites.)
+  const btn = document.getElementById('openWhatIfBtn');
+  if(!btn) return;
+  const total = SCENARIOS.length;
+  if(total > 0){
+    btn.classList.add('has-count');
+    btn.dataset.count = total;
+    btn.classList.toggle('scenarios-off', !scenariosMasterEnabled);
   } else {
-    fab.classList.remove('has-scenarios','all-off');
-    delete fab.dataset.count;
+    btn.classList.remove('has-count','scenarios-off');
+    delete btn.dataset.count;
   }
 }
 updateFab();
 
+// ─── GITHUB API + SAVE-AS-DEFAULT FLOW ────────────────
+// Promotes browser-local edits to config/v2.json via a PR. See
+// docs/CONFIG_EDITOR_SETUP.md for the one-time PAT setup the user does.
+const GH_OWNER='mayankyadav1994';
+const GH_REPO='pong-exec-dashboard';
+const GH_CONFIG_PATH='config/v2.json';
+const GH_API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
+const GH_PAT_KEY='v2_github_pat';
+const GH_PAT_USER_KEY='v2_github_pat_user';
+
+function getPat(){ return localStorage.getItem(GH_PAT_KEY) || ''; }
+function setPat(token, login){
+  if(token){
+    localStorage.setItem(GH_PAT_KEY, token);
+    if(login) localStorage.setItem(GH_PAT_USER_KEY, login);
+  } else {
+    localStorage.removeItem(GH_PAT_KEY);
+    localStorage.removeItem(GH_PAT_USER_KEY);
+  }
+}
+function getPatUser(){ return localStorage.getItem(GH_PAT_USER_KEY) || ''; }
+
+async function ghFetch(url, opts){
+  opts = opts || {};
+  const headers = Object.assign({
+    'Authorization': 'token ' + getPat(),
+    'Accept': 'application/vnd.github+json',
+    'Content-Type': 'application/json',
+  }, opts.headers || {});
+  const r = await fetch(url, Object.assign({}, opts, {headers}));
+  if(!r.ok){
+    let msg = `HTTP ${r.status}`;
+    try { const j=await r.json(); msg += `: ${j.message||''}`; } catch(e){}
+    throw new Error(msg);
+  }
+  return r.status===204 ? {} : r.json();
+}
+
+async function verifyPat(){
+  const user = await ghFetch('https://api.github.com/user');
+  const repo = await ghFetch(GH_API);
+  if(!repo.permissions || !repo.permissions.push){
+    throw new Error(`${user.login} can't push to ${GH_OWNER}/${GH_REPO} — ask an admin to add you as a collaborator with write access.`);
+  }
+  return { login: user.login };
+}
+
+function buildConfigPayload(){
+  const fv_meta = {};
+  FV.forEach(fv => {
+    if(fv.isScenario) return;
+    const entry = {
+      color: fv.color,
+      sub: fv.sub,
+      qaWeeks: fv.qaWeeks,
+    };
+    // Preserve V2-specific fields if they're present (lab pipeline, sales trip)
+    if(fv.note) entry.note = fv.note;
+    if(fv.indev_style) entry.indev_style = fv.indev_style;
+    if(fv.isLab){
+      entry.isLab = true;
+      entry.lab1Weeks = fv.lab1Weeks;
+      entry.pilotWeeks = fv.pilotWeeks;
+      entry.lab2Weeks = fv.lab2Weeks;
+    }
+    if(fv.salesTrip) entry.salesTrip = fv.salesTrip;
+    if(fv.epic_overrides && Object.keys(fv.epic_overrides).length){
+      const ovr = {};
+      Object.keys(fv.epic_overrides).forEach(k => {
+        const v = fv.epic_overrides[k];
+        if(v && Object.keys(v).length) ovr[k] = v;
+      });
+      if(Object.keys(ovr).length) entry.epic_overrides = ovr;
+    }
+    if(fv.milestones && fv.milestones.length) entry.milestones = fv.milestones.slice();
+    fv_meta[fv.key] = entry;
+  });
+  const fv_order = FV.filter(fv => !fv.isScenario).map(fv => fv.key);
+  const hidden_fvs = [...HIDDEN_FVS].filter(k => fv_order.includes(k)).sort();
+  const holidays = HOLIDAYS.slice().sort();
+  return { fv_order, fv_meta, hidden_fvs, holidays };
+}
+
+async function fetchServerConfig(){
+  const r = await fetch(`https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/main/${GH_CONFIG_PATH}?t=${Date.now()}`);
+  if(!r.ok) throw new Error(`Could not fetch server config: ${r.status}`);
+  return r.json();
+}
+
+function diffConfigs(server, local){
+  const changes = [];
+  const so = server.fv_order || [];
+  const lo = local.fv_order  || [];
+  if(JSON.stringify(so)!==JSON.stringify(lo)){
+    const moved = lo.filter((k,i) => so.indexOf(k)!==i);
+    changes.push({cat:'priority', label:'Reorder', text:`Priority order changed${moved.length?` (${moved.length} FV${moved.length>1?'s':''} moved)`:''}`});
+  }
+  const lm = local.fv_meta || {};
+  const sm = server.fv_meta || {};
+  Object.keys(lm).forEach(key => {
+    const s = sm[key] || {};
+    const l = lm[key];
+    ['color','sub','qaWeeks'].forEach(field => {
+      const sv = s[field]; const lv = l[field];
+      if((sv ?? null) !== (lv ?? null)){
+        changes.push({cat:'fv', label:'FV', text:`${key} · ${field}: ${JSON.stringify(sv ?? null)} → ${JSON.stringify(lv ?? null)}`});
+      }
+    });
+    const sOvr = s.epic_overrides || {};
+    const lOvr = l.epic_overrides || {};
+    const allEpics = new Set([...Object.keys(sOvr), ...Object.keys(lOvr)]);
+    allEpics.forEach(ek => {
+      const sE = sOvr[ek] || {};
+      const lE = lOvr[ek] || {};
+      if((sE.hidden??false) !== (lE.hidden??false)){
+        changes.push({cat:'fv', label:'Scope', text:`${key} · ${ek}: ${lE.hidden?'hide':'show'} in Scope tab`});
+      }
+      if((sE.label||null) !== (lE.label||null)){
+        changes.push({cat:'fv', label:'Scope', text:`${key} · ${ek}: label ${lE.label?`→ "${lE.label}"`:'reset'}`});
+      }
+    });
+    const sMs = s.milestones || [];
+    const lMs = l.milestones || [];
+    if(JSON.stringify(sMs) !== JSON.stringify(lMs)){
+      const sIds = new Set(sMs.map(m=>m.id));
+      const lIds = new Set(lMs.map(m=>m.id));
+      const added = lMs.filter(m=>!sIds.has(m.id));
+      const removed = sMs.filter(m=>!lIds.has(m.id));
+      added.forEach(m => changes.push({cat:'fv', label:'Pin +', text:`${key} · add milestone "${m.label}"`}));
+      removed.forEach(m => changes.push({cat:'fv', label:'Pin −', text:`${key} · remove milestone "${m.label}"`}));
+      lMs.forEach(lM => {
+        const sM = sMs.find(x => x.id === lM.id);
+        if(sM && JSON.stringify(sM) !== JSON.stringify(lM)){
+          changes.push({cat:'fv', label:'Pin', text:`${key} · edit milestone "${lM.label}"`});
+        }
+      });
+    }
+  });
+  const sh = new Set(server.hidden_fvs||[]);
+  const lh = new Set(local.hidden_fvs||[]);
+  lh.forEach(k => { if(!sh.has(k)) changes.push({cat:'hide', label:'Hide', text:`Hide ${k}`}); });
+  sh.forEach(k => { if(!lh.has(k)) changes.push({cat:'show', label:'Show', text:`Show ${k} (was hidden)`}); });
+  const sH = new Set(server.holidays||[]);
+  const lH = new Set(local.holidays||[]);
+  lH.forEach(d => { if(!sH.has(d)) changes.push({cat:'holiday', label:'Hol +', text:`Add holiday ${d}`}); });
+  sH.forEach(d => { if(!lH.has(d)) changes.push({cat:'holiday', label:'Hol −', text:`Remove holiday ${d}`}); });
+  return changes;
+}
+
+function summarizeDiffForCommit(changes){
+  if(!changes.length) return 'No changes';
+  if(changes.length===1) return changes[0].text;
+  const counts = {};
+  changes.forEach(c => { counts[c.cat] = (counts[c.cat]||0)+1; });
+  const parts = [];
+  if(counts.priority) parts.push('reorder');
+  if(counts.fv)       parts.push(`${counts.fv} FV edit${counts.fv>1?'s':''}`);
+  if(counts.hide)     parts.push(`${counts.hide} hide`);
+  if(counts.show)     parts.push(`${counts.show} unhide`);
+  if(counts.holiday)  parts.push(`${counts.holiday} holiday change${counts.holiday>1?'s':''}`);
+  return parts.join(', ');
+}
+
+async function saveConfigToRepo(configContent, commitTitle, commitBody, statusCb){
+  const stat = (msg, cls) => { if(statusCb) statusCb(msg, cls||''); };
+  stat('Reading current server config…');
+  const file = await ghFetch(`${GH_API}/contents/${GH_CONFIG_PATH}?ref=main`);
+  stat('Creating branch…');
+  const mainRef = await ghFetch(`${GH_API}/git/refs/heads/main`);
+  const branchName = `config/v2-${Date.now()}`;
+  await ghFetch(`${GH_API}/git/refs`, {
+    method:'POST',
+    body: JSON.stringify({ ref:`refs/heads/${branchName}`, sha:mainRef.object.sha }),
+  });
+  stat('Committing changes…');
+  const newJson = JSON.stringify(configContent, null, 2) + '\n';
+  const b64 = btoa(unescape(encodeURIComponent(newJson)));
+  await ghFetch(`${GH_API}/contents/${GH_CONFIG_PATH}`, {
+    method:'PUT',
+    body: JSON.stringify({
+      message: commitTitle + (commitBody ? '\n\n' + commitBody : ''),
+      content: b64,
+      sha: file.sha,
+      branch: branchName,
+    }),
+  });
+  stat('Opening pull request…');
+  const pr = await ghFetch(`${GH_API}/pulls`, {
+    method:'POST',
+    body: JSON.stringify({
+      title: commitTitle,
+      body: commitBody || '_(no description)_',
+      head: branchName,
+      base: 'main',
+    }),
+  });
+  stat(`PR #${pr.number} opened — merging…`);
+  await ghFetch(`${GH_API}/pulls/${pr.number}/merge`, {
+    method:'PUT',
+    body: JSON.stringify({
+      merge_method: 'merge',
+      commit_title: commitTitle,
+      commit_message: commitBody || '',
+    }),
+  });
+  try { await ghFetch(`${GH_API}/git/refs/heads/${branchName}`, {method:'DELETE'}); } catch(e) {}
+  stat(`✓ Merged · PR #${pr.number} · workflow will rebuild in ~2-3 min`, 'ok');
+  return { pr_number: pr.number, pr_url: pr.html_url };
+}
+
+// ── Modal helpers ──
+function openModal(title, bodyEl, footEl){
+  document.getElementById('spModalTitle').textContent = title;
+  const body=document.getElementById('spModalBody'); body.innerHTML=''; body.appendChild(bodyEl);
+  const foot=document.getElementById('spModalFoot'); foot.innerHTML=''; if(footEl) foot.appendChild(footEl);
+  document.getElementById('spModalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('spModalOverlay').classList.remove('open'); }
+
+function showPatSetupModal(onSaved){
+  const body=document.createElement('div');
+  const existingUser = getPatUser();
+  body.innerHTML = `
+    <p>To save changes that affect everyone, you need a GitHub Personal Access Token with write access to <code>${GH_OWNER}/${GH_REPO}</code>.</p>
+    <p style="font-size:11px;color:var(--muted)">One-time setup: <a href="docs/CONFIG_EDITOR_SETUP.md" target="_blank" style="color:#fb923c">→ How to mint a fine-grained PAT (~2 min)</a>. The token stays in your browser's localStorage and is never transmitted except to <code>api.github.com</code>.</p>
+    <label>FINE-GRAINED PERSONAL ACCESS TOKEN</label>
+    <input type="password" id="spPatInput" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+    ${existingUser ? `<div style="font-size:10px;color:var(--sub);margin-top:6px">Last verified as <strong>${existingUser}</strong></div>` : ''}
+    <div class="sp-status-msg" id="spPatStatus"></div>`;
+
+  const foot=document.createElement('div');foot.style.display='contents';
+  foot.innerHTML = `
+    <button class="sp-modal-btn sp-modal-btn-secondary" id="spPatCancel">Cancel</button>
+    <button class="sp-modal-btn sp-modal-btn-primary" id="spPatVerify">Verify &amp; Save</button>`;
+  openModal('Set up GitHub access', body, foot);
+
+  const inp = document.getElementById('spPatInput');
+  inp.focus();
+  document.getElementById('spPatCancel').onclick = closeModal;
+  document.getElementById('spPatVerify').onclick = async () => {
+    const status = document.getElementById('spPatStatus');
+    const token = inp.value.trim();
+    if(!token){ status.className='sp-status-msg err'; status.textContent='Paste a token first.'; return; }
+    setPat(token);
+    status.className='sp-status-msg'; status.innerHTML='<span class="sp-spinner"></span> Verifying…';
+    try {
+      const { login } = await verifyPat();
+      setPat(token, login);
+      status.className='sp-status-msg ok'; status.textContent=`✓ Verified as ${login}`;
+      setTimeout(() => { closeModal(); if(onSaved) onSaved(login); }, 500);
+    } catch(e) {
+      setPat(null);
+      status.className='sp-status-msg err'; status.textContent='✕ ' + e.message;
+    }
+  };
+}
+
+function showSaveModal(){
+  const body=document.createElement('div');
+  body.innerHTML = `<div class="sp-status-msg"><span class="sp-spinner"></span> Comparing local changes against current server config…</div>`;
+  openModal('Save as default for everyone', body, document.createElement('div'));
+
+  (async () => {
+    let server, local, changes;
+    try {
+      server = await fetchServerConfig();
+      local  = buildConfigPayload();
+      changes = diffConfigs(server, local);
+    } catch(e){
+      body.innerHTML = `<div class="sp-status-msg err">✕ ${e.message}</div>`;
+      return;
+    }
+
+    if(changes.length===0){
+      body.innerHTML = `<p>No changes vs. the current server config.</p>
+        <p style="font-size:11px;color:var(--muted)">Your browser-local edits already match what's deployed.</p>`;
+      const foot=document.getElementById('spModalFoot');
+      foot.innerHTML = `<button class="sp-modal-btn sp-modal-btn-secondary" id="spDone">Close</button>`;
+      document.getElementById('spDone').onclick = closeModal;
+      return;
+    }
+
+    const summary = summarizeDiffForCommit(changes);
+    const user = getPatUser() || '?';
+    body.innerHTML = `
+      <p style="font-size:11px;color:var(--muted)">${changes.length} change${changes.length>1?'s':''} will be committed to <code>${GH_CONFIG_PATH}</code> on a new branch, opened as a PR, and auto-merged. The workflow will rebuild the dashboard in ~2-3 min.</p>
+      <ul class="sp-diff-list">
+        ${changes.map(c => `<li class="sp-diff-item">
+          <span class="sp-diff-cat sp-diff-cat-${c.cat}">${c.label}</span>
+          <span>${c.text}</span>
+        </li>`).join('')}
+      </ul>
+      <label style="margin-top:12px">COMMIT MESSAGE</label>
+      <input type="text" id="spCommitTitle" value="config(v2): ${summary}">
+      <label style="margin-top:8px">DESCRIPTION (optional)</label>
+      <textarea id="spCommitBody" rows="2">Edited via dashboard by @${user}</textarea>
+      <div class="sp-status-msg" id="spSaveStatus"></div>`;
+
+    const foot=document.getElementById('spModalFoot');
+    foot.innerHTML = `
+      <button class="sp-modal-btn sp-modal-btn-secondary" id="spSaveCancel">Cancel</button>
+      <button class="sp-modal-btn sp-modal-btn-primary" id="spSaveConfirm">💾 Save &amp; merge</button>`;
+
+    document.getElementById('spSaveCancel').onclick = closeModal;
+    document.getElementById('spSaveConfirm').onclick = async () => {
+      const title = document.getElementById('spCommitTitle').value.trim() || `config(v2): ${summary}`;
+      const bodyMsg = document.getElementById('spCommitBody').value.trim();
+      const status = document.getElementById('spSaveStatus');
+      const btn = document.getElementById('spSaveConfirm');
+      btn.disabled = true;
+      try {
+        const result = await saveConfigToRepo(local, title, bodyMsg, (msg, cls) => {
+          status.className='sp-status-msg '+(cls||'');
+          status.innerHTML = cls==='ok' ? msg : `<span class="sp-spinner"></span> ${msg}`;
+        });
+        LOCAL_CONFIG = { fv_order:null, fv_meta:{}, hidden_fvs:[], holidays:null };
+        saveLocalConfig();
+        document.getElementById('spModalFoot').innerHTML = `<a class="sp-modal-btn sp-modal-btn-secondary" href="${result.pr_url}" target="_blank">View PR</a><button class="sp-modal-btn sp-modal-btn-primary" id="spDoneBtn">Done</button>`;
+        document.getElementById('spDoneBtn').onclick = () => { closeModal(); location.reload(); };
+      } catch(e){
+        btn.disabled = false;
+        status.className='sp-status-msg err';
+        status.textContent='✕ ' + e.message;
+      }
+    };
+  })();
+}
+
+function onSaveClicked(){
+  if(!hasLocalEdits()){
+    showToast('No local edits to save');
+    return;
+  }
+  if(!getPat()){
+    showPatSetupModal(()=>showSaveModal());
+    return;
+  }
+  showSaveModal();
+}
+
+// ── Per-FV LOCAL_CONFIG helpers (Scope + Milestones) ──
+function _ensureFvMeta(fvKey){
+  LOCAL_CONFIG.fv_meta = LOCAL_CONFIG.fv_meta || {};
+  LOCAL_CONFIG.fv_meta[fvKey] = LOCAL_CONFIG.fv_meta[fvKey] || {};
+  return LOCAL_CONFIG.fv_meta[fvKey];
+}
+function setEpicOverride(fvKey, epicKey, field, value){
+  const meta = _ensureFvMeta(fvKey);
+  meta.epic_overrides = meta.epic_overrides || {};
+  meta.epic_overrides[epicKey] = meta.epic_overrides[epicKey] || {};
+  if(value === undefined || value === null || value === '') delete meta.epic_overrides[epicKey][field];
+  else meta.epic_overrides[epicKey][field] = value;
+  if(Object.keys(meta.epic_overrides[epicKey]).length===0) delete meta.epic_overrides[epicKey];
+  if(Object.keys(meta.epic_overrides).length===0) delete meta.epic_overrides;
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv){
+    fv.epic_overrides = fv.epic_overrides || {};
+    if(meta.epic_overrides && meta.epic_overrides[epicKey]) fv.epic_overrides[epicKey] = meta.epic_overrides[epicKey];
+    else delete fv.epic_overrides[epicKey];
+  }
+  saveLocalConfig();
+}
+function addMilestone(fvKey){
+  const meta = _ensureFvMeta(fvKey);
+  meta.milestones = meta.milestones || [];
+  const ms = {
+    id: 'ms_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+    label: 'Milestone',
+    anchor: 'dev_end',
+    offset_weeks: 1,
+    color: '#d97706',
+  };
+  meta.milestones.push(ms);
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv){ fv.milestones = (fv.milestones || []); fv.milestones.push(ms); }
+  saveLocalConfig();
+  return ms;
+}
+function removeMilestone(fvKey, msId){
+  const meta = _ensureFvMeta(fvKey);
+  meta.milestones = (meta.milestones || []).filter(m => m.id !== msId);
+  if(meta.milestones.length === 0) delete meta.milestones;
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv) fv.milestones = (fv.milestones || []).filter(m => m.id !== msId);
+  saveLocalConfig();
+}
+function updateMilestone(fvKey, msId, field, value){
+  const meta = _ensureFvMeta(fvKey);
+  meta.milestones = meta.milestones || [];
+  const m = meta.milestones.find(x => x.id === msId);
+  if(!m) return;
+  m[field] = value;
+  const fv = FV.find(f => f.key === fvKey);
+  if(fv && fv.milestones){
+    const fvMs = fv.milestones.find(x => x.id === msId);
+    if(fvMs) fvMs[field] = value;
+  }
+  saveLocalConfig();
+}
+
+// ─── PANEL TAB DISPATCH ────────────────────────────────
+let activeSpTab='fvs'; // 'scenarios' | 'fvs' | 'settings'
+
 function renderScenarioPanel(){
   const body=document.getElementById('spBody');
-  body.innerHTML='';
+  const foot=document.getElementById('spFoot');
+  body.innerHTML=''; foot.innerHTML='';
+  document.querySelectorAll('#spTabs .sp-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab===activeSpTab);
+  });
+  if(activeSpTab==='fvs')      return renderFvsTab(body,foot);
+  if(activeSpTab==='settings') return renderSettingsTab(body,foot);
+  renderScenariosTab(body,foot);
+}
+
+function renderFvsTab(body, foot){
+  const banner=document.createElement('div');
+  banner.style.cssText='font-size:11px;color:var(--muted);padding:2px 2px 12px;line-height:1.55';
+  banner.innerHTML='Drag rows on the chart to reorder · toggle to hide · click <strong>▾</strong> to edit details. Edits save to your browser only until you click <strong>Save as default for everyone</strong>.';
+  body.appendChild(banner);
+
+  if(hasLocalEdits()){
+    const dirty=document.createElement('div');
+    dirty.className='sp-dirty-banner';
+    dirty.innerHTML='● You have unsaved local edits — refresh this browser to keep them, or save to push them to all viewers.';
+    body.appendChild(dirty);
+  }
+
+  FV.forEach(fv=>{
+    if(fv.isScenario) return;
+    const row=document.createElement('div');
+    row.className='sp-fv-row'+(HIDDEN_FVS.has(fv.key)?' hidden-fv':'');
+    const isDirty = !!(LOCAL_CONFIG.fv_meta && LOCAL_CONFIG.fv_meta[fv.key] && Object.keys(LOCAL_CONFIG.fv_meta[fv.key]).length);
+    if(isDirty) row.classList.add('dirty');
+    row.dataset.fvkey=fv.key;
+
+    const handle=document.createElement('div');
+    handle.className='sp-fv-handle';handle.textContent='⋮⋮';
+    handle.title='Drag on the gantt chart to reorder';
+
+    const color=document.createElement('input');
+    color.type='color';color.className='sp-fv-color';
+    color.value=fv.color;color.title='Click to change color';
+
+    const name=document.createElement('div');
+    name.className='sp-fv-name';name.textContent=fv.key;
+
+    const toggle=document.createElement('button');
+    toggle.className='sp-fv-toggle'+(HIDDEN_FVS.has(fv.key)?'':' on');
+    toggle.title=HIDDEN_FVS.has(fv.key)?'Hidden — click to show':'Visible — click to hide';
+
+    const chev=document.createElement('div');
+    chev.className='sp-fv-row-chev';chev.textContent='▾';chev.title='Edit details';
+
+    const scopeItems = fv.scope || [];
+    const epicCount = scopeItems.filter(e => e.key).length;
+    const hasUnscoped = scopeItems.some(e => !e.key);
+    const scopeSummary = scopeItems.length === 0
+      ? '0 items'
+      : `${epicCount} epic${epicCount!==1?'s':''}${hasUnscoped ? ` · 1 task group (no epic)` : ''}`;
+
+    const expand=document.createElement('div');
+    expand.className='sp-fv-row-expand';
+    expand.innerHTML=`
+      <div class="sp-fv-section">
+        <div class="sp-fv-section-title"><span>DETAILS</span></div>
+        <div class="sp-fv-section-grid">
+          <div class="sp-fv-row-field">
+            <label>QA WEEKS</label>
+            <input type="number" data-field="qaWeeks" value="${fv.qaWeeks}" min="0" max="12">
+          </div>
+          <div class="sp-fv-row-field">
+            <label>STATUS</label>
+            <input type="text" data-field="statusLabel" value="${(fv.statusLabel||'').replace(/"/g,'&quot;')}" placeholder="auto" readonly style="opacity:.55">
+          </div>
+          <div class="sp-fv-row-field span-2">
+            <label>SUBTITLE</label>
+            <textarea data-field="sub" rows="2">${(fv.sub||'').replace(/</g,'&lt;')}</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="sp-fv-section" data-section="scope">
+        <div class="sp-fv-section-title">
+          <span>SCOPE</span>
+          <span style="color:var(--sub);font-weight:400">${scopeSummary} · toggle hides · click name to rename</span>
+        </div>
+        <div class="sp-epic-list"></div>
+      </div>
+      <div class="sp-fv-section" data-section="milestones">
+        <div class="sp-fv-section-title">
+          <span>MILESTONES</span>
+          <span style="color:var(--sub);font-weight:400">pins on the gantt bar — moves with dev end</span>
+        </div>
+        <div class="sp-ms-list"></div>
+        <button type="button" class="sp-add-ms">+ Add milestone</button>
+      </div>`;
+
+    row.appendChild(handle);
+    row.appendChild(color);
+    row.appendChild(name);
+    row.appendChild(toggle);
+    row.appendChild(chev);
+    row.appendChild(expand);
+
+    toggle.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(HIDDEN_FVS.has(fv.key)) restoreFv(fv.key);
+      else hideFv(fv.key);
+    });
+
+    color.addEventListener('input',()=>{
+      fv.color=color.value;
+      LOCAL_CONFIG.fv_meta[fv.key]=LOCAL_CONFIG.fv_meta[fv.key]||{};
+      LOCAL_CONFIG.fv_meta[fv.key].color=color.value;
+      saveLocalConfig();
+      row.classList.add('dirty');
+      buildRows();
+    });
+
+    chev.addEventListener('click',e=>{
+      e.stopPropagation();
+      row.classList.toggle('open');
+    });
+
+    expand.querySelector('.sp-fv-section-grid').querySelectorAll('input,textarea').forEach(input=>{
+      if(input.readOnly) return;
+      input.addEventListener('change',()=>{
+        const field=input.dataset.field;
+        let val=input.value;
+        if(field==='qaWeeks') val=Math.max(0,+val||0);
+        if(field==='sub') val=String(val||'');
+        fv[field]=val;
+        LOCAL_CONFIG.fv_meta[fv.key]=LOCAL_CONFIG.fv_meta[fv.key]||{};
+        LOCAL_CONFIG.fv_meta[fv.key][field]=val;
+        saveLocalConfig();
+        row.classList.add('dirty');
+        buildRows();
+      });
+    });
+
+    // ── Scope section ──
+    const epicListEl = expand.querySelector('[data-section="scope"] .sp-epic-list');
+    const epicOverrides = (LOCAL_CONFIG.fv_meta[fv.key] && LOCAL_CONFIG.fv_meta[fv.key].epic_overrides) || {};
+    if(scopeItems.length === 0){
+      epicListEl.innerHTML = '<div class="sp-epic-empty">No scope items yet — once Jira issues are tagged with this fixVersion they’ll appear here.</div>';
+    } else {
+      scopeItems.forEach(epic => {
+        const storageKey = epic.key || '__unscoped__';
+        const ovr = epicOverrides[storageKey] || {};
+        const isHidden = !!ovr.hidden;
+        const displayLabel = ovr.label || epic.name;
+        const isDirty2 = !!(ovr.hidden !== undefined || ovr.label !== undefined);
+        const isUnscoped = !epic.key;
+        const er = document.createElement('div');
+        er.className = 'sp-epic-row' + (isHidden ? ' epic-hidden' : '') + (isDirty2 ? ' epic-dirty' : '');
+        const keyHtml = isUnscoped
+          ? `<span class="sp-epic-key" title="Virtual group for tasks without an epic">—</span>`
+          : `<a class="sp-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>`;
+        const subHtml = isUnscoped
+          ? `<span style="font-size:9px;color:var(--sub);margin-left:4px">(${epic.total} task${epic.total!==1?'s':''})</span>`
+          : '';
+        er.innerHTML = `
+          <button type="button" class="sp-epic-toggle ${isHidden?'':'on'}" title="${isHidden?'Hidden':'Visible'} in Scope tab"></button>
+          ${keyHtml}
+          <span class="sp-epic-label" contenteditable="true" spellcheck="false" data-orig="${epic.name.replace(/"/g,'&quot;')}">${displayLabel.replace(/</g,'&lt;')}</span>${subHtml}
+          <button type="button" class="sp-ms-del" title="Reset to default">↺</button>
+        `;
+        er.querySelector('.sp-epic-toggle').addEventListener('click', () => {
+          setEpicOverride(fv.key, storageKey, 'hidden', !isHidden ? true : undefined);
+          renderScenarioPanel();
+          buildRows();
+        });
+        const lbl = er.querySelector('.sp-epic-label');
+        lbl.addEventListener('focus', () => lbl.classList.add('editing'));
+        lbl.addEventListener('blur', () => {
+          lbl.classList.remove('editing');
+          const newLabel = lbl.textContent.trim();
+          if(!newLabel || newLabel === epic.name) setEpicOverride(fv.key, storageKey, 'label', undefined);
+          else setEpicOverride(fv.key, storageKey, 'label', newLabel);
+          renderScenarioPanel();
+          buildRows();
+        });
+        lbl.addEventListener('keydown', e => {
+          if(e.key === 'Enter'){ e.preventDefault(); lbl.blur(); }
+          if(e.key === 'Escape'){ lbl.textContent = displayLabel; lbl.blur(); }
+        });
+        er.querySelectorAll('.sp-ms-del')[0].addEventListener('click', () => {
+          setEpicOverride(fv.key, storageKey, 'hidden', undefined);
+          setEpicOverride(fv.key, storageKey, 'label', undefined);
+          renderScenarioPanel();
+          buildRows();
+        });
+        epicListEl.appendChild(er);
+      });
+    }
+
+    // ── Milestones section ──
+    const msListEl = expand.querySelector('[data-section="milestones"] .sp-ms-list');
+    function renderMs(){
+      msListEl.innerHTML = '';
+      const list = fv.milestones || [];
+      if(list.length === 0){
+        msListEl.innerHTML = '<div class="sp-epic-empty">No milestones yet — click + Add to place a pin on the bar.</div>';
+        return;
+      }
+      list.forEach(ms => {
+        const mr = document.createElement('div');
+        mr.className = 'sp-ms-row ms-dirty';
+        const valHtml = ms.anchor === 'date'
+          ? `<input type="date" data-msfield="date" value="${ms.date||''}" title="Fixed calendar date">`
+          : `<input type="number" data-msfield="offset_weeks" value="${ms.offset_weeks??0}" step="0.5" min="0" max="52" placeholder="weeks" title="Weeks after dev end">`;
+        mr.innerHTML = `
+          <input type="text" data-msfield="label" value="${(ms.label||'').replace(/"/g,'&quot;')}" placeholder="e.g. QA Round 2">
+          <select data-msfield="anchor">
+            <option value="dev_end" ${ms.anchor!=='date'?'selected':''}>after Dev</option>
+            <option value="date" ${ms.anchor==='date'?'selected':''}>fixed date</option>
+          </select>
+          ${valHtml}
+          <input type="color" data-msfield="color" value="${ms.color||'#d97706'}" title="Pin color">
+          <button type="button" class="sp-ms-del" title="Remove">×</button>
+        `;
+        mr.querySelectorAll('[data-msfield]').forEach(input => {
+          input.addEventListener('change', () => {
+            let v = input.value;
+            if(input.dataset.msfield === 'offset_weeks') v = +v || 0;
+            if(input.dataset.msfield === 'date' && !v) v = null;
+            updateMilestone(fv.key, ms.id, input.dataset.msfield, v);
+            buildRows();
+            if(input.dataset.msfield === 'anchor') renderMs();
+          });
+        });
+        mr.querySelector('.sp-ms-del').addEventListener('click', () => {
+          removeMilestone(fv.key, ms.id);
+          renderMs();
+          buildRows();
+        });
+        msListEl.appendChild(mr);
+      });
+    }
+    renderMs();
+    expand.querySelector('.sp-add-ms').addEventListener('click', () => {
+      addMilestone(fv.key);
+      renderMs();
+      buildRows();
+    });
+
+    body.appendChild(row);
+  });
+
+  foot.innerHTML='<button class="sp-btn sp-btn-clear" id="spResetFvsBtn">↺ Reset Local Edits</button>'
+               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn">💾 Save as default</button>';
+  document.getElementById('spResetFvsBtn').onclick=()=>{
+    if(!hasLocalEdits()){showToast('No local edits to reset');return;}
+    if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
+    localStorage.removeItem('v2_local_config');
+    localStorage.removeItem('v2_hidden_fvs');
+    location.reload();
+  };
+  document.getElementById('spSaveCfgBtn').onclick=onSaveClicked;
+}
+
+function renderSettingsTab(body, foot){
+  const banner=document.createElement('div');
+  banner.style.cssText='font-size:11px;color:var(--muted);padding:2px 2px 12px;line-height:1.55';
+  banner.innerHTML='Edits save to your browser only until you click <strong>Save as default for everyone</strong>.';
+  body.appendChild(banner);
+
+  if(hasLocalEdits()){
+    const dirty=document.createElement('div');
+    dirty.className='sp-dirty-banner';
+    dirty.innerHTML='● You have unsaved local edits — refresh this browser to keep them, or save to push them to all viewers.';
+    body.appendChild(dirty);
+  }
+
+  const holSection=document.createElement('div');
+  holSection.className='sp-field';
+  holSection.innerHTML=`<div class="sp-label">HOLIDAYS · skipped when projecting dev/QA end dates</div>`;
+  const list=document.createElement('div');
+  list.className='sp-holiday-list';
+  const localDirty = !!LOCAL_CONFIG.holidays;
+  HOLIDAYS.slice().sort().forEach(date=>{
+    const pill=document.createElement('div');
+    pill.className='sp-holiday-pill'+(localDirty?' dirty':'');
+    pill.innerHTML=`${date}<button type="button" data-date="${date}" title="Remove">×</button>`;
+    pill.querySelector('button').addEventListener('click',()=>{
+      const idx=HOLIDAYS.indexOf(date);
+      if(idx>=0) HOLIDAYS.splice(idx,1);
+      LOCAL_CONFIG.holidays = HOLIDAYS.slice();
+      saveLocalConfig();
+      buildRows();
+      renderScenarioPanel();
+      showToast(`Removed holiday ${date}`);
+    });
+    list.appendChild(pill);
+  });
+  if(HOLIDAYS.length===0){
+    const empty=document.createElement('div');
+    empty.style.cssText='font-size:11px;color:var(--sub);font-style:italic;padding:4px 2px';
+    empty.textContent='No holidays configured.';
+    list.appendChild(empty);
+  }
+  holSection.appendChild(list);
+
+  const addRow=document.createElement('div');
+  addRow.className='sp-add-holiday';
+  addRow.innerHTML=`<input type="date" id="spHolidayInput"><button type="button" id="spHolidayAddBtn">+ Add</button>`;
+  holSection.appendChild(addRow);
+  body.appendChild(holSection);
+
+  addRow.querySelector('#spHolidayAddBtn').addEventListener('click',()=>{
+    const inp=addRow.querySelector('#spHolidayInput');
+    const v=inp.value;
+    if(!v){showToast('Pick a date first');return;}
+    if(HOLIDAYS.includes(v)){showToast(`${v} is already on the list`);return;}
+    HOLIDAYS.push(v);
+    LOCAL_CONFIG.holidays = HOLIDAYS.slice();
+    saveLocalConfig();
+    buildRows();
+    renderScenarioPanel();
+    showToast(`Added holiday ${v}`);
+  });
+
+  foot.innerHTML='<button class="sp-btn sp-btn-clear" id="spResetSettingsBtn">↺ Reset Local Edits</button>'
+               +'<button class="sp-btn sp-btn-add" id="spSaveCfgBtn2">💾 Save as default</button>';
+  document.getElementById('spResetSettingsBtn').onclick=()=>{
+    if(!hasLocalEdits()){showToast('No local edits to reset');return;}
+    if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
+    localStorage.removeItem('v2_local_config');
+    localStorage.removeItem('v2_hidden_fvs');
+    location.reload();
+  };
+  document.getElementById('spSaveCfgBtn2').onclick=onSaveClicked;
+}
+
+function renderScenariosTab(body, foot){
 
   // ── Master toggle ──
   if(SCENARIOS.length>0){
@@ -1319,7 +2309,10 @@ function renderScenarioPanel(){
   placeField.appendChild(opts);
   body.appendChild(placeField);
 
-  // Add button wiring
+  // Tab footer: scenario-specific Add / Clear actions
+  foot.innerHTML = '<button class="sp-btn sp-btn-add" id="spAddBtn">⚡ Add Scenario</button>'
+                 + '<button class="sp-btn sp-btn-clear" id="spClearBtn">Clear All</button>';
+
   document.getElementById('spAddBtn').onclick=()=>{
     const label=document.getElementById('spLabelInput').value.trim();
     if(!label){document.getElementById('spLabelInput').focus();showToast('Please enter a scenario label');return;}
@@ -1344,25 +2337,57 @@ function renderScenarioPanel(){
     const people=[...selectedDevs.keys()].map(n=>n.split(' ')[0]).join(', ');
     showToast(`⚡ "${label}" added for ${people}`);
   };
+
+  document.getElementById('spClearBtn').onclick=()=>{
+    if(!SCENARIOS.length)return;
+    SCENARIOS=[];saveScenarios();buildRows();renderScenarioPanel();
+    showToast('All scenarios cleared');
+  };
 }
 
-// Panel open/close
-function openScenarioPanel(){
+// Panel mode: 'planeditor' or 'whatif'. Drives title, tab visibility, width.
+let panelMode = 'planeditor';
+
+function setPanelMode(mode){
+  panelMode = mode;
+  const panel = document.getElementById('scenarioPanel');
+  panel.dataset.mode = mode;
+  panel.classList.toggle('wide', mode === 'planeditor');
+  document.getElementById('spTitle').textContent =
+    mode === 'whatif' ? '⚡ What-If — Scenario Sandbox' : '⚙ Edit Plan';
+  if(mode === 'whatif')      activeSpTab = 'scenarios';
+  else if(activeSpTab === 'scenarios') activeSpTab = 'fvs';
+}
+function openPanel(mode){
+  setPanelMode(mode);
   renderScenarioPanel();
   document.getElementById('scenarioPanel').classList.add('open');
   document.getElementById('spOverlay').classList.add('open');
 }
+function openScenarioPanel(){ openPanel(panelMode); }
 function closeScenarioPanel(){
   document.getElementById('scenarioPanel').classList.remove('open');
   document.getElementById('spOverlay').classList.remove('open');
 }
-document.getElementById('scenarioFab').addEventListener('click',openScenarioPanel);
+
+document.getElementById('editPlanBtn').addEventListener('click', () => openPanel('planeditor'));
+document.getElementById('openWhatIfBtn').addEventListener('click', () => openPanel('whatif'));
 document.getElementById('spClose').addEventListener('click',closeScenarioPanel);
 document.getElementById('spOverlay').addEventListener('click',closeScenarioPanel);
-document.getElementById('spClearBtn').addEventListener('click',()=>{
-  if(!SCENARIOS.length)return;
-  SCENARIOS=[];saveScenarios();buildRows();renderScenarioPanel();
-  showToast('All scenarios cleared');
+document.querySelectorAll('#spTabs .sp-tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    activeSpTab=t.dataset.tab;
+    renderScenarioPanel();
+  });
+});
+document.getElementById('spModalClose').addEventListener('click', closeModal);
+document.getElementById('spModalOverlay').addEventListener('click', e=>{
+  if(e.target===e.currentTarget) closeModal();
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.getElementById('spModalOverlay').classList.contains('open')){
+    closeModal();
+  }
 });
 </script>
 </body>

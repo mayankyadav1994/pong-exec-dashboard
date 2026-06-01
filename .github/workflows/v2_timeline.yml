@@ -7,6 +7,12 @@ on:
     # absorbed into the night so the dashboards are ready by morning.
     - cron: "15 6 * * *"
   workflow_dispatch:
+  push:
+    # Rebuild immediately when the editable config changes via the
+    # "Save as default" panel button — ~2-3 min from save-click to deployed HTML.
+    branches: [main]
+    paths:
+      - "config/v2.json"
 
 # Serialize against exec_dashboard so the two pushes can't race.
 concurrency:
