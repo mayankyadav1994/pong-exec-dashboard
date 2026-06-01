@@ -42,15 +42,17 @@ SND_TYPES   = {"Sound Task", "Sound Subtask"}
 DES_TYPES   = {"Design Task", "Design Subtask"}   # iGaming-only 4th lane
 
 # ── FV priority order + visual metadata (§2, §7.1) ────────────────────────────
-# Real releases first (by ascending release date), then bucket FVs.
-FV_ORDER = [
+# These are *defaults*. The live values come from config/igaming.json if the
+# file exists (see load_config() below). Hand-edits to the defaults here keep
+# working as fallbacks if the config file is missing or unparseable.
+DEFAULT_FV_ORDER = [
     "ELG 3.30", "ELG 4.00", "PFH2 Games 2.10", "Horse Play 1.00", "ELG 4.10",
     "PFH2 Games 2.00", "PFH2 Games 3.00", "PFH2 Games 4.00", "PFH2 Services 3.00",
     "ELG Game Configs", "ELG Website", "ELG New Games", "ELG Feature Backlog",
     "PFH2 Games Backlog", "New Games - iGaming",
 ]
 
-FV_META = {
+DEFAULT_FV_META = {
     "ELG 3.30":            {"color": "#60a5fa", "sub": "iGaming · ELG Round 4 + Bug Fixes",  "qaWeeks": 2, "release": "2026-04-30"},
     "ELG 4.00":            {"color": "#3b82f6", "sub": "iGaming · ELG Round 5 + New Games",  "qaWeeks": 2, "release": "2026-05-29"},
     "ELG 4.10":            {"color": "#2563eb", "sub": "iGaming · ELG Round 6",               "qaWeeks": 2, "release": None},
@@ -67,6 +69,32 @@ FV_META = {
     "PFH2 Games Backlog":  {"color": "#94a3b8", "sub": "Bucket · PFH2 games backlog",         "qaWeeks": 2, "release": None},
     "New Games - iGaming": {"color": "#64748b", "sub": "Bucket · iGaming new games backlog",  "qaWeeks": 2, "release": None},
 }
+DEFAULT_HOLIDAYS = {"2026-05-18"}  # Victoria Day
+DEFAULT_HIDDEN_FVS: list = []
+
+
+def load_config():
+    """Read config/igaming.json if present. Return a dict with fv_order,
+    fv_meta, holidays, hidden_fvs keys (any may be missing → fall back to
+    DEFAULT_*). Never raises — bad JSON falls through to defaults so the
+    workflow can't be bricked by a malformed save."""
+    cfg_path = Path(__file__).parent / "config" / "igaming.json"
+    if not cfg_path.exists():
+        print(f"  ℹ no config file at {cfg_path.name}; using hardcoded defaults")
+        return {}
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        print(f"  ✓ loaded config/{cfg_path.name}")
+        return cfg
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"  ⚠ could not parse config/{cfg_path.name} ({e}); using defaults")
+        return {}
+
+
+_CONFIG = load_config()
+FV_ORDER    = _CONFIG.get("fv_order")    or DEFAULT_FV_ORDER
+FV_META     = _CONFIG.get("fv_meta")     or DEFAULT_FV_META
+HIDDEN_FVS_DEFAULT = _CONFIG.get("hidden_fvs") or DEFAULT_HIDDEN_FVS
 
 # Status badge styles (§3.5)
 STATUS_STYLES = {
@@ -90,7 +118,7 @@ SPRINTS = [
 ]
 
 DONE_STATUSES = {"Closed", "Done"}
-HOLIDAYS = {"2026-05-18"}  # Victoria Day — keep in sync with template
+HOLIDAYS = set(_CONFIG.get("holidays") or DEFAULT_HOLIDAYS)  # keep in sync with template
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -531,6 +559,7 @@ def main():
         .replace("__FV_DATA__",        json.dumps(fv_list, ensure_ascii=False))
         .replace("__SPRINTS_DATA__",   json.dumps(SPRINTS, ensure_ascii=False))
         .replace("__SPRINT_DATA__",    json.dumps(sprint_data, ensure_ascii=False))
+        .replace("__HOLIDAYS__",       json.dumps(sorted(HOLIDAYS), ensure_ascii=False))
         .replace("__REFRESH_LABEL__",  refresh_label)
         .replace("__SPRINT_HEADER__",  sprint_header)
     )

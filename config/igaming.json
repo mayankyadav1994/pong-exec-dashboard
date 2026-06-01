@@ -1,0 +1,39 @@
+{
+  "_comment": "Editable iGaming dashboard config. Don't hand-edit unless you know what you're doing — use the What-If panel's Fix Versions / Settings tabs and click 'Save as default for everyone'. Hand-edits land via the same workflow.",
+  "fv_order": [
+    "ELG 3.30",
+    "ELG 4.00",
+    "PFH2 Games 2.10",
+    "Horse Play 1.00",
+    "ELG 4.10",
+    "PFH2 Games 2.00",
+    "PFH2 Games 3.00",
+    "PFH2 Games 4.00",
+    "PFH2 Services 3.00",
+    "ELG Game Configs",
+    "ELG Website",
+    "ELG New Games",
+    "ELG Feature Backlog",
+    "PFH2 Games Backlog",
+    "New Games - iGaming"
+  ],
+  "fv_meta": {
+    "ELG 3.30":            {"color": "#60a5fa", "sub": "iGaming · ELG Round 4 + Bug Fixes",  "qaWeeks": 2, "release": "2026-04-30"},
+    "ELG 4.00":            {"color": "#3b82f6", "sub": "iGaming · ELG Round 5 + New Games",  "qaWeeks": 2, "release": "2026-05-29"},
+    "ELG 4.10":            {"color": "#2563eb", "sub": "iGaming · ELG Round 6",               "qaWeeks": 2, "release": null},
+    "PFH2 Games 2.10":     {"color": "#fb923c", "sub": "iGaming · PFH2 Maintenance",          "qaWeeks": 2, "release": "2026-05-19"},
+    "PFH2 Games 2.00":     {"color": "#f59e0b", "sub": "iGaming · PFH2 Maintenance (prev)",   "qaWeeks": 2, "release": null},
+    "PFH2 Games 3.00":     {"color": "#f97316", "sub": "iGaming · PFH2 Games Round 3",        "qaWeeks": 2, "release": null},
+    "PFH2 Games 4.00":     {"color": "#ea580c", "sub": "iGaming · PFH2 Games Round 4",        "qaWeeks": 2, "release": null},
+    "PFH2 Services 3.00":  {"color": "#fed7aa", "sub": "iGaming · PFH2 Backend Services",     "qaWeeks": 2, "release": null},
+    "Horse Play 1.00":     {"color": "#4ade80", "sub": "iGaming · Horse Play Launch",         "qaWeeks": 2, "release": "2026-05-29"},
+    "ELG Game Configs":    {"color": "#a78bfa", "sub": "Bucket · Game configuration tasks",   "qaWeeks": 2, "release": null},
+    "ELG Website":         {"color": "#c4b5fd", "sub": "Bucket · ELG website work",           "qaWeeks": 2, "release": null},
+    "ELG New Games":       {"color": "#a855f7", "sub": "Bucket · ELG new games pipeline",     "qaWeeks": 2, "release": null},
+    "ELG Feature Backlog": {"color": "#8b5cf6", "sub": "Bucket · ELG feature backlog",        "qaWeeks": 2, "release": null},
+    "PFH2 Games Backlog":  {"color": "#94a3b8", "sub": "Bucket · PFH2 games backlog",         "qaWeeks": 2, "release": null},
+    "New Games - iGaming": {"color": "#64748b", "sub": "Bucket · iGaming new games backlog",  "qaWeeks": 2, "release": null}
+  },
+  "hidden_fvs": [],
+  "holidays": ["2026-05-18"]
+}
