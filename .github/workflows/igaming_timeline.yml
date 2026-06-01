@@ -1,0 +1,68 @@
+name: iGaming Timeline
+
+on:
+  schedule:
+    # 06:30 UTC, 15 minutes after V2 timeline (which runs at 06:15) and
+    # 30 minutes after the exec dashboard (06:00). The three workflows share
+    # the same concurrency group so commits serialize cleanly. See
+    # v2_timeline.yml and exec_dashboard.yml for the reasoning behind the
+    # early UTC time window.
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+
+# Serialize against the exec_dashboard and v2_timeline workflows so the
+# three pushes can't race.
+concurrency:
+  group: refresh-dashboards
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build iGaming timeline
+        env:
+          JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+        run: python igaming_timeline.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Stage and commit the regenerated HTML first so the working tree is
+          # clean before we touch the remote. If the build produced no diff,
+          # exit cleanly without pulling/pushing.
+          git add igaming-timeline.html
+          if git diff --staged --quiet; then
+            echo "No iGaming timeline changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: igaming timeline refresh $(date -u +%Y-%m-%d)"
+          # Pull any concurrent commits (e.g. the V2 Timeline workflow ran
+          # between our checkout and this push). --autostash safeguards any
+          # other unstaged modifications a future build step might introduce.
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
