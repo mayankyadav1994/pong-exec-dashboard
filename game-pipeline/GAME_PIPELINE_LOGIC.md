@@ -341,6 +341,9 @@ directly removes the manual export/paste step and keeps both pages live.
 ---
 
 ### #24 · ACTIVE · `status` · 2026-06-02
+> ⚠ **SUPERSEDED BY #32** — status is now derived from child-ticket states, not
+> defaulted to "Not Started". Manual override still wins.
+
 **Workflow status defaults to `Not Started`; manual override only.**
 
 Workflow status is no longer inferred from Excel raw text. New games default to
@@ -391,6 +394,10 @@ day-proportional span estimate.
 ---
 
 ### #27 · ACTIVE · `ui` `axis` · 2026-06-02
+> ⚠ **Sprint LABELS superseded by #33** — the axis now uses the boards' real
+> sprint names/dates instead of S1-anchored labels. The axis layout (chips,
+> TODAY line, boundary lines) still stands.
+
 **Sprint axis matches the exec dashboard pattern exactly.**
 
 Sprint chips show label + date range (e.g. `S1 / May 11 – May 24`). The TODAY line
@@ -490,6 +497,60 @@ pattern, not an integration target.
 
 ---
 
+### #32 · ACTIVE · `status` `stage` `data` · 2026-06-02
+**Stage and workflow status are inferred from child-ticket states, not the epic.**
+
+The epic's own Jira status is often stale, so the dashboard derives the truth
+from the epic's child issues. Implemented as an editable rule table in
+`build_jira_data.py`:
+
+1. **Normalise** each child's Jira status → bucket: `todo` (New/To Do/Ready) ·
+   `wip` (In Progress/Review/Pre-Prod*/Reopened) · `qa` (In QA/Ready For QA) ·
+   `hold` (On Hold/Blocked) · `done` (Closed/Signed Off/Released/Deployed/…).
+2. Group by discipline; `Release`/`Release Subtask` are a **release signal**
+   (testing/deploy), not a discipline lane and not counted in hours.
+3. **Stage** = the most-downstream discipline currently active
+   (order design→art→math→dev→sound→qa); all-done → `done`; nothing started →
+   `concept`. (e.g. only a Design ticket WIP ⇒ stage **Design**.)
+4. **Workflow status** (first match): release done / all done → Signed Off ·
+   QA active or release in testing → In QA · nothing active + hold → On Hold ·
+   art/math/dev/sound WIP → In Production · design/pre-prod WIP → In Pre-Prod ·
+   else Not Started. With **no** children, fall back to mapping the epic status.
+
+**Supersedes #24** (the "default Not Started" rule) and the sprint-based
+`current_stage` derivation (#6/#26 step). Manual Plan Mode overrides still win
+(below).
+
+Rationale: a release ticket in testing while the epic still says "In Progress"
+should read as **In QA** — the tickets know the real state.
+
+---
+
+### #33 · ACTIVE · `axis` `data` · 2026-06-02
+**Sprint axis uses the boards' real sprint names + dates (V2 board 316, IG 250).**
+
+`SPRINTS` is built from `GET /rest/agile/1.0/board/{id}/sprint`: every sprint
+with a start date is kept (closed history + active + future), labelled with the
+board's own name (`V2 Sprint 2`, `IG Sprint 7`). Date-less sprints (e.g.
+"Refined Backlog") are dropped. Lane chips show a compact `S{n}` with the full
+name on hover; axis chips show the full name.
+
+**Supersedes** the S1=2026-05-11 anchored re-labelling in #27 (the axis layout,
+TODAY line, and sprint-boundary lines from #27 still stand). Board IDs are
+configured per project (`JIRA_BOARD_ID_V2=316`, `JIRA_BOARD_ID_IG=250`).
+
+---
+
+### Manual override (Decision #24 era, refined under #32)
+- A Plan Mode dropdown change stores `{prefix}status[game] = value` and
+  **supersedes** the auto-derived value. The row shows a `✎` mark; picking the
+  auto value again clears the override.
+- **Revert-to-auto** (↺) per game in Plan Mode clears the override.
+- **Drift flag**: when the auto-derived value later differs from a standing
+  override, the row shows `auto: <X>` so stale overrides are visible.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
@@ -508,12 +569,14 @@ the log above, the log is authoritative.**
 - Fully decoupled from the exec dashboard: no shared nav, no cross-links.
 - Single-project shells removed. Last-viewed tab remembered in `gp_active_project`.
 
-### Stage detection (#6, #26)
-- Latest active sprint ≤ TODAY → `current_stage`. No markers → `'concept'`.
+### Stage detection (#32)
+- Ticket-derived: most-downstream active discipline (design→…→qa); all-done →
+  `done`; nothing started → `concept`.
 
-### Workflow status (#24)
-- Default `Not Started`. Manual Plan Mode override only. Persisted to
-  `{prefix}status`.
+### Workflow status (#32)
+- Ticket-derived (Signed Off / In QA / On Hold / In Production / In Pre-Prod /
+  Not Started); no children → mapped from epic status. Manual Plan Mode override
+  supersedes (✎ mark, ↺ revert-to-auto, drift flag). Persisted to `{prefix}status`.
 
 ### Sizes (#25)
 - Manual Plan Mode override only, persisted to `{prefix}sizes`. Hidden on the row
@@ -530,10 +593,11 @@ Art 240 · Design 80 · Math 320 · Dev 480 · Sound 160 · QA 200
 ### Color thresholds (heatmap) (#10)
 `>cap` red · `>75%` amber+bold · `>40%` amber · `>0` green · `=0` neutral
 
-### Sprint axis (#27)
-- Anchor S1 = 2026-05-11, 14-day cadence. Chart starts at S1.
-- Sprint chips (label + date range), TODAY line + chip, faint sprint boundary lines.
-- `SPRINTS = [{label, start, end}, …]`, chronological.
+### Sprint axis (#27, #33)
+- Real board sprints (V2 board 316, IG board 250): all dated sprints, board's
+  own names (`V2 Sprint 2`, `IG Sprint 7`); date-less ones dropped.
+- Sprint chips (full name + date range), TODAY line + chip, faint sprint
+  boundary lines. Lane chips show compact `S{n}`. `SPRINTS = [{id,label,start,end}]`.
 
 ### localStorage keys (#22)
 Per-project prefix `gp_v2_` / `gp_ig_`:

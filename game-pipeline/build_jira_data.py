@@ -81,17 +81,55 @@ DISCIPLINE_BY_ISSUETYPE = {
     "sound task": "sound", "sound subtask": "sound",
     # qa
     "qa task": "qa", "qa subtask": "qa",
-    # design (TBD - confirm with user; harmless if these issuetypes don't exist)
-    "design task": "design", "design subtask": "design", "gdd task": "design",
+    # design
+    "design task": "design", "design subtask": "design",
+    "design sub-task": "design", "gdd task": "design",
 }
 DISCIPLINE_ORDER = ["art", "design", "math", "dev", "sound", "qa"]
 DISCIPLINE_LABEL = {
     "art": "Creative / Art", "design": "Design (GDD)", "math": "Math",
     "dev": "Development", "sound": "Sound", "qa": "QA",
 }
+# Downstream pipeline order used to pick the "current" discipline (Step 3).
+STAGE_PIPELINE = ["design", "art", "math", "dev", "sound", "qa"]
 
-EXCLUDE_ISSUETYPES = {"bug", "enhancement"}
-EXCLUDE_SUMMARY_RE = re.compile(r"^\s*(release|merge)\b", re.IGNORECASE)
+# Release tickets are a status SIGNAL (testing/deploy), not a discipline lane
+# and not counted in discipline hours.
+RELEASE_ISSUETYPES = {"release", "release subtask"}
+EXCLUDE_ISSUETYPES = {"bug", "enhancement", "live issue"}
+
+# --- Status inference rule tables (EDIT THESE to tune; Decision #32) ----------
+# Step 1: normalise every child issue's Jira status into one activity bucket.
+STATUS_BUCKET = {
+    # not started
+    "new": "todo", "to do": "todo", "todo": "todo", "ready": "todo",
+    "backlog": "todo", "open": "todo", "reopened from backlog": "todo",
+    # work in progress (incl. pre-prod variants and reopened)
+    "in progress": "wip", "in review": "wip", "review": "wip", "reopened": "wip",
+    "pre-prod in progress": "wip", "pre-prod in review": "wip",
+    "pre-prod reopened": "wip", "in development": "wip",
+    # qa / testing
+    "in qa": "qa", "ready for qa": "qa", "qa": "qa", "testing": "qa",
+    # on hold / blocked
+    "on hold": "hold", "blocked": "hold",
+    # done
+    "closed": "done", "signed off": "done", "released": "done",
+    "deployed": "done", "to be closed": "done", "known issue": "done", "done": "done",
+}
+# Statuses that specifically indicate the pre-production phase.
+PREPROD_STATUSES = {"pre-prod in progress", "pre-prod in review", "pre-prod reopened"}
+
+# Step 7 fallback: map the epic's own Jira status when it has NO usable children.
+EPIC_STATUS_MAP = {
+    "new": "Not Started", "to do": "Not Started", "backlog": "Not Started",
+    "in progress": "In Production", "in qa": "In QA",
+    "closed": "Signed Off", "done": "Signed Off", "released": "Signed Off",
+    "on hold": "On Hold",
+}
+
+
+def bucket(status: Optional[str]) -> str:
+    return STATUS_BUCKET.get((status or "").strip().lower(), "todo")
 
 # Sprint custom-field string form (legacy GreenHopper):
 #   com.atlassian.greenhopper.service.sprint.Sprint@x[id=123,...,name=Foo,startDate=...,endDate=...]
@@ -243,16 +281,14 @@ def anchored_label(start: date) -> Optional[str]:
 # ============================================================================
 #  Issue classification
 # ============================================================================
-def discipline_for(issuetype: str, summary: str, verbose_skips: list) -> Optional[str]:
-    """Map a child issue to a discipline key, or None if excluded/unmapped."""
+def classify_child(issuetype: str) -> str:
+    """Classify a child issue: 'exclude' | 'release' | <discipline key> | 'unmapped'."""
     it = (issuetype or "").strip().lower()
-    summ = summary or ""
-    if it in EXCLUDE_ISSUETYPES or EXCLUDE_SUMMARY_RE.match(summ):
-        return None
-    key = DISCIPLINE_BY_ISSUETYPE.get(it)
-    if key is None:
-        verbose_skips.append(f"{issuetype!r} :: {summary!r}")
-    return key
+    if it in EXCLUDE_ISSUETYPES:
+        return "exclude"
+    if it in RELEASE_ISSUETYPES:
+        return "release"
+    return DISCIPLINE_BY_ISSUETYPE.get(it, "unmapped")
 
 
 def _secs_to_hours(v: Any) -> float:
@@ -260,6 +296,89 @@ def _secs_to_hours(v: Any) -> float:
         return float(v) / 3600.0
     except (TypeError, ValueError):
         return 0.0
+
+
+# ============================================================================
+#  Status / stage inference  (Decision #32)
+# ============================================================================
+def _disc_flags(agg: dict) -> dict:
+    """Collapse a discipline's bucket counts into convenience flags."""
+    b = agg["buckets"]
+    n = b["todo"] + b["wip"] + b["qa"] + b["hold"] + b["done"]
+    return {
+        "n": n, "wip": b["wip"], "qa": b["qa"], "hold": b["hold"],
+        "done": b["done"], "todo": b["todo"], "preprod": agg.get("preprod", 0),
+        "active": (b["wip"] > 0 or b["qa"] > 0),
+    }
+
+
+def discipline_phase(agg: dict) -> str:
+    """Short phase label for a discipline (used in the detail tooltip)."""
+    f = _disc_flags(agg)
+    if f["qa"] > 0: return "qa"
+    if f["wip"] > 0: return "wip"
+    if f["n"] > 0 and f["done"] == f["n"]: return "done"
+    if f["hold"] > 0 and not f["active"]: return "hold"
+    if f["done"] > 0: return "partial"
+    if f["todo"] > 0: return "todo"
+    return "none"
+
+
+def derive_stage(aggs: dict) -> str:
+    """Step 3: the most-downstream discipline currently live (else done/concept)."""
+    flags = {k: _disc_flags(aggs[k]) for k in DISCIPLINE_ORDER}
+    rel = _disc_flags(aggs["_release"])
+    with_tickets = [k for k in DISCIPLINE_ORDER if flags[k]["n"] > 0]
+    if not with_tickets and not rel["n"]:
+        return "concept"
+    active = [k for k in STAGE_PIPELINE if flags[k]["active"]]
+    all_done = bool(with_tickets) and all(flags[k]["done"] == flags[k]["n"] for k in with_tickets) and not active
+    if (all_done and (rel["n"] == 0 or rel["done"] > 0)) or (rel["done"] > 0 and not active and not rel["active"]):
+        return "done"
+    if rel["active"]:
+        return "qa"            # release/testing in flight
+    if active:
+        return active[-1]      # most downstream active discipline
+    done_disc = [k for k in STAGE_PIPELINE if flags[k]["done"] > 0]
+    if done_disc:
+        return done_disc[-1]
+    return "concept"
+
+
+def derive_status(aggs: dict, epic_status: Optional[str]) -> str:
+    """Step 4: overall workflow status, ticket-derived (epic status is fallback)."""
+    flags = {k: _disc_flags(aggs[k]) for k in DISCIPLINE_ORDER}
+    rel = _disc_flags(aggs["_release"])
+    with_tickets = [k for k in DISCIPLINE_ORDER if flags[k]["n"] > 0]
+
+    # 7. no usable children -> map the epic's own Jira status
+    if not with_tickets and rel["n"] == 0:
+        return EPIC_STATUS_MAP.get((epic_status or "").strip().lower(), "Not Started")
+
+    active_any = any(flags[k]["active"] for k in DISCIPLINE_ORDER) or rel["active"]
+    hold_any = any(flags[k]["hold"] > 0 for k in DISCIPLINE_ORDER)
+    epic_hold = (epic_status or "").strip().lower() == "on hold"
+    all_done = bool(with_tickets) and all(flags[k]["done"] == flags[k]["n"] for k in with_tickets) and not active_any
+    # QA phase = the QA discipline is active (its tickets WIP or in-QA), or any
+    # discipline has an explicit in-QA ticket.
+    any_qa = flags["qa"]["active"] or any(flags[k]["qa"] > 0 for k in DISCIPLINE_ORDER)
+    prod_wip = any(flags[k]["wip"] > 0 for k in ("art", "math", "dev", "sound"))
+    design_wip = flags["design"]["wip"] > 0
+    any_preprod = any(flags[k]["preprod"] > 0 for k in DISCIPLINE_ORDER)
+
+    if (rel["done"] > 0 and not active_any) or all_done:
+        return "Signed Off"
+    if any_qa or rel["active"]:
+        return "In QA"
+    if not active_any and (hold_any or epic_hold):
+        return "On Hold"
+    if prod_wip:
+        return "In Production"
+    if design_wip or any_preprod:
+        return "In Pre-Prod"
+    if active_any:
+        return "In Production"
+    return "Not Started"
 
 
 # ============================================================================
@@ -297,15 +416,30 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             ["summary", "issuetype", "status", "timeoriginalestimate", "timespent",
              "assignee", sprint_field],
         )
-        disc_map: dict[str, dict] = {}
+        def _new_agg():
+            return {"est": 0.0, "spent": 0.0, "sprints": set(),
+                    "buckets": {"todo": 0, "wip": 0, "qa": 0, "hold": 0, "done": 0},
+                    "preprod": 0}
+        aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
+        aggs["_release"] = _new_agg()
         for ch in children:
             cf = ch.get("fields", {}) or {}
             itype = ((cf.get("issuetype") or {}).get("name")) or ""
-            summ = cf.get("summary") or ""
-            dkey = discipline_for(itype, summ, all_skips)
-            if dkey is None:
+            cat = classify_child(itype)
+            if cat == "exclude":
                 continue
-            d = disc_map.setdefault(dkey, {"est": 0.0, "spent": 0.0, "sprints": set()})
+            status_l = ((cf.get("status") or {}).get("name") or "").strip().lower()
+            bk = bucket(status_l)
+            if cat == "release":
+                aggs["_release"]["buckets"][bk] += 1
+                continue
+            if cat == "unmapped":
+                all_skips.append(f"{itype!r}")
+                continue
+            d = aggs[cat]
+            d["buckets"][bk] += 1
+            if status_l in PREPROD_STATUSES:
+                d["preprod"] += 1
             d["est"] += _secs_to_hours(cf.get("timeoriginalestimate"))
             d["spent"] += _secs_to_hours(cf.get("timespent"))
             for spr in parse_sprint_field(cf.get(sprint_field)):
@@ -319,22 +453,25 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
 
         disciplines = []
         for dkey in DISCIPLINE_ORDER:
-            d = disc_map.get(dkey)
-            est = round(d["est"], 2) if d else 0.0
-            spent = round(d["spent"], 2) if d else 0.0
+            d = aggs[dkey]
+            est = round(d["est"], 2)
+            spent = round(d["spent"], 2)
             disciplines.append({
                 "name": DISCIPLINE_LABEL[dkey],
                 "key": dkey,
                 "est": est,
                 "spent": spent,
                 "pct": round(spent / est, 4) if est > 0 else 0.0,
-                "sprints": sorted(d["sprints"]) if d else [],
+                "sprints": sorted(d["sprints"]),
+                "phase": discipline_phase(d),
             })
 
         est = round(sum(x["est"] for x in disciplines), 2)
         spent = round(sum(x["spent"] for x in disciplines), 2)
         assignee = ef.get("assignee") or {}
         priority = ef.get("priority") or {}
+        epic_status = (ef.get("status") or {}).get("name")
+        auto_status = derive_status(aggs, epic_status)
         games.append({
             "name": ef.get("customfield_10014") or ef.get("summary") or ekey,
             "jira": ekey,
@@ -345,13 +482,14 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             "pct": round(spent / est, 4) if est > 0 else 0.0,
             "dev_name": assignee.get("displayName"),
             "fixVersions": [v.get("name") for v in (ef.get("fixVersions") or []) if v.get("name")],
-            "status": (ef.get("status") or {}).get("name"),
+            "epic_status": epic_status,             # raw Jira status (reference)
+            "workflow_status": auto_status,         # derived (Decision #32)
             "disciplines": disciplines,
-            "workflow_status": "Not Started",   # Decision #24
-            "current_stage": "concept",         # filled below
+            "current_stage": derive_stage(aggs),    # derived (Decision #32)
         })
         if verbose:
-            print(f"   [{ei}/{len(epics)}] {ekey}: {len(children)} children, {est:.0f}h est")
+            print(f"   [{ei}/{len(epics)}] {ekey}: {len(children)} children, "
+                  f"{est:.0f}h · epic={epic_status} -> {auto_status} / {games[-1]['current_stage']}")
 
     # 6. SPRINTS — board query (preferred) merged with issue-derived metadata
     if board_id:
@@ -370,15 +508,15 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         except requests.HTTPError as exc:
             print(f"   {WARN} board {board_id} query failed ({exc}); using issue-derived sprints")
     else:
-        print(f"   {WARN} no board id ({cfg['board_env']}); using issue-derived sprints + S1 anchor")
+        print(f"   {WARN} no board id ({cfg['board_env']}); using issue-derived sprint dates only")
 
     sprints, kept_ids = build_sprint_list(sprint_meta)
 
-    # Drop discipline sprint ids that didn't resolve to a kept (>= S1) sprint.
+    # Keep only discipline sprint ids that resolved to a dated sprint.
+    # (current_stage / workflow_status are ticket-derived, independent of sprints.)
     for g in games:
         for d in g["disciplines"]:
             d["sprints"] = [sid for sid in d["sprints"] if sid in kept_ids]
-        g["current_stage"] = derive_current_stage(g["disciplines"], sprint_meta, kept_ids, today)
 
     if all_skips and verbose:
         uniq = sorted(set(all_skips))
@@ -390,41 +528,26 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
 
 
 def build_sprint_list(sprint_meta: dict[int, dict]) -> tuple[list[dict], set]:
-    """Turn collected sprint metadata into the anchored, chronological SPRINTS."""
+    """Build the SPRINTS list using the boards' real sprint names + dates.
+
+    Every sprint with a start date is kept (closed history + active + future),
+    chronological. Date-less sprints (e.g. "Refined Backlog") are dropped — they
+    can't be placed on a time axis. Label = the board's own sprint name.
+    """
     rows = []
     kept: set = set()
     for sid, meta in sprint_meta.items():
         start = meta.get("start")
         if start is None:
             continue
-        label = anchored_label(start)
-        if label is None:               # before S1 -> not shown (Decision #27)
-            continue
+        name = (meta.get("name") or "").strip() or f"Sprint {sid}"
         end = meta.get("end") or (start + timedelta(days=SPRINT_DAYS - 1))
-        rows.append({"id": sid, "label": label, "start": start, "end": end})
+        rows.append({"id": sid, "label": name, "start": start, "end": end})
         kept.add(sid)
     rows.sort(key=lambda r: r["start"])
     sprints = [{"id": r["id"], "label": r["label"],
                 "start": r["start"].isoformat(), "end": r["end"].isoformat()} for r in rows]
     return sprints, kept
-
-
-def derive_current_stage(disciplines: list[dict], sprint_meta: dict[int, dict],
-                         kept_ids: set, today: date) -> str:
-    """Discipline whose most recent active sprint is the latest one <= TODAY."""
-    best_key = None
-    best_start: Optional[date] = None
-    for d in disciplines:
-        for sid in d["sprints"]:
-            if sid not in kept_ids:
-                continue
-            start = sprint_meta.get(sid, {}).get("start")
-            if start is None or start > today:
-                continue
-            if best_start is None or start > best_start:
-                best_start = start
-                best_key = d["key"]
-    return best_key or "concept"
 
 
 # ============================================================================
@@ -511,13 +634,16 @@ def print_summary(proj_key: str, payload: dict) -> None:
     total_est = round(sum(g["est"] for g in games))
     total_spent = round(sum(g["spent"] for g in games))
     stage_dist: dict[str, int] = {}
+    status_dist: dict[str, int] = {}
     for g in games:
         stage_dist[g["current_stage"]] = stage_dist.get(g["current_stage"], 0) + 1
+        status_dist[g["workflow_status"]] = status_dist.get(g["workflow_status"], 0) + 1
     print(f"   {OK} {PROJECTS[proj_key]['key']}: {len(games)} games · {total_est}h est · "
           f"{total_spent}h spent · {len(sprints)} sprints")
+    if status_dist:
+        print("        status -> " + " ".join(f"{k}:{v}" for k, v in sorted(status_dist.items(), key=lambda x: -x[1])))
     if stage_dist:
-        dist = " ".join(f"{k}:{v}" for k, v in sorted(stage_dist.items(), key=lambda x: -x[1]))
-        print(f"        stages -> {dist}")
+        print("        stage  -> " + " ".join(f"{k}:{v}" for k, v in sorted(stage_dist.items(), key=lambda x: -x[1])))
 
 
 def main(argv: Optional[list[str]] = None) -> int:

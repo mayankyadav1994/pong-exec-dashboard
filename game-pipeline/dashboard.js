@@ -91,6 +91,11 @@ function sprintEnd(s) {
   if (s.end) return new Date(s.end);
   const d = new Date(s.start); d.setDate(d.getDate() + 13); return d;
 }
+// Compact label for narrow lane chips: "IG Sprint 7" -> "S7" (full name on hover).
+function shortSprint(label) {
+  const m = String(label || '').match(/(\d+)\s*$/);
+  return m ? 'S' + m[1] : String(label || '');
+}
 
 // ============================================================
 //  HELPERS
@@ -179,7 +184,7 @@ function buildSkeleton() {
 function buildFilterBar() {
   const statusGroup = document.getElementById('fbStatusGroup');
   const stageGroup = document.getElementById('fbStageGroup');
-  ['ALL', 'In Production', 'In QA', 'Not Started', 'Signed Off', 'On Hold'].forEach(k => {
+  ['ALL', 'Not Started', 'In Pre-Prod', 'In Production', 'In QA', 'On Hold', 'Signed Off'].forEach(k => {
     const c = document.createElement('span');
     c.className = 'fb-chip' + (k === 'ALL' ? ' on' : '');
     c.dataset.filterStatus = k; c.textContent = k === 'ALL' ? 'All' : k;
@@ -264,6 +269,8 @@ function renderRow(g, idx) {
   const label = document.createElement('div'); label.className = 'epic-label';
   const depIcon = (g.dependencies && g.dependencies.length) ? `<span class="dep-icon" title="Depends on ${g.dependencies.join(', ')}">🔗</span>` : '';
   const statusOptions = CONFIG.statuses.map(s => `<option value="${s.key}"${s.key === g.workflow_status ? ' selected' : ''}>${s.key}</option>`).join('');
+  const isOverride = USER_STATUS[g.name] != null;
+  const drift = isOverride && USER_STATUS[g.name] !== g._auto_status;
   let sizeRow = '';
   if (hasAnySize(g)) {
     const sz = gameSizes(g);
@@ -280,8 +287,9 @@ function renderRow(g, idx) {
       ${g.jira ? `<a class="epic-jira" href="${BASE}${g.jira}" target="_blank" onclick="event.stopPropagation()">${g.jira}</a>` : ''}
       <span class="epic-tag">#${idx + 1}</span>
       <span class="epic-stage ${stageCls(g.current_stage)}">${stageLabel(g.current_stage)}</span>
-      <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}</span>
-      <span class="plan-status-edit"><select data-game="${g.name}">${statusOptions}</select></span>
+      <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${isOverride ? ' <span class="ovr-mark" title="Manually set — auto-derived from Jira: ' + g._auto_status + '">✎</span>' : ''}</span>
+      ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
+      <span class="plan-status-edit"><select data-game="${g.name}">${statusOptions}</select>${isOverride ? `<button class="revert-auto" data-game="${g.name}" title="Revert to auto-derived (${g._auto_status})">↺</button>` : ''}</span>
     </div>${sizeRow}`;
 
   const track = document.createElement('div'); track.className = 'epic-track';
@@ -299,7 +307,7 @@ function renderRow(g, idx) {
       chip.className = 'lane-spr lane-' + dKey;
       chip.style.left = l + '%'; chip.style.width = w + '%'; chip.style.top = laneTop + 'px';
       chip.title = `${dKey.toUpperCase()} · ${s.label} (${fmtRange(s.start, end)})`;
-      chip.textContent = w > 3 ? s.label : '';
+      chip.textContent = w > 3 ? shortSprint(s.label) : '';
       track.appendChild(chip);
     });
     laneTop += 11;
@@ -327,9 +335,26 @@ function renderRow(g, idx) {
     sel.addEventListener('change', e => {
       e.stopPropagation();
       const game = RAW_GAMES.find(x => x.name === sel.dataset.game);
-      if (game) { game.workflow_status = sel.value; USER_STATUS[game.name] = sel.value; saveStatus(); showToast(`✓ ${game.name} → ${sel.value}`); renderRows(); renderKPI(); }
+      if (!game) return;
+      if (sel.value === game._auto_status) {            // picking auto clears the override
+        delete USER_STATUS[game.name]; game.workflow_status = game._auto_status;
+        showToast(`✓ ${game.name} → auto (${game._auto_status})`);
+      } else {                                          // manual override supersedes auto
+        USER_STATUS[game.name] = sel.value; game.workflow_status = sel.value;
+        showToast(`✎ ${game.name} → ${sel.value} (manual; auto was ${game._auto_status})`);
+      }
+      saveStatus(); renderRows(); renderKPI();
     });
     sel.addEventListener('click', e => e.stopPropagation());
+  });
+  label.querySelectorAll('.revert-auto').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const game = RAW_GAMES.find(x => x.name === btn.dataset.game);
+      if (!game) return;
+      delete USER_STATUS[game.name]; game.workflow_status = game._auto_status;
+      saveStatus(); showToast(`↺ ${game.name} reverted to auto (${game._auto_status})`); renderRows(); renderKPI();
+    });
   });
 
   item.draggable = true;
@@ -363,7 +388,9 @@ function renderRow(g, idx) {
 function renderDetail(g) {
   const panel = document.createElement('div'); panel.className = 'detail open'; panel.style.setProperty('--rc', gameColor(g));
   const head = document.createElement('div'); head.className = 'detail-head';
-  head.innerHTML = `<h3>${g.name} — Lifecycle Detail</h3><div class="meta"><strong>Stage</strong>: ${stageLabel(g.current_stage)} · <strong>Status</strong>: ${g.workflow_status} · <strong>Lead Dev</strong>: ${g.dev_name || '—'}</div>`;
+  const ovr = (USER_STATUS[g.name] != null);
+  const ovrNote = ovr ? ` · <span style="color:#d97706">✎ manual (auto: ${g._auto_status})</span>` : '';
+  head.innerHTML = `<h3>${g.name} — Lifecycle Detail</h3><div class="meta"><strong>Stage</strong>: ${stageLabel(g.current_stage)} · <strong>Status</strong>: ${g.workflow_status}${ovrNote} · <strong>Jira epic</strong>: ${g.epic_status || '—'} · <strong>Lead Dev</strong>: ${g.dev_name || '—'}</div>`;
   panel.appendChild(head);
   const tabs = document.createElement('div'); tabs.className = 'detail-tabs';
   tabs.innerHTML = `<div class="detail-tab active" data-tab="timeline">TIMELINE</div><div class="detail-tab" data-tab="milestones">SPRINTS</div><div class="detail-tab" data-tab="hours">HOURS</div>`;
@@ -607,7 +634,11 @@ function mount(projectKey, container) {
     const missing = RAW_GAMES.filter(g => !USER_ORDER.includes(g.name));
     RAW_GAMES = [...ordered, ...missing];
   }
-  RAW_GAMES.forEach(g => { if (USER_STATUS[g.name]) g.workflow_status = USER_STATUS[g.name]; });
+  // Preserve the Jira-derived value, then apply any manual override on top.
+  RAW_GAMES.forEach(g => {
+    g._auto_status = g.workflow_status;            // derived from Jira (Decision #32)
+    if (USER_STATUS[g.name]) g.workflow_status = USER_STATUS[g.name];
+  });
 
   activeFilters = { status: 'ALL', stage: 'ALL', search: '' };
   currentView = 'roadmap'; planMode = false; openPanel = null; dragSrcIdx = null;

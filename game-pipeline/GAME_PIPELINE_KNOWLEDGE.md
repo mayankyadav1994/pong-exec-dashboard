@@ -182,13 +182,15 @@ One page's Plan Mode state never affects the other.
 
 ### 3.3 The status/stage distinction (unchanged, still critical)
 
-- **Lifecycle Stage** — auto-derived, color-coded. The discipline whose most
-  recent active sprint is the latest one ≤ TODAY. Cannot be edited.
-- **Workflow Status** — manual, outlined monochrome. Default `Not Started`
-  (Decision #24); only Plan Mode dropdowns set it. Persisted to
-  `{prefix}status`.
+- **Lifecycle Stage** — auto-derived, color-coded. The most-downstream
+  discipline currently active, inferred from child-ticket states (Decision #32).
+  Cannot be edited.
+- **Workflow Status** — auto-derived from child-ticket states (Signed Off / In QA
+  / On Hold / In Production / In Pre-Prod / Not Started; epic status is the
+  no-children fallback). A Plan Mode **manual override** supersedes it (shown with
+  a ✎ mark, with ↺ revert-to-auto and a drift flag). Persisted to `{prefix}status`.
 
-See Decision #2 in the logic ledger.
+See Decisions #2 and #32 in the logic ledger.
 
 ### 3.4 Sprint axis (matches the exec timeline dashboards exactly — Decision #27)
 
@@ -280,7 +282,7 @@ Flow per project:
 2. Per epic, fetch children — `parent = {epicKey}` with the project's sprint field.
 3. Group children by discipline (§2.2), applying exclusions.
 4. Aggregate hours + `sprints_active` per (game × discipline).
-5. Derive `current_stage` (latest active sprint ≤ TODAY) and `workflow_status`
+5. Derive `current_stage` and `workflow_status` from child-ticket states (#32)
    (default `Not Started`).
 6. Build the global `SPRINTS` list from the project's agile board
    (`GET /rest/agile/1.0/board/{boardId}/sprint?state=active,closed,future`),

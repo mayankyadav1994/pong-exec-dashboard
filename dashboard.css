@@ -140,6 +140,12 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .epic-status.s-signed{color:#14532d;border-color:rgba(22,163,74,.4);background:rgba(22,163,74,.06)}
 .epic-status.s-hold{color:#374151;border-color:rgba(75,85,99,.5);background:rgba(75,85,99,.10)}
 
+/* manual-override mark + drift note */
+.ovr-mark{color:#d97706;font-weight:700;cursor:help}
+.status-drift{font-size:9px;font-weight:600;color:#b45309;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.35);border-radius:3px;padding:1px 5px;font-family:'IBM Plex Mono';cursor:help}
+.revert-auto{margin-left:4px;font-size:10px;line-height:1;padding:2px 5px;border:1px solid var(--border2);border-radius:3px;background:var(--surface);color:var(--muted);cursor:pointer}
+.revert-auto:hover{color:#d97706;border-color:#d97706}
+
 /* WORKFLOW STATUS - dropdown (plan mode) */
 .plan-status-edit{display:none;position:relative}
 .plan-mode-on-body .plan-status-edit{display:inline-block}
