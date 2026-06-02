@@ -27,6 +27,31 @@ A Gantt-style fix version delivery forecast showing:
 
 ---
 
+## 1.5 How the FV list is built (auto-discovery + config overrides)
+
+The dashboard's list of fix versions is **not** dictated by `config/v2.json`. It's auto-discovered from Jira on every run, then layered with config priority + metadata overrides. New FVs created in Jira appear automatically; FVs released or archived in Jira drop out without any human touching the config.
+
+Per workflow run:
+
+1. `v2_timeline.py` calls `GET /project/V2/versions` and keeps only those where `released:false` and `archived:false` — set **J**.
+2. `config/v2.json` provides `fv_order` (priority hint) and `fv_meta` (per-FV overrides — **C_order**, **C_meta**).
+3. `_build_fv_config_live(J, _CONFIG)` produces the active `FV_CONFIG`:
+   - FVs in **C_order** that exist in **J** keep their config position.
+   - FVs in **J** but not in **C_order** are appended, sorted by `releaseDate` ascending (null → bottom, ties by name).
+   - FVs in **C_order** no longer in **J** drop out silently.
+4. Metadata layering per FV:
+   - If the name matches a `DEFAULT_FV_CONFIG` entry (the V2 hardcoded fallback that has the full schema including `isLab`, `lab1Weeks`, `salesTrip`, `indev_style`), those defaults apply first.
+   - Otherwise: grey colour, 2 QA weeks, subtitle from the Jira version's `description`.
+   - **C_meta[name]** is layered on top — anything the config sets wins.
+
+**Implications:**
+
+- A new regulated release (e.g., `V2 P2P 17.00`) appears without lab-pipeline rendering until you add `isLab/lab*Weeks/salesTrip` either by hand-editing the JSON or via a future Plan Editor enhancement.
+- An FV released in Jira will disappear from the dashboard on the next workflow run.
+- The §2 table below is the historical/current expected list. It can drift from what's actually rendered — Jira is the source of truth.
+
+---
+
 ## 2. Fix Versions in Scope (Priority Order)
 
 | # | Fix Version | Jira Name | Theme | Dev Status | QA Weeks | Regulated? |

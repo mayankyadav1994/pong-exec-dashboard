@@ -29,6 +29,26 @@ A Gantt-style fix version delivery forecast for iGaming releases. Same shape as 
 
 ---
 
+## 1.5 How the FV list is built (auto-discovery + config overrides)
+
+The dashboard's list of fix versions is **not** dictated by `config/igaming.json`. It's auto-discovered from Jira on every run, then layered with config priority + metadata overrides. This means new FVs created in Jira appear automatically, and FVs released or archived in Jira drop out without any human touching the config.
+
+Specifically, on every workflow run:
+
+1. `igaming_timeline.py` calls `GET /project/IG/versions` and keeps only those where `released:false` and `archived:false` — call this set **J**.
+2. `config/igaming.json` is read for `fv_order` (priority hint) and `fv_meta` (per-FV overrides — call them **C_order** and **C_meta**).
+3. `merge_fv_lists(J, C_order, C_meta)` produces the active list:
+   - FVs in **C_order** that exist in **J** keep their config position.
+   - FVs in **J** that aren't in **C_order** are appended, sorted by `releaseDate` ascending (null/missing → bottom, ties by name).
+   - FVs in **C_order** that no longer exist in **J** (released, archived, renamed) are dropped silently.
+4. For each rendered FV, metadata defaults come from the Jira version (`releaseDate`, `description` as subtitle, `#94a3b8` grey colour, 2 QA weeks). Anything **C_meta** specifies wins.
+
+**Implication:** A FV with no entry in `fv_meta` shows up in grey with default styling. The first time the manager customizes it through the Plan Editor and clicks Save-as-default, `fv_meta[name]` is written to the config; the FV's appearance is now "configured" and persists.
+
+The §2 table below is the historical/current expected list of FVs. It can drift from what's actually rendered — Jira is the source of truth.
+
+---
+
 ## 2. Fix Versions in Scope (Priority Order)
 
 iGaming spans **three product lines**: ELG, PFH2, and Horse Play. Initial order: real releases by date ascending, then bucket FVs.

@@ -15,7 +15,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from jira_client import jira_jql
+from jira_client import jira_get, jira_jql
 
 # Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
 # default cp1252 stdout encoding can't handle them. No-op on Linux CI.
@@ -123,8 +123,75 @@ def _build_fv_config(cfg):
 
 
 _CONFIG = load_config()
+# FV_CONFIG is the *initial* fallback. main() refreshes it after fetching the
+# live list of unreleased fix versions from Jira so the dashboard reflects
+# what's actually in Jira right now (not just what the config has memorised).
 FV_CONFIG = _build_fv_config(_CONFIG)
 HIDDEN_FVS_DEFAULT = _CONFIG.get("hidden_fvs") or DEFAULT_HIDDEN_FVS
+
+
+def fetch_unreleased_fvs():
+    """Fetch all unreleased, non-archived fix versions for the V2 project.
+    Returns list of dicts: {name, id, releaseDate, description}."""
+    data = jira_get("/project/V2/versions")
+    out = []
+    for v in data:
+        if v.get("released") or v.get("archived"):
+            continue
+        name = v.get("name") or ""
+        if not name:
+            continue
+        out.append({
+            "name":        name,
+            "id":          v.get("id"),
+            "releaseDate": v.get("releaseDate"),
+            "description": v.get("description", "") or "",
+        })
+    return out
+
+
+def _merge_fv_order(jira_fvs, config_order):
+    """Combine config priority + Jira reality into a single ordered name list.
+    FVs in config that exist in Jira keep their config position; FVs in Jira
+    but not in config are appended (sorted by releaseDate); FVs in config but
+    not in Jira drop out."""
+    jira_names = {fv["name"]: fv for fv in jira_fvs}
+    out, seen = [], set()
+    for name in config_order:
+        if name in jira_names and name not in seen:
+            out.append(name)
+            seen.add(name)
+    extras = [fv for fv in jira_fvs if fv["name"] not in seen]
+    extras.sort(key=lambda f: (f.get("releaseDate") or "9999-99-99", f["name"]))
+    for fv in extras:
+        out.append(fv["name"])
+    return out
+
+
+def _build_fv_config_live(jira_fvs, cfg):
+    """Like _build_fv_config but Jira's live list drives existence. Config is
+    used only for priority order and per-FV metadata overrides. FVs that
+    aren't in DEFAULT_FV_CONFIG fall back to grey + 2 weeks QA + description
+    from Jira as their subtitle — the manager can customize via Plan Editor."""
+    default_by_key = {c["key"]: c for c in DEFAULT_FV_CONFIG}
+    meta = (cfg or {}).get("fv_meta") or {}
+    cfg_order = (cfg or {}).get("fv_order") or []
+    jira_by_name = {f["name"]: f for f in jira_fvs}
+    out = []
+    for name in _merge_fv_order(jira_fvs, cfg_order):
+        if name in default_by_key:
+            merged = dict(default_by_key[name])
+        else:
+            jira_fv = jira_by_name.get(name, {})
+            merged = {
+                "color":   "#94a3b8",
+                "sub":     jira_fv.get("description") or "",
+                "qaWeeks": 2,
+            }
+        merged.update(meta.get(name, {}))
+        merged["key"] = name
+        out.append(merged)
+    return out
 
 DEV_TYPES   = ["Story", "Dev Task", "Dev Subtask"]
 OTHER_TYPES = ["Creative Task", "Creative Subtask", "Sound Task", "Sound Subtask",
@@ -436,6 +503,23 @@ def build_fv(cfg):
 
 def main():
     print(f"▶ Building V2 timeline — {TODAY}")
+
+    # Refresh FV_CONFIG against Jira's live unreleased FV list. The config
+    # provides priority order + metadata overrides (color, qaWeeks, lab
+    # pipeline, sales trip), but Jira decides what actually exists. FVs
+    # released or archived in Jira drop out automatically; new ones appear
+    # with sensible defaults that the manager can customize via Plan Editor.
+    global FV_CONFIG
+    print("  Fetching unreleased fix versions from Jira …")
+    jira_fvs = fetch_unreleased_fvs()
+    print(f"    {len(jira_fvs)} unreleased fix versions: {[f['name'] for f in jira_fvs]}")
+    FV_CONFIG = _build_fv_config_live(jira_fvs, _CONFIG)
+    cfg_order = set((_CONFIG.get('fv_order') or []))
+    new_fvs   = [c['key'] for c in FV_CONFIG if c['key'] not in cfg_order]
+    gone_fvs  = [n for n in cfg_order if n not in {f['name'] for f in jira_fvs}]
+    if new_fvs:  print(f"    auto-added (not in config): {new_fvs}")
+    if gone_fvs: print(f"    dropped (released/archived/renamed in Jira): {gone_fvs}")
+
     fvs = [build_fv(cfg) for cfg in FV_CONFIG]
     print()
 

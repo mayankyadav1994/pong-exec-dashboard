@@ -16,7 +16,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from jira_client import jira_jql
+from jira_client import jira_get, jira_jql
 
 # Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
 # default cp1252 stdout encoding can't handle them. No-op on Linux CI.
@@ -92,9 +92,81 @@ def load_config():
 
 
 _CONFIG = load_config()
+
+# ── FV list — auto-discovered from Jira, layered with config overrides ──
+# These are the *initial* values at module load. main() refreshes them after
+# fetching the live list of unreleased fix versions from Jira. The config is
+# used for priority order and per-FV metadata overrides (color, qaWeeks,
+# milestones, etc.) — not for deciding which FVs to render. FVs released
+# or archived in Jira drop out automatically; new unreleased FVs appear
+# with default styling that the manager can customize via Plan Editor.
 FV_ORDER    = _CONFIG.get("fv_order")    or DEFAULT_FV_ORDER
 FV_META     = _CONFIG.get("fv_meta")     or DEFAULT_FV_META
 HIDDEN_FVS_DEFAULT = _CONFIG.get("hidden_fvs") or DEFAULT_HIDDEN_FVS
+
+
+def fetch_unreleased_fvs():
+    """Fetch all unreleased, non-archived fix versions for the IG project.
+    Returns list of dicts: {name, id, releaseDate, description}."""
+    data = jira_get("/project/IG/versions")
+    out = []
+    for v in data:
+        if v.get("released") or v.get("archived"):
+            continue
+        name = v.get("name") or ""
+        if not name:
+            continue
+        out.append({
+            "name":        name,
+            "id":          v.get("id"),
+            "releaseDate": v.get("releaseDate"),
+            "description": v.get("description", "") or "",
+        })
+    return out
+
+
+def merge_fv_lists(jira_fvs, config_order, config_meta):
+    """Combine Jira's live list of unreleased FVs with the config's priority
+    order + metadata overrides. Returns (active_order, active_meta).
+
+    Rules:
+      * FVs in config_order that exist in Jira keep their config position.
+      * FVs in Jira but not in config_order are appended, sorted by
+        releaseDate ascending (null/missing → bottom, ties by name).
+      * FVs in config_order that no longer exist in Jira (released, archived,
+        renamed) drop out silently.
+
+    Metadata layering for each rendered FV:
+      * Start with defaults sourced from the Jira version (release date,
+        description). Color defaults to grey so newly-discovered FVs are
+        visually distinguishable.
+      * Layer config_meta[name] on top — any field the config sets wins,
+        but fields the config doesn't set keep their auto-defaults.
+    """
+    jira_names = {fv["name"]: fv for fv in jira_fvs}
+
+    out_order = []
+    seen = set()
+    for name in config_order:
+        if name in jira_names and name not in seen:
+            out_order.append(name)
+            seen.add(name)
+    extras = [fv for fv in jira_fvs if fv["name"] not in seen]
+    extras.sort(key=lambda f: (f.get("releaseDate") or "9999-99-99", f["name"]))
+    for fv in extras:
+        out_order.append(fv["name"])
+
+    out_meta = {}
+    for name in out_order:
+        jira_fv = jira_names[name]
+        defaults = {
+            "color":   "#94a3b8",  # grey — easy to spot until manager customizes
+            "sub":     jira_fv.get("description") or "",
+            "qaWeeks": 2,
+            "release": jira_fv.get("releaseDate"),
+        }
+        out_meta[name] = {**defaults, **(config_meta.get(name) or {})}
+    return out_order, out_meta
 
 # Status badge styles (§3.5)
 STATUS_STYLES = {
@@ -514,6 +586,22 @@ def make_sprint_header(sprint_data):
 
 def main():
     print(f"▶ Building iGaming timeline — {TODAY}")
+
+    # Refresh FV_ORDER and FV_META against Jira's live unreleased FV list.
+    # The config (loaded at module init) provides priority order + metadata
+    # overrides, but Jira decides what actually exists. See merge_fv_lists()
+    # for the rules.
+    global FV_ORDER, FV_META
+    print("  Fetching unreleased fix versions from Jira …")
+    jira_fvs = fetch_unreleased_fvs()
+    print(f"    {len(jira_fvs)} unreleased fix versions: {[f['name'] for f in jira_fvs]}")
+    FV_ORDER, FV_META = merge_fv_lists(jira_fvs, _CONFIG.get("fv_order") or [], _CONFIG.get("fv_meta") or {})
+    # Diagnostics: what landed where
+    cfg_order = set(_CONFIG.get("fv_order") or [])
+    new_fvs   = [n for n in FV_ORDER if n not in cfg_order]
+    gone_fvs  = [n for n in cfg_order if n not in {f["name"] for f in jira_fvs}]
+    if new_fvs:  print(f"    auto-added (not in config): {new_fvs}")
+    if gone_fvs: print(f"    dropped (released/archived/renamed in Jira): {gone_fvs}")
 
     print("  Fetching epics …")
     epics_raw = fetch_epics()
