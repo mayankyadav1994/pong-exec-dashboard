@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Game Pipeline — Pong Game Studios</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab">Overview</a>
+    <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
+    <a href="igaming-timeline.html" class="site-tab">iGaming Timeline</a>
+    <a href="game-pipeline.html" class="site-tab active">Game Pipeline</a>
+  </div>
+</nav>
+
+<div class="gp-subtabs" id="gpSubtabs">
+  <button class="gp-subtab active" data-project="v2"><span class="gp-dot"></span>V2</button>
+  <button class="gp-subtab" data-project="ig"><span class="gp-dot"></span>iGaming</button>
+</div>
+
+<div id="gp-app"></div>
+
+<!-- Both data files load: each publishes window.GP_DATA[<key>], no collision -->
+<script src="dashboard-data-v2.js"></script>
+<script src="dashboard-data-ig.js"></script>
+<script src="dashboard.js"></script>
+<script>
+(function () {
+  function start() {
+    var app = document.getElementById('gp-app');
+    var tabs = document.getElementById('gpSubtabs');
+    function show(key) {
+      var btns = tabs.querySelectorAll('.gp-subtab');
+      for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].dataset.project === key);
+      window.GamePipeline.mount(key, app);
+      try { localStorage.setItem('gp_active_project', key); } catch (e) {}
+    }
+    tabs.addEventListener('click', function (e) {
+      var b = e.target.closest('.gp-subtab');
+      if (b) show(b.dataset.project);
+    });
+    var initial = 'v2';
+    try { initial = localStorage.getItem('gp_active_project') || 'v2'; } catch (e) {}
+    if (!window.GP_DATA || !window.GP_DATA[initial]) initial = 'v2';
+    show(initial);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
+})();
+</script>
+</body>
+</html>

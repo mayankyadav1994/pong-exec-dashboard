@@ -127,17 +127,25 @@ manual Plan Mode overrides stored in `localStorage`. See §7.
 
 ## 3. Dashboard Architecture
 
-### 3.1 Two shells, one shared engine
+### 3.1 One combined page + shared engine (Decisions #29, #30)
 
 ```
-v2-game-pipeline.html        ─┐
-igaming-game-pipeline.html   ─┤→ set window.PROJECT, then load shared engine
-                              │
-dashboard.css   ← shared styling
-dashboard.js    ← shared engine (reads window.PROJECT + GAMES + SPRINTS)
-dashboard-data-v2.js   ← const GAMES / SPRINTS / REFRESHED_AT  (V2)
-dashboard-data-ig.js   ← const GAMES / SPRINTS / REFRESHED_AT  (iGaming)
+game-pipeline.html           ← PRIMARY: site nav + V2|iGaming sub-tabs,
+                                loads BOTH data files, switches in place via
+                                window.GamePipeline.mount(key, container)
+v2-game-pipeline.html        ─┐ standalone deep-links: set window.PROJECT,
+igaming-game-pipeline.html   ─┘ engine auto-mounts that one project
+dashboard.css   ← shared styling (incl. site nav + sub-tabs + sprint axis)
+dashboard.js    ← shared engine; re-mountable; reads window.GP_DATA[key]
+dashboard-data-v2.js   ← window.GP_DATA['v2'] = {games,sprints,refreshed_at}
+dashboard-data-ig.js   ← window.GP_DATA['ig'] = {games,sprints,refreshed_at}
 ```
+
+The combined page can load both data files because each publishes a namespaced
+`window.GP_DATA[<project>]` object rather than a bare `const GAMES` (which would
+collide). The engine exposes `window.GamePipeline.mount(projectKey, el)` to
+render/switch a project into a container; standalone shells set `window.PROJECT`
+and the engine auto-mounts on load.
 
 Each shell sets a `window.PROJECT` object **before** loading the data file and
 the engine:
@@ -327,8 +335,9 @@ user's curation.
 
 | File | Purpose |
 |---|---|
-| `v2-game-pipeline.html` | V2 shell — sets `window.PROJECT`, loads engine |
-| `igaming-game-pipeline.html` | iGaming shell |
+| `game-pipeline.html` | **Primary** combined page — site nav + V2/iGaming sub-tabs |
+| `v2-game-pipeline.html` | V2 standalone shell — sets `window.PROJECT`, loads engine |
+| `igaming-game-pipeline.html` | iGaming standalone shell |
 | `dashboard.css` | Shared styling (incl. sprint axis: `.sp-chip`, `.sp-line`, `.ax-today`) |
 | `dashboard.js` | Shared engine, parameterized by `window.PROJECT` |
 | `dashboard-data-v2.js` | Built V2 data (`GAMES`, `SPRINTS`, `REFRESHED_AT`) |

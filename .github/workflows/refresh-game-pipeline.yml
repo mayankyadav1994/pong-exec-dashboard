@@ -31,6 +31,7 @@ jobs:
           JIRA_BOARD_ID_V2: '316'   # V2 Scrum board (axis only; V2 issues are Kanban/no sprints)
           JIRA_BOARD_ID_IG: '250'   # iGaming board
       - run: |
+          cp game-pipeline/game-pipeline.html .
           cp game-pipeline/v2-game-pipeline.html .
           cp game-pipeline/igaming-game-pipeline.html .
           cp game-pipeline/dashboard.js .

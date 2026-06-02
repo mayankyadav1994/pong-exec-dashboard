@@ -14,8 +14,9 @@ site.
 
 ```
 pong_game_pipeline\
-├── v2-game-pipeline.html          V2 shell (sets window.PROJECT, loads engine)
-├── igaming-game-pipeline.html     iGaming shell
+├── game-pipeline.html             PRIMARY combined page (site nav + V2/iGaming sub-tabs)
+├── v2-game-pipeline.html          V2 standalone shell (sets window.PROJECT)
+├── igaming-game-pipeline.html     iGaming standalone shell
 ├── dashboard.css                  Shared styling (incl. sprint axis)
 ├── dashboard.js                   Shared engine, parameterized by window.PROJECT
 ├── dashboard-data-v2.js           Built V2 data (GAMES / SPRINTS / REFRESHED_AT)

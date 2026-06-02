@@ -423,16 +423,65 @@ config in one place.
 
 ---
 
+### #29 · ACTIVE · `ui` `architecture` · 2026-06-02
+**Single combined `game-pipeline.html` page with V2 / iGaming sub-tabs.**
+
+Instead of two separate URLs, the primary artifact is one `game-pipeline.html`
+that carries the shared site nav (Overview · V2 Timeline · iGaming Timeline ·
+Game Pipeline, matching `index.html`) plus a V2 | iGaming sub-toggle that swaps
+the dataset **in place, no reload**. A "Game Pipeline" tab was added to the nav
+of the other pages (and their templates / `build_dashboard.py`) for
+discoverability. The standalone `v2-game-pipeline.html` /
+`igaming-game-pipeline.html` shells are retained as deep-links.
+
+To switch projects in one page the engine became re-mountable:
+`window.GamePipeline.mount('v2'|'ig', containerEl)` rebuilds the dashboard into a
+container; per-project `localStorage` namespacing (#22) keeps the two tabs'
+state independent. The last-viewed tab is remembered in `gp_active_project`.
+
+Rationale: the user asked for V2 and iGaming "on the same panel" like the
+release-timeline pages share one nav. One page with tabs is the natural fit.
+
+---
+
+### #30 · ACTIVE · `data` `architecture` · 2026-06-02
+**Data files publish `window.GP_DATA[<project>]` instead of bare `const GAMES`.**
+
+Each `dashboard-data-{project}.js` now does:
+
+```js
+window.GP_DATA = window.GP_DATA || {};
+window.GP_DATA['v2'] = { games:[...], sprints:[{id,label,start,end}], refreshed_at:'...' };
+```
+
+This lets the combined page (#29) load **both** project data files without a
+duplicate top-level `const` collision. The engine reads
+`window.GP_DATA[key]`; standalone shells (which set `window.PROJECT`) read the
+same global. Replaces the earlier `const GAMES / SPRINTS / REFRESHED_AT` form.
+
+Rationale: two `const GAMES` declarations in one page's global scope is a
+SyntaxError; a namespaced object sidesteps it and is cleaner to extend.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
 the log above, the log is authoritative.**
 
-### Data source (#23)
+### Data source (#23, #30)
 - Jira REST API only. No Excel.
 - Game = Epic (`fixVersion IS NOT EMPTY`). Discipline = child issuetype grouping.
 - Hours from `timeoriginalestimate` / `timespent` (÷3600). Lead dev = epic assignee.
-- Built per project → `dashboard-data-{v2,ig}.js`.
+- Built per project → `dashboard-data-{v2,ig}.js`, each publishing
+  `window.GP_DATA['v2'|'ig'] = { games, sprints, refreshed_at }`.
+
+### Pages (#29)
+- Primary: `game-pipeline.html` — shared site nav + V2/iGaming sub-tabs,
+  in-place switch via `window.GamePipeline.mount(key, el)`.
+- Standalone deep-links retained: `v2-game-pipeline.html`,
+  `igaming-game-pipeline.html` (set `window.PROJECT`).
+- Last-viewed sub-tab remembered in `gp_active_project`.
 
 ### Stage detection (#6, #26)
 - Latest active sprint ≤ TODAY → `current_stage`. No markers → `'concept'`.
