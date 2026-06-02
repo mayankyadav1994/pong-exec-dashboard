@@ -77,14 +77,17 @@ issuetype:
 Anything that maps to none of the above is logged as a warning (with
 `--verbose`) and skipped.
 
-### 2.3 Hours
+### 2.3 Hours (full subtree — Decision #37)
 
-Per child issue, in seconds from Jira, divided by 3600 to hours:
-- `est`   = Σ `timeoriginalestimate` / 3600
-- `spent` = Σ `timespent` / 3600
+Hours are summed over the **whole epic subtree** — direct children **and** their
+sub-tasks (`parent in (childKeys)`), each classified by its own issuetype:
+- `spent` = Σ every issue's own `timespent` / 3600 (leaf-level, no double-count)
+- `est`   = sub-task estimates where a child has classified sub-tasks, else the
+  child's own `timeoriginalestimate` (sub-task-or-parent fallback)
 - `pct`   = `spent / est` if `est > 0` else `0`
 
-Aggregated per (game × discipline) and per game.
+Aggregated per (game × discipline) and per game. (A direct-children-only sum
+undercounted by ~10–20× because the real worklogs live on sub-tasks.)
 
 ### 2.4 Sprint markers (the timeline signal)
 

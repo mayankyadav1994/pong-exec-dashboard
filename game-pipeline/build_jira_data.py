@@ -442,38 +442,52 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     for ei, epic in enumerate(epics, 1):
         ekey = epic.get("key")
         ef = epic.get("fields", {}) or {}
-        children = client.search_jql(
-            f"parent = {ekey}",
-            ["summary", "issuetype", "status", "timeoriginalestimate", "timespent",
-             "assignee", sprint_field],
-        )
+        # Full subtree: epic's direct children + their sub-tasks (Decision #37).
+        ISSUE_FIELDS = ["issuetype", "status", "timeoriginalestimate", "timespent", sprint_field]
+        children = client.search_jql(f"parent = {ekey}", ISSUE_FIELDS + ["subtasks"])
+        child_keys = [c.get("key") for c in children if c.get("key")]
+        subtasks = []
+        for i in range(0, len(child_keys), 50):     # chunk the parent-in query
+            chunk = child_keys[i:i + 50]
+            subtasks += client.search_jql(
+                "parent in (" + ",".join(chunk) + ")", ISSUE_FIELDS + ["parent"])
+
         def _new_agg():
             return {"est": 0.0, "spent": 0.0, "sprints": set(),
                     "buckets": {"todo": 0, "wip": 0, "qa": 0, "hold": 0, "done": 0},
                     "preprod": 0}
         aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
         aggs["_release"] = _new_agg()
-        for ch in children:
-            cf = ch.get("fields", {}) or {}
-            itype = ((cf.get("issuetype") or {}).get("name")) or ""
+
+        # Count classified sub-tasks per parent → drives the estimate fallback.
+        classified_subs = {}
+        for st in subtasks:
+            sf = st.get("fields", {}) or {}
+            pk = (sf.get("parent") or {}).get("key")
+            if pk and classify_child(((sf.get("issuetype") or {}).get("name")) or "") not in ("exclude", "unmapped"):
+                classified_subs[pk] = classified_subs.get(pk, 0) + 1
+
+        def add_issue(fields, include_est):
+            itype = ((fields.get("issuetype") or {}).get("name")) or ""
             cat = classify_child(itype)
             if cat == "exclude":
-                continue
-            status_l = ((cf.get("status") or {}).get("name") or "").strip().lower()
+                return
+            status_l = ((fields.get("status") or {}).get("name") or "").strip().lower()
             bk = bucket(status_l)
             if cat == "release":
-                aggs["_release"]["buckets"][bk] += 1
-                continue
+                aggs["_release"]["buckets"][bk] += 1     # signal only — no hours
+                return
             if cat == "unmapped":
                 all_skips.append(f"{itype!r}")
-                continue
+                return
             d = aggs[cat]
             d["buckets"][bk] += 1
             if status_l in PREPROD_STATUSES:
                 d["preprod"] += 1
-            d["est"] += _secs_to_hours(cf.get("timeoriginalestimate"))
-            d["spent"] += _secs_to_hours(cf.get("timespent"))
-            for spr in parse_sprint_field(cf.get(sprint_field)):
+            d["spent"] += _secs_to_hours(fields.get("timespent"))        # every issue's own time
+            if include_est:
+                d["est"] += _secs_to_hours(fields.get("timeoriginalestimate"))
+            for spr in parse_sprint_field(fields.get(sprint_field)):
                 sid = spr["id"]
                 if spr["start"] is not None:
                     meta = sprint_meta.setdefault(sid, {"start": None, "end": None, "name": None})
@@ -481,6 +495,14 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                     meta["end"] = meta["end"] or spr["end"]
                     meta["name"] = meta["name"] or spr["name"]
                 d["sprints"].add(sid)
+
+        # Children: count own estimate only when they have NO classified sub-task
+        # (otherwise the sub-task estimates represent the work).
+        for ch in children:
+            add_issue(ch.get("fields", {}) or {}, classified_subs.get(ch.get("key"), 0) == 0)
+        # Sub-tasks: always contribute their own est + spent.
+        for st in subtasks:
+            add_issue(st.get("fields", {}) or {}, True)
 
         disciplines = []
         for dkey in DISCIPLINE_ORDER:
@@ -530,8 +552,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         })
         if verbose:
             tag = f" delivered {delivered['fv']}@{delivered['date']}" if delivered else ""
-            print(f"   [{ei}/{len(epics)}] {ekey}: {len(children)} children, "
-                  f"{est:.0f}h · epic={epic_status} -> {auto_status} / {stage}{tag}")
+            print(f"   [{ei}/{len(epics)}] {ekey}: {len(children)}+{len(subtasks)} issues, "
+                  f"{est:.0f}h est/{spent:.0f}h spent · epic={epic_status} -> {auto_status} / {stage}{tag}")
 
     # (#3) Drop games that were delivered more than the grace window ago.
     kept_games, dropped = [], 0

@@ -612,6 +612,29 @@ local editor delivers the immediate value first.
 
 ---
 
+### #37 · ACTIVE · `data` · 2026-06-02
+**Hours are summed over the full epic subtree (children + sub-tasks), not just
+direct children.**
+
+The original builder queried `parent = <epic>` only, so it summed `timespent` /
+`timeoriginalestimate` on the epic's **direct children** and missed all the
+**sub-task** worklogs/estimates nested under stories/tasks — undercounting by
+~10–20× (e.g. Cleopatra showed 0h spent vs ~1000h real). The builder now:
+- fetches direct children **and** their sub-tasks (`parent in (childKeys)`),
+- classifies **every** issue by its own issuetype into a discipline,
+- **spent** = sum of every issue's own `timespent` (leaf-level, no double-count),
+- **est** = sub-task estimates when a child has classified sub-tasks, else the
+  child's own estimate (sub-task-or-parent fallback — Decision per user),
+- sub-task statuses now also feed the stage/status inference (#32) and sprint
+  markers, making them more accurate.
+
+Bug / Enhancement / Live Issue / Release issuetypes remain excluded from hours.
+
+Rationale: the real estimates and worklogs live on the sub-tasks; the board must
+sum the whole tree to show true game hours.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
