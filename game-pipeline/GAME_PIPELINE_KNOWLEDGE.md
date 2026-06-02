@@ -327,7 +327,14 @@ These are **not** in Jira and are owned entirely by the dashboard, persisted to
 - **Workflow status** — Decision #24. Default `Not Started`; manual dropdown
   only. Stored at `{prefix}status`.
 - **Display order** — drag-reorder. Stored at `{prefix}order`.
-- **Hidden games** — Phase 2. Stored at `{prefix}hidden`.
+- **Show/hide games** — Plan Mode "Games on the board" toggle list (Decision
+  #34). Hidden games leave the KPIs, all views, and the count. Stored at
+  `{prefix}hidden`.
+
+Board membership is otherwise automatic (Decision #34): only epics named
+`Game:` (V2) / `Gen2 Game:` (IG) appear; a game with a released fixVersion shows
+as **Delivered** (green chip, forced Signed Off) and drops off 14 days after its
+release date.
 
 Because overrides are keyed by game name and stored separately from the embedded
 `GAMES` array, a Jira refresh re-derives stage/hours/sprints while preserving the

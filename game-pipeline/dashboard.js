@@ -112,11 +112,23 @@ function discSprints(disc) {
 }
 function gameSizes(g) { return USER_SIZES[g.name] || {}; }
 function hasAnySize(g) { const s = gameSizes(g); return ['art', 'math', 'dev', 'sound'].some(k => s[k]); }
+function fvRow(g) {
+  if (g.delivered) {
+    return `<div class="fv-row"><span class="fv-chip delivered" title="Delivered in ${g.delivered.fv} on ${g.delivered.date}">✓ Delivered · ${g.delivered.fv} · ${fmtD(g.delivered.date)}</span></div>`;
+  }
+  const fvs = g.fixVersions || [];
+  if (!fvs.length) return '';
+  return '<div class="fv-row">' + fvs.map(v =>
+    `<span class="fv-chip${v.released ? ' delivered' : ''}" title="${v.name}${v.released && v.releaseDate ? ' · released ' + v.releaseDate : ''}">${v.released ? '✓ ' : ''}${v.name}</span>`
+  ).join('') + '</div>';
+}
 
 function saveOrder()  { try { localStorage.setItem(LS + 'order',  JSON.stringify(RAW_GAMES.map(g => g.name))); } catch (e) {} }
 function saveStatus() { try { localStorage.setItem(LS + 'status', JSON.stringify(USER_STATUS)); } catch (e) {} }
 function saveSizes()  { try { localStorage.setItem(LS + 'sizes',  JSON.stringify(USER_SIZES)); } catch (e) {} }
 function saveConfig() { try { localStorage.setItem(LS + 'config', JSON.stringify(CONFIG)); } catch (e) {} }
+function saveHidden() { try { localStorage.setItem(LS + 'hidden', JSON.stringify([...HIDDEN])); } catch (e) {} }
+function visibleGames() { return RAW_GAMES.filter(g => !HIDDEN.has(g.name)); }
 
 // ============================================================
 //  SKELETON
@@ -146,6 +158,10 @@ function buildSkeleton() {
       <h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">PER-GAME SIZE OVERRIDES <span style="font-weight:400;font-style:italic;text-transform:none;color:var(--sub)">— manual; not from Jira (Decision #25)</span></h4>
       <div class="pc-sizes-head"><span class="nm">Game</span><span>Art</span><span>Math</span><span>Dev</span><span>Sound</span></div>
       <div id="pcSizeGames"></div>
+    </div>
+    <div class="pc-games-wrap">
+      <h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">GAMES ON THE BOARD <span style="font-weight:400;font-style:italic;text-transform:none;color:var(--sub)">— toggle to show/hide · drag rows on the board to reorder</span> <span id="pcGamesCount" class="pc-games-count"></span></h4>
+      <div id="pcGames" class="pc-games"></div>
     </div>
   </div>
   <div class="kpi-strip" id="kpiStrip"></div>
@@ -211,12 +227,13 @@ function buildFilterBar() {
 //  KPI
 // ============================================================
 function renderKPI() {
-  const total = RAW_GAMES.length;
-  const signed = RAW_GAMES.filter(g => g.workflow_status === 'Signed Off').length;
-  const inflight = RAW_GAMES.filter(g => ['In Production', 'In QA', 'In Pre-Prod', 'Bug Fixing'].includes(g.workflow_status)).length;
-  const notstart = RAW_GAMES.filter(g => g.workflow_status === 'Not Started').length;
-  const over = RAW_GAMES.filter(g => g.spent > g.est && g.est > 0).length;
-  const overGames = RAW_GAMES.filter(g => g.spent > g.est && g.est > 0).slice(0, 2)
+  const VG = visibleGames();
+  const total = VG.length;
+  const signed = VG.filter(g => g.workflow_status === 'Signed Off').length;
+  const inflight = VG.filter(g => ['In Production', 'In QA', 'In Pre-Prod', 'Bug Fixing'].includes(g.workflow_status)).length;
+  const notstart = VG.filter(g => g.workflow_status === 'Not Started').length;
+  const over = VG.filter(g => g.spent > g.est && g.est > 0).length;
+  const overGames = VG.filter(g => g.spent > g.est && g.est > 0).slice(0, 2)
     .map(g => `${g.name.split(' ')[0]} +${Math.round(g.spent - g.est)}h`).join(' · ');
   document.getElementById('kpiStrip').innerHTML = `
     <div class="kpi" style="--rc:#2563eb"><div class="kpi-v">${total}</div><div class="kpi-l">TOTAL GAMES</div><div class="kpi-d">${PROJECT.jira_project} epics</div></div>
@@ -290,7 +307,7 @@ function renderRow(g, idx) {
       <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${isOverride ? ' <span class="ovr-mark" title="Manually set — auto-derived from Jira: ' + g._auto_status + '">✎</span>' : ''}</span>
       ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
       <span class="plan-status-edit"><select data-game="${g.name}">${statusOptions}</select>${isOverride ? `<button class="revert-auto" data-game="${g.name}" title="Revert to auto-derived (${g._auto_status})">↺</button>` : ''}</span>
-    </div>${sizeRow}`;
+    </div>${fvRow(g)}${sizeRow}`;
 
   const track = document.createElement('div'); track.className = 'epic-track';
   SPRINT_LIST.forEach(s => { const l = document.createElement('div'); l.className = 'sp-line'; l.style.left = pct(s.start) + '%'; track.appendChild(l); });
@@ -455,7 +472,7 @@ function renderDetail(g) {
 function renderRows() {
   const rowsEl = document.getElementById('rows');
   rowsEl.innerHTML = '';
-  const filtered = RAW_GAMES.filter(g => {
+  const filtered = visibleGames().filter(g => {
     if (activeFilters.status !== 'ALL' && g.workflow_status !== activeFilters.status) return false;
     if (activeFilters.stage !== 'ALL' && g.current_stage !== activeFilters.stage) return false;
     if (activeFilters.search && !g.name.toLowerCase().includes(activeFilters.search.toLowerCase())) return false;
@@ -487,7 +504,7 @@ function renderHeatmap() {
     months.forEach(m => {
       const monthStart = m, monthEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0);
       let totalHours = 0, gameCount = 0;
-      RAW_GAMES.forEach(g => {
+      visibleGames().forEach(g => {
         const disc = g.disciplines ? g.disciplines.find(x => x.key === d.key) : null;
         const sprs = discSprints(disc);
         if (!sprs.length) return;
@@ -514,8 +531,7 @@ function renderHeatmap() {
 // ============================================================
 function renderList() {
   let html = `<div class="list-row head"><div>#</div><div>GAME</div><div>JIRA</div><div>STAGE</div><div>STATUS</div><div>LEAD</div><div>HOURS</div><div>PROGRESS</div></div>`;
-  RAW_GAMES.forEach((g, i) => {
-    if (HIDDEN.has(g.name)) return;
+  visibleGames().forEach((g, i) => {
     const over = g.spent > g.est && g.est > 0, pctNum = g.est > 0 ? Math.round(g.spent / g.est * 100) : 0;
     html += `<div class="list-row">
       <div class="num">${i + 1}</div><div><strong>${g.name}</strong></div>
@@ -566,6 +582,30 @@ function renderPlanConfig() {
   }));
   const addStatus = document.getElementById('pcAddStatus');
   if (addStatus) addStatus.onclick = () => { CONFIG.statuses.push({ key: 'New Status', cls: 's-notstart' }); saveConfig(); renderPlanConfig(); renderRows(); };
+
+  // Games on the board — show/hide toggles (Decision #34)
+  const gamesEl = document.getElementById('pcGames');
+  if (gamesEl) {
+    gamesEl.innerHTML = RAW_GAMES.map(g => {
+      const on = !HIDDEN.has(g.name);
+      return `<div class="pc-game-row${on ? '' : ' off'}">
+        <button class="pc-game-toggle${on ? ' on' : ''}" data-game="${g.name}" title="${on ? 'Visible — click to hide' : 'Hidden — click to show'}"></button>
+        ${g.jira ? `<span class="pc-game-key">${g.jira}</span>` : '<span class="pc-game-key">—</span>'}
+        <span class="pc-game-name">${g.name}</span>
+        <span class="pc-game-meta">${g.delivered ? '✓ ' + g.delivered.fv : stageLabel(g.current_stage)}</span>
+      </div>`;
+    }).join('');
+    const hiddenCount = RAW_GAMES.length - visibleGames().length;
+    const cnt = document.getElementById('pcGamesCount');
+    if (cnt) cnt.textContent = hiddenCount ? `${hiddenCount} hidden` : '';
+    gamesEl.querySelectorAll('.pc-game-toggle').forEach(btn => btn.addEventListener('click', () => {
+      const name = btn.dataset.game;
+      if (HIDDEN.has(name)) HIDDEN.delete(name); else HIDDEN.add(name);
+      saveHidden();
+      renderPlanConfig(); renderRows(); renderKPI();
+      const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
+    }));
+  }
 }
 
 // ============================================================
@@ -653,7 +693,7 @@ function mount(projectKey, container) {
     renderKPI(); wireControls();
     return;
   }
-  document.getElementById('hdrCount').textContent = RAW_GAMES.length;
+  document.getElementById('hdrCount').textContent = visibleGames().length;
   buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows();
 }
 

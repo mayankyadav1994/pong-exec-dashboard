@@ -551,6 +551,32 @@ configured per project (`JIRA_BOARD_ID_V2=316`, `JIRA_BOARD_ID_IG=250`).
 
 ---
 
+### #34 · ACTIVE · `data` `ui` `plan-mode` · 2026-06-02
+**Board membership: real games only, with delivery + a 2-week exit, and a Plan
+Mode show/hide chooser.**
+
+- **(#4) Only games.** Each project keeps only epics whose name starts with a
+  prefix: V2 `"Game:"`, IG `"Gen2 Game:"` (`PROJECTS[key]["name_prefix"]`).
+  Other fixVersion-bearing epics are excluded from the board.
+- **(#2) Fix version / delivery.** Each game carries its `fixVersions`
+  (`{name, released, releaseDate}`). A released fixVersion = **delivered**; the
+  row shows a green `✓ Delivered · <FV> · <date>` chip and the game is forced to
+  **Signed Off / done**. Undelivered games show their fixVersion name chips.
+- **(#3) 2-week exit.** A delivered game is dropped from the build
+  `DELIVERED_GRACE_DAYS = 14` days after its release date.
+- **(#1) Show/hide chooser.** Plan Mode has a "Games on the board" list with an
+  iOS-style toggle per game (mirrors the exec dashboard's scope editor),
+  persisted to `{prefix}hidden`. Hidden games are excluded from KPIs, all three
+  views, and the header count, but remain in the list to be re-shown. Reorder is
+  still via row drag. Persistence is **local** (per browser), not a shared
+  "save-for-everyone" default.
+
+Rationale: the board should show only the studio's actual games, reflect what
+has shipped, retire delivered games shortly after release, and let a planner
+curate the visible set the same way they do on the release-timeline dashboard.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
@@ -599,14 +625,20 @@ Art 240 · Design 80 · Math 320 · Dev 480 · Sound 160 · QA 200
 - Sprint chips (full name + date range), TODAY line + chip, faint sprint
   boundary lines. Lane chips show compact `S{n}`. `SPRINTS = [{id,label,start,end}]`.
 
-### localStorage keys (#22)
+### Board membership (#34)
+- Only epics named `Game:` (V2) / `Gen2 Game:` (IG) are games.
+- Released fixVersion ⇒ delivered ⇒ Signed Off; dropped 14 days after release.
+- Plan Mode show/hide → `{prefix}hidden`; hidden games leave KPIs/views/count.
+
+### localStorage keys (#22, #34)
 Per-project prefix `gp_v2_` / `gp_ig_`:
 - `{prefix}config` — editable enums (statuses, stages, sizes scale, capacities)
 - `{prefix}order` — game name order
 - `{prefix}status` — per-game workflow_status overrides
 - `{prefix}sizes` — per-game discipline size overrides
-- `{prefix}hidden` — hidden game names (Phase 2)
-- `{prefix}dependencies` — dependency edges (Phase 2)
+- `{prefix}hidden` — hidden game names (Plan Mode show/hide chooser, #34)
+- `gp_active_project` — last-viewed V2/iGaming tab (global, not prefixed)
+- `{prefix}dependencies` — dependency edges (Phase 2, not yet built)
 
 ### Deployment (#28)
 - Source under `pong-exec-dashboard/game-pipeline/`; CI builds from Jira and

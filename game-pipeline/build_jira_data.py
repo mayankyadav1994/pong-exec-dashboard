@@ -58,15 +58,20 @@ PROJECTS: dict[str, dict[str, Any]] = {
         "key": "V2",
         "sprint_field": "customfield_10020",
         "board_env": "JIRA_BOARD_ID_V2",
+        "name_prefix": "Game:",          # only epics named like this are games (#4)
         "out": ROOT / "dashboard-data-v2.js",
     },
     "ig": {
         "key": "IG",
         "sprint_field": "customfield_10103",
         "board_env": "JIRA_BOARD_ID_IG",
+        "name_prefix": "Gen2 Game:",     # (#4)
         "out": ROOT / "dashboard-data-ig.js",
     },
 }
+
+# A delivered game drops off the board this many days after its release (#3).
+DELIVERED_GRACE_DAYS = 14
 
 # --- Discipline mapping (Decision #23) ---------------------------------------
 DISCIPLINE_BY_ISSUETYPE = {
@@ -298,6 +303,20 @@ def _secs_to_hours(v: Any) -> float:
         return 0.0
 
 
+def compute_delivered(fixversions: list[dict]) -> Optional[dict]:
+    """Latest released fixVersion → {'fv': name, 'date': ISO}. None if undelivered."""
+    dated = []
+    for v in fixversions:
+        if v.get("released") and v.get("releaseDate"):
+            d = _parse_date(v["releaseDate"])
+            if d:
+                dated.append((d, v["name"]))
+    if not dated:
+        return None
+    d, name = max(dated, key=lambda x: x[0])
+    return {"fv": name, "date": d.isoformat()}
+
+
 # ============================================================================
 #  Status / stage inference  (Decision #32)
 # ============================================================================
@@ -400,8 +419,20 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         ["summary", "status", "assignee", "priority", "fixVersions", "customfield_10014"],
     )
     print(f"   {OK} {len(epics)} epic(s)")
+
+    # (#4) Only true games: epics whose name starts with the project prefix.
+    prefix = cfg.get("name_prefix")
+
+    def _epic_name(e: dict) -> str:
+        f = e.get("fields", {}) or {}
+        return str(f.get("customfield_10014") or f.get("summary") or e.get("key") or "")
+
+    if prefix:
+        before = len(epics)
+        epics = [e for e in epics if _epic_name(e).startswith(prefix)]
+        print(f"   {OK} {len(epics)} game epic(s) named {prefix!r} (filtered out {before - len(epics)})")
     if not epics:
-        print(f"   {WARN} no epics found - writing empty placeholder")
+        print(f"   {WARN} no game epics found - writing empty placeholder")
 
     sprint_meta: dict[int, dict] = {}     # id -> {start,end,name}
     games: list[dict] = []
@@ -471,7 +502,16 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         assignee = ef.get("assignee") or {}
         priority = ef.get("priority") or {}
         epic_status = (ef.get("status") or {}).get("name")
-        auto_status = derive_status(aggs, epic_status)
+        fvs = [{"name": v.get("name"), "released": bool(v.get("released")),
+                "releaseDate": (_parse_date(v.get("releaseDate")).isoformat()
+                                if _parse_date(v.get("releaseDate")) else None)}
+               for v in (ef.get("fixVersions") or []) if v.get("name")]
+        delivered = compute_delivered(fvs)          # (#2) {'fv','date'} or None
+        if delivered:                                # delivered ⇒ shipped/signed off
+            auto_status, stage = "Signed Off", "done"
+        else:
+            auto_status = derive_status(aggs, epic_status)
+            stage = derive_stage(aggs)
         games.append({
             "name": ef.get("customfield_10014") or ef.get("summary") or ekey,
             "jira": ekey,
@@ -481,15 +521,30 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             "remaining": round(est - spent, 2),
             "pct": round(spent / est, 4) if est > 0 else 0.0,
             "dev_name": assignee.get("displayName"),
-            "fixVersions": [v.get("name") for v in (ef.get("fixVersions") or []) if v.get("name")],
+            "fixVersions": fvs,                     # [{name,released,releaseDate}]
+            "delivered": delivered,                 # (#2/#3)
             "epic_status": epic_status,             # raw Jira status (reference)
             "workflow_status": auto_status,         # derived (Decision #32)
             "disciplines": disciplines,
-            "current_stage": derive_stage(aggs),    # derived (Decision #32)
+            "current_stage": stage,                 # derived (Decision #32)
         })
         if verbose:
+            tag = f" delivered {delivered['fv']}@{delivered['date']}" if delivered else ""
             print(f"   [{ei}/{len(epics)}] {ekey}: {len(children)} children, "
-                  f"{est:.0f}h · epic={epic_status} -> {auto_status} / {games[-1]['current_stage']}")
+                  f"{est:.0f}h · epic={epic_status} -> {auto_status} / {stage}{tag}")
+
+    # (#3) Drop games that were delivered more than the grace window ago.
+    kept_games, dropped = [], 0
+    for g in games:
+        dv = g.get("delivered")
+        dd = _parse_date(dv["date"]) if (dv and dv.get("date")) else None
+        if dd and (today - dd).days > DELIVERED_GRACE_DAYS:
+            dropped += 1
+            continue
+        kept_games.append(g)
+    if dropped:
+        print(f"   {OK} dropped {dropped} game(s) delivered >{DELIVERED_GRACE_DAYS}d ago")
+    games = kept_games
 
     # 6. SPRINTS — board query (preferred) merged with issue-derived metadata
     if board_id:

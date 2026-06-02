@@ -165,6 +165,24 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .sz-XL{background:rgba(220,38,38,.25);color:#7f1d1d}
 .sz-NA{background:var(--surf3);color:var(--sub)}
 
+/* FIX-VERSION / DELIVERED chips on the row */
+.fv-row{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.fv-chip{font-size:9px;font-weight:600;padding:1px 7px;border-radius:10px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2);font-family:'IBM Plex Mono';white-space:nowrap}
+.fv-chip.delivered{color:#14532d;border-color:rgba(22,163,74,.45);background:rgba(22,163,74,.10)}
+
+/* PLAN MODE - games show/hide list */
+.pc-games-count{font-weight:700;color:#b45309;font-style:normal;text-transform:none;margin-left:6px}
+.pc-games{display:flex;flex-direction:column;gap:4px;max-height:300px;overflow-y:auto}
+.pc-game-row{display:grid;grid-template-columns:auto 74px 1fr auto;gap:8px;align-items:center;padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;font-size:11px}
+.pc-game-row.off{opacity:.5;background:var(--surf2)}
+.pc-game-toggle{cursor:pointer;width:26px;height:14px;border-radius:8px;background:var(--border2);position:relative;border:none;padding:0;flex-shrink:0;transition:background .15s}
+.pc-game-toggle.on{background:#16a34a}
+.pc-game-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .15s}
+.pc-game-toggle.on::after{left:14px}
+.pc-game-key{font-family:'IBM Plex Mono';font-size:10px;color:var(--sub)}
+.pc-game-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.pc-game-meta{font-size:9px;color:var(--sub);font-family:'IBM Plex Mono';white-space:nowrap}
+
 .epic-track{flex:1;position:relative;padding:8px 8px 8px 8px;min-height:74px}
 /* sprint boundary lines through the chart */
 .sp-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(148,163,184,.22);pointer-events:none;z-index:0}
