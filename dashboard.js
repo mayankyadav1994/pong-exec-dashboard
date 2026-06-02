@@ -68,6 +68,7 @@ let PROJECT, LS, APP;
 let RAW_GAMES, RAW_SPRINTS, REFRESHED, SPRINT_LIST, SPRINT_BY_ID, CHART_START, CHART_END, TODAY;
 let CONFIG, USER_ORDER, USER_STATUS, USER_SIZES, HIDDEN;
 let activeFilters, currentView, planMode, openPanel, dragSrcIdx, toastTimer;
+let drawerTab, drawerOpenRows, drawerDragIdx;
 
 // ============================================================
 //  TIME / SPRINT helpers
@@ -143,27 +144,6 @@ function buildSkeleton() {
     </div>
     <div class="hdr-actions"><button class="btn" id="planToggle">✎ Plan Mode</button></div>
   </div>
-  <div class="plan-banner" id="planBanner">
-    <div class="plan-banner-l">PLAN MODE — drag rows to reprioritize · use dropdowns to change workflow status · set sizes & config below</div>
-    <button class="btn" id="planSave">✓ Save plan</button>
-  </div>
-  <div class="plan-config" id="planConfig">
-    <div class="pc-title">⚙ DASHBOARD CONFIGURATION — what shows up in the dropdowns</div>
-    <div class="pc-grid">
-      <div class="pc-col"><h4>WORKFLOW STATUSES</h4><p>Manual · plain pill on row</p><div class="pc-list" id="pcStatuses"></div><div class="pc-add" id="pcAddStatus">+ add status</div></div>
-      <div class="pc-col"><h4>LIFECYCLE STAGES</h4><p>Auto-derived from latest active sprint</p><div class="pc-list" id="pcStages"></div></div>
-      <div class="pc-col"><h4>SIZE SCALE</h4><p>Used by the per-game size overrides below</p><div class="pc-list" id="pcSizes"></div></div>
-    </div>
-    <div class="pc-sizes-wrap">
-      <h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">PER-GAME SIZE OVERRIDES <span style="font-weight:400;font-style:italic;text-transform:none;color:var(--sub)">— manual; not from Jira (Decision #25)</span></h4>
-      <div class="pc-sizes-head"><span class="nm">Game</span><span>Art</span><span>Math</span><span>Dev</span><span>Sound</span></div>
-      <div id="pcSizeGames"></div>
-    </div>
-    <div class="pc-games-wrap">
-      <h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">GAMES ON THE BOARD <span style="font-weight:400;font-style:italic;text-transform:none;color:var(--sub)">— toggle to show/hide · drag rows on the board to reorder</span> <span id="pcGamesCount" class="pc-games-count"></span></h4>
-      <div id="pcGames" class="pc-games"></div>
-    </div>
-  </div>
   <div class="kpi-strip" id="kpiStrip"></div>
   <div class="filter-bar" id="filterBar">
     <div class="fb-group" id="fbStatusGroup"><span class="fb-label">STATUS</span></div>
@@ -190,6 +170,19 @@ function buildSkeleton() {
     </div>
   </div>
   <div id="listView" style="display:none"><div class="list-view" id="listBody"></div></div>
+
+  <div class="gp-overlay" id="gpOverlay"></div>
+  <div class="gp-drawer" id="gpDrawer" aria-hidden="true">
+    <div class="gp-drawer-head"><h2>⚙ Edit Plan</h2><button class="gp-drawer-close" id="gpDrawerClose" title="Close">✕</button></div>
+    <div class="gp-tabs" id="gpTabs">
+      <button class="gp-tab active" data-tab="games">Games</button>
+      <button class="gp-tab" data-tab="settings">Settings</button>
+    </div>
+    <div class="gp-drawer-note">Toggle to show/hide · drag the ⠿ handle to reorder · click ▾ to set status &amp; sizes. Changes autosave to this browser.</div>
+    <div class="gp-drawer-body" id="gpDrawerBody"></div>
+    <div class="gp-drawer-foot" id="gpDrawerFoot"></div>
+  </div>
+
   <div class="toast" id="toast"></div>
   <div class="footer">Pong Game Studios PMO · ${PROJECT.title} · shared engine · data via <code>build_jira_data.py</code> · localStorage keys: <code>${LS}*</code></div>`;
 }
@@ -285,7 +278,6 @@ function renderRow(g, idx) {
 
   const label = document.createElement('div'); label.className = 'epic-label';
   const depIcon = (g.dependencies && g.dependencies.length) ? `<span class="dep-icon" title="Depends on ${g.dependencies.join(', ')}">🔗</span>` : '';
-  const statusOptions = CONFIG.statuses.map(s => `<option value="${s.key}"${s.key === g.workflow_status ? ' selected' : ''}>${s.key}</option>`).join('');
   const isOverride = USER_STATUS[g.name] != null;
   const drift = isOverride && USER_STATUS[g.name] !== g._auto_status;
   let sizeRow = '';
@@ -306,7 +298,6 @@ function renderRow(g, idx) {
       <span class="epic-stage ${stageCls(g.current_stage)}">${stageLabel(g.current_stage)}</span>
       <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${isOverride ? ' <span class="ovr-mark" title="Manually set — auto-derived from Jira: ' + g._auto_status + '">✎</span>' : ''}</span>
       ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
-      <span class="plan-status-edit"><select data-game="${g.name}">${statusOptions}</select>${isOverride ? `<button class="revert-auto" data-game="${g.name}" title="Revert to auto-derived (${g._auto_status})">↺</button>` : ''}</span>
     </div>${fvRow(g)}${sizeRow}`;
 
   const track = document.createElement('div'); track.className = 'epic-track';
@@ -347,31 +338,6 @@ function renderRow(g, idx) {
   row.addEventListener('click', e => {
     if (e.target.closest('.drag-handle') || e.target.closest('select') || e.target.closest('a')) return;
     openPanel = (openPanel === g.name) ? null : g.name; renderRows();
-  });
-  label.querySelectorAll('select[data-game]').forEach(sel => {
-    sel.addEventListener('change', e => {
-      e.stopPropagation();
-      const game = RAW_GAMES.find(x => x.name === sel.dataset.game);
-      if (!game) return;
-      if (sel.value === game._auto_status) {            // picking auto clears the override
-        delete USER_STATUS[game.name]; game.workflow_status = game._auto_status;
-        showToast(`✓ ${game.name} → auto (${game._auto_status})`);
-      } else {                                          // manual override supersedes auto
-        USER_STATUS[game.name] = sel.value; game.workflow_status = sel.value;
-        showToast(`✎ ${game.name} → ${sel.value} (manual; auto was ${game._auto_status})`);
-      }
-      saveStatus(); renderRows(); renderKPI();
-    });
-    sel.addEventListener('click', e => e.stopPropagation());
-  });
-  label.querySelectorAll('.revert-auto').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const game = RAW_GAMES.find(x => x.name === btn.dataset.game);
-      if (!game) return;
-      delete USER_STATUS[game.name]; game.workflow_status = game._auto_status;
-      saveStatus(); showToast(`↺ ${game.name} reverted to auto (${game._auto_status})`); renderRows(); renderKPI();
-    });
   });
 
   item.draggable = true;
@@ -546,83 +512,155 @@ function renderList() {
 }
 
 // ============================================================
-//  PLAN CONFIG
+//  EDIT PLAN DRAWER (Decision #35)
 // ============================================================
-function renderPlanConfig() {
-  document.getElementById('pcStatuses').innerHTML = CONFIG.statuses.map((s, i) => `<div class="pc-item"><input value="${s.key}" data-i="${i}" data-type="status"><span class="pc-item-x" data-i="${i}" data-type="status">×</span></div>`).join('');
-  document.getElementById('pcStages').innerHTML = CONFIG.stages.map((s, i) => `<div class="pc-item"><div class="pc-item-color" style="background:${s.color}"></div><input value="${s.label}" data-i="${i}" data-type="stage"><span class="pc-item-x" data-i="${i}" data-type="stage">×</span></div>`).join('');
-  document.getElementById('pcSizes').innerHTML = CONFIG.sizes.map((s, i) => `<div class="pc-item"><div class="size-chip-val sz-${s.key}" style="margin:0 4px 0 0">${s.key}</div><input value="${s.label}" data-i="${i}" data-type="size"><span class="pc-item-x" data-i="${i}" data-type="size">×</span></div>`).join('');
+function openDrawer() {
+  planMode = true;
+  const pt = document.getElementById('planToggle');
+  pt.classList.add('plan-mode-on'); pt.textContent = '✎ Editing…';
+  document.body.classList.add('plan-mode-on-body');
+  document.getElementById('gpOverlay').classList.add('open');
+  const dr = document.getElementById('gpDrawer'); dr.classList.add('open'); dr.setAttribute('aria-hidden', 'false');
+  renderDrawer();
+}
+function closeDrawer() {
+  planMode = false;
+  const pt = document.getElementById('planToggle');
+  pt.classList.remove('plan-mode-on'); pt.textContent = '✎ Plan Mode';
+  document.body.classList.remove('plan-mode-on-body');
+  document.getElementById('gpOverlay').classList.remove('open');
+  const dr = document.getElementById('gpDrawer'); dr.classList.remove('open'); dr.setAttribute('aria-hidden', 'true');
+}
 
+function renderDrawer() {
+  document.querySelectorAll('#gpTabs .gp-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === drawerTab));
+  const body = document.getElementById('gpDrawerBody');
+  if (drawerTab === 'settings') renderDrawerSettings(body); else renderDrawerGames(body);
+  const hidden = RAW_GAMES.length - visibleGames().length;
+  document.getElementById('gpDrawerFoot').innerHTML =
+    `<button class="gp-foot-btn" id="gpReset">↺ Reset local edits</button><span style="flex:1"></span>` +
+    `<span style="font-size:10px;color:var(--sub);align-self:center">${visibleGames().length} shown${hidden ? ' · ' + hidden + ' hidden' : ''}</span>`;
+  document.getElementById('gpReset').onclick = resetLocalEdits;
+}
+
+function renderDrawerGames(body) {
+  const statusOptions = g => CONFIG.statuses.map(s => `<option value="${s.key}"${s.key === g.workflow_status ? ' selected' : ''}>${s.key}</option>`).join('');
   const sizeOpts = ['—', ...CONFIG.sizes.map(s => s.key)];
-  document.getElementById('pcSizeGames').innerHTML = RAW_GAMES.map(g => {
-    const sz = gameSizes(g);
-    const sel = k => `<select data-game="${g.name}" data-disc="${k}">` + sizeOpts.map(o => `<option value="${o === '—' ? '' : o}"${(sz[k] || '') === (o === '—' ? '' : o) ? ' selected' : ''}>${o}</option>`).join('') + `</select>`;
-    return `<div class="pc-sizes-game"><span class="nm">${g.name}</span>${sel('art')}${sel('math')}${sel('dev')}${sel('sound')}</div>`;
+  const sizeSel = (g, k) => `<label>${k.toUpperCase()}<select data-size-game="${g.name}" data-disc="${k}">` +
+    sizeOpts.map(o => `<option value="${o === '—' ? '' : o}"${(gameSizes(g)[k] || '') === (o === '—' ? '' : o) ? ' selected' : ''}>${o}</option>`).join('') + `</select></label>`;
+  body.innerHTML = RAW_GAMES.map((g, idx) => {
+    const on = !HIDDEN.has(g.name), open = drawerOpenRows.has(g.name), isOvr = USER_STATUS[g.name] != null;
+    return `<div class="gpg${on ? '' : ' off'}${open ? ' open' : ''}" data-idx="${idx}" draggable="true">
+      <div class="gpg-head">
+        <span class="gpg-handle" title="Drag to reorder">⠿</span>
+        <button class="gpg-toggle${on ? ' on' : ''}" data-hide="${g.name}" title="${on ? 'Visible — click to hide' : 'Hidden — click to show'}"></button>
+        <span class="gpg-name">${g.name}${g.jira ? `<span class="k">${g.jira}</span>` : ''}</span>
+        <span class="gpg-status"><select data-status-game="${g.name}">${statusOptions(g)}</select>${isOvr ? ' <span class="ovr-mark" title="manual override (auto: ' + g._auto_status + ')">✎</span>' : ''}</span>
+        <span class="gpg-chev" data-expand="${g.name}">▾</span>
+      </div>
+      <div class="gpg-expand">
+        <div class="gpg-sizes">${sizeSel(g, 'art')}${sizeSel(g, 'math')}${sizeSel(g, 'dev')}${sizeSel(g, 'sound')}</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--sub)">Stage: <strong>${stageLabel(g.current_stage)}</strong> · Jira epic: ${g.epic_status || '—'}${isOvr ? ` · <button class="revert-auto" data-revert="${g.name}">↺ revert status to auto (${g._auto_status})</button>` : ''}</div>
+      </div>
+    </div>`;
   }).join('');
 
-  document.querySelectorAll('.pc-item input').forEach(inp => inp.addEventListener('change', () => {
+  body.querySelectorAll('.gpg-toggle').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation(); const n = b.dataset.hide;
+    if (HIDDEN.has(n)) HIDDEN.delete(n); else HIDDEN.add(n);
+    saveHidden(); renderRows(); renderKPI(); renderDrawer();
+    const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
+  }));
+  body.querySelectorAll('.gpg-chev').forEach(c => c.addEventListener('click', e => {
+    e.stopPropagation(); const n = c.dataset.expand;
+    if (drawerOpenRows.has(n)) drawerOpenRows.delete(n); else drawerOpenRows.add(n);
+    c.closest('.gpg').classList.toggle('open');
+  }));
+  body.querySelectorAll('select[data-status-game]').forEach(sel => sel.addEventListener('change', () => {
+    const g = RAW_GAMES.find(x => x.name === sel.dataset.statusGame); if (!g) return;
+    if (sel.value === g._auto_status) { delete USER_STATUS[g.name]; g.workflow_status = g._auto_status; }
+    else { USER_STATUS[g.name] = sel.value; g.workflow_status = sel.value; }
+    saveStatus(); renderRows(); renderKPI(); renderDrawer();
+  }));
+  body.querySelectorAll('select[data-size-game]').forEach(sel => sel.addEventListener('change', () => {
+    const n = sel.dataset.sizeGame, d = sel.dataset.disc;
+    USER_SIZES[n] = USER_SIZES[n] || {};
+    if (sel.value) USER_SIZES[n][d] = sel.value; else delete USER_SIZES[n][d];
+    saveSizes(); renderRows();
+  }));
+  body.querySelectorAll('.revert-auto').forEach(b => b.addEventListener('click', () => {
+    const g = RAW_GAMES.find(x => x.name === b.dataset.revert); if (!g) return;
+    delete USER_STATUS[g.name]; g.workflow_status = g._auto_status;
+    saveStatus(); renderRows(); renderKPI(); renderDrawer();
+  }));
+  // drag-reorder within the drawer
+  body.querySelectorAll('.gpg').forEach(rowEl => {
+    rowEl.addEventListener('dragstart', e => { drawerDragIdx = +rowEl.dataset.idx; e.dataTransfer.effectAllowed = 'move'; rowEl.style.opacity = '.4'; });
+    rowEl.addEventListener('dragend', () => { rowEl.style.opacity = ''; });
+    rowEl.addEventListener('dragover', e => e.preventDefault());
+    rowEl.addEventListener('drop', e => {
+      e.preventDefault();
+      const ti = +rowEl.dataset.idx;
+      if (drawerDragIdx === null || drawerDragIdx === ti) return;
+      const [moved] = RAW_GAMES.splice(drawerDragIdx, 1);
+      let t = ti; if (drawerDragIdx < ti) t--;
+      RAW_GAMES.splice(t < 0 ? 0 : t, 0, moved);
+      drawerDragIdx = null; saveOrder(); renderRows(); renderDrawer();
+    });
+  });
+}
+
+function renderDrawerSettings(body) {
+  const enumCol = (title, items, type, withColor) => `<div class="pc-col"><h4>${title}</h4><div class="pc-list">` +
+    items.map((s, i) => `<div class="pc-item">${withColor ? `<div class="pc-item-color" style="background:${s.color}"></div>` : `<div class="size-chip-val sz-${s.key}" style="margin:0 4px 0 0">${s.key}</div>`}<input value="${s.label || s.key}" data-i="${i}" data-type="${type}"><span class="pc-item-x" data-i="${i}" data-type="${type}">×</span></div>`).join('') +
+    (type === 'status' ? `<div class="pc-add" id="pcAddStatus">+ add status</div>` : '') + `</div></div>`;
+  const caps = Object.keys(CONFIG.capacities).map(k =>
+    `<label style="font-size:9px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:3px">${k.toUpperCase()}<input type="number" min="0" step="20" value="${CONFIG.capacities[k]}" data-cap="${k}" style="border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-family:'IBM Plex Mono';font-size:11px"></label>`).join('');
+  body.innerHTML = `<div class="pc-grid">
+      ${enumCol('WORKFLOW STATUSES', CONFIG.statuses, 'status', false)}
+      ${enumCol('LIFECYCLE STAGES', CONFIG.stages, 'stage', true)}
+      ${enumCol('SIZE SCALE', CONFIG.sizes, 'size', false)}
+    </div>
+    <div style="margin-top:16px"><h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">DISCIPLINE CAPACITY (h/mo) — heatmap ceilings</h4>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">${caps}</div></div>`;
+  body.querySelectorAll('.pc-item input').forEach(inp => inp.addEventListener('change', () => {
     const i = +inp.dataset.i, type = inp.dataset.type;
     if (type === 'status') CONFIG.statuses[i].key = inp.value;
     if (type === 'stage') CONFIG.stages[i].label = inp.value;
     if (type === 'size') CONFIG.sizes[i].label = inp.value;
     saveConfig(); renderRows();
   }));
-  document.querySelectorAll('.pc-item-x').forEach(x => x.addEventListener('click', () => {
+  body.querySelectorAll('.pc-item-x').forEach(x => x.addEventListener('click', () => {
     const i = +x.dataset.i, type = x.dataset.type;
     if (type === 'status') CONFIG.statuses.splice(i, 1);
     if (type === 'stage') CONFIG.stages.splice(i, 1);
     if (type === 'size') CONFIG.sizes.splice(i, 1);
-    saveConfig(); renderPlanConfig(); renderRows();
+    saveConfig(); renderDrawer(); renderRows();
   }));
-  document.querySelectorAll('#pcSizeGames select').forEach(sel => sel.addEventListener('change', () => {
-    const name = sel.dataset.game, disc = sel.dataset.disc;
-    USER_SIZES[name] = USER_SIZES[name] || {};
-    if (sel.value) USER_SIZES[name][disc] = sel.value; else delete USER_SIZES[name][disc];
-    saveSizes(); renderRows();
+  const add = document.getElementById('pcAddStatus');
+  if (add) add.onclick = () => { CONFIG.statuses.push({ key: 'New Status', cls: 's-notstart' }); saveConfig(); renderDrawer(); renderRows(); };
+  body.querySelectorAll('input[data-cap]').forEach(inp => inp.addEventListener('change', () => {
+    const v = parseInt(inp.value, 10); if (!isNaN(v)) CONFIG.capacities[inp.dataset.cap] = v;
+    saveConfig(); if (currentView === 'heatmap') renderHeatmap();
   }));
-  const addStatus = document.getElementById('pcAddStatus');
-  if (addStatus) addStatus.onclick = () => { CONFIG.statuses.push({ key: 'New Status', cls: 's-notstart' }); saveConfig(); renderPlanConfig(); renderRows(); };
+}
 
-  // Games on the board — show/hide toggles (Decision #34)
-  const gamesEl = document.getElementById('pcGames');
-  if (gamesEl) {
-    gamesEl.innerHTML = RAW_GAMES.map(g => {
-      const on = !HIDDEN.has(g.name);
-      return `<div class="pc-game-row${on ? '' : ' off'}">
-        <button class="pc-game-toggle${on ? ' on' : ''}" data-game="${g.name}" title="${on ? 'Visible — click to hide' : 'Hidden — click to show'}"></button>
-        ${g.jira ? `<span class="pc-game-key">${g.jira}</span>` : '<span class="pc-game-key">—</span>'}
-        <span class="pc-game-name">${g.name}</span>
-        <span class="pc-game-meta">${g.delivered ? '✓ ' + g.delivered.fv : stageLabel(g.current_stage)}</span>
-      </div>`;
-    }).join('');
-    const hiddenCount = RAW_GAMES.length - visibleGames().length;
-    const cnt = document.getElementById('pcGamesCount');
-    if (cnt) cnt.textContent = hiddenCount ? `${hiddenCount} hidden` : '';
-    gamesEl.querySelectorAll('.pc-game-toggle').forEach(btn => btn.addEventListener('click', () => {
-      const name = btn.dataset.game;
-      if (HIDDEN.has(name)) HIDDEN.delete(name); else HIDDEN.add(name);
-      saveHidden();
-      renderPlanConfig(); renderRows(); renderKPI();
-      const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
-    }));
-  }
+function resetLocalEdits() {
+  ['order', 'status', 'sizes', 'hidden', 'config'].forEach(k => { try { localStorage.removeItem(LS + k); } catch (e) {} });
+  showToast('↺ Local edits reset to Jira defaults');
+  mount(PROJECT.key, APP);   // rebuild from defaults
+  drawerTab = 'games'; drawerOpenRows = new Set();
+  openDrawer();
 }
 
 // ============================================================
 //  CONTROLS / TOAST
 // ============================================================
 function wireControls() {
-  const planToggle = document.getElementById('planToggle');
-  planToggle.addEventListener('click', () => {
-    planMode = !planMode;
-    planToggle.classList.toggle('plan-mode-on', planMode);
-    planToggle.textContent = planMode ? '✎ Plan Mode ON' : '✎ Plan Mode';
-    document.getElementById('planBanner').classList.toggle('show', planMode);
-    document.getElementById('planConfig').classList.toggle('show', planMode);
-    document.body.classList.toggle('plan-mode-on-body', planMode);
-    if (planMode) renderPlanConfig();
-  });
-  document.getElementById('planSave').addEventListener('click', () => { saveOrder(); saveStatus(); saveSizes(); saveConfig(); showToast('✓ Plan saved to localStorage (' + LS + '*)'); });
+  document.getElementById('planToggle').addEventListener('click', () => { planMode ? closeDrawer() : openDrawer(); });
+  document.getElementById('gpDrawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('gpOverlay').addEventListener('click', closeDrawer);
+  document.querySelectorAll('#gpTabs .gp-tab').forEach(b => b.addEventListener('click', () => { drawerTab = b.dataset.tab; renderDrawer(); }));
   document.querySelectorAll('#viewToggle button').forEach(btn => btn.addEventListener('click', () => {
     document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('on'));
     btn.classList.add('on'); currentView = btn.dataset.view;
@@ -682,6 +720,7 @@ function mount(projectKey, container) {
 
   activeFilters = { status: 'ALL', stage: 'ALL', search: '' };
   currentView = 'roadmap'; planMode = false; openPanel = null; dragSrcIdx = null;
+  drawerTab = 'games'; drawerOpenRows = new Set(); drawerDragIdx = null;
   document.body.classList.remove('plan-mode-on-body');
 
   buildSkeleton();

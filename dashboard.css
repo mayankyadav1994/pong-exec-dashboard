@@ -146,12 +146,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .revert-auto{margin-left:4px;font-size:10px;line-height:1;padding:2px 5px;border:1px solid var(--border2);border-radius:3px;background:var(--surface);color:var(--muted);cursor:pointer}
 .revert-auto:hover{color:#d97706;border-color:#d97706}
 
-/* WORKFLOW STATUS - dropdown (plan mode) */
-.plan-status-edit{display:none;position:relative}
-.plan-mode-on-body .plan-status-edit{display:inline-block}
-.plan-mode-on-body .epic-status{display:none}
-.plan-status-edit select{font-size:9px;font-family:'IBM Plex Mono';font-weight:600;padding:2px 18px 2px 7px;border-radius:3px;border:1.5px dashed #d97706;background:rgba(217,119,6,.06);color:#92400e;cursor:pointer;letter-spacing:.3px;appearance:none;outline:none}
-.plan-status-edit::after{content:'\25BE';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:8px;color:#d97706;pointer-events:none}
+/* (status is edited in the Edit Plan drawer; the board pill is read-only) */
 
 /* SIZE CHIPS - rendered ONLY for games with a manual Plan Mode size (Decision #25) */
 .size-row{display:flex;gap:3px;margin-top:5px}
@@ -265,6 +260,47 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .epic-row.dragging{opacity:.4}
 
 .footer{margin-top:18px;font-size:11px;color:var(--sub);border-top:1px solid var(--border);padding-top:12px}
+
+/* EDIT PLAN DRAWER (slide-in, mirrors exec dashboard) */
+.gp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:199;display:none}
+.gp-overlay.open{display:block}
+.gp-drawer{position:fixed;top:0;right:-680px;width:640px;max-width:94vw;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-4px 0 24px rgba(0,0,0,.12);z-index:200;display:flex;flex-direction:column;transition:right .25s ease}
+.gp-drawer.open{right:0}
+.gp-drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.gp-drawer-head h2{font-size:15px;font-weight:600}
+.gp-drawer-close{border:none;background:none;font-size:16px;color:var(--sub);cursor:pointer;line-height:1;padding:4px}
+.gp-drawer-close:hover{color:var(--text)}
+.gp-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surf2);flex-shrink:0}
+.gp-tab{flex:1;background:none;border:none;padding:10px 12px;font-size:12px;font-weight:600;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;font-family:inherit;letter-spacing:.3px}
+.gp-tab:hover{color:var(--muted)}
+.gp-tab.active{color:#d97706;border-bottom-color:#d97706;background:var(--surface)}
+.gp-drawer-note{font-size:10px;color:var(--sub);padding:10px 18px 0;line-height:1.5}
+.gp-drawer-body{flex:1;overflow-y:auto;padding:12px 18px;display:flex;flex-direction:column;gap:6px}
+.gp-drawer-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;align-items:center}
+.gp-foot-btn{font-size:11px;font-weight:600;padding:8px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit}
+.gp-foot-btn:hover{background:var(--surf2);color:#dc2626;border-color:#dc2626}
+
+/* per-game drawer row */
+.gpg{border:1px solid var(--border);border-radius:6px;background:var(--surface)}
+.gpg.off{opacity:.55;background:var(--surf2)}
+.gpg-head{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:8px;align-items:center;padding:7px 10px}
+.gpg-handle{cursor:grab;color:var(--border2);font-size:11px;user-select:none}
+.gpg-handle:active{cursor:grabbing}
+.gpg-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.gpg-name .k{font-family:'IBM Plex Mono';font-size:9px;color:var(--sub);margin-left:6px}
+.gpg-status select{font-size:10px;font-family:'IBM Plex Mono';padding:3px 6px;border:1px solid var(--border2);border-radius:3px;background:var(--surface);color:var(--text);max-width:118px}
+.gpg-chev{cursor:pointer;color:var(--sub);font-size:11px;transition:transform .15s;user-select:none;padding:0 4px}
+.gpg.open .gpg-chev{transform:rotate(180deg)}
+.gpg-expand{display:none;border-top:1px dashed var(--border);padding:10px}
+.gpg.open .gpg-expand{display:block}
+.gpg-sizes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gpg-sizes label{font-size:9px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:3px;letter-spacing:.3px}
+.gpg-sizes select{font-size:11px;font-family:'IBM Plex Mono';padding:3px 4px;border:1px solid var(--border2);border-radius:3px;background:var(--surface)}
+.gpg-toggle{cursor:pointer;width:26px;height:14px;border-radius:8px;background:var(--border2);position:relative;border:none;padding:0;transition:background .15s}
+.gpg-toggle.on{background:#16a34a}
+.gpg-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .15s}
+.gpg-toggle.on::after{left:14px}
+.gpg-expand .revert-auto{margin-left:4px}
 
 /* STANDALONE PAGE HEADER (game-pipeline.html is its own dashboard) */
 .gp-pagehead{margin:0 0 16px}

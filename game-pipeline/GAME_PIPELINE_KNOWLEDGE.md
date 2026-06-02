@@ -228,16 +228,21 @@ Color thresholds unchanged: `>cap` red · `>75%` amber-bold · `>40%` amber · `
 green · `=0` neutral. Capacity ceilings are editable defaults (Art 240 · Design
 80 · Math 320 · Dev 480 · Sound 160 · QA 200 h/mo).
 
-### 3.7 Plan Mode
+### 3.7 Plan Mode — "Edit Plan" drawer (Decision #35)
 
-Toggle in header. When ON:
-- Amber banner + config panel.
-- Workflow-status outlined pill → dashed-amber dropdown per row.
-- **Sizes** editor per game (four XS/S/M/L/XL selectors: Art, Math, Dev, Sound) —
-  manual overrides, persisted to `{prefix}sizes`. See §7 and Decision #25.
-- Rows become drag-reorderable.
-- Autosave to `localStorage`; the **Save plan** button is a confirmation
-  affordance.
+The header **✎ Plan Mode** button opens a slide-in right drawer (mirrors the
+exec dashboard's Edit Plan), with two tabs:
+- **Games** — one compact row per game: drag handle (reorder) · show/hide toggle
+  · name (Jira) · workflow-status select; **click ▾** to expand the A/M/D/S size
+  selectors + ↺ revert-status-to-auto. Collapsed by default.
+- **Settings** — enum editors (statuses / stages / sizes) + discipline capacity
+  ceilings (heatmap).
+- **Footer** — `↺ Reset local edits` + a shown/hidden count.
+
+The board status pill is read-only (✎/drift markers); status is edited in the
+drawer. Everything autosaves to `localStorage` (local per browser). A shared
+"save as default for everyone" with an allowlisted editor is **deferred**
+(Decision #36).
 
 ---
 

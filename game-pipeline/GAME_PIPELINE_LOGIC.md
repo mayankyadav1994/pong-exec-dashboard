@@ -577,6 +577,41 @@ curate the visible set the same way they do on the release-timeline dashboard.
 
 ---
 
+### #35 · ACTIVE · `plan-mode` `ui` · 2026-06-02
+**Plan Mode is a slide-in "Edit Plan" drawer, mirroring the exec dashboard.**
+
+Replaces the long inline Plan panel (which listed the game roster twice — once
+for sizes, once for show/hide). Now a right-side drawer with two tabs:
+- **Games** — one compact row per game: `⠿ drag · show/hide toggle · name (Jira)
+  · status select`, and **click ▾ to expand** for the A/M/D/S size selectors +
+  ↺ revert-status-to-auto. Drag the handle to reorder. Collapsed by default.
+- **Settings** — the enum editors (statuses / stages / sizes) + discipline
+  capacity ceilings.
+- **Footer** — `↺ Reset local edits` (clears this project's order/status/sizes/
+  hidden/config back to Jira-derived defaults) + a "N shown / M hidden" count.
+
+The board row's status pill is now read-only (with the `✎`/drift markers);
+status is edited only in the drawer. All edits autosave to `localStorage`.
+
+Rationale: the user found the exec Edit Plan UX clearly better — one row per
+game with everything in one place, short by default, in a focused drawer.
+
+---
+
+### #36 · DEFERRED · `plan-mode` `persistence` · 2026-06-02
+**Shared "save as default for everyone" with an allowlisted editor — next phase.**
+
+Planned: an allowlisted user can promote their local Plan edits to a shared
+default that is committed to the repo and **overrides the auto-pull** for those
+fields until someone manually flips it back. Mirrors the exec dashboard's
+"Save as default for everyone" (GitHub token → config commit/PR). Until built,
+all Plan edits are local-per-browser (#34/#35).
+
+Rationale to defer: needs an auth/allowlist mechanism + repo-write flow; the
+local editor delivers the immediate value first.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
