@@ -424,6 +424,10 @@ config in one place.
 ---
 
 ### #29 · ACTIVE · `ui` `architecture` · 2026-06-02
+> ⚠ **Cross-nav integration + retained standalone shells SUPERSEDED BY #31.**
+> The combined page + in-place toggle stand; the exec-dashboard cross-links and
+> the single-project shells do not.
+
 **Single combined `game-pipeline.html` page with V2 / iGaming sub-tabs.**
 
 Instead of two separate URLs, the primary artifact is one `game-pipeline.html`
@@ -464,6 +468,28 @@ SyntaxError; a namespaced object sidesteps it and is cleaner to extend.
 
 ---
 
+### #31 · ACTIVE · `architecture` `ui` · 2026-06-02
+**Game Pipeline is a standalone dashboard, fully decoupled from the exec dashboard.**
+
+Reverses the cross-integration in #29:
+- `game-pipeline.html` does **not** carry the exec/release-timeline site nav —
+  it is its own page (header + V2 | iGaming toggle), served at
+  `/game-pipeline.html` in the same repo but independent of the exec dashboard.
+- **No** "Game Pipeline" tab is added to `index.html`, `v2-timeline.html`,
+  `igaming-timeline.html`, their templates, or `build_dashboard.py`.
+- The single-project shells (`v2-game-pipeline.html`,
+  `igaming-game-pipeline.html`) are **removed**; `game-pipeline.html` with its
+  toggle is the only Game Pipeline page. (The engine keeps a `window.PROJECT`
+  standalone path internally, just unused.)
+
+**Supersedes** the cross-nav + retained-shells parts of #29.
+
+Rationale: the Game Pipeline is a separate dashboard from the release-timeline
+exec dashboard; `index.html` was only a styling reference for the toggle
+pattern, not an integration target.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
@@ -476,12 +502,11 @@ the log above, the log is authoritative.**
 - Built per project → `dashboard-data-{v2,ig}.js`, each publishing
   `window.GP_DATA['v2'|'ig'] = { games, sprints, refreshed_at }`.
 
-### Pages (#29)
-- Primary: `game-pipeline.html` — shared site nav + V2/iGaming sub-tabs,
-  in-place switch via `window.GamePipeline.mount(key, el)`.
-- Standalone deep-links retained: `v2-game-pipeline.html`,
-  `igaming-game-pipeline.html` (set `window.PROJECT`).
-- Last-viewed sub-tab remembered in `gp_active_project`.
+### Pages (#29, #31)
+- **Only** page: `game-pipeline.html` — standalone dashboard (own header +
+  V2/iGaming toggle), in-place switch via `window.GamePipeline.mount(key, el)`.
+- Fully decoupled from the exec dashboard: no shared nav, no cross-links.
+- Single-project shells removed. Last-viewed tab remembered in `gp_active_project`.
 
 ### Stage detection (#6, #26)
 - Latest active sprint ≤ TODAY → `current_stage`. No markers → `'concept'`.

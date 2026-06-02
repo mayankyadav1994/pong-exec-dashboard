@@ -32,8 +32,6 @@ jobs:
           JIRA_BOARD_ID_IG: '250'   # iGaming board
       - run: |
           cp game-pipeline/game-pipeline.html .
-          cp game-pipeline/v2-game-pipeline.html .
-          cp game-pipeline/igaming-game-pipeline.html .
           cp game-pipeline/dashboard.js .
           cp game-pipeline/dashboard.css .
           cp game-pipeline/dashboard-data-v2.js .
