@@ -696,13 +696,175 @@ Sonali Mehra and Seyeon Oh are the primary Math assignees. Flares and Help Pages
 
 ---
 
-## 22. File Reference
+## 22. Plan Editor + Save-as-default Flow (Phase 5)
 
-| File | Description |
-|---|---|
-| `v2_release_timeline.html` | Current prototype — single HTML, all data hardcoded, fully interactive |
-| `V2_RELEASE_TIMELINE_KNOWLEDGE.md` | This file — authoritative reference for rebuilding dynamically |
+V2 ships with an in-page editor that lets authorized users change the editable bits of the dashboard's behaviour for everyone else, without touching the Python script or HTML directly. This is the same pattern in iGaming — same JS, CSS, modal flow; only the dashboard-identity constants differ.
+
+### 22.1 Top-right nav buttons
+
+Two buttons sit on the same level as the page tabs:
+
+```
+[Overview] [V2 Timeline] [iGaming Timeline]              [⚙ Edit Plan]  [⚡ What-If]
+```
+
+- **⚙ Edit Plan** (orange) — opens the right-side panel in *planeditor* mode (wider, 680px). Hosts the Fix Versions + Settings tabs.
+- **⚡ What-If** (purple) — opens the same panel in *whatif* mode (narrower, 560px). Hosts the existing Scenarios sandbox. Carries a small red badge with the count of active scenarios; greys out when the master toggle is off.
+
+The two modes share the same panel element (`#scenarioPanel`) with a `data-mode` attribute that drives tab visibility via CSS.
+
+### 22.2 Three tabs
+
+| Tab | What it edits | Persists to |
+|---|---|---|
+| **⚡ Scenarios** | Existing what-if scenarios (add fake work to a person / new FV) | `localStorage.v2_scenarios` (browser-local) |
+| **📋 Fix Versions** | Per-FV color, visibility, QA weeks, subtitle, scope, milestones | `localStorage.v2_local_config` → `config/v2.json` via PR |
+| **⚙ Settings** | Global holidays list | `localStorage.v2_local_config` → `config/v2.json` via PR |
+
+V2-specific note: the Fix Versions editor exposes `color`, `qaWeeks`, `sub`. The lab pipeline (`isLab`, `lab1Weeks`, `pilotWeeks`, `lab2Weeks`) and `salesTrip` fields are **read-through only** in v1 — they're preserved through Save-as-default but not editable via the panel. Edit `config/v2.json` directly for those (or wait for a Phase 6 that adds lab/sales-trip editor fields).
+
+### 22.3 Fix Versions tab — per-row stacked editor
+
+Each FV row is collapsed by default. Click ▾ to expand into three stacked sections:
+
+1. **DETAILS** — QA weeks (0-12), subtitle (`textarea`). The status label is shown read-only (it's derived from Jira data, not editable).
+2. **SCOPE** — one row per Jira parent in the FV (plus the "no epic" virtual bucket if applicable).
+   - Toggle (green = visible / grey = hidden from the FV's Scope tab)
+   - Jira key link (or `—` for the unscoped bucket)
+   - Inline-editable label (`contenteditable` — click to rename, Enter to save, Escape to cancel)
+   - ↺ reset button — clears both hidden and label overrides
+3. **MILESTONES** — list of pins displayed on the FV's gantt bar.
+   - Label, anchor (`after Dev` with offset_weeks / `fixed date`), value, color, delete
+   - `+ Add milestone` button at the bottom
+
+Edits land in `LOCAL_CONFIG.fv_meta[fvKey]` and the FV array is mutated in-place so `buildRows()` picks up the new color/qaWeeks/etc immediately.
+
+### 22.4 Milestone rendering on the gantt
+
+Inside `buildRows()`, after the dev/QA/Lab1/Pilot/Lab2 bars are placed (and after the Sales Trip tag), each milestone in `effectiveFv.milestones` is resolved:
+
+```js
+if (ms.anchor === 'date') msDate = D(ms.date);
+else                      msDate = devEnd + ms.offset_weeks * 7 days;
+```
+
+Renders as a 1.5px vertical pin + small label above. Labels stagger by `(msIdx % 3) * 16px` so close-together milestones don't overlap. Note the visual stacking with existing V2 markers: dev/QA bars at `top:8px`, dept rows from `top:34px+`, Sales Trip tag at `top:32px`. Milestone labels start at `top:34px` and shouldn't collide with Sales Trip in practice (different x-positions).
+
+### 22.5 LOCAL_CONFIG — browser-local overlay
+
+```js
+LOCAL_CONFIG = {
+  fv_order: ['V2 SW 15.00', 'V2 P2P 16.00', ...] | null,
+  fv_meta: {
+    'V2 P2P 16.00': {
+      color: '#ff0000',
+      qaWeeks: 3,
+      sub: 'Custom subtitle',
+      epic_overrides: { 'V2-1234': { hidden: true, label: 'Custom name' } },
+      milestones: [{ id, label, anchor, offset_weeks|date, color }, ...]
+    }
+  },
+  hidden_fvs: [],
+  holidays: ['2026-05-18'] | null
+};
+```
+
+Loaded from `localStorage.v2_local_config` on every page load. Two `apply*` functions replay it over the in-memory FV array and HOLIDAYS list.
+
+### 22.6 Server config — `config/v2.json`
+
+`v2_timeline.py` reads this file at the top via `load_config()`, falls back to `DEFAULT_FV_CONFIG` / `DEFAULT_HOLIDAYS` Python literals if missing or unparseable.
+
+Schema (full V2-specific fields preserved):
+
+```json
+{
+  "fv_order": ["V2 SW 15.00", "V2 SW 16.00", "V2 PT 13.30", "V2 P2P 16.00", "V2 HHR 3.00", "V2 PT 14.00", "V2 C2 5.10"],
+  "fv_meta": {
+    "V2 P2P 16.00": {
+      "color": "#fb923c",
+      "sub": "Georgia P2P · Mechanical Meters · Task Handler R7",
+      "qaWeeks": 3,
+      "indev_style": "color:#7c2d12;border-color:rgba(234,88,12,.3);background:rgba(234,88,12,.09)",
+      "isLab": true,
+      "lab1Weeks": 4,
+      "pilotWeeks": 2,
+      "lab2Weeks": 4,
+      "salesTrip": {"date": "2026-06-27", "label": "Sales Trip · Georgia"},
+      "epic_overrides": { "V2-1234": { "hidden": true, "label": "..." } },
+      "milestones": [{ "id": "ms_xyz", "label": "QA Round 2", "anchor": "dev_end", "offset_weeks": 2, "color": "#d97706" }]
+    }
+  },
+  "hidden_fvs": [],
+  "holidays": ["2026-05-18"]
+}
+```
+
+`epic_overrides` and `milestones` are optional per FV. The "no epic" virtual bucket stores under sentinel key `"__unscoped__"`. The `isLab` / `lab*Weeks` / `salesTrip` / `indev_style` / `note` fields are V2-only and are not in iGaming's config schema (they're optional, so the JSON parser doesn't care).
+
+### 22.7 Save-as-default flow
+
+Identical to iGaming. The `💾 Save as default` button triggers:
+
+1. **Diff** — `buildConfigPayload()` serialises current state; `fetchServerConfig()` GETs current `config/v2.json` from `raw.githubusercontent.com`; `diffConfigs()` produces a categorised change list.
+2. **Auth** — first save prompts for a fine-grained GitHub PAT (stored in `localStorage.v2_github_pat`). `verifyPat()` checks `GET /user` + `permissions.push` on the repo.
+3. **Confirm modal** — shows the diff, commit message editable, "Save & merge" button.
+4. **Commit** — `saveConfigToRepo()` creates branch `config/v2-{timestamp}`, commits the new JSON, opens a PR, auto-merges, deletes the branch.
+5. **Trigger** — merge to `main` matches `push.paths: config/v2.json` in `.github/workflows/v2_timeline.yml`, fires the workflow. ~2-3 min from click to live.
+6. **Cleanup** — panel clears `LOCAL_CONFIG` and reloads the page.
+
+All GitHub API calls go directly browser → `api.github.com`. No backend.
+
+### 22.8 PAT scope
+
+Same fine-grained scopes as iGaming: Contents read+write, Pull requests read+write, Metadata read. See [`docs/CONFIG_EDITOR_SETUP.md`](CONFIG_EDITOR_SETUP.md) for setup walkthrough.
+
+The PAT is stored under a **separate** key (`v2_github_pat`) from iGaming's (`ig_github_pat`). Same physical token works for both (same repo, same permissions) but the user has to paste it into each dashboard once. This is intentional — revoking the token in one dashboard's UI doesn't break the other.
+
+### 22.9 localStorage keys (V2 dashboard)
+
+| Key | Type | Purpose |
+|---|---|---|
+| `v2_scenarios` | JSON array | What-If scenarios |
+| `v2_scenarios_master` | JSON bool | Master enable/disable for all scenarios |
+| `v2_hidden_fvs` | JSON array | Backwards-compat hide list (Plan Editor writes to both this and `v2_local_config.hidden_fvs`) |
+| `v2_local_config` | JSON object | All Plan Editor browser-local edits (see §22.5) |
+| `v2_github_pat` | string | Fine-grained PAT for Save-as-default |
+| `v2_github_pat_user` | string | Last verified GitHub username (display only) |
+
+All `v2_*` prefixed to avoid colliding with iGaming's `ig_*` keys if both are open in the same browser.
+
+### 22.10 Portability
+
+The editor JS is byte-identical between iGaming and V2 except for four dashboard-identity constants:
+
+| Constant | V2 value | What it controls |
+|---|---|---|
+| `GH_CONFIG_PATH` | `'config/v2.json'` | Which file the save flow writes to |
+| `GH_PAT_KEY` | `'v2_github_pat'` | localStorage key for the PAT |
+| `GH_PAT_USER_KEY` | `'v2_github_pat_user'` | localStorage key for the verified username |
+| `localStorage.{v2_local_config, v2_hidden_fvs, v2_scenarios, v2_scenarios_master}` | `v2_*` prefix | All other panel state |
+
+Plus the Python script needs its own `load_config()` reading the new JSON file, and its own `.github/workflows/<dashboard>.yml` with a matching `push.paths` trigger. Everything else ports verbatim.
 
 ---
 
-*Last updated: May 22, 2026 · Pong Game Studios PMO*
+## 23. File Reference
+
+| File | Description |
+|---|---|
+| `v2-timeline.html` | Generated output — committed by the workflow on every refresh |
+| `v2-timeline.template.html` | Source template — placeholders `__FV_DATA__`, `__SPRINTS_DATA__`, etc. injected by the Python script. Contains all CSS, dashboard JS, Plan Editor + Save-as-default flow. |
+| `v2_timeline.py` | Refresh script — calls Jira, transforms results, renders the template. Reads `config/v2.json` with hardcoded fallback. |
+| `config/v2.json` | **Editable config** — FV order, per-FV metadata (color, sub, qaWeeks, lab/sales-trip), scope overrides, milestones, holidays, hidden FVs. Edited via the Plan Editor's Save-as-default button (auto-PR). |
+| `jira_client.py` | Shared `jira_jql` POST `/search/jql` paginator (used by all three refresh scripts: exec, v2, igaming) |
+| `.github/workflows/v2_timeline.yml` | Workflow — daily cron (`15 6 * * *` UTC) + `workflow_dispatch` + `push.paths: config/v2.json` |
+| `docs/V2_RELEASE_TIMELINE_KNOWLEDGE.md` | This file |
+| `docs/V2_TIMELINE_EDGE_CASES.md` | Companion: tricky cases the model intentionally doesn't try to solve |
+| `docs/IG_RELEASE_TIMELINE_KNOWLEDGE.md` | Sister dashboard (iGaming) — same Plan Editor pattern |
+| `docs/CONFIG_EDITOR_SETUP.md` | One-time PAT setup guide for users who'll edit dashboards |
+| `docs/DASHBOARD_LOGIC.md` | Exec dashboard logic reference (separate dashboard, separate codepath) |
+
+---
+
+*Last updated: 2026-06-02 · Phase 5 added Plan Editor + Save-as-default + Milestones · Pong Game Studios PMO*
