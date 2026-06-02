@@ -1,0 +1,14 @@
+# Secrets — never commit. .env.example currently holds a live token, so ignore it too.
+.env
+.env.example
+.env.local
+
+# Use .env.template as the committable, sanitized template.
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local refresh snapshots
+archive/*.json

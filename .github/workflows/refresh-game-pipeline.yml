@@ -1,0 +1,42 @@
+# ============================================================
+# Refresh Game Pipeline Dashboard
+# Lives in the pong-exec-dashboard repo at
+#   .github/workflows/refresh-game-pipeline.yml
+# Source lives under the repo's "game-pipeline/" subfolder (Decision #28).
+#
+# Reuses the exec-dashboard secrets already configured in this repo:
+#   JIRA_EMAIL, JIRA_API_TOKEN
+# JIRA_BASE_URL + board IDs are NOT secret, so they're plain values below.
+# ============================================================
+name: Refresh Game Pipeline Dashboard
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'  # daily at 6am UTC
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r game-pipeline/requirements.txt
+      - run: python game-pipeline/build_jira_data.py --project both
+        env:
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          JIRA_BASE_URL: https://ponggamestudios.atlassian.net
+          JIRA_BOARD_ID_V2: '316'   # V2 Scrum board (axis only; V2 issues are Kanban/no sprints)
+          JIRA_BOARD_ID_IG: '250'   # iGaming board
+      - run: |
+          cp game-pipeline/v2-game-pipeline.html .
+          cp game-pipeline/igaming-game-pipeline.html .
+          cp game-pipeline/dashboard.js .
+          cp game-pipeline/dashboard.css .
+          cp game-pipeline/dashboard-data-v2.js .
+          cp game-pipeline/dashboard-data-ig.js .
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Refresh game pipeline data'
