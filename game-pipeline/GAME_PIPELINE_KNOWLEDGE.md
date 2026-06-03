@@ -210,6 +210,16 @@ The Roadmap view uses a **sprint axis**, not a month axis:
 `CHART_START = 2026-05-11` (S1). `CHART_END` extends to the last sprint with data
 (at least `2027-12-07`).
 
+### 3.4b Forecast (Decision #38)
+
+A **🔮 Forecast** toggle projects each game's remaining hours into future
+sprints. The sprint axis is extended past Jira (same 14-day cadence + numbering,
+dynamic horizon). Rate = studio-average velocity per department (h/sprint), with
+a per-game clamp (0.5×–2×) and editable overrides in Settings. Remaining work is
+laid in parallel from the next sprint; the projected **ship** sprint shows as a
+dashed ⚑ line + `≈ ship …` in the hours column. Computed live in the engine
+(per-game-independent; shared-team capacity scheduling is a future upgrade).
+
 ### 3.5 Views (toggle in header)
 
 1. **Roadmap** (default) — per-game rows with stacked discipline lanes, sprint

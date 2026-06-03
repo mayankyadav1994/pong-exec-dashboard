@@ -54,7 +54,10 @@ const DEFAULT_CONFIG = {
     { key: 'M', label: 'Medium' }, { key: 'L', label: 'Large' }, { key: 'XL', label: 'Extra Large' },
   ],
   capacities: { art: 240, design: 80, math: 320, dev: 480, sound: 160, qa: 200 },
+  velocities: {},   // per-dept h/sprint OVERRIDES (empty → use studio-average; Decision #38)
 };
+// Fallback velocity (h/sprint per dept) when a dept has no studio history.
+const DEFAULT_VELOCITY = { art: 50, design: 30, math: 40, dev: 140, sound: 20, qa: 25 };
 
 function getData(key) {
   const d = (window.GP_DATA && window.GP_DATA[key]) || {};
@@ -66,6 +69,7 @@ function getData(key) {
 // ============================================================
 let PROJECT, LS, APP;
 let RAW_GAMES, RAW_SPRINTS, REFRESHED, SPRINT_LIST, SPRINT_BY_ID, CHART_START, CHART_END, TODAY;
+let ALL_SPRINTS, showForecast, studioVel;   // forecast (Decision #38)
 let CONFIG, USER_ORDER, USER_STATUS, USER_SIZES, HIDDEN;
 let activeFilters, currentView, planMode, openPanel, dragSrcIdx, toastTimer;
 let drawerTab, drawerOpenRows, drawerDragIdx;
@@ -96,6 +100,87 @@ function sprintEnd(s) {
 function shortSprint(label) {
   const m = String(label || '').match(/(\d+)\s*$/);
   return m ? 'S' + m[1] : String(label || '');
+}
+
+// ============================================================
+//  FORECAST — hypothetical timeline from remaining hours + velocity (Decision #38)
+// ============================================================
+function pastSprintCount(d) {
+  return (d.sprints || []).filter(id => { const s = SPRINT_BY_ID[String(id)]; return s && new Date(s.start) <= TODAY; }).length;
+}
+// Studio-average velocity: Σ spent ÷ Σ active past discipline-sprints, per dept.
+function computeStudioVel() {
+  const acc = {}; LANE_ORDER.forEach(k => acc[k] = { sp: 0, spr: 0 });
+  RAW_GAMES.forEach(g => (g.disciplines || []).forEach(d => {
+    if (acc[d.key]) { acc[d.key].sp += d.spent || 0; acc[d.key].spr += pastSprintCount(d); }
+  }));
+  const v = {}; LANE_ORDER.forEach(k => { v[k] = acc[k].spr > 0 ? acc[k].sp / acc[k].spr : null; });
+  return v;
+}
+function baseRate(k) {
+  const ovr = CONFIG.velocities && CONFIG.velocities[k];
+  if (ovr) return ovr;
+  if (studioVel && studioVel[k]) return studioVel[k];
+  return DEFAULT_VELOCITY[k] || 30;
+}
+// Per-game rate: own pace when it has real history, clamped to 0.5×–2× the base.
+function effRate(d) {
+  const base = baseRate(d.key);
+  const past = pastSprintCount(d);
+  if (past >= 2 && (d.spent || 0) >= 8) { const own = d.spent / past; return Math.min(Math.max(own, 0.5 * base), 2 * base); }
+  return base;
+}
+function applyForecast() {
+  studioVel = computeStudioVel();
+  RAW_GAMES.forEach(g => { g._proj = null; });
+  CHART_START = SPRINT_LIST.length ? new Date(SPRINT_LIST[0].start) : new Date('2026-05-11');
+  const realEnd = SPRINT_LIST.length ? new Date(SPRINT_LIST[SPRINT_LIST.length - 1].end || SPRINT_LIST[SPRINT_LIST.length - 1].start) : new Date('2027-12-07');
+  ALL_SPRINTS = SPRINT_LIST.slice();
+  if (!showForecast || !SPRINT_LIST.length) { CHART_END = realEnd; return; }
+
+  let firstFuture = SPRINT_LIST.findIndex(s => new Date(s.start) > TODAY);
+  if (firstFuture < 0) firstFuture = SPRINT_LIST.length;
+
+  let maxNeed = 0;
+  RAW_GAMES.forEach(g => {
+    if (g.delivered) return;
+    const disc = {}; let ship = 0, any = false;
+    LANE_ORDER.forEach(k => {
+      const d = (g.disciplines || []).find(x => x.key === k); if (!d) return;
+      const rem = Math.max(0, (d.est || 0) - (d.spent || 0)); if (rem <= 0) return;
+      const need = Math.max(1, Math.ceil(rem / effRate(d)));
+      disc[k] = need; any = true; ship = Math.max(ship, need); maxNeed = Math.max(maxNeed, need);
+    });
+    if (any) g._proj = { disc, shipOffset: ship };
+  });
+
+  const slotsAfter = SPRINT_LIST.length - firstFuture;
+  const synth = Math.max(0, maxNeed - slotsAfter);
+  if (synth > 0) {
+    const last = SPRINT_LIST[SPRINT_LIST.length - 1];
+    const m = String(last.label).match(/^(.*?)(\d+)\s*$/);
+    const pre = m ? m[1] : (PROJECT.jira_project + ' Sprint ');
+    const num = m ? +m[2] : SPRINT_LIST.length;
+    let start = new Date(last.start);
+    for (let i = 1; i <= synth; i++) {
+      start = new Date(start); start.setDate(start.getDate() + 14);
+      const e = new Date(start); e.setDate(e.getDate() + 12);
+      const sp = { id: 'proj' + i, label: pre + (num + i), start: start.toISOString().slice(0, 10), end: e.toISOString().slice(0, 10), projected: true };
+      SPRINT_BY_ID[sp.id] = sp; ALL_SPRINTS.push(sp);
+    }
+  }
+  RAW_GAMES.forEach(g => {
+    if (!g._proj) return;
+    const slots = {};
+    Object.keys(g._proj.disc).forEach(k => {
+      const need = g._proj.disc[k], arr = [];
+      for (let j = 0; j < need; j++) { const s = ALL_SPRINTS[firstFuture + j]; if (s) arr.push(s); }
+      slots[k] = arr;
+    });
+    g._proj.slots = slots;
+    g._proj.ship = ALL_SPRINTS[firstFuture + g._proj.shipOffset - 1] || ALL_SPRINTS[ALL_SPRINTS.length - 1];
+  });
+  CHART_END = new Date(ALL_SPRINTS[ALL_SPRINTS.length - 1].end || ALL_SPRINTS[ALL_SPRINTS.length - 1].start);
 }
 
 // ============================================================
@@ -150,6 +235,7 @@ function buildSkeleton() {
     <div class="fb-group" id="fbStageGroup"><span class="fb-label">STAGE</span></div>
     <div class="fb-spacer"></div>
     <input class="fb-search" id="fbSearch" placeholder="🔍 Search games…">
+    <button class="fb-chip fc-toggle" id="fcToggle" title="Project a hypothetical timeline from remaining hours ÷ velocity">🔮 Forecast</button>
     <div class="view-toggle" id="viewToggle">
       <button class="on" data-view="roadmap">Roadmap</button>
       <button data-view="heatmap">Heatmap</button>
@@ -242,14 +328,15 @@ function renderKPI() {
 function renderAxis() {
   const axisEl = document.getElementById('axis');
   axisEl.innerHTML = '';
-  if (!SPRINT_LIST.length) return;
-  const stride = Math.max(1, Math.ceil(SPRINT_LIST.length / 16));
-  SPRINT_LIST.forEach((s, i) => {
+  const list = ALL_SPRINTS && ALL_SPRINTS.length ? ALL_SPRINTS : SPRINT_LIST;
+  if (!list.length) return;
+  const stride = Math.max(1, Math.ceil(list.length / 18));
+  list.forEach((s, i) => {
     if (i % stride !== 0) return;
     const end = sprintEnd(s);
     const mid = new Date((new Date(s.start).getTime() + end.getTime()) / 2);
     const chip = document.createElement('div');
-    chip.className = 'sp-chip';
+    chip.className = 'sp-chip' + (s.projected ? ' proj' : '');
     chip.style.left = pct(mid) + '%';
     chip.innerHTML = `${s.label}<small>${fmtRange(s.start, end)}</small>`;
     axisEl.appendChild(chip);
@@ -301,25 +388,35 @@ function renderRow(g, idx) {
     </div>${fvRow(g)}${sizeRow}`;
 
   const track = document.createElement('div'); track.className = 'epic-track';
-  SPRINT_LIST.forEach(s => { const l = document.createElement('div'); l.className = 'sp-line'; l.style.left = pct(s.start) + '%'; track.appendChild(l); });
+  (ALL_SPRINTS || SPRINT_LIST).forEach(s => { const l = document.createElement('div'); l.className = 'sp-line' + (s.projected ? ' proj' : ''); l.style.left = pct(s.start) + '%'; track.appendChild(l); });
   if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; track.appendChild(tl); }
+  const proj = (showForecast && g._proj) ? g._proj : null;
   let laneTop = 8;
   LANE_ORDER.forEach(dKey => {
     const disc = g.disciplines ? g.disciplines.find(d => d.key === dKey) : null;
     const sprs = discSprints(disc);
-    if (!sprs.length) return;
-    sprs.forEach(s => {
-      const end = sprintEnd(s);
-      const l = pct(s.start), w = Math.max(pct(end) - l, 0.8);
+    const pslots = (proj && proj.slots && proj.slots[dKey]) ? proj.slots[dKey] : [];
+    if (!sprs.length && !pslots.length) return;
+    const top = laneTop;
+    const lane = (s, dashed) => {
+      const end = sprintEnd(s), l = pct(s.start), w = Math.max(pct(end) - l, 0.8);
       const chip = document.createElement('div');
-      chip.className = 'lane-spr lane-' + dKey;
-      chip.style.left = l + '%'; chip.style.width = w + '%'; chip.style.top = laneTop + 'px';
-      chip.title = `${dKey.toUpperCase()} · ${s.label} (${fmtRange(s.start, end)})`;
+      chip.className = 'lane-spr lane-' + dKey + (dashed ? ' proj' : '');
+      chip.style.left = l + '%'; chip.style.width = w + '%'; chip.style.top = top + 'px';
+      chip.title = `${dKey.toUpperCase()} · ${s.label} (${fmtRange(s.start, end)})${dashed ? ' · projected' : ''}`;
       chip.textContent = w > 3 ? shortSprint(s.label) : '';
       track.appendChild(chip);
-    });
+    };
+    sprs.forEach(s => lane(s, false));
+    pslots.forEach(s => lane(s, true));
     laneTop += 11;
   });
+  if (proj && proj.ship) {
+    const sm = document.createElement('div'); sm.className = 'ship-line';
+    sm.style.left = pct(proj.ship.start) + '%';
+    sm.title = `Projected ship · ${proj.ship.label} (${fmtD(proj.ship.start)})`;
+    track.appendChild(sm);
+  }
   if (laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; track.appendChild(n); }
 
   const hrs = document.createElement('div'); hrs.className = 'epic-hrs';
@@ -330,7 +427,8 @@ function renderRow(g, idx) {
     <div class="epic-hrs-v ${over ? 'over' : ''}">${Math.round(g.spent)}h</div>
     <div class="epic-hrs-l">SPENT / ${Math.round(g.est)}h est</div>
     <div class="epic-prog"><div class="epic-prog-fill" style="width:${progressPct}%;background:${progressColor}"></div></div>
-    <div class="epic-hrs-l" style="color:${over ? '#dc2626' : 'var(--sub)'};margin-top:4px">${over ? `⚠ +${Math.round(g.spent - g.est)}h over` : `${progressPct}% spent`}</div>`;
+    <div class="epic-hrs-l" style="color:${over ? '#dc2626' : 'var(--sub)'};margin-top:4px">${over ? `⚠ +${Math.round(g.spent - g.est)}h over` : `${progressPct}% spent`}</div>
+    ${proj && proj.ship ? `<div class="epic-hrs-l proj-ship" title="Forecast: remaining hours ÷ velocity (parallel)">≈ ship ${shortSprint(proj.ship.label)} · ${fmtD(proj.ship.start)}</div>` : ''}`;
 
   const chev = document.createElement('div'); chev.className = 'chev'; chev.textContent = '⌄';
   row.appendChild(dh); row.appendChild(label); row.appendChild(track); row.appendChild(hrs); row.appendChild(chev);
@@ -614,13 +712,21 @@ function renderDrawerSettings(body) {
   const enumCol = (title, items, type, withColor) => `<div class="pc-col"><h4>${title}</h4><div class="pc-list">` +
     items.map((s, i) => `<div class="pc-item">${withColor ? `<div class="pc-item-color" style="background:${s.color}"></div>` : `<div class="size-chip-val sz-${s.key}" style="margin:0 4px 0 0">${s.key}</div>`}<input value="${s.label || s.key}" data-i="${i}" data-type="${type}"><span class="pc-item-x" data-i="${i}" data-type="${type}">×</span></div>`).join('') +
     (type === 'status' ? `<div class="pc-add" id="pcAddStatus">+ add status</div>` : '') + `</div></div>`;
-  const caps = Object.keys(CONFIG.capacities).map(k =>
-    `<label style="font-size:9px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:3px">${k.toUpperCase()}<input type="number" min="0" step="20" value="${CONFIG.capacities[k]}" data-cap="${k}" style="border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-family:'IBM Plex Mono';font-size:11px"></label>`).join('');
+  const numField = (label, k, val, attr, step) =>
+    `<label style="font-size:9px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:3px">${label}<input type="number" min="0" step="${step}" value="${val}" ${attr}="${k}" style="border:1px solid var(--border2);border-radius:3px;padding:4px 6px;font-family:'IBM Plex Mono';font-size:11px"></label>`;
+  const caps = Object.keys(CONFIG.capacities).map(k => numField(k.toUpperCase(), k, CONFIG.capacities[k], 'data-cap', 20)).join('');
+  const vels = LANE_ORDER.map(k => {
+    const v = Math.round(baseRate(k));
+    const src = (CONFIG.velocities && CONFIG.velocities[k]) ? 'override' : (studioVel && studioVel[k] ? 'studio avg' : 'default');
+    return numField(`${k.toUpperCase()} <span style="font-weight:400;color:var(--sub)">(${src})</span>`, k, v, 'data-vel', 5);
+  }).join('');
   body.innerHTML = `<div class="pc-grid">
       ${enumCol('WORKFLOW STATUSES', CONFIG.statuses, 'status', false)}
       ${enumCol('LIFECYCLE STAGES', CONFIG.stages, 'stage', true)}
       ${enumCol('SIZE SCALE', CONFIG.sizes, 'size', false)}
     </div>
+    <div style="margin-top:16px"><h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">FORECAST VELOCITY (h/sprint per dept) — drives projected timeline <span style="font-weight:400;font-style:italic;text-transform:none;color:var(--sub)">· pre-filled with studio average; edit to override</span></h4>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">${vels}</div></div>
     <div style="margin-top:16px"><h4 style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">DISCIPLINE CAPACITY (h/mo) — heatmap ceilings</h4>
     <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px">${caps}</div></div>`;
   body.querySelectorAll('.pc-item input').forEach(inp => inp.addEventListener('change', () => {
@@ -643,6 +749,12 @@ function renderDrawerSettings(body) {
     const v = parseInt(inp.value, 10); if (!isNaN(v)) CONFIG.capacities[inp.dataset.cap] = v;
     saveConfig(); if (currentView === 'heatmap') renderHeatmap();
   }));
+  body.querySelectorAll('input[data-vel]').forEach(inp => inp.addEventListener('change', () => {
+    const v = parseFloat(inp.value);
+    CONFIG.velocities = CONFIG.velocities || {};
+    if (!isNaN(v) && v > 0) CONFIG.velocities[inp.dataset.vel] = v; else delete CONFIG.velocities[inp.dataset.vel];
+    saveConfig(); applyForecast(); renderAxis(); renderRows();
+  }));
 }
 
 function resetLocalEdits() {
@@ -661,6 +773,16 @@ function wireControls() {
   document.getElementById('gpDrawerClose').addEventListener('click', closeDrawer);
   document.getElementById('gpOverlay').addEventListener('click', closeDrawer);
   document.querySelectorAll('#gpTabs .gp-tab').forEach(b => b.addEventListener('click', () => { drawerTab = b.dataset.tab; renderDrawer(); }));
+  const fc = document.getElementById('fcToggle');
+  if (fc) {
+    fc.classList.toggle('on', showForecast);
+    fc.addEventListener('click', () => {
+      showForecast = !showForecast;
+      try { localStorage.setItem(LS + 'forecast', JSON.stringify(showForecast)); } catch (e) {}
+      fc.classList.toggle('on', showForecast);
+      applyForecast(); renderAxis(); renderRows();
+    });
+  }
   document.querySelectorAll('#viewToggle button').forEach(btn => btn.addEventListener('click', () => {
     document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('on'));
     btn.classList.add('on'); currentView = btn.dataset.view;
@@ -717,6 +839,10 @@ function mount(projectKey, container) {
     g._auto_status = g.workflow_status;            // derived from Jira (Decision #32)
     if (USER_STATUS[g.name]) g.workflow_status = USER_STATUS[g.name];
   });
+
+  try { showForecast = JSON.parse(localStorage.getItem(LS + 'forecast')); } catch (e) {}
+  if (showForecast === null || showForecast === undefined) showForecast = true;
+  applyForecast();
 
   activeFilters = { status: 'ALL', stage: 'ALL', search: '' };
   currentView = 'roadmap'; planMode = false; openPanel = null; dragSrcIdx = null;

@@ -192,6 +192,14 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .lane-qa{background:var(--stg-qa)}
 .lane-key{position:absolute;left:0;top:0;font-size:7px;font-weight:700;color:var(--sub);letter-spacing:.3px;text-transform:uppercase}
 .today-line-row{position:absolute;top:0;bottom:0;width:2px;background:rgba(185,28,28,.4);pointer-events:none;z-index:5}
+/* FORECAST (projected sprints + ship marker) */
+.sp-chip.proj{opacity:.6;border-style:dashed;color:var(--sub)}
+.sp-line.proj{background:rgba(124,58,237,.14)}
+.lane-spr.proj{opacity:.5;border:1px dashed rgba(0,0,0,.4);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.35) 0 3px,transparent 3px 6px)}
+.ship-line{position:absolute;top:0;bottom:0;border-left:2px dashed #7c3aed;z-index:6;pointer-events:none}
+.ship-line::before{content:'⚑';position:absolute;top:-3px;left:-5px;font-size:10px;color:#7c3aed}
+.proj-ship{color:#7c3aed !important;font-weight:700}
+.fb-chip.fc-toggle.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
 
 .chev{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:11px;transition:transform .2s}
 .epic-row.open .chev{transform:translateY(-50%) rotate(180deg)}

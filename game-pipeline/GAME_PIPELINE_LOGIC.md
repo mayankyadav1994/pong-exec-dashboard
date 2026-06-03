@@ -635,6 +635,36 @@ sum the whole tree to show true game hours.
 
 ---
 
+### #38 · ACTIVE · `forecast` `axis` `ui` · 2026-06-03
+**Hypothetical timeline: project remaining hours into future sprints by velocity.**
+
+Computed **live in the engine** (reacts to Plan reorder + editable velocity), toggled
+by a **🔮 Forecast** chip (default on):
+
+- **Sprint axis is extended** beyond Jira: the 14-day cadence + continuous
+  numbering are continued (`IG Sprint 10, 11…`), generating **only as many
+  projected sprints as the furthest projection needs** (dynamic horizon).
+  Projected sprints/chips render dashed/translucent; real ones stay solid.
+- **Velocity = per department, studio-average** (`Σ spent ÷ Σ active past
+  discipline-sprints`). A game with real history in a dept uses its own pace
+  **clamped to 0.5×–2×** the studio rate (prevents noise like a 142-sprint
+  blow-up); depts with no history use a configurable fallback. All rates are
+  editable in Settings → Forecast Velocity (overrides persist to
+  `{prefix}config.velocities`).
+- **Per game**: for each dept with remaining hours,
+  `sprints_needed = ceil(remaining ÷ rate)`, laid into consecutive projected
+  sprints **starting in parallel from the next sprint**. Projected **ship** =
+  the longest dept (shown as a dashed ⚑ line on the row + `≈ ship <sprint> ·
+  <date>` in the hours column). Delivered/done games get no projection.
+
+Scheduling is per-game-independent (does **not** model the shared team competing
+across games) — a capacity-aware scheduler is a future upgrade.
+
+Rationale: planners want "given the remaining work and how fast we go, when does
+this land?" — laid directly on the same sprint axis.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
