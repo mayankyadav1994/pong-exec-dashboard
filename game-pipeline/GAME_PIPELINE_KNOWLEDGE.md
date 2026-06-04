@@ -252,10 +252,15 @@ exec dashboard's Edit Plan), with two tabs:
   ceilings (heatmap).
 - **Footer** — `↺ Reset local edits` + a shown/hidden count.
 
-The board status pill is read-only (✎/drift markers); status is edited in the
-drawer. Everything autosaves to `localStorage` (local per browser). A shared
-"save as default for everyone" with an allowlisted editor is **deferred**
-(Decision #36).
+The board status pill is read-only (✎ local / 📌 shared / drift markers); status
+is edited in the drawer. Edits autosave to `localStorage` (local per browser).
+
+**Shared "Save as default for everyone" (Decision #39):** precedence is Jira auto
+< shared committed plan < local edits. An editor signs in with a fine-grained
+**GitHub token** (in the drawer footer) and commits the merged plan to repo-root
+`plan-{v2,ig}.json` on `main`; it becomes the shared baseline for all viewers
+(📌 badge) after the redeploy. The gate is **GitHub repo write access** (a
+committed `editors.json` is only a UX allowlist). See `PUBLISH_SETUP.md`.
 
 ---
 

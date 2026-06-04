@@ -18,6 +18,15 @@
 const BASE = 'https://ponggamestudios.atlassian.net/browse/';
 const LANE_ORDER = ['art', 'design', 'math', 'dev', 'sound', 'qa'];
 
+// --- Shared "Save as default for everyone" via GitHub (Decision #39) ---------
+const GH_OWNER = 'mayankyadav1994', GH_REPO = 'pong-exec-dashboard';
+const GH_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
+const GH_PAT_KEY = 'gp_github_pat', GH_USER_KEY = 'gp_github_user';  // sessionStorage
+const SHARED_CACHE = {};   // project key -> committed shared plan object
+let SHARED = {};           // current project's shared plan
+let EDITORS = [];          // allowed GitHub logins (UX gate; real gate = repo perms)
+let SHARED_STATUS = {}, SHARED_SIZES = {};
+
 // --- Project metadata --------------------------------------------------------
 const PROJECT_META = {
   v2: { key: 'v2', title: 'V2 Game Pipeline',
@@ -196,7 +205,7 @@ function discSprints(disc) {
   return ids.map(id => SPRINT_BY_ID[String(id)]).filter(Boolean)
             .sort((a, b) => new Date(a.start) - new Date(b.start));
 }
-function gameSizes(g) { return USER_SIZES[g.name] || {}; }
+function gameSizes(g) { return { ...(SHARED_SIZES[g.name] || {}), ...(USER_SIZES[g.name] || {}) }; }
 function hasAnySize(g) { const s = gameSizes(g); return ['art', 'math', 'dev', 'sound'].some(k => s[k]); }
 function fvRow(g) {
   if (g.delivered) {
@@ -225,7 +234,7 @@ function buildSkeleton() {
     <div>
       <h1>${PROJECT.title}</h1>
       <p>${PROJECT.subtitle || ''}${SPRINT_LIST.length ? ' · sprint axis from ' + SPRINT_LIST[0].label : ''}</p>
-      <div class="refresh-meta"><div class="refresh-dot"></div>Phase 1 · Jira-sourced · <span id="hdrCount">0</span> game epics${REFRESHED ? ' · refreshed ' + REFRESHED : ''}</div>
+      <div class="refresh-meta"><div class="refresh-dot"></div>Phase 1 · Jira-sourced · <span id="hdrCount">0</span> game epics${REFRESHED ? ' · refreshed ' + REFRESHED : ''}<span id="sharedBadge"></span></div>
     </div>
     <div class="hdr-actions"><button class="btn" id="planToggle">✎ Plan Mode</button></div>
   </div>
@@ -268,6 +277,8 @@ function buildSkeleton() {
     <div class="gp-drawer-body" id="gpDrawerBody"></div>
     <div class="gp-drawer-foot" id="gpDrawerFoot"></div>
   </div>
+
+  <div class="gp-modal-overlay" id="gpModalOverlay"><div class="gp-modal" id="gpModal"></div></div>
 
   <div class="toast" id="toast"></div>
   <div class="footer">Pong Game Studios PMO · ${PROJECT.title} · shared engine · data via <code>build_jira_data.py</code> · localStorage keys: <code>${LS}*</code></div>`;
@@ -365,8 +376,12 @@ function renderRow(g, idx) {
 
   const label = document.createElement('div'); label.className = 'epic-label';
   const depIcon = (g.dependencies && g.dependencies.length) ? `<span class="dep-icon" title="Depends on ${g.dependencies.join(', ')}">🔗</span>` : '';
-  const isOverride = USER_STATUS[g.name] != null;
-  const drift = isOverride && USER_STATUS[g.name] !== g._auto_status;
+  const src = g._status_source;
+  const isOverride = src !== 'auto';
+  const drift = src === 'local' && USER_STATUS[g.name] !== g._auto_status;
+  const statusMark = src === 'shared'
+    ? ` <span class="pin-mark" title="Shared default${SHARED.updated_by ? ' · pinned by ' + SHARED.updated_by : ''} — auto-derived: ${g._auto_status}">📌</span>`
+    : (src === 'local' ? ` <span class="ovr-mark" title="Manually set (this browser) — auto-derived: ${g._auto_status}">✎</span>` : '');
   let sizeRow = '';
   if (hasAnySize(g)) {
     const sz = gameSizes(g);
@@ -383,7 +398,7 @@ function renderRow(g, idx) {
       ${g.jira ? `<a class="epic-jira" href="${BASE}${g.jira}" target="_blank" onclick="event.stopPropagation()">${g.jira}</a>` : ''}
       <span class="epic-tag">#${idx + 1}</span>
       <span class="epic-stage ${stageCls(g.current_stage)}">${stageLabel(g.current_stage)}</span>
-      <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${isOverride ? ' <span class="ovr-mark" title="Manually set — auto-derived from Jira: ' + g._auto_status + '">✎</span>' : ''}</span>
+      <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${statusMark}</span>
       ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
     </div>${fvRow(g)}${sizeRow}`;
 
@@ -635,10 +650,18 @@ function renderDrawer() {
   const body = document.getElementById('gpDrawerBody');
   if (drawerTab === 'settings') renderDrawerSettings(body); else renderDrawerGames(body);
   const hidden = RAW_GAMES.length - visibleGames().length;
+  const login = getGhUser();
+  let authHtml;
+  if (!login) authHtml = `<button class="gp-foot-btn" id="gpSignIn">🔐 Sign in to publish</button>`;
+  else if (isEditor(login)) authHtml = `<span class="gp-foot-user" title="signed in">✓ ${login}</span><button class="gp-foot-btn primary" id="gpPublish">💾 Save as default for everyone</button><button class="gp-foot-btn" id="gpSignOut">sign out</button>`;
+  else authHtml = `<span class="gp-foot-user">✓ ${login} · view-only</span><button class="gp-foot-btn" id="gpSignOut">sign out</button>`;
   document.getElementById('gpDrawerFoot').innerHTML =
-    `<button class="gp-foot-btn" id="gpReset">↺ Reset local edits</button><span style="flex:1"></span>` +
+    `<button class="gp-foot-btn" id="gpReset">↺ Reset local edits</button>${authHtml}<span style="flex:1"></span>` +
     `<span style="font-size:10px;color:var(--sub);align-self:center">${visibleGames().length} shown${hidden ? ' · ' + hidden + ' hidden' : ''}</span>`;
   document.getElementById('gpReset').onclick = resetLocalEdits;
+  const si = document.getElementById('gpSignIn'); if (si) si.onclick = openSignInModal;
+  const pub = document.getElementById('gpPublish'); if (pub) pub.onclick = confirmPublish;
+  const so = document.getElementById('gpSignOut'); if (so) so.onclick = () => { setPat(''); showToast('Signed out'); renderDrawer(); };
 }
 
 function renderDrawerGames(body) {
@@ -647,18 +670,20 @@ function renderDrawerGames(body) {
   const sizeSel = (g, k) => `<label>${k.toUpperCase()}<select data-size-game="${g.name}" data-disc="${k}">` +
     sizeOpts.map(o => `<option value="${o === '—' ? '' : o}"${(gameSizes(g)[k] || '') === (o === '—' ? '' : o) ? ' selected' : ''}>${o}</option>`).join('') + `</select></label>`;
   body.innerHTML = RAW_GAMES.map((g, idx) => {
-    const on = !HIDDEN.has(g.name), open = drawerOpenRows.has(g.name), isOvr = USER_STATUS[g.name] != null;
+    const on = !HIDDEN.has(g.name), open = drawerOpenRows.has(g.name), src = g._status_source;
+    const mark = src === 'shared' ? ' <span class="pin-mark" title="shared default (auto: ' + g._auto_status + ')">📌</span>'
+      : (src === 'local' ? ' <span class="ovr-mark" title="local override (auto: ' + g._auto_status + ')">✎</span>' : '');
     return `<div class="gpg${on ? '' : ' off'}${open ? ' open' : ''}" data-idx="${idx}" draggable="true">
       <div class="gpg-head">
         <span class="gpg-handle" title="Drag to reorder">⠿</span>
         <button class="gpg-toggle${on ? ' on' : ''}" data-hide="${g.name}" title="${on ? 'Visible — click to hide' : 'Hidden — click to show'}"></button>
         <span class="gpg-name">${g.name}${g.jira ? `<span class="k">${g.jira}</span>` : ''}</span>
-        <span class="gpg-status"><select data-status-game="${g.name}">${statusOptions(g)}</select>${isOvr ? ' <span class="ovr-mark" title="manual override (auto: ' + g._auto_status + ')">✎</span>' : ''}</span>
+        <span class="gpg-status"><select data-status-game="${g.name}">${statusOptions(g)}</select>${mark}</span>
         <span class="gpg-chev" data-expand="${g.name}">▾</span>
       </div>
       <div class="gpg-expand">
         <div class="gpg-sizes">${sizeSel(g, 'art')}${sizeSel(g, 'math')}${sizeSel(g, 'dev')}${sizeSel(g, 'sound')}</div>
-        <div style="margin-top:8px;font-size:10px;color:var(--sub)">Stage: <strong>${stageLabel(g.current_stage)}</strong> · Jira epic: ${g.epic_status || '—'}${isOvr ? ` · <button class="revert-auto" data-revert="${g.name}">↺ revert status to auto (${g._auto_status})</button>` : ''}</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--sub)">Stage: <strong>${stageLabel(g.current_stage)}</strong> · Jira epic: ${g.epic_status || '—'}${src !== 'auto' ? ` · <button class="revert-auto" data-revert="${g.name}">↺ revert to auto (${g._auto_status})</button>` : ''}</div>
       </div>
     </div>`;
   }).join('');
@@ -759,10 +784,105 @@ function renderDrawerSettings(body) {
 
 function resetLocalEdits() {
   ['order', 'status', 'sizes', 'hidden', 'config'].forEach(k => { try { localStorage.removeItem(LS + k); } catch (e) {} });
-  showToast('↺ Local edits reset to Jira defaults');
+  showToast('↺ Local edits reset (shared defaults still apply)');
   mount(PROJECT.key, APP);   // rebuild from defaults
   drawerTab = 'games'; drawerOpenRows = new Set();
   openDrawer();
+}
+
+// ============================================================
+//  SHARED PLAN — load + publish via GitHub (Decision #39)
+// ============================================================
+async function loadSharedData(key) {
+  try { const r = await fetch(`plan-${key}.json?ts=` + new Date().getTime()); if (r.ok) SHARED_CACHE[key] = await r.json(); } catch (e) {}
+  if (SHARED_CACHE[key] === undefined) SHARED_CACHE[key] = {};
+  try { const r = await fetch('editors.json?ts=' + new Date().getTime()); if (r.ok) { const j = await r.json(); EDITORS = j.editors || []; } } catch (e) {}
+}
+function getPat() { try { return sessionStorage.getItem(GH_PAT_KEY) || ''; } catch (e) { return ''; } }
+function getGhUser() { try { return sessionStorage.getItem(GH_USER_KEY) || ''; } catch (e) { return ''; } }
+function setPat(t, login) {
+  try {
+    if (t) { sessionStorage.setItem(GH_PAT_KEY, t); if (login) sessionStorage.setItem(GH_USER_KEY, login); }
+    else { sessionStorage.removeItem(GH_PAT_KEY); sessionStorage.removeItem(GH_USER_KEY); }
+  } catch (e) {}
+}
+function isEditor(login) { return !!login && EDITORS.map(x => String(x).toLowerCase()).includes(String(login).toLowerCase()); }
+
+async function ghFetch(url, opts) {
+  opts = opts || {};
+  const headers = Object.assign({ 'Authorization': 'token ' + getPat(), 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' }, opts.headers || {});
+  const r = await fetch(url, Object.assign({}, opts, { headers }));
+  if (!r.ok) { let m = 'HTTP ' + r.status; try { const j = await r.json(); m += ': ' + (j.message || ''); } catch (e) {} throw new Error(m); }
+  return r.status === 204 ? {} : r.json();
+}
+async function verifyPat() {
+  const u = await ghFetch('https://api.github.com/user');
+  const repo = await ghFetch(GH_API);
+  if (!repo.permissions || !repo.permissions.push) throw new Error(`${u.login} can't push to ${GH_OWNER}/${GH_REPO} — ask an admin for write access.`);
+  return { login: u.login };
+}
+function nowStamp() { const d = new Date(); return d.toISOString().slice(0, 16).replace('T', ' '); }
+function buildPlanPayload() {
+  const status = {}, sizes = {};
+  RAW_GAMES.forEach(g => {
+    if (g.workflow_status !== g._auto_status) status[g.name] = g.workflow_status;
+    const sz = gameSizes(g), keep = {};
+    ['art', 'math', 'dev', 'sound'].forEach(k => { if (sz[k]) keep[k] = sz[k]; });
+    if (Object.keys(keep).length) sizes[g.name] = keep;
+  });
+  return {
+    order: RAW_GAMES.map(g => g.name), status, sizes, hidden: [...HIDDEN],
+    config: { statuses: CONFIG.statuses, stages: CONFIG.stages, sizes: CONFIG.sizes, capacities: CONFIG.capacities, velocities: CONFIG.velocities || {} },
+    updated_by: getGhUser() || null, updated_at: nowStamp(),
+  };
+}
+async function publishPlan() {
+  const path = `plan-${PROJECT.key}.json`;
+  const payload = buildPlanPayload();
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+  let sha = null;
+  try { const cur = await ghFetch(`${GH_API}/contents/${path}`); sha = cur.sha; } catch (e) { /* first time: no file */ }
+  const body = { message: `plan(${PROJECT.key}): save as default by ${getGhUser() || 'editor'}`, content, branch: 'main' };
+  if (sha) body.sha = sha;
+  await ghFetch(`${GH_API}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
+  SHARED_CACHE[PROJECT.key] = payload;   // reflect immediately for this browser
+}
+
+// --- modal helpers ---
+function openModal(html) {
+  const ov = document.getElementById('gpModalOverlay'), m = document.getElementById('gpModal');
+  m.innerHTML = html; ov.classList.add('open');
+}
+function closeModal() { document.getElementById('gpModalOverlay').classList.remove('open'); }
+
+function openSignInModal() {
+  openModal(`<h3>🔐 Sign in to publish</h3>
+    <p class="gp-modal-note">Paste a GitHub <b>fine-grained token</b> scoped to <code>${GH_OWNER}/${GH_REPO}</code> with <b>Contents: Read &amp; write</b>. It's kept only in this tab's memory (sessionStorage), never committed.</p>
+    <input type="password" id="gpPat" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
+    <div class="gp-modal-msg" id="gpPatMsg"></div>
+    <div class="gp-modal-foot"><button class="gp-foot-btn" id="gpPatCancel">Cancel</button><button class="gp-foot-btn primary" id="gpPatVerify">Verify &amp; sign in</button></div>`);
+  document.getElementById('gpPatCancel').onclick = closeModal;
+  document.getElementById('gpPatVerify').onclick = async () => {
+    const tok = document.getElementById('gpPat').value.trim();
+    const msg = document.getElementById('gpPatMsg');
+    if (!tok) { msg.textContent = 'Enter a token.'; return; }
+    setPat(tok); msg.textContent = 'Verifying…';
+    try { const { login } = await verifyPat(); setPat(tok, login); closeModal(); showToast('✓ Signed in as ' + login); renderDrawer(); }
+    catch (e) { setPat(''); msg.textContent = '✗ ' + e.message; }
+  };
+}
+function confirmPublish() {
+  const login = getGhUser();
+  openModal(`<h3>💾 Save as default for everyone</h3>
+    <p class="gp-modal-note">This commits the current plan to <code>plan-${PROJECT.key}.json</code> on <code>main</code> as <b>${login}</b>. It becomes the shared baseline for <b>all viewers</b> after the redeploy (~1–3 min), overriding the Jira auto-pull until changed.</p>
+    <div class="gp-modal-msg" id="gpPubMsg"></div>
+    <div class="gp-modal-foot"><button class="gp-foot-btn" id="gpPubCancel">Cancel</button><button class="gp-foot-btn primary" id="gpPubGo">Commit to main</button></div>`);
+  document.getElementById('gpPubCancel').onclick = closeModal;
+  document.getElementById('gpPubGo').onclick = async () => {
+    const msg = document.getElementById('gpPubMsg'); msg.textContent = 'Committing…';
+    try { await publishPlan(); closeModal(); showToast('✓ Saved as default — live after redeploy'); renderDrawer(); }
+    catch (e) { msg.textContent = '✗ ' + e.message; }
+  };
 }
 
 // ============================================================
@@ -820,24 +940,37 @@ function mount(projectKey, container) {
   CHART_END = SPRINT_LIST.length ? new Date(SPRINT_LIST[SPRINT_LIST.length - 1].end || SPRINT_LIST[SPRINT_LIST.length - 1].start) : new Date('2027-12-07');
   TODAY = REFRESHED ? new Date(REFRESHED.slice(0, 10) + 'T00:00:00') : new Date();
 
+  // Precedence: Jira auto  <  shared committed plan  <  this browser's local edits.
+  SHARED = SHARED_CACHE[PROJECT.key] || {};
+  SHARED_STATUS = SHARED.status || {};
+  SHARED_SIZES = SHARED.sizes || {};
+
   CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  if (SHARED.config) CONFIG = { ...CONFIG, ...SHARED.config };
   try { const s = localStorage.getItem(LS + 'config'); if (s) CONFIG = { ...CONFIG, ...JSON.parse(s) }; } catch (e) {}
-  USER_ORDER = []; USER_STATUS = {}; USER_SIZES = {}; HIDDEN = new Set();
+
+  USER_ORDER = []; USER_STATUS = {}; USER_SIZES = {};
   try { USER_ORDER = JSON.parse(localStorage.getItem(LS + 'order') || '[]'); } catch (e) {}
   try { USER_STATUS = JSON.parse(localStorage.getItem(LS + 'status') || '{}'); } catch (e) {}
   try { USER_SIZES = JSON.parse(localStorage.getItem(LS + 'sizes') || '{}'); } catch (e) {}
-  try { HIDDEN = new Set(JSON.parse(localStorage.getItem(LS + 'hidden') || '[]')); } catch (e) {}
+  // hidden: local set if this browser has touched it, else the shared set
+  const lhid = localStorage.getItem(LS + 'hidden');
+  HIDDEN = new Set(lhid != null ? JSON.parse(lhid || '[]') : (SHARED.hidden || []));
 
-  if (USER_ORDER.length) {
+  const order = USER_ORDER.length ? USER_ORDER : (SHARED.order || []);
+  if (order.length) {
     const byName = Object.fromEntries(RAW_GAMES.map(g => [g.name, g]));
-    const ordered = USER_ORDER.map(n => byName[n]).filter(Boolean);
-    const missing = RAW_GAMES.filter(g => !USER_ORDER.includes(g.name));
+    const ordered = order.map(n => byName[n]).filter(Boolean);
+    const missing = RAW_GAMES.filter(g => !order.includes(g.name));
     RAW_GAMES = [...ordered, ...missing];
   }
-  // Preserve the Jira-derived value, then apply any manual override on top.
+  // Resolve effective status per game: local > shared > auto.
   RAW_GAMES.forEach(g => {
-    g._auto_status = g.workflow_status;            // derived from Jira (Decision #32)
-    if (USER_STATUS[g.name]) g.workflow_status = USER_STATUS[g.name];
+    g._auto_status = g.workflow_status;                 // Jira-derived (Decision #32)
+    g._shared_status = SHARED_STATUS[g.name] || null;
+    if (USER_STATUS[g.name] != null) { g.workflow_status = USER_STATUS[g.name]; g._status_source = 'local'; }
+    else if (g._shared_status != null) { g.workflow_status = g._shared_status; g._status_source = 'shared'; }
+    else { g._status_source = 'auto'; }
   });
 
   try { showForecast = JSON.parse(localStorage.getItem(LS + 'forecast')); } catch (e) {}
@@ -850,6 +983,12 @@ function mount(projectKey, container) {
   document.body.classList.remove('plan-mode-on-body');
 
   buildSkeleton();
+  // First visit to a project: fetch its shared plan + editor list, then re-mount.
+  if (SHARED_CACHE[PROJECT.key] === undefined) {
+    loadSharedData(PROJECT.key).then(() => mount(projectKey, container));
+  }
+  const sb = document.getElementById('sharedBadge');
+  if (sb && SHARED && SHARED.updated_by) sb.innerHTML = ` · <span class="shared-badge" title="Shared defaults committed by ${SHARED.updated_by} on ${SHARED.updated_at || ''} — override the Jira auto-pull">📌 shared plan · ${SHARED.updated_by}</span>`;
   if (!RAW_GAMES.length) {
     document.getElementById('emptyState').style.display = 'block';
     document.getElementById('roadmapView').style.display = 'none';

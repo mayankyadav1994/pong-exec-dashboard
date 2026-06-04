@@ -665,6 +665,43 @@ this land?" — laid directly on the same sprint axis.
 
 ---
 
+### #39 · ACTIVE · `persistence` `plan-mode` `architecture` · 2026-06-04
+**Shared "Save as default for everyone", gated by GitHub repo write access.**
+
+Implements the deferred #36. On a static GitHub Pages site there is no server, so
+**the real auth gate is GitHub repo permission** — a client-side login can only be
+UX. Therefore:
+
+- **Three-layer precedence** for every plan field: Jira **auto** < **shared
+  committed plan** < this browser's **local** edits. Shared values override the
+  auto-pull and show a 📌 marker (badge: "shared plan · `<user>`"); local edits
+  stay private to that browser.
+- **Shared plan** lives at repo root `plan-v2.json` / `plan-ig.json` (canonical;
+  fetched at load, committed there directly — not in the CI copy list, so editor
+  commits persist across data refreshes).
+- **Publishing:** an editor clicks *Save as default for everyone* → pastes a
+  **fine-grained GitHub token** (scoped to `pong-exec-dashboard`, Contents:RW;
+  kept in `sessionStorage` only, never committed) → the browser `PUT`s the merged
+  plan to `main` via the GitHub REST API → Pages redeploys (~1–3 min) → it's the
+  shared baseline for all.
+- **Identity = GitHub:** `GET /user` + repo `permissions.push` check. A committed
+  `editors.json` (global list) is a **UX gate** only (hides the button); GitHub
+  rejects writes from non-collaborators regardless.
+- **Save target:** commit straight to `main` (per user choice); git history is the
+  audit trail. **Reset local edits** clears only this browser; an editor can
+  re-publish to change the shared baseline.
+
+**Shortfalls (accepted):** reads stay public (edits-only scope); token UX; repo-
+level (global) editors only; ~minutes CI delay; a client allowlist is bypassable
+(but the GitHub write boundary is not). A true backend/SSO with gated reads and
+per-project granularity remains a future option (Option B in the design notes).
+
+Rationale: reuses the exec dashboard's proven token-commit pattern, needs no
+backend, and enforces "who can make permanent changes" at GitHub — the only place
+it can actually be enforced on a static site.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with

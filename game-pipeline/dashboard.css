@@ -309,6 +309,23 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .gpg-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left .15s}
 .gpg-toggle.on::after{left:14px}
 .gpg-expand .revert-auto{margin-left:4px}
+.gp-foot-btn.primary{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.gp-foot-btn.primary:hover{background:#6d28d9;color:#fff;border-color:#6d28d9}
+.gp-foot-user{font-size:10px;font-weight:600;color:#14532d;align-self:center}
+.pin-mark{color:#7c3aed;cursor:help}
+.shared-badge{color:#7c3aed;font-weight:600}
+
+/* sign-in / publish modal */
+.gp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:300;display:none;align-items:center;justify-content:center}
+.gp-modal-overlay.open{display:flex}
+.gp-modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:440px;max-width:92vw;padding:18px 20px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.gp-modal h3{font-size:14px;font-weight:600;margin-bottom:8px}
+.gp-modal-note{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.gp-modal-note code{background:var(--surf3);padding:1px 5px;border-radius:3px;font-size:10px}
+.gp-modal input{width:100%;border:1px solid var(--border2);border-radius:5px;padding:8px 10px;font-family:'IBM Plex Mono';font-size:12px;outline:none}
+.gp-modal input:focus{border-color:#7c3aed}
+.gp-modal-msg{font-size:11px;color:var(--muted);min-height:16px;margin-top:8px}
+.gp-modal .gp-modal-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;border:none;padding:0}
 
 /* STANDALONE PAGE HEADER (game-pipeline.html is its own dashboard) */
 .gp-pagehead{margin:0 0 16px}
