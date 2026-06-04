@@ -11,17 +11,22 @@ browser. To publish you need (a) **write access** to `pong-exec-dashboard`, and
 ## One-time: create a fine-grained token
 1. GitHub → Settings → Developer settings → **Fine-grained personal access tokens** → *Generate new token*.
 2. **Repository access:** Only select repositories → `mayankyadav1994/pong-exec-dashboard`.
-3. **Permissions → Repository → Contents: Read and write.** (Nothing else.)
-4. **Expiration:** short (e.g. 30–90 days).
-5. Generate and copy the `github_pat_…` value.
+3. **Permissions → Repository → Contents: Read and write.**
+4. **Permissions → Account → Email addresses: Read-only** (so the dashboard can
+   match your GitHub account to your editor email; optional — GitHub login also
+   matches as a fallback).
+5. **Expiration:** short (e.g. 30–90 days).
+6. Generate and copy the `github_pat_…` value.
 
 ## Add yourself as an editor
-Add your GitHub login to `editors.json` (root of the repo):
+The allowlist is **by email** (matched to your GitHub account's verified emails).
+Edit `editors.json` (root of the repo):
 ```json
-{ "editors": ["mayankyadav1994", "your-github-login"] }
+{ "editors": ["mayank.yadav@pongstudios.com", "editor2@pongstudios.com", "editor3@pongstudios.com"] }
 ```
 (This list is only a UX gate — the real check is repo write access. You must be a
-repo collaborator with write permission for the commit to succeed.)
+repo collaborator with write permission for the commit to succeed. If your token
+can't read your email, your GitHub username also matches as a fallback.)
 
 ## Publishing
 1. Open the dashboard → **✎ Plan Mode** → make your edits (status, sizes, order, hidden, velocities).

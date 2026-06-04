@@ -21,7 +21,7 @@ const LANE_ORDER = ['art', 'design', 'math', 'dev', 'sound', 'qa'];
 // --- Shared "Save as default for everyone" via GitHub (Decision #39) ---------
 const GH_OWNER = 'mayankyadav1994', GH_REPO = 'pong-exec-dashboard';
 const GH_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
-const GH_PAT_KEY = 'gp_github_pat', GH_USER_KEY = 'gp_github_user';  // sessionStorage
+const GH_PAT_KEY = 'gp_github_pat', GH_USER_KEY = 'gp_github_user', GH_ED_KEY = 'gp_github_editor';  // sessionStorage
 const SHARED_CACHE = {};   // project key -> committed shared plan object
 let SHARED = {};           // current project's shared plan
 let EDITORS = [];          // allowed GitHub logins (UX gate; real gate = repo perms)
@@ -653,7 +653,7 @@ function renderDrawer() {
   const login = getGhUser();
   let authHtml;
   if (!login) authHtml = `<button class="gp-foot-btn" id="gpSignIn">🔐 Sign in to publish</button>`;
-  else if (isEditor(login)) authHtml = `<span class="gp-foot-user" title="signed in">✓ ${login}</span><button class="gp-foot-btn primary" id="gpPublish">💾 Save as default for everyone</button><button class="gp-foot-btn" id="gpSignOut">sign out</button>`;
+  else if (getGhEditor()) authHtml = `<span class="gp-foot-user" title="signed in">✓ ${login}</span><button class="gp-foot-btn primary" id="gpPublish">💾 Save as default for everyone</button><button class="gp-foot-btn" id="gpSignOut">sign out</button>`;
   else authHtml = `<span class="gp-foot-user">✓ ${login} · view-only</span><button class="gp-foot-btn" id="gpSignOut">sign out</button>`;
   document.getElementById('gpDrawerFoot').innerHTML =
     `<button class="gp-foot-btn" id="gpReset">↺ Reset local edits</button>${authHtml}<span style="flex:1"></span>` +
@@ -800,13 +800,20 @@ async function loadSharedData(key) {
 }
 function getPat() { try { return sessionStorage.getItem(GH_PAT_KEY) || ''; } catch (e) { return ''; } }
 function getGhUser() { try { return sessionStorage.getItem(GH_USER_KEY) || ''; } catch (e) { return ''; } }
-function setPat(t, login) {
+function getGhEditor() { try { return sessionStorage.getItem(GH_ED_KEY) === '1'; } catch (e) { return false; } }
+function setPat(t, user, isEd) {
   try {
-    if (t) { sessionStorage.setItem(GH_PAT_KEY, t); if (login) sessionStorage.setItem(GH_USER_KEY, login); }
-    else { sessionStorage.removeItem(GH_PAT_KEY); sessionStorage.removeItem(GH_USER_KEY); }
+    if (t) { sessionStorage.setItem(GH_PAT_KEY, t); if (user) sessionStorage.setItem(GH_USER_KEY, user); sessionStorage.setItem(GH_ED_KEY, isEd ? '1' : '0'); }
+    else { sessionStorage.removeItem(GH_PAT_KEY); sessionStorage.removeItem(GH_USER_KEY); sessionStorage.removeItem(GH_ED_KEY); }
   } catch (e) {}
 }
-function isEditor(login) { return !!login && EDITORS.map(x => String(x).toLowerCase()).includes(String(login).toLowerCase()); }
+// Editor allowlist is by EMAIL (with GitHub login as a fallback match). Empty
+// list = any collaborator with push access. Real gate is repo write permission.
+function matchEditor(login, emails) {
+  if (!EDITORS.length) return true;
+  const allow = EDITORS.map(x => String(x).toLowerCase());
+  return [String(login).toLowerCase(), ...emails].some(i => allow.includes(i));
+}
 
 async function ghFetch(url, opts) {
   opts = opts || {};
@@ -819,7 +826,10 @@ async function verifyPat() {
   const u = await ghFetch('https://api.github.com/user');
   const repo = await ghFetch(GH_API);
   if (!repo.permissions || !repo.permissions.push) throw new Error(`${u.login} can't push to ${GH_OWNER}/${GH_REPO} — ask an admin for write access.`);
-  return { login: u.login };
+  let emails = [];
+  try { const e = await ghFetch('https://api.github.com/user/emails'); emails = (e || []).filter(x => x.verified).map(x => String(x.email).toLowerCase()); } catch (err) { /* token lacks email scope */ }
+  if (u.email) emails.push(String(u.email).toLowerCase());
+  return { login: u.login, emails: [...new Set(emails)] };
 }
 function nowStamp() { const d = new Date(); return d.toISOString().slice(0, 16).replace('T', ' '); }
 function buildPlanPayload() {
@@ -866,9 +876,16 @@ function openSignInModal() {
     const tok = document.getElementById('gpPat').value.trim();
     const msg = document.getElementById('gpPatMsg');
     if (!tok) { msg.textContent = 'Enter a token.'; return; }
-    setPat(tok); msg.textContent = 'Verifying…';
-    try { const { login } = await verifyPat(); setPat(tok, login); closeModal(); showToast('✓ Signed in as ' + login); renderDrawer(); }
-    catch (e) { setPat(''); msg.textContent = '✗ ' + e.message; }
+    try { sessionStorage.setItem(GH_PAT_KEY, tok); } catch (e) {}
+    msg.textContent = 'Verifying…';
+    try {
+      const { login, emails } = await verifyPat();
+      const ed = matchEditor(login, emails);
+      const allow = EDITORS.map(x => String(x).toLowerCase());
+      const display = emails.find(e => allow.includes(e)) || login;
+      setPat(tok, display, ed);
+      closeModal(); showToast('✓ Signed in as ' + display + (ed ? '' : ' (view-only — not an editor)')); renderDrawer();
+    } catch (e) { setPat(''); msg.textContent = '✗ ' + e.message; }
   };
 }
 function confirmPublish() {

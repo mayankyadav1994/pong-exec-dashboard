@@ -684,9 +684,11 @@ UX. Therefore:
   kept in `sessionStorage` only, never committed) → the browser `PUT`s the merged
   plan to `main` via the GitHub REST API → Pages redeploys (~1–3 min) → it's the
   shared baseline for all.
-- **Identity = GitHub:** `GET /user` + repo `permissions.push` check. A committed
-  `editors.json` (global list) is a **UX gate** only (hides the button); GitHub
-  rejects writes from non-collaborators regardless.
+- **Identity = GitHub:** `GET /user` + repo `permissions.push` check. The signed-in
+  account's **verified emails** (`/user/emails`) are matched against a committed
+  `editors.json` **email** allowlist (GitHub login matches as a fallback). That
+  list is a **UX gate** only (hides the publish button); GitHub rejects writes
+  from non-collaborators regardless.
 - **Save target:** commit straight to `main` (per user choice); git history is the
   audit trail. **Reset local edits** clears only this browser; an editor can
   re-publish to change the shared baseline.

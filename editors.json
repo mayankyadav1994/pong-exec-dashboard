@@ -1,4 +1,8 @@
 {
-  "_comment": "GitHub logins allowed to publish shared 'Save as default' plans (global, both projects). This is a UX gate; the real enforcement is GitHub repo write permission. Add collaborators' usernames here.",
-  "editors": ["mayankyadav1994"]
+  "_comment": "Emails allowed to publish shared 'Save as default' plans. Matched against the signed-in GitHub account's VERIFIED emails (GitHub login also matches as a fallback). This is a UX gate; the real enforcement is GitHub repo write access. Replace the two placeholders with the other editors' emails.",
+  "editors": [
+    "mayank.yadav@pongstudios.com",
+    "REPLACE-editor-2@pongstudios.com",
+    "REPLACE-editor-3@pongstudios.com"
+  ]
 }
