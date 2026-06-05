@@ -772,6 +772,39 @@ hid far-future targets at the edge and killed their tooltip.
 
 ---
 
+### #43 · ACTIVE · `ui` `axis` · 2026-06-05
+**Horizontal-scrolling timeline with frozen columns, a marker popup, and TODAY
+lifted off the month labels.**
+
+Three refinements after using #40–#42 live:
+
+1. **Horizontal scroll, frozen columns.** The roadmap (`#roadmapView`) now scrolls
+   horizontally. The track is sized for a *comfortable density* (~110px per
+   2-week sprint across the whole `CHART_START..CHART_END` span, written to a
+   `--rm-w` CSS var on `#roadmapView` by `renderAxis()`). The game-name column
+   (left) and the hours/target column (right) are `position:sticky` and stay
+   pinned while only the middle track scrolls. The axis was restructured to
+   match: `.axis-left` (281px) / `.axis-track` (chips) / `.axis-right` (121px),
+   so axis chips and row markers share the exact track box. Replaces the old
+   fit-to-width axis (margins 282/122). The fit-only approach of #42 (stretch the
+   axis to swallow far targets) is superseded — far targets now live off-screen
+   and are reached by scrolling.
+2. **Marker popup.** A single floating `.gp-tip` card (`setupTips()`, delegated
+   `mouseover/move/out` on `[data-tip]`) replaces the flaky native `title`
+   tooltips on every timeline marker: axis sprint chips, lane sprint chips, the
+   ⚑ estimated-completion line, the 🎯 target line, the TODAY chip/line, and the
+   dropdown department 🎯 ticks. Thin line markers (ship/target/today) get a
+   `::after` 11px hit-strip + `pointer-events:auto` so they're easy to hover.
+3. **TODAY raised.** The axis is taller (70px); the TODAY chip sits at the top
+   (`top:0`), the month labels drop to `top:18px`, sprint chips to `top:34px` —
+   so TODAY no longer collides with the month name beneath it.
+
+Rationale: with real data the fit-to-width axis squished everything and native
+tooltips were unreliable; planners wanted to scroll a roomy timeline, read every
+marker, and keep names/hours in view.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with

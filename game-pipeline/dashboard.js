@@ -381,9 +381,46 @@ function renderKPI() {
 // ============================================================
 //  SPRINT AXIS
 // ============================================================
+// ============================================================
+//  MARKER TOOLTIP — one floating card for every timeline marker (#43)
+// ============================================================
+function setupTips() {
+  if (window._gpTipsInit) return;
+  window._gpTipsInit = true;
+  const tip = document.createElement('div'); tip.className = 'gp-tip'; tip.id = 'gpTip';
+  document.body.appendChild(tip);
+  let cur = null;
+  const place = (e) => {
+    const pad = 16, w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = e.clientX + pad, y = e.clientY + pad;
+    if (x + w > window.innerWidth - 8) x = e.clientX - w - pad;
+    if (y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+  };
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('[data-tip]'); if (!el) return;
+    cur = el; tip.innerHTML = el.dataset.tip; tip.classList.add('on'); place(e);
+  });
+  document.addEventListener('mousemove', e => { if (cur && tip.classList.contains('on')) place(e); });
+  document.addEventListener('mouseout', e => {
+    if (!cur) return;
+    if (e.relatedTarget && cur.contains(e.relatedTarget)) return;
+    tip.classList.remove('on'); cur = null;
+  });
+  document.addEventListener('scroll', () => { if (cur) { tip.classList.remove('on'); cur = null; } }, true);
+}
+
 function renderAxis() {
   const axisEl = document.getElementById('axis');
-  axisEl.innerHTML = '';
+  // Comfortable density: ~110px per 2-week sprint across the whole chart span,
+  // so the timeline scrolls horizontally instead of squishing (#43).
+  const days = Math.max(1, (CHART_END - CHART_START) / 86400000);
+  const trackPx = Math.round(days / 14 * 110);
+  const rv = document.getElementById('roadmapView');
+  if (rv) rv.style.setProperty('--rm-w', (282 + 122 + trackPx) + 'px');
+
+  axisEl.innerHTML = '<div class="axis-left"></div><div class="axis-track" id="axisTrack"></div><div class="axis-right"></div>';
+  const track = document.getElementById('axisTrack');
   const list = ALL_SPRINTS && ALL_SPRINTS.length ? ALL_SPRINTS : SPRINT_LIST;
   if (!list.length) return;
   // Month band: a divider at each month boundary + a left-aligned month label,
@@ -392,12 +429,12 @@ function renderAxis() {
     const l = pct(m);
     const div = document.createElement('div');
     div.className = 'ax-month-div'; div.style.left = l + '%';
-    axisEl.appendChild(div);
+    track.appendChild(div);
     const lab = document.createElement('div');
     lab.className = 'ax-month'; lab.style.left = l + '%'; lab.textContent = monthLabel(m);
-    axisEl.appendChild(lab);
+    track.appendChild(lab);
   });
-  const stride = Math.max(1, Math.ceil(list.length / 18));
+  const stride = Math.max(1, Math.ceil(list.length / 40));
   list.forEach((s, i) => {
     if (i % stride !== 0) return;
     const end = sprintEnd(s);
@@ -406,12 +443,14 @@ function renderAxis() {
     chip.className = 'sp-chip' + (s.projected ? ' proj' : '');
     chip.style.left = pct(mid) + '%';
     chip.innerHTML = `${s.label}<small>${fmtRange(s.start, end)}</small>`;
-    axisEl.appendChild(chip);
+    chip.dataset.tip = `<b>${s.label}</b><div class="t-sub">${fmtRange(s.start, end)}${s.projected ? ' · projected sprint' : ''}</div>`;
+    track.appendChild(chip);
   });
   if (TODAY >= CHART_START && TODAY <= CHART_END) {
     const t = document.createElement('div');
     t.className = 'ax-today'; t.style.left = pct(TODAY) + '%'; t.textContent = 'TODAY';
-    axisEl.appendChild(t);
+    t.dataset.tip = `<b>📍 Today</b><div class="t-sub">${fmtD(TODAY)}</div>`;
+    track.appendChild(t);
   }
 }
 
@@ -460,7 +499,7 @@ function renderRow(g, idx) {
 
   const track = document.createElement('div'); track.className = 'epic-track';
   (ALL_SPRINTS || SPRINT_LIST).forEach(s => { const l = document.createElement('div'); l.className = 'sp-line' + (s.projected ? ' proj' : ''); l.style.left = pct(s.start) + '%'; track.appendChild(l); });
-  if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; track.appendChild(tl); }
+  if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; tl.dataset.tip = `<b>📍 Today</b><div class="t-sub">${fmtD(TODAY)}</div>`; track.appendChild(tl); }
   const proj = (showForecast && g._proj) ? g._proj : null;
   let laneTop = 8;
   LANE_ORDER.forEach(dKey => {
@@ -474,7 +513,7 @@ function renderRow(g, idx) {
       const chip = document.createElement('div');
       chip.className = 'lane-spr lane-' + dKey + (dashed ? ' proj' : '');
       chip.style.left = l + '%'; chip.style.width = w + '%'; chip.style.top = top + 'px';
-      chip.title = `${dKey.toUpperCase()} · ${s.label} (${fmtRange(s.start, end)})${dashed ? ' · projected' : ''}`;
+      chip.dataset.tip = `<b>${dKey.toUpperCase()} · ${s.label}</b><div class="t-sub">${fmtRange(s.start, end)}${dashed ? ' · projected' : ''}</div>`;
       chip.textContent = w > 3 ? shortSprint(s.label) : '';
       track.appendChild(chip);
     };
@@ -485,7 +524,7 @@ function renderRow(g, idx) {
   if (proj && proj.ship) {
     const sm = document.createElement('div'); sm.className = 'ship-line';
     sm.style.left = pct(proj.ship.start) + '%';
-    sm.title = `Projected ship · ${proj.ship.label} (${fmtD(proj.ship.start)})`;
+    sm.dataset.tip = `<b>⚑ Estimated completion</b><div class="t-sub">${proj.ship.label} · ${fmtD(proj.ship.start)}</div><div class="t-note">remaining hours ÷ velocity</div>`;
     track.appendChild(sm);
   }
   // Targeted due date (Jira epic due date): a solid flag, tinted early/late vs
@@ -495,7 +534,7 @@ function renderRow(g, idx) {
     tl2.style.left = pct(g.target_date) + '%';
     const dl = (proj && proj.ship) ? targetDelta(g.target_date, proj.ship.start) : null;
     if (dl) tl2.classList.add(dl.cls);
-    tl2.title = `🎯 Target · ${fmtD(g.target_date)}${dl ? ' · ' + dl.txt.replace(/[▼▲●]\s?/, '') : ''}`;
+    tl2.dataset.tip = `<b>🎯 Target completion</b><div class="t-sub">${fmtD(g.target_date)}</div>${dl ? `<div class="t-chip ${dl.cls}">${dl.txt} vs estimate</div>` : ''}`;
     track.appendChild(tl2);
   }
   if (laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; track.appendChild(n); }
@@ -515,7 +554,12 @@ function renderRow(g, idx) {
     ${dl ? `<div class="dl-chip ${dl.cls}" title="Forecast ship vs target">${dl.txt}</div>` : ''}`;
 
   const chev = document.createElement('div'); chev.className = 'chev'; chev.textContent = '⌄';
-  row.appendChild(dh); row.appendChild(label); row.appendChild(track); row.appendChild(hrs); row.appendChild(chev);
+  // Freeze the name column (left) and hours column (right); only the track scrolls (#43).
+  const leftWrap = document.createElement('div'); leftWrap.className = 'epic-left';
+  leftWrap.appendChild(dh); leftWrap.appendChild(label);
+  const rightWrap = document.createElement('div'); rightWrap.className = 'epic-right';
+  rightWrap.appendChild(hrs); rightWrap.appendChild(chev);
+  row.appendChild(leftWrap); row.appendChild(track); row.appendChild(rightWrap);
 
   row.addEventListener('click', e => {
     if (e.target.closest('.drag-handle') || e.target.closest('select') || e.target.closest('a')) return;
@@ -588,7 +632,7 @@ function renderDetail(g) {
     let tgtTick = '', tgtTxt = '';
     if (disc.target_date) {
       const cls = sprs.length ? (dayDelta(disc.target_date, sprintEnd(sprs[sprs.length - 1])) > 0 ? 'late' : 'early') : '';
-      tgtTick = `<div class="disc-target ${cls}" style="left:${pct(disc.target_date)}%" title="🎯 ${dKey.toUpperCase()} target · ${fmtD(disc.target_date)}"></div>`;
+      tgtTick = `<div class="disc-target ${cls}" style="left:${pct(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>`;
       tgtTxt = `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>`;
     }
     const hrsOver = disc.spent > disc.est && disc.est > 0;
@@ -1086,6 +1130,7 @@ function mount(projectKey, container) {
   document.body.classList.remove('plan-mode-on-body');
 
   buildSkeleton();
+  setupTips();
   // First visit to a project: fetch its shared plan + editor list, then re-mount.
   if (SHARED_CACHE[PROJECT.key] === undefined) {
     loadSharedData(PROJECT.key).then(() => mount(projectKey, container));
