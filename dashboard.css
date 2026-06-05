@@ -97,6 +97,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .sp-chip small{display:block;font-size:8px;font-weight:400;color:var(--sub)}
 .ax-today{position:absolute;top:0;font-size:9px;font-weight:700;color:#b91c1c;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.3);padding:2px 6px;border-radius:3px;transform:translateX(-50%);z-index:10;white-space:nowrap;pointer-events:none}
 .ax-today::after{content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);border:4px solid transparent;border-top-color:rgba(185,28,28,.5)}
+/* Month band — labelled month columns above the sprint chips */
+.ax-month{position:absolute;top:1px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;padding-left:5px;white-space:nowrap;pointer-events:none;z-index:2}
+.ax-month-div{position:absolute;top:0;height:22px;border-left:1px solid var(--border2);pointer-events:none}
 
 /* EPIC ROW */
 .epic-row{position:relative;display:flex;align-items:stretch;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--surface);overflow:visible;cursor:pointer;transition:border-color .15s,background .15s}
@@ -199,6 +202,16 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .ship-line{position:absolute;top:0;bottom:0;border-left:2px dashed #7c3aed;z-index:6;pointer-events:none}
 .ship-line::before{content:'⚑';position:absolute;top:-3px;left:-5px;font-size:10px;color:#7c3aed}
 .proj-ship{color:#7c3aed !important;font-weight:700}
+/* Targeted due date — solid flag on the track, tinted early/late vs forecast */
+.target-line{position:absolute;top:0;bottom:0;border-left:2px solid #0891b2;z-index:7;pointer-events:none}
+.target-line::before{content:'🎯';position:absolute;top:-4px;left:-6px;font-size:9px;line-height:1}
+.target-line.late{border-left-color:#dc2626}
+.target-line.early{border-left-color:#16a34a}
+.tgt-line{color:#0e7490 !important;font-weight:700}
+.dl-chip{display:inline-block;align-self:flex-end;margin-top:3px;font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.2px;white-space:nowrap}
+.dl-chip.late{background:rgba(220,38,38,.12);color:#b91c1c}
+.dl-chip.early{background:rgba(22,163,74,.12);color:#15803d}
+.dl-chip.ontime{background:rgba(100,116,139,.14);color:#475569}
 .fb-chip.fc-toggle.on{background:#7c3aed;color:#fff;border-color:#7c3aed}
 
 .chev{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--sub);font-size:11px;transition:transform .2s}
@@ -226,8 +239,19 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .disc-label{width:90px;font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.3px;text-transform:uppercase;flex-shrink:0;padding-right:8px;text-align:right}
 .disc-track{flex:1;position:relative;height:14px;background:var(--surf2);border-radius:3px}
 .disc-bar{position:absolute;height:14px;border-radius:3px;font-size:9px;font-weight:600;padding:0 5px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
-.disc-hrs{width:120px;font-size:10px;font-family:'IBM Plex Mono';color:var(--muted);text-align:right;flex-shrink:0;padding-left:8px}
+.disc-hrs{width:120px;font-size:10px;font-family:'IBM Plex Mono';color:var(--muted);text-align:right;flex-shrink:0;padding-left:8px;line-height:1.25}
 .disc-hrs .over{color:#dc2626;font-weight:600}
+.disc-tgt{font-size:9px;font-weight:700;color:#0e7490}
+/* Department target tick in the dropdown timeline */
+.disc-target{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px solid #0891b2;z-index:3;pointer-events:none}
+.disc-target::before{content:'🎯';position:absolute;top:-10px;left:-6px;font-size:8px;line-height:1}
+.disc-target.late{border-left-color:#dc2626}
+.disc-target.early{border-left-color:#16a34a}
+/* Month band header inside the dropdown department timeline */
+.disc-month-head{height:16px;margin-bottom:5px}
+.dmh-track{background:none !important}
+.dmh-div{position:absolute;top:-2px;height:18px;border-left:1px solid var(--border2)}
+.dmh-lab{position:absolute;top:0;font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding-left:4px;white-space:nowrap}
 
 .markers-list{margin-top:8px;display:flex;flex-direction:column;gap:3px;font-size:11px}
 .marker-item{padding:5px 10px;background:var(--surf2);border-left:3px solid var(--border2);border-radius:3px;display:flex;align-items:center;gap:10px}

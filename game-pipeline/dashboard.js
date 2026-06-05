@@ -110,6 +110,32 @@ function shortSprint(label) {
   const m = String(label || '').match(/(\d+)\s*$/);
   return m ? 'S' + m[1] : String(label || '');
 }
+// Whole-day delta b - a (positive => b is later than a). Used for early/late.
+function dayDelta(a, b) {
+  const da = (a instanceof Date) ? a : new Date(a);
+  const db = (b instanceof Date) ? b : new Date(b);
+  return Math.round((db - da) / 86400000);
+}
+// First-of-month dates spanning the current chart window (for the month band).
+function chartMonths() {
+  const out = [];
+  let m = new Date(CHART_START.getFullYear(), CHART_START.getMonth(), 1);
+  while (m <= CHART_END) { out.push(new Date(m)); m = new Date(m.getFullYear(), m.getMonth() + 1, 1); }
+  return out;
+}
+// "Jun" or "Jan '27" (year shown only on January, for orientation).
+function monthLabel(m) {
+  const base = m.toLocaleDateString('en-CA', { month: 'short' });
+  return m.getMonth() === 0 ? `${base} '${String(m.getFullYear()).slice(2)}` : base;
+}
+// Early/late vs a target date, given a forecast/end date. Returns {cls, txt} or null.
+function targetDelta(targetISO, shipDate) {
+  if (!targetISO || !shipDate) return null;
+  const d = dayDelta(targetISO, shipDate);          // ship later than target => late
+  if (d > 0) return { cls: 'late',   txt: `▼ ${d}d late` };
+  if (d < 0) return { cls: 'early',  txt: `▲ ${-d}d early` };
+  return { cls: 'ontime', txt: '● on target' };
+}
 
 // ============================================================
 //  FORECAST — hypothetical timeline from remaining hours + velocity (Decision #38)
@@ -341,6 +367,17 @@ function renderAxis() {
   axisEl.innerHTML = '';
   const list = ALL_SPRINTS && ALL_SPRINTS.length ? ALL_SPRINTS : SPRINT_LIST;
   if (!list.length) return;
+  // Month band: a divider at each month boundary + a left-aligned month label,
+  // so the timeline reads as labelled month columns above the sprints (#41).
+  chartMonths().forEach(m => {
+    const l = pct(m);
+    const div = document.createElement('div');
+    div.className = 'ax-month-div'; div.style.left = l + '%';
+    axisEl.appendChild(div);
+    const lab = document.createElement('div');
+    lab.className = 'ax-month'; lab.style.left = l + '%'; lab.textContent = monthLabel(m);
+    axisEl.appendChild(lab);
+  });
   const stride = Math.max(1, Math.ceil(list.length / 18));
   list.forEach((s, i) => {
     if (i % stride !== 0) return;
@@ -432,18 +469,31 @@ function renderRow(g, idx) {
     sm.title = `Projected ship · ${proj.ship.label} (${fmtD(proj.ship.start)})`;
     track.appendChild(sm);
   }
+  // Targeted due date (Jira epic due date): a solid flag, tinted early/late vs
+  // the forecast ship when forecast is on (#40).
+  if (g.target_date) {
+    const tl2 = document.createElement('div'); tl2.className = 'target-line';
+    tl2.style.left = pct(g.target_date) + '%';
+    const dl = (proj && proj.ship) ? targetDelta(g.target_date, proj.ship.start) : null;
+    if (dl) tl2.classList.add(dl.cls);
+    tl2.title = `🎯 Target · ${fmtD(g.target_date)}${dl ? ' · ' + dl.txt.replace(/[▼▲●]\s?/, '') : ''}`;
+    track.appendChild(tl2);
+  }
   if (laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; track.appendChild(n); }
 
   const hrs = document.createElement('div'); hrs.className = 'epic-hrs';
   const over = g.spent > g.est && g.est > 0;
   const progressPct = g.est > 0 ? Math.min(100, Math.round(g.spent / g.est * 100)) : 0;
   const progressColor = over ? '#dc2626' : (progressPct >= 70 ? gameColor(g) : '#60a5fa');
+  const dl = (g.target_date && proj && proj.ship) ? targetDelta(g.target_date, proj.ship.start) : null;
   hrs.innerHTML = `
     <div class="epic-hrs-v ${over ? 'over' : ''}">${Math.round(g.spent)}h</div>
     <div class="epic-hrs-l">SPENT / ${Math.round(g.est)}h est</div>
     <div class="epic-prog"><div class="epic-prog-fill" style="width:${progressPct}%;background:${progressColor}"></div></div>
     <div class="epic-hrs-l" style="color:${over ? '#dc2626' : 'var(--sub)'};margin-top:4px">${over ? `⚠ +${Math.round(g.spent - g.est)}h over` : `${progressPct}% spent`}</div>
-    ${proj && proj.ship ? `<div class="epic-hrs-l proj-ship" title="Forecast: remaining hours ÷ velocity (parallel)">≈ ship ${shortSprint(proj.ship.label)} · ${fmtD(proj.ship.start)}</div>` : ''}`;
+    ${g.target_date ? `<div class="epic-hrs-l tgt-line" title="Targeted due date (Jira epic due date)">🎯 Target ${fmtD(g.target_date)}</div>` : ''}
+    ${proj && proj.ship ? `<div class="epic-hrs-l proj-ship" title="Forecast: remaining hours ÷ velocity (parallel)">≈ Est ${shortSprint(proj.ship.label)} · ${fmtD(proj.ship.start)}</div>` : ''}
+    ${dl ? `<div class="dl-chip ${dl.cls}" title="Forecast ship vs target">${dl.txt}</div>` : ''}`;
 
   const chev = document.createElement('div'); chev.className = 'chev'; chev.textContent = '⌄';
   row.appendChild(dh); row.appendChild(label); row.appendChild(track); row.appendChild(hrs); row.appendChild(chev);
@@ -494,6 +544,15 @@ function renderDetail(g) {
   const body = document.createElement('div'); body.className = 'detail-body';
 
   const tlPane = document.createElement('div');
+  // Month band header so the department bars read under labelled month columns (#41).
+  const mh = document.createElement('div'); mh.className = 'disc-row disc-month-head';
+  let mhTrack = '';
+  chartMonths().forEach(m => {
+    const l = pct(m);
+    mhTrack += `<div class="dmh-div" style="left:${l}%"></div><div class="dmh-lab" style="left:${l}%">${monthLabel(m)}</div>`;
+  });
+  mh.innerHTML = `<div class="disc-label"></div><div class="disc-track dmh-track">${mhTrack}</div><div class="disc-hrs"></div>`;
+  tlPane.appendChild(mh);
   LANE_ORDER.forEach(dKey => {
     const disc = g.disciplines ? g.disciplines.find(d => d.key === dKey) : null;
     if (!disc) return;
@@ -505,8 +564,16 @@ function renderDetail(g) {
       const l = pct(start), w = Math.max(pct(end) - l, 0.6);
       bar = `<div class="disc-bar lane-${dKey}" style="left:${l}%;width:${w}%;color:rgba(0,0,0,.6)">${fmtD(start)} → ${fmtD(end)}</div>`;
     }
+    // Department target (latest due date among this discipline's tasks; #40):
+    // a tick on the track, tinted late if the bar runs past it, plus a dated line.
+    let tgtTick = '', tgtTxt = '';
+    if (disc.target_date) {
+      const cls = sprs.length ? (dayDelta(disc.target_date, sprintEnd(sprs[sprs.length - 1])) > 0 ? 'late' : 'early') : '';
+      tgtTick = `<div class="disc-target ${cls}" style="left:${pct(disc.target_date)}%" title="🎯 ${dKey.toUpperCase()} target · ${fmtD(disc.target_date)}"></div>`;
+      tgtTxt = `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>`;
+    }
     const hrsOver = disc.spent > disc.est && disc.est > 0;
-    r.innerHTML = `<div class="disc-label">${dKey}</div><div class="disc-track">${bar}</div><div class="disc-hrs">${Math.round(disc.spent)} / ${Math.round(disc.est)}h ${hrsOver ? '<span class="over">⚠</span>' : ''}</div>`;
+    r.innerHTML = `<div class="disc-label">${dKey}</div><div class="disc-track">${bar}${tgtTick}</div><div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.est)}h ${hrsOver ? '<span class="over">⚠</span>' : ''}</div>${tgtTxt}</div>`;
     tlPane.appendChild(r);
   });
   body.appendChild(tlPane);

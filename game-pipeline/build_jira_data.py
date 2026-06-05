@@ -416,7 +416,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 f"AND fixVersion IS NOT EMPTY ORDER BY rank ASC")
     epics = client.search_jql(
         epic_jql,
-        ["summary", "status", "assignee", "priority", "fixVersions", "customfield_10014"],
+        ["summary", "status", "assignee", "priority", "fixVersions",
+         "customfield_10014", "duedate"],
     )
     print(f"   {OK} {len(epics)} epic(s)")
 
@@ -443,7 +444,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         ekey = epic.get("key")
         ef = epic.get("fields", {}) or {}
         # Full subtree: epic's direct children + their sub-tasks (Decision #37).
-        ISSUE_FIELDS = ["issuetype", "status", "timeoriginalestimate", "timespent", sprint_field]
+        ISSUE_FIELDS = ["issuetype", "status", "timeoriginalestimate", "timespent",
+                        "duedate", sprint_field]
         children = client.search_jql(f"parent = {ekey}", ISSUE_FIELDS + ["subtasks"])
         child_keys = [c.get("key") for c in children if c.get("key")]
         subtasks = []
@@ -453,7 +455,7 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 "parent in (" + ",".join(chunk) + ")", ISSUE_FIELDS + ["parent"])
 
         def _new_agg():
-            return {"est": 0.0, "spent": 0.0, "sprints": set(),
+            return {"est": 0.0, "spent": 0.0, "sprints": set(), "due": [],
                     "buckets": {"todo": 0, "wip": 0, "qa": 0, "hold": 0, "done": 0},
                     "preprod": 0}
         aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
@@ -484,6 +486,9 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             d["buckets"][bk] += 1
             if status_l in PREPROD_STATUSES:
                 d["preprod"] += 1
+            dd = _parse_date(fields.get("duedate"))   # department-task target (#40)
+            if dd is not None:
+                d["due"].append(dd)
             d["spent"] += _secs_to_hours(fields.get("timespent"))        # every issue's own time
             if include_est:
                 d["est"] += _secs_to_hours(fields.get("timeoriginalestimate"))
@@ -517,6 +522,9 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 "pct": round(spent / est, 4) if est > 0 else 0.0,
                 "sprints": sorted(d["sprints"]),
                 "phase": discipline_phase(d),
+                # Department target = latest due date among this discipline's
+                # tickets (the producer's targeted dates on dept tasks; #40).
+                "target_date": max(d["due"]).isoformat() if d["due"] else None,
             })
 
         est = round(sum(x["est"] for x in disciplines), 2)
@@ -524,6 +532,7 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         assignee = ef.get("assignee") or {}
         priority = ef.get("priority") or {}
         epic_status = (ef.get("status") or {}).get("name")
+        epic_due = _parse_date(ef.get("duedate"))   # game-level target (#40)
         fvs = [{"name": v.get("name"), "released": bool(v.get("released")),
                 "releaseDate": (_parse_date(v.get("releaseDate")).isoformat()
                                 if _parse_date(v.get("releaseDate")) else None)}
@@ -546,6 +555,7 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             "fixVersions": fvs,                     # [{name,released,releaseDate}]
             "delivered": delivered,                 # (#2/#3)
             "epic_status": epic_status,             # raw Jira status (reference)
+            "target_date": epic_due.isoformat() if epic_due else None,  # (#40)
             "workflow_status": auto_status,         # derived (Decision #32)
             "disciplines": disciplines,
             "current_stage": stage,                 # derived (Decision #32)

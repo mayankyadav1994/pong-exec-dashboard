@@ -704,6 +704,52 @@ it can actually be enforced on a static site.
 
 ---
 
+### #40 · ACTIVE · `data` `ui` `axis` · 2026-06-05
+**Targeted due dates from Jira `duedate`, shown alongside the forecast ship with
+an early/late delta.**
+
+The game producer now sets Jira **due dates** as *targets* — on the game Epic and
+on the department tasks. The builder reads `duedate`:
+- **Game target** = the **Epic's** `duedate` → `game.target_date` (shown on the
+  collapsed main row).
+- **Department target** = the **latest** `duedate` among that discipline's tickets
+  (children + sub-tasks) → `discipline.target_date` (shown per-department in the
+  dropdown).
+
+Rendering:
+- **Main row track:** a solid 🎯 target flag line (`.target-line`), tinted **red
+  if late / green if early** by comparing the target against the 🔮 forecast ship
+  (Decision #38). The forecast ship stays the purple dashed ⚑.
+- **Main row hours column:** `🎯 Target <date>`, `≈ Est <sprint> · <date>`, and a
+  delta chip `▲ Nd early` / `▼ Nd late` / `● on target`.
+- **Dropdown department timeline:** each discipline row gets a 🎯 tick on its bar
+  track (tinted late if the bar runs past the target) plus a dated `🎯 <date>`
+  line in the hours column.
+
+Early/late basis = **forecast ship vs target** (per user): answers "given our
+pace, will we hit the promised date?" rather than only flagging once TODAY passes
+the target. Targets degrade gracefully — a game/department with no `duedate`
+simply shows no target marker. Requires a builder re-run to populate.
+
+---
+
+### #41 · ACTIVE · `ui` `axis` · 2026-06-05
+**Month band above the sprint axis (and in the dropdown department timeline).**
+
+A month strip renders above the sprint chips: a faint divider at each month
+boundary plus a left-aligned month label (`Jun`, with the year on January:
+`Jan '27`). The same compact month header is added to the previously-axis-less
+dropdown department timeline, so department bars read under labelled month
+columns. Month boundaries/labels are computed from `CHART_START..CHART_END` and
+use the same `pct()` mapping as the sprints, so they stay aligned (including the
+forecast-extended horizon). Dividers span the header band only — the sprint
+boundary lines (#27) still carry the gridlines through the rows.
+
+Rationale: planners asked for a clearer month-level read of the timeline; the
+month band gives the "month drag" at a glance without disturbing the sprint axis.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
@@ -751,6 +797,17 @@ Art 240 · Design 80 · Math 320 · Dev 480 · Sound 160 · QA 200
   own names (`V2 Sprint 2`, `IG Sprint 7`); date-less ones dropped.
 - Sprint chips (full name + date range), TODAY line + chip, faint sprint
   boundary lines. Lane chips show compact `S{n}`. `SPRINTS = [{id,label,start,end}]`.
+- **Month band (#41):** divider + left-aligned month label at each month
+  boundary, above the sprint chips; same band mirrored in the dropdown timeline.
+
+### Targeted due dates (#40)
+- From Jira `duedate`: game target = Epic `duedate` (`game.target_date`);
+  department target = latest `duedate` among the discipline's tickets
+  (`discipline.target_date`).
+- Main row: 🎯 flag on the track (red late / green early vs forecast ship) +
+  `🎯 Target`, `≈ Est ship`, and a `▲/▼ Nd` delta chip in the hours column.
+- Dropdown: per-department 🎯 tick + dated line. Early/late = forecast ship vs
+  target. No `duedate` ⇒ no marker.
 
 ### Board membership (#34)
 - Only epics named `Game:` (V2) / `Gen2 Game:` (IG) are games.
@@ -793,4 +850,4 @@ Per-project prefix `gp_v2_` / `gp_ig_`:
 
 ---
 
-*Last updated: June 2, 2026*
+*Last updated: June 5, 2026*
