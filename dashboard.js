@@ -41,7 +41,7 @@ const DEFAULT_CONFIG = {
   statuses: [
     { key: 'Not Started',   cls: 's-notstart' },
     { key: 'In Pre-Prod',   cls: 's-preprod' },
-    { key: 'In Production', cls: 's-prod' },
+    { key: 'In Progress',   cls: 's-prod' },
     { key: 'In QA',         cls: 's-qa' },
     { key: 'Bug Fixing',    cls: 's-bug' },
     { key: 'On Hold',       cls: 's-hold' },
@@ -335,7 +335,7 @@ function buildSkeleton() {
 function buildFilterBar() {
   const statusGroup = document.getElementById('fbStatusGroup');
   const stageGroup = document.getElementById('fbStageGroup');
-  ['ALL', 'Not Started', 'In Pre-Prod', 'In Production', 'In QA', 'On Hold', 'Signed Off'].forEach(k => {
+  ['ALL', 'Not Started', 'In Pre-Prod', 'In Progress', 'In QA', 'On Hold', 'Signed Off'].forEach(k => {
     const c = document.createElement('span');
     c.className = 'fb-chip' + (k === 'ALL' ? ' on' : '');
     c.dataset.filterStatus = k; c.textContent = k === 'ALL' ? 'All' : k;
@@ -365,7 +365,7 @@ function renderKPI() {
   const VG = visibleGames();
   const total = VG.length;
   const signed = VG.filter(g => g.workflow_status === 'Signed Off').length;
-  const inflight = VG.filter(g => ['In Production', 'In QA', 'In Pre-Prod', 'Bug Fixing'].includes(g.workflow_status)).length;
+  const inflight = VG.filter(g => ['In Progress', 'In QA', 'In Pre-Prod', 'Bug Fixing'].includes(g.workflow_status)).length;
   const notstart = VG.filter(g => g.workflow_status === 'Not Started').length;
   const over = VG.filter(g => g.spent > g.est && g.est > 0).length;
   const overGames = VG.filter(g => g.spent > g.est && g.est > 0).slice(0, 2)
@@ -373,7 +373,7 @@ function renderKPI() {
   document.getElementById('kpiStrip').innerHTML = `
     <div class="kpi" style="--rc:#2563eb"><div class="kpi-v">${total}</div><div class="kpi-l">TOTAL GAMES</div><div class="kpi-d">${PROJECT.jira_project} epics</div></div>
     <div class="kpi" style="--rc:#16a34a"><div class="kpi-v">${signed}</div><div class="kpi-l">SIGNED OFF</div><div class="kpi-d">Completed releases</div></div>
-    <div class="kpi" style="--rc:#d97706"><div class="kpi-v">${inflight}</div><div class="kpi-l">IN FLIGHT</div><div class="kpi-d">Pre-prod / production / QA</div></div>
+    <div class="kpi" style="--rc:#d97706"><div class="kpi-v">${inflight}</div><div class="kpi-l">IN FLIGHT</div><div class="kpi-d">Pre-prod / progress / QA</div></div>
     <div class="kpi" style="--rc:#7c3aed"><div class="kpi-v">${notstart}</div><div class="kpi-l">NOT STARTED</div><div class="kpi-d">Future pipeline</div></div>
     <div class="kpi" style="--rc:#dc2626"><div class="kpi-v">${over}</div><div class="kpi-l">OVER ESTIMATE</div><div class="kpi-d">${overGames || '—'}</div></div>`;
 }

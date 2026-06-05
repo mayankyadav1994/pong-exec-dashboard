@@ -127,7 +127,7 @@ PREPROD_STATUSES = {"pre-prod in progress", "pre-prod in review", "pre-prod reop
 # Step 7 fallback: map the epic's own Jira status when it has NO usable children.
 EPIC_STATUS_MAP = {
     "new": "Not Started", "to do": "Not Started", "backlog": "Not Started",
-    "in progress": "In Production", "in qa": "In QA",
+    "in progress": "In Progress", "in qa": "In QA",
     "closed": "Signed Off", "done": "Signed Off", "released": "Signed Off",
     "on hold": "On Hold",
 }
@@ -392,11 +392,11 @@ def derive_status(aggs: dict, epic_status: Optional[str]) -> str:
     if not active_any and (hold_any or epic_hold):
         return "On Hold"
     if prod_wip:
-        return "In Production"
+        return "In Progress"
     if design_wip or any_preprod:
         return "In Pre-Prod"
     if active_any:
-        return "In Production"
+        return "In Progress"
     return "Not Started"
 
 

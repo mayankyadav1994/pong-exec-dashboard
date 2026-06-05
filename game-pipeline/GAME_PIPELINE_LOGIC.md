@@ -805,6 +805,28 @@ marker, and keep names/hours in view.
 
 ---
 
+### #44 · ACTIVE · `status` `ui` `data` · 2026-06-05
+**Workflow status "In Production" renamed to "In Progress" (matches the Jira
+epic status); plus the #43 scroll fix and cache-busting.**
+
+- **Status label.** The derived workflow status `In Production` is renamed to
+  `In Progress` everywhere — `derive_status()` + `EPIC_STATUS_MAP` in the builder,
+  the `DEFAULT_CONFIG.statuses` enum, the STATUS filter chips, the "In Flight" KPI
+  set, and its subtitle — so the dashboard's wording matches the epics' own Jira
+  status. (CSS class `s-prod` kept.) Requires a data rebuild to restamp games.
+- **Scroll fix.** #43 sized the *axis* to `--rm-w` but not the rows, so the axis
+  was wide while rows stayed at viewport width (squished, no real scroll). Fixed
+  by also applying `min-width:var(--rm-w)` to `#rows`, `.fv-item`, and `.epic-row`
+  — the whole timeline is now one wide, scrollable surface (verified: row width ==
+  axis width == 2659px on IG; container scrollWidth > clientWidth).
+- **Cache-busting.** `game-pipeline.html` loads `dashboard.css?v=43` /
+  `dashboard.js?v=43` so a browser can't serve a stale half-updated pair (the
+  cause of "TODAY not raised / popup is just a ? cursor" after #43 shipped). Bump
+  the `v=` token on future structural CSS/JS changes.
+- TODAY/month vertical gap widened slightly (axis 74px, months at `top:22`).
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
