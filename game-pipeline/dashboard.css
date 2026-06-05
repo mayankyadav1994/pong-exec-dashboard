@@ -203,8 +203,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .ship-line::before{content:'⚑';position:absolute;top:-3px;left:-5px;font-size:10px;color:#7c3aed}
 .proj-ship{color:#7c3aed !important;font-weight:700}
 /* Targeted due date — solid flag on the track, tinted early/late vs forecast */
-.target-line{position:absolute;top:0;bottom:0;border-left:2px solid #0891b2;z-index:7;pointer-events:none}
+.target-line{position:absolute;top:0;bottom:0;border-left:2px solid #0891b2;z-index:7;pointer-events:auto;cursor:help}
 .target-line::before{content:'🎯';position:absolute;top:-4px;left:-6px;font-size:9px;line-height:1}
+.target-line::after{content:'';position:absolute;top:0;bottom:0;left:-5px;width:11px} /* wider hover hit-area for tooltip */
 .target-line.late{border-left-color:#dc2626}
 .target-line.early{border-left-color:#16a34a}
 .tgt-line{color:#0e7490 !important;font-weight:700}
@@ -243,8 +244,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .disc-hrs .over{color:#dc2626;font-weight:600}
 .disc-tgt{font-size:9px;font-weight:700;color:#0e7490}
 /* Department target tick in the dropdown timeline */
-.disc-target{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px solid #0891b2;z-index:3;pointer-events:none}
+.disc-target{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px solid #0891b2;z-index:3;pointer-events:auto;cursor:help}
 .disc-target::before{content:'🎯';position:absolute;top:-10px;left:-6px;font-size:8px;line-height:1}
+.disc-target::after{content:'';position:absolute;top:0;bottom:0;left:-5px;width:11px} /* wider hover hit-area for tooltip */
 .disc-target.late{border-left-color:#dc2626}
 .disc-target.early{border-left-color:#16a34a}
 /* Month band header inside the dropdown department timeline */

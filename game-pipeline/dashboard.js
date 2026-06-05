@@ -165,13 +165,31 @@ function effRate(d) {
   if (past >= 2 && (d.spent || 0) >= 8) { const own = d.spent / past; return Math.min(Math.max(own, 0.5 * base), 2 * base); }
   return base;
 }
+// Furthest target date across visible games + their departments (#40), so the
+// chart can be extended to keep far-out targets on-screen instead of clamped.
+function maxTargetDate() {
+  let mx = null;
+  visibleGames().forEach(g => {
+    [g.target_date, ...((g.disciplines || []).map(d => d.target_date))]
+      .filter(Boolean).forEach(t => { const dt = new Date(t); if (!mx || dt > mx) mx = dt; });
+  });
+  return mx;
+}
+// Push CHART_END out past the furthest target (+2wk margin) so its 🎯 flag lands
+// inside the visible timeline rather than pinned to the right edge (#42).
+function extendChartForTargets() {
+  const mt = maxTargetDate();
+  if (!mt) return;
+  const pad = new Date(mt); pad.setDate(pad.getDate() + 14);
+  if (pad > CHART_END) CHART_END = pad;
+}
 function applyForecast() {
   studioVel = computeStudioVel();
   RAW_GAMES.forEach(g => { g._proj = null; });
   CHART_START = SPRINT_LIST.length ? new Date(SPRINT_LIST[0].start) : new Date('2026-05-11');
   const realEnd = SPRINT_LIST.length ? new Date(SPRINT_LIST[SPRINT_LIST.length - 1].end || SPRINT_LIST[SPRINT_LIST.length - 1].start) : new Date('2027-12-07');
   ALL_SPRINTS = SPRINT_LIST.slice();
-  if (!showForecast || !SPRINT_LIST.length) { CHART_END = realEnd; return; }
+  if (!showForecast || !SPRINT_LIST.length) { CHART_END = realEnd; extendChartForTargets(); return; }
 
   let firstFuture = SPRINT_LIST.findIndex(s => new Date(s.start) > TODAY);
   if (firstFuture < 0) firstFuture = SPRINT_LIST.length;
@@ -216,6 +234,7 @@ function applyForecast() {
     g._proj.ship = ALL_SPRINTS[firstFuture + g._proj.shipOffset - 1] || ALL_SPRINTS[ALL_SPRINTS.length - 1];
   });
   CHART_END = new Date(ALL_SPRINTS[ALL_SPRINTS.length - 1].end || ALL_SPRINTS[ALL_SPRINTS.length - 1].start);
+  extendChartForTargets();
 }
 
 // ============================================================
