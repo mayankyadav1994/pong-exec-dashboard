@@ -750,6 +750,28 @@ month band gives the "month drag" at a glance without disturbing the sprint axis
 
 ---
 
+### #42 · ACTIVE · `ui` `axis` · 2026-06-05
+**Chart extends to the furthest target; target flag is hoverable.**
+
+Refines #40 after first use:
+- **On-screen targets:** `CHART_END` is pushed out past the furthest visible
+  game/department `target_date` (+2-week margin) via `extendChartForTargets()`,
+  applied in both the forecast-on and forecast-off paths of `applyForecast()`.
+  Previously a target beyond the last sprint (e.g. a Oct 29 target on a chart
+  ending Oct 9) was clamped by `pct()` to the right edge and unreadable — and the
+  fit-to-width chart has no horizontal scroll to reach it. Now the 🎯 lands inside
+  the timeline with margin.
+- **Hover tooltip:** the 🎯 flag was `pointer-events:none` (a copy-paste of the
+  forecast ⚑ ship-line), which suppressed its `title`. Now `pointer-events:auto` +
+  a `::after` 11px-wide invisible hit-strip make the thin line easy to hover; the
+  tooltip shows `🎯 Target · <date> · <early/late>`. Same for the dropdown
+  department `.disc-target` ticks.
+
+Rationale: targets are only useful if you can see and read them; the first cut
+hid far-future targets at the edge and killed their tooltip.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
@@ -808,6 +830,8 @@ Art 240 · Design 80 · Math 320 · Dev 480 · Sound 160 · QA 200
   `🎯 Target`, `≈ Est ship`, and a `▲/▼ Nd` delta chip in the hours column.
 - Dropdown: per-department 🎯 tick + dated line. Early/late = forecast ship vs
   target. No `duedate` ⇒ no marker.
+- Chart auto-extends past the furthest target (+2wk) so far-out targets stay
+  on-screen; 🎯 flags are hoverable (date + early/late tooltip) (#42).
 
 ### Board membership (#34)
 - Only epics named `Game:` (V2) / `Gen2 Game:` (IG) are games.
