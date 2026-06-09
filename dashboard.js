@@ -951,13 +951,15 @@ async function loadSharedData(key) {
   if (SHARED_CACHE[key] === undefined) SHARED_CACHE[key] = {};
   try { const r = await fetch('editors.json?ts=' + new Date().getTime()); if (r.ok) { const j = await r.json(); EDITORS = j.editors || []; } } catch (e) {}
 }
-function getPat() { try { return sessionStorage.getItem(GH_PAT_KEY) || ''; } catch (e) { return ''; } }
-function getGhUser() { try { return sessionStorage.getItem(GH_USER_KEY) || ''; } catch (e) { return ''; } }
-function getGhEditor() { try { return sessionStorage.getItem(GH_ED_KEY) === '1'; } catch (e) { return false; } }
+// Team token persists in localStorage so it's entered ONCE per browser (#46),
+// not every session. Treat it like a password (see TEAM_ACCESS.md).
+function getPat() { try { return localStorage.getItem(GH_PAT_KEY) || ''; } catch (e) { return ''; } }
+function getGhUser() { try { return localStorage.getItem(GH_USER_KEY) || ''; } catch (e) { return ''; } }
+function getGhEditor() { try { return localStorage.getItem(GH_ED_KEY) === '1'; } catch (e) { return false; } }
 function setPat(t, user, isEd) {
   try {
-    if (t) { sessionStorage.setItem(GH_PAT_KEY, t); if (user) sessionStorage.setItem(GH_USER_KEY, user); sessionStorage.setItem(GH_ED_KEY, isEd ? '1' : '0'); }
-    else { sessionStorage.removeItem(GH_PAT_KEY); sessionStorage.removeItem(GH_USER_KEY); sessionStorage.removeItem(GH_ED_KEY); }
+    if (t) { localStorage.setItem(GH_PAT_KEY, t); if (user) localStorage.setItem(GH_USER_KEY, user); localStorage.setItem(GH_ED_KEY, isEd ? '1' : '0'); }
+    else { localStorage.removeItem(GH_PAT_KEY); localStorage.removeItem(GH_USER_KEY); localStorage.removeItem(GH_ED_KEY); }
   } catch (e) {}
 }
 // Editor allowlist is by EMAIL (with GitHub login as a fallback match). Empty
@@ -1020,7 +1022,7 @@ function closeModal() { document.getElementById('gpModalOverlay').classList.remo
 
 function openSignInModal() {
   openModal(`<h3>🔐 Sign in to publish</h3>
-    <p class="gp-modal-note">Paste a GitHub <b>fine-grained token</b> scoped to <code>${GH_OWNER}/${GH_REPO}</code> with <b>Contents: Read &amp; write</b>. It's kept only in this tab's memory (sessionStorage), never committed.</p>
+    <p class="gp-modal-note">Paste your <b>team token</b> (a GitHub fine-grained token scoped to <code>${GH_OWNER}/${GH_REPO}</code>, <b>Contents: Read &amp; write</b>). It's stored on <b>this browser only</b> so you only enter it <b>once</b> — not committed, not shared. Viewers without it stay read-only. <span style="color:var(--sub)">(Ask your admin for it — see TEAM_ACCESS.md.)</span></p>
     <input type="password" id="gpPat" placeholder="github_pat_…" autocomplete="off" spellcheck="false">
     <div class="gp-modal-msg" id="gpPatMsg"></div>
     <div class="gp-modal-foot"><button class="gp-foot-btn" id="gpPatCancel">Cancel</button><button class="gp-foot-btn primary" id="gpPatVerify">Verify &amp; sign in</button></div>`);
@@ -1029,7 +1031,7 @@ function openSignInModal() {
     const tok = document.getElementById('gpPat').value.trim();
     const msg = document.getElementById('gpPatMsg');
     if (!tok) { msg.textContent = 'Enter a token.'; return; }
-    try { sessionStorage.setItem(GH_PAT_KEY, tok); } catch (e) {}
+    try { localStorage.setItem(GH_PAT_KEY, tok); } catch (e) {}
     msg.textContent = 'Verifying…';
     try {
       const { login, emails } = await verifyPat();

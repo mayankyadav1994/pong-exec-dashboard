@@ -851,6 +851,46 @@ per-game, without hunting for a single bottom scrollbar.
 
 ---
 
+### #46 · ACTIVE · `persistence` `plan-mode` · 2026-06-09
+**Requirement restated + team-access model: dashboard edits persist across the
+Jira rebuild, and only the team (not stakeholders) can save them — with the
+credential entered once.**
+
+*Requirement (clarified with the user):* the team makes changes **on the
+dashboard** (Plan Mode: order, workflow status, show/hide, sizes, capacity
+ceilings, forecast velocities) and those changes must **survive the daily Jira
+rebuild** so the builder doesn't wipe them. Stakeholders get the same URL but can
+only **view**.
+
+*This is exactly the #39 shared-plan mechanism* — three-layer precedence
+(`Jira auto < shared committed plan < this browser's local edits`); *Save as
+default for everyone* commits to `plan-{key}.json`; those files are **excluded
+from the CI copy step** (`refresh-game-pipeline.yml` only regenerates the data
+files), so the dashboard re-applies the saved plan on top of fresh Jira data
+every run. Persistence was never the gap — **team access** was.
+
+*Access decision (this entry):*
+- **Editing is gated by a "team token"** — a GitHub fine-grained PAT scoped to
+  `pong-exec-dashboard`, **Contents: Read & write**, single repo. Holding it (plus
+  the account having repo write access, which GitHub enforces) is what lets you
+  publish. Stakeholders never receive it ⇒ view-only.
+- **Entered once per browser:** the token now persists in **`localStorage`**
+  (was `sessionStorage`), so an editor pastes it a single time per machine and is
+  not re-prompted. `getPat/getGhUser/getGhEditor/setPat` switched accordingly.
+- **Distribution + rotation** documented in `TEAM_ACCESS.md` (one shared team
+  token, or one per editor for attribution; revoke = delete/expire the token →
+  next publish gets `401` and re-prompts).
+- **Caveats (accepted):** the token is a repo-wide-Contents bearer secret (not
+  plan-file-only; not per-file enforceable on GitHub) stored at rest in
+  `localStorage`. True per-file / per-user-without-token publishing would need a
+  backend (the deferred Option C of #39); not built.
+
+Considered and declined for now: "Sign in with GitHub" OAuth (needs a serverless
+secret-exchange proxy) and email-only auth (impossible on a static site — email
+is an identity, not a credential).
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
