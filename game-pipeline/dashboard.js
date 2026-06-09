@@ -876,16 +876,19 @@ function renderDrawerGames(body) {
       <div class="gpg-add-results" id="gpgAddResults"></div>
     </div>${list}`;
 
-  // "+ Add game" search over off-roster epics (#47)
+  // "+ Add game" — type-to-search over off-roster epics by name or ticket (#49).
+  // No pre-populated dropdown: results appear only once you type.
   const addInput = document.getElementById('gpgAddSearch'), addRes = document.getElementById('gpgAddResults');
+  const ADD_CAP = 20;
   function renderAddResults() {
     const q = (addInput.value || '').trim().toLowerCase();
+    if (!q) { addRes.innerHTML = '<div class="gpg-add-empty">Type a game name or ticket number (e.g. IG-1513) to search.</div>'; return; }
     const inRoster = new Set(RAW_GAMES.map(g => g.jira));
-    let cands = ALL_GAMES.filter(g => !inRoster.has(g.jira));
-    if (q) cands = cands.filter(g => (g.name + ' ' + g.jira).toLowerCase().includes(q));
-    cands = cands.slice(0, 12);
-    if (!cands.length) { addRes.innerHTML = `<div class="gpg-add-empty">${ALL_GAMES.length <= RAW_GAMES.length ? 'No other epics in this project.' : (q ? 'No matching epics.' : '')}</div>`; return; }
-    addRes.innerHTML = cands.map(g => `<div class="gpg-add-item" data-add="${g.jira}"><span class="gpg-add-name">${g.name}</span><span class="k">${g.jira}</span><span class="gpg-add-st">${g.workflow_status || ''}</span></div>`).join('');
+    const all = ALL_GAMES.filter(g => !inRoster.has(g.jira) && (g.name + ' ' + g.jira).toLowerCase().includes(q));
+    if (!all.length) { addRes.innerHTML = '<div class="gpg-add-empty">No matching epic (it may already be on the board).</div>'; return; }
+    const cands = all.slice(0, ADD_CAP);
+    addRes.innerHTML = cands.map(g => `<div class="gpg-add-item" data-add="${g.jira}"><span class="gpg-add-name">${g.name}</span><span class="k">${g.jira}</span><span class="gpg-add-st">${g.workflow_status || ''}</span></div>`).join('')
+      + (all.length > cands.length ? `<div class="gpg-add-empty">+${all.length - cands.length} more — keep typing to narrow.</div>` : '');
     addRes.querySelectorAll('[data-add]').forEach(el => el.addEventListener('click', () => addGameToRoster(el.dataset.add)));
   }
   addInput.addEventListener('input', renderAddResults);

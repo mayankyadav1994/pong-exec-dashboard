@@ -941,6 +941,23 @@ Note for already-signed-in browsers: the stored `editor=false` flag persists, so
 
 ---
 
+### #49 · ACTIVE · `ui` `plan-mode` · 2026-06-09
+**"+ Add game" is now a type-to-search (name or ticket), not a pre-populated
+dropdown.**
+
+The #47 add-game box pre-filled a 12-item scrollable dropdown on focus, which
+read as "a list to scroll" rather than a search and surfaced non-game noise
+(infra/release epics like `Kubernetes`, `Release - ELG…`). The keyword/ticket
+filtering already worked (verified: `diamond`→2, `IG-1513`→1) — the problem was
+the pre-population + (for the reporter) a stale cached `dashboard.js`.
+
+Change: results render **only once you type** (empty box shows a hint:
+"Type a game name or ticket number…"). Matches on `name + key`, shows up to 20
+with a "+N more — keep typing" overflow note, and noise only appears if it
+matches the query. Cache-bust bumped so the working search is actually served.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
