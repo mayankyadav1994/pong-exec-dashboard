@@ -918,6 +918,29 @@ team wants to track; this lets them curate the board without renaming epics.
 
 ---
 
+### #48 · ACTIVE · `persistence` `plan-mode` · 2026-06-09
+**Editor gate = GitHub repo write access, not the email allowlist (fixes
+"view-only" for valid editors).**
+
+A correctly-minted team token (#46) was signing users in as **view-only** even
+with full repo write access. Cause: `editors.json` is an **email** allowlist, but
+a fine-grained token scoped to a single repo's *Contents* **cannot read the
+account's verified emails** (`/user/emails` → 403) and the GitHub *login*
+(`mayankyadav1994`) isn't in the list — so `matchEditor()` returned false.
+
+Fix: since `verifyPat()` already **throws unless the token has repo write
+access**, a successful verify now sets `editor = true` unconditionally. Write
+access *is* the enforcement (GitHub rejects pushes from non-collaborators
+regardless), which is exactly what `editors.json`'s own comment always claimed.
+`editors.json` is now **advisory only** (display-name preference); real access is
+managed via repo **Collaborators**. **Supersedes** the editor-gating half of #39's
+`editors.json` allowlist (the GitHub-write enforcement of #39 stands).
+
+Note for already-signed-in browsers: the stored `editor=false` flag persists, so
+**sign out and sign back in once** to pick up editor status.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with

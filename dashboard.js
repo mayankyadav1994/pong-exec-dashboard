@@ -1086,12 +1086,15 @@ function openSignInModal() {
     try { localStorage.setItem(GH_PAT_KEY, tok); } catch (e) {}
     msg.textContent = 'Verifying…';
     try {
-      const { login, emails } = await verifyPat();
-      const ed = matchEditor(login, emails);
+      const { login, emails } = await verifyPat();   // throws unless the token has repo WRITE access
+      // Real gate = GitHub write access (verifyPat already confirmed it). A
+      // fine-grained repo-scoped token can't read account emails, so the email
+      // allowlist can't be relied on — write access is the enforcement (#48).
+      const ed = true;
       const allow = EDITORS.map(x => String(x).toLowerCase());
       const display = emails.find(e => allow.includes(e)) || login;
       setPat(tok, display, ed);
-      closeModal(); showToast('✓ Signed in as ' + display + (ed ? '' : ' (view-only — not an editor)')); renderDrawer();
+      closeModal(); showToast('✓ Signed in as ' + display + ' — you can publish'); renderDrawer();
     } catch (e) { setPat(''); msg.textContent = '✗ ' + e.message; }
   };
 }

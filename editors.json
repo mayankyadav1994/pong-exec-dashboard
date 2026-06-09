@@ -1,5 +1,5 @@
 {
-  "_comment": "Emails (or GitHub usernames) allowed to publish shared 'Save as default' plans. Matched against the signed-in GitHub account's VERIFIED emails (GitHub login also matches as a fallback). This is a UX gate; the real enforcement is GitHub repo write access — each editor must be a repo collaborator with Write permission.",
+  "_comment": "ADVISORY ONLY (#48). The gate to publish is GitHub repo WRITE access: anyone whose token can push to this repo can Save-as-default; anyone who can't is rejected by GitHub. Fine-grained repo-scoped tokens can't read account emails, so this list is no longer used to allow/deny — it's kept for reference and to prefer a friendly display name. Manage real access via repo Collaborators.",
   "editors": [
     "mayank.yadav@pongstudios.com",
     "simon.taylor@pongstudios.com",
