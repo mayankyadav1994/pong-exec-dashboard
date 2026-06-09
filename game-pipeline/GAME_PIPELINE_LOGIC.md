@@ -827,6 +827,30 @@ epic status); plus the #43 scroll fix and cache-busting.**
 
 ---
 
+### #45 · ACTIVE · `ui` `axis` · 2026-06-09
+**Per-row synced timeline scrollers (supersedes the single-scroller in #43/#44).**
+
+The #43/#44 model made the *whole roadmap* one horizontal scroller, so the
+scrollbar sat at the very bottom of the list — to pan to December you had to
+scroll the page all the way down. Replaced with **one scroller per row plus the
+axis, all kept in sync**:
+
+- Each `.epic-track` and the `.axis-track` is its own `overflow-x:auto` viewport
+  containing a fixed-width `.tl-inner` (`trackPxWidth()` ≈ 110px/sprint). Markers
+  position by `pct()` within the inner.
+- `registerScroller()` ties every `.tl-scroll` element to a shared `tlScrollLeft`:
+  scrolling/​dragging any row (or the axis) moves them all, so the month/sprint
+  header always matches every row. Re-render restores the shared position.
+- The name (left) and hours (right) columns are plain static flanks again (no
+  sticky); `#roadmapView` no longer scrolls horizontally (no bottom scrollbar).
+  Tracks are `overflow-y:hidden` with a min-height that leaves room for the 8px
+  horizontal scrollbar so no stray vertical scrollbars appear.
+
+Rationale: planners want to pan the timeline from wherever they're looking,
+per-game, without hunting for a single bottom scrollbar.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with

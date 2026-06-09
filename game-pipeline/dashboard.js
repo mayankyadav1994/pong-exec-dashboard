@@ -382,6 +382,28 @@ function renderKPI() {
 //  SPRINT AXIS
 // ============================================================
 // ============================================================
+//  TIMELINE SCROLL — per-row scrollers kept in sync (#44)
+// ============================================================
+// Pixel width of the scrollable track (~110px per 2-week sprint).
+function trackPxWidth() {
+  const days = Math.max(1, (CHART_END - CHART_START) / 86400000);
+  return Math.round(days / 14 * 110);
+}
+// Every row track + the axis share one scroll position, so you can pan from any
+// row (no single bottom scrollbar) and the month/sprint header always matches.
+let tlScrollLeft = 0, tlSyncing = false;
+function registerScroller(el) {
+  el.addEventListener('scroll', () => {
+    if (tlSyncing) return;
+    tlSyncing = true;
+    tlScrollLeft = el.scrollLeft;
+    document.querySelectorAll('.tl-scroll').forEach(o => { if (o !== el) o.scrollLeft = tlScrollLeft; });
+    tlSyncing = false;
+  });
+  requestAnimationFrame(() => { el.scrollLeft = tlScrollLeft; });
+}
+
+// ============================================================
 //  MARKER TOOLTIP — one floating card for every timeline marker (#43)
 // ============================================================
 function setupTips() {
@@ -412,15 +434,13 @@ function setupTips() {
 
 function renderAxis() {
   const axisEl = document.getElementById('axis');
-  // Comfortable density: ~110px per 2-week sprint across the whole chart span,
-  // so the timeline scrolls horizontally instead of squishing (#43).
-  const days = Math.max(1, (CHART_END - CHART_START) / 86400000);
-  const trackPx = Math.round(days / 14 * 110);
-  const rv = document.getElementById('roadmapView');
-  if (rv) rv.style.setProperty('--rm-w', (282 + 122 + trackPx) + 'px');
-
-  axisEl.innerHTML = '<div class="axis-left"></div><div class="axis-track" id="axisTrack"></div><div class="axis-right"></div>';
-  const track = document.getElementById('axisTrack');
+  // The axis is a synced scroller (#44): a fixed inner width (~110px/sprint) that
+  // scrolls in lock-step with every row track.
+  axisEl.innerHTML = '<div class="axis-left"></div><div class="axis-track tl-scroll" id="axisTrack"><div class="tl-inner" id="axisInner"></div></div><div class="axis-right"></div>';
+  const scroller = document.getElementById('axisTrack');
+  const track = document.getElementById('axisInner');
+  track.style.width = trackPxWidth() + 'px';
+  registerScroller(scroller);
   const list = ALL_SPRINTS && ALL_SPRINTS.length ? ALL_SPRINTS : SPRINT_LIST;
   if (!list.length) return;
   // Month band: a divider at each month boundary + a left-aligned month label,
@@ -497,9 +517,11 @@ function renderRow(g, idx) {
       ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
     </div>${fvRow(g)}${sizeRow}`;
 
-  const track = document.createElement('div'); track.className = 'epic-track';
-  (ALL_SPRINTS || SPRINT_LIST).forEach(s => { const l = document.createElement('div'); l.className = 'sp-line' + (s.projected ? ' proj' : ''); l.style.left = pct(s.start) + '%'; track.appendChild(l); });
-  if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; tl.dataset.tip = `<b>📍 Today</b><div class="t-sub">${fmtD(TODAY)}</div>`; track.appendChild(tl); }
+  const track = document.createElement('div'); track.className = 'epic-track tl-scroll';
+  const trackInner = document.createElement('div'); trackInner.className = 'tl-inner'; trackInner.style.width = trackPxWidth() + 'px';
+  track.appendChild(trackInner);
+  (ALL_SPRINTS || SPRINT_LIST).forEach(s => { const l = document.createElement('div'); l.className = 'sp-line' + (s.projected ? ' proj' : ''); l.style.left = pct(s.start) + '%'; trackInner.appendChild(l); });
+  if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; tl.dataset.tip = `<b>📍 Today</b><div class="t-sub">${fmtD(TODAY)}</div>`; trackInner.appendChild(tl); }
   const proj = (showForecast && g._proj) ? g._proj : null;
   let laneTop = 8;
   LANE_ORDER.forEach(dKey => {
@@ -515,7 +537,7 @@ function renderRow(g, idx) {
       chip.style.left = l + '%'; chip.style.width = w + '%'; chip.style.top = top + 'px';
       chip.dataset.tip = `<b>${dKey.toUpperCase()} · ${s.label}</b><div class="t-sub">${fmtRange(s.start, end)}${dashed ? ' · projected' : ''}</div>`;
       chip.textContent = w > 3 ? shortSprint(s.label) : '';
-      track.appendChild(chip);
+      trackInner.appendChild(chip);
     };
     sprs.forEach(s => lane(s, false));
     pslots.forEach(s => lane(s, true));
@@ -525,7 +547,7 @@ function renderRow(g, idx) {
     const sm = document.createElement('div'); sm.className = 'ship-line';
     sm.style.left = pct(proj.ship.start) + '%';
     sm.dataset.tip = `<b>⚑ Estimated completion</b><div class="t-sub">${proj.ship.label} · ${fmtD(proj.ship.start)}</div><div class="t-note">remaining hours ÷ velocity</div>`;
-    track.appendChild(sm);
+    trackInner.appendChild(sm);
   }
   // Targeted due date (Jira epic due date): a solid flag, tinted early/late vs
   // the forecast ship when forecast is on (#40).
@@ -535,9 +557,10 @@ function renderRow(g, idx) {
     const dl = (proj && proj.ship) ? targetDelta(g.target_date, proj.ship.start) : null;
     if (dl) tl2.classList.add(dl.cls);
     tl2.dataset.tip = `<b>🎯 Target completion</b><div class="t-sub">${fmtD(g.target_date)}</div>${dl ? `<div class="t-chip ${dl.cls}">${dl.txt} vs estimate</div>` : ''}`;
-    track.appendChild(tl2);
+    trackInner.appendChild(tl2);
   }
-  if (laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; track.appendChild(n); }
+  if (laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; trackInner.appendChild(n); }
+  registerScroller(track);
 
   const hrs = document.createElement('div'); hrs.className = 'epic-hrs';
   const over = g.spent > g.est && g.est > 0;
