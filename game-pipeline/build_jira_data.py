@@ -428,12 +428,14 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         f = e.get("fields", {}) or {}
         return str(f.get("customfield_10014") or f.get("summary") or e.get("key") or "")
 
+    # (#47) Process ALL fixVersion epics; the name prefix only decides the DEFAULT
+    # roster (in_roster). Non-prefixed epics stay in the data as "+ Add game"
+    # candidates so the team can pull them onto the board on demand.
     if prefix:
-        before = len(epics)
-        epics = [e for e in epics if _epic_name(e).startswith(prefix)]
-        print(f"   {OK} {len(epics)} game epic(s) named {prefix!r} (filtered out {before - len(epics)})")
+        n_roster = sum(1 for e in epics if _epic_name(e).startswith(prefix))
+        print(f"   {OK} {n_roster}/{len(epics)} epic(s) are roster games named {prefix!r}; the rest are add-game candidates")
     if not epics:
-        print(f"   {WARN} no game epics found - writing empty placeholder")
+        print(f"   {WARN} no epics found - writing empty placeholder")
 
     sprint_meta: dict[int, dict] = {}     # id -> {start,end,name}
     games: list[dict] = []
@@ -543,9 +545,12 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         else:
             auto_status = derive_status(aggs, epic_status)
             stage = derive_stage(aggs)
+        gname = ef.get("customfield_10014") or ef.get("summary") or ekey
+        in_roster = (not prefix) or str(gname).startswith(prefix)   # (#47)
         games.append({
-            "name": ef.get("customfield_10014") or ef.get("summary") or ekey,
+            "name": gname,
             "jira": ekey,
+            "in_roster": in_roster,                 # default board vs add-game candidate (#47)
             "priority": str(priority.get("name") or "?"),
             "est": est,
             "spent": spent,

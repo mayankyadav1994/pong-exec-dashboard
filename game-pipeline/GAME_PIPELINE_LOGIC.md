@@ -891,6 +891,33 @@ is an identity, not a credential).
 
 ---
 
+### #47 · ACTIVE · `data` `ui` `plan-mode` · 2026-06-09
+**"+ Add game": pull any project epic onto the board from a search in Edit Plan.**
+
+A static page can't query Jira live, so the builder now emits **every**
+fixVersion epic (not just the name-prefixed ones), each tagged
+`in_roster: true|false`:
+- **Builder:** the `name_prefix` filter no longer *removes* non-matching epics —
+  it only sets `in_roster` (`true` = default board). All epics get full data
+  (disciplines/hours/sprints/targets) so an added game is first-class. The
+  delivered-grace drop (#34) still applies to all. (Cost: processes all epics —
+  e.g. V2 29 roster + 22 candidates, IG 26 → 22 on-board + ~20 candidates.)
+- **Roster derivation:** `ALL_GAMES` = every emitted epic; `RAW_GAMES` (the board)
+  = `in_roster !== false` **plus** anything in the added set
+  (`SHARED.added ∪ localStorage {prefix}added`).
+- **UI:** Edit Plan → Games tab has a **➕ Add game** search over off-roster epics
+  (by name/key). Selecting one calls `addGameToRoster()` → appended to the board,
+  status resolved, persisted to `{prefix}added`, editable/orderable/hideable like
+  any game. Added rows show a `+added` badge and a `✕` remove (locally-added only).
+- **Shared persistence:** the plan payload gains `added: [jiraKeys]`; *Save as
+  default for everyone* commits it so additions survive every Jira rebuild for
+  all viewers (rides on #39 / #46).
+
+Rationale: the auto-roster (epics named `Game:` / `Gen2 Game:`) misses games the
+team wants to track; this lets them curate the board without renaming epics.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with

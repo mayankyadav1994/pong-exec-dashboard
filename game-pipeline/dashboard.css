@@ -394,3 +394,18 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .gp-tip .t-chip.late{background:rgba(220,38,38,.25);color:#fecaca}
 .gp-tip .t-chip.early{background:rgba(22,163,74,.25);color:#bbf7d0}
 .gp-tip .t-chip.ontime{background:rgba(148,163,184,.25);color:#e2e8f0}
+
+/* "+ Add game" search in the Edit Plan drawer (#47) */
+.gpg-add{position:relative;margin-bottom:10px}
+.gpg-add input{width:100%;font-family:inherit;font-size:12px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text)}
+.gpg-add input:focus{outline:none;border-color:var(--border2)}
+.gpg-add-results{margin-top:4px;display:flex;flex-direction:column;gap:2px;max-height:260px;overflow:auto}
+.gpg-add-item{display:flex;align-items:center;gap:8px;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:var(--surf2);cursor:pointer}
+.gpg-add-item:hover{background:var(--surf3);border-color:var(--border2)}
+.gpg-add-name{flex:1;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gpg-add-item .k{font-family:'IBM Plex Mono';font-size:10px;color:var(--sub)}
+.gpg-add-st{font-size:9px;color:var(--muted);white-space:nowrap}
+.gpg-add-empty{font-size:11px;color:var(--sub);font-style:italic;padding:6px 4px}
+.gpg-added{margin-left:6px;font-size:9px;font-weight:700;color:#0e7490;background:rgba(8,145,178,.12);padding:1px 5px;border-radius:3px}
+.gpg-remove{background:none;border:none;color:var(--sub);cursor:pointer;font-size:12px;line-height:1;padding:2px 6px;border-radius:4px}
+.gpg-remove:hover{color:#dc2626;background:rgba(220,38,38,.1)}

@@ -79,7 +79,7 @@ function getData(key) {
 let PROJECT, LS, APP;
 let RAW_GAMES, RAW_SPRINTS, REFRESHED, SPRINT_LIST, SPRINT_BY_ID, CHART_START, CHART_END, TODAY;
 let ALL_SPRINTS, showForecast, studioVel;   // forecast (Decision #38)
-let CONFIG, USER_ORDER, USER_STATUS, USER_SIZES, HIDDEN;
+let CONFIG, USER_ORDER, USER_STATUS, USER_SIZES, HIDDEN, ALL_GAMES, USER_ADDED;
 let activeFilters, currentView, planMode, openPanel, dragSrcIdx, toastTimer;
 let drawerTab, drawerOpenRows, drawerDragIdx;
 
@@ -268,7 +268,36 @@ function saveStatus() { try { localStorage.setItem(LS + 'status', JSON.stringify
 function saveSizes()  { try { localStorage.setItem(LS + 'sizes',  JSON.stringify(USER_SIZES)); } catch (e) {} }
 function saveConfig() { try { localStorage.setItem(LS + 'config', JSON.stringify(CONFIG)); } catch (e) {} }
 function saveHidden() { try { localStorage.setItem(LS + 'hidden', JSON.stringify([...HIDDEN])); } catch (e) {} }
+function saveAdded()  { try { localStorage.setItem(LS + 'added',  JSON.stringify(USER_ADDED)); } catch (e) {} }
 function visibleGames() { return RAW_GAMES.filter(g => !HIDDEN.has(g.name)); }
+
+// Effective workflow status for a game: local override > shared plan > Jira auto.
+function resolveGameStatus(g) {
+  if (g._auto_status == null) g._auto_status = g.workflow_status;   // Jira-derived (#32), captured once
+  g._shared_status = SHARED_STATUS[g.name] || null;
+  if (USER_STATUS[g.name] != null) { g.workflow_status = USER_STATUS[g.name]; g._status_source = 'local'; }
+  else if (g._shared_status != null) { g.workflow_status = g._shared_status; g._status_source = 'shared'; }
+  else { g.workflow_status = g._auto_status; g._status_source = 'auto'; }
+}
+
+// "+ Add game" (#47): pull an off-roster Jira epic onto the board, editable like any game.
+function addGameToRoster(jira) {
+  if (RAW_GAMES.some(g => g.jira === jira)) return;
+  const g = ALL_GAMES.find(x => x.jira === jira); if (!g) return;
+  if (!USER_ADDED.includes(jira)) USER_ADDED.push(jira);
+  saveAdded(); resolveGameStatus(g); RAW_GAMES.push(g); saveOrder();
+  applyForecast(); renderAxis(); renderRows(); renderKPI(); renderDrawer();
+  const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
+  showToast('✓ Added ' + g.name);
+}
+function removeGameFromRoster(jira) {
+  const i = USER_ADDED.indexOf(jira); if (i >= 0) { USER_ADDED.splice(i, 1); saveAdded(); }
+  const g = RAW_GAMES.find(x => x.jira === jira);
+  const stillRoster = g && (g.in_roster !== false || (SHARED.added || []).includes(jira));
+  if (g && !stillRoster) RAW_GAMES = RAW_GAMES.filter(x => x.jira !== jira);
+  saveOrder(); applyForecast(); renderAxis(); renderRows(); renderKPI(); renderDrawer();
+  const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
+}
 
 // ============================================================
 //  SKELETON
@@ -822,16 +851,18 @@ function renderDrawerGames(body) {
   const sizeOpts = ['—', ...CONFIG.sizes.map(s => s.key)];
   const sizeSel = (g, k) => `<label>${k.toUpperCase()}<select data-size-game="${g.name}" data-disc="${k}">` +
     sizeOpts.map(o => `<option value="${o === '—' ? '' : o}"${(gameSizes(g)[k] || '') === (o === '—' ? '' : o) ? ' selected' : ''}>${o}</option>`).join('') + `</select></label>`;
-  body.innerHTML = RAW_GAMES.map((g, idx) => {
+  const list = RAW_GAMES.map((g, idx) => {
     const on = !HIDDEN.has(g.name), open = drawerOpenRows.has(g.name), src = g._status_source;
+    const added = USER_ADDED.includes(g.jira);
     const mark = src === 'shared' ? ' <span class="pin-mark" title="shared default (auto: ' + g._auto_status + ')">📌</span>'
       : (src === 'local' ? ' <span class="ovr-mark" title="local override (auto: ' + g._auto_status + ')">✎</span>' : '');
     return `<div class="gpg${on ? '' : ' off'}${open ? ' open' : ''}" data-idx="${idx}" draggable="true">
       <div class="gpg-head">
         <span class="gpg-handle" title="Drag to reorder">⠿</span>
         <button class="gpg-toggle${on ? ' on' : ''}" data-hide="${g.name}" title="${on ? 'Visible — click to hide' : 'Hidden — click to show'}"></button>
-        <span class="gpg-name">${g.name}${g.jira ? `<span class="k">${g.jira}</span>` : ''}</span>
+        <span class="gpg-name">${g.name}${g.jira ? `<span class="k">${g.jira}</span>` : ''}${added ? '<span class="gpg-added" title="Added on the board">+added</span>' : ''}</span>
         <span class="gpg-status"><select data-status-game="${g.name}">${statusOptions(g)}</select>${mark}</span>
+        ${added ? `<button class="gpg-remove" data-remove="${g.jira}" title="Remove from board">✕</button>` : ''}
         <span class="gpg-chev" data-expand="${g.name}">▾</span>
       </div>
       <div class="gpg-expand">
@@ -840,6 +871,26 @@ function renderDrawerGames(body) {
       </div>
     </div>`;
   }).join('');
+  body.innerHTML = `<div class="gpg-add">
+      <input type="text" id="gpgAddSearch" placeholder="➕ Add game — search Jira epics by name or key…" autocomplete="off" spellcheck="false">
+      <div class="gpg-add-results" id="gpgAddResults"></div>
+    </div>${list}`;
+
+  // "+ Add game" search over off-roster epics (#47)
+  const addInput = document.getElementById('gpgAddSearch'), addRes = document.getElementById('gpgAddResults');
+  function renderAddResults() {
+    const q = (addInput.value || '').trim().toLowerCase();
+    const inRoster = new Set(RAW_GAMES.map(g => g.jira));
+    let cands = ALL_GAMES.filter(g => !inRoster.has(g.jira));
+    if (q) cands = cands.filter(g => (g.name + ' ' + g.jira).toLowerCase().includes(q));
+    cands = cands.slice(0, 12);
+    if (!cands.length) { addRes.innerHTML = `<div class="gpg-add-empty">${ALL_GAMES.length <= RAW_GAMES.length ? 'No other epics in this project.' : (q ? 'No matching epics.' : '')}</div>`; return; }
+    addRes.innerHTML = cands.map(g => `<div class="gpg-add-item" data-add="${g.jira}"><span class="gpg-add-name">${g.name}</span><span class="k">${g.jira}</span><span class="gpg-add-st">${g.workflow_status || ''}</span></div>`).join('');
+    addRes.querySelectorAll('[data-add]').forEach(el => el.addEventListener('click', () => addGameToRoster(el.dataset.add)));
+  }
+  addInput.addEventListener('input', renderAddResults);
+  addInput.addEventListener('focus', renderAddResults);
+  body.querySelectorAll('.gpg-remove').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); removeGameFromRoster(b.dataset.remove); }));
 
   body.querySelectorAll('.gpg-toggle').forEach(b => b.addEventListener('click', e => {
     e.stopPropagation(); const n = b.dataset.hide;
@@ -997,6 +1048,7 @@ function buildPlanPayload() {
   });
   return {
     order: RAW_GAMES.map(g => g.name), status, sizes, hidden: [...HIDDEN],
+    added: RAW_GAMES.filter(g => g.in_roster === false).map(g => g.jira),   // games added on the board (#47)
     config: { statuses: CONFIG.statuses, stages: CONFIG.stages, sizes: CONFIG.sizes, capacities: CONFIG.capacities, velocities: CONFIG.velocities || {} },
     updated_by: getGhUser() || null, updated_at: nowStamp(),
   };
@@ -1103,7 +1155,8 @@ function mount(projectKey, container) {
 
   const data = getData(PROJECT.key);
   RAW_SPRINTS = data.sprints; REFRESHED = data.refreshed;
-  RAW_GAMES = (data.games || []).slice();
+  ALL_GAMES = (data.games || []).slice();   // every epic incl. add-game candidates (#47)
+  RAW_GAMES = ALL_GAMES.slice();            // narrowed to the roster below
 
   SPRINT_LIST = RAW_SPRINTS.slice().sort((a, b) => new Date(a.start) - new Date(b.start));
   SPRINT_BY_ID = {};
@@ -1129,6 +1182,12 @@ function mount(projectKey, container) {
   const lhid = localStorage.getItem(LS + 'hidden');
   HIDDEN = new Set(lhid != null ? JSON.parse(lhid || '[]') : (SHARED.hidden || []));
 
+  // Roster = default in_roster epics + any games added on the dashboard (#47).
+  USER_ADDED = [];
+  try { USER_ADDED = JSON.parse(localStorage.getItem(LS + 'added') || '[]'); } catch (e) {}
+  const addedSet = new Set([...(SHARED.added || []), ...USER_ADDED]);
+  RAW_GAMES = ALL_GAMES.filter(g => g.in_roster !== false || addedSet.has(g.jira));
+
   const order = USER_ORDER.length ? USER_ORDER : (SHARED.order || []);
   if (order.length) {
     const byName = Object.fromEntries(RAW_GAMES.map(g => [g.name, g]));
@@ -1137,13 +1196,7 @@ function mount(projectKey, container) {
     RAW_GAMES = [...ordered, ...missing];
   }
   // Resolve effective status per game: local > shared > auto.
-  RAW_GAMES.forEach(g => {
-    g._auto_status = g.workflow_status;                 // Jira-derived (Decision #32)
-    g._shared_status = SHARED_STATUS[g.name] || null;
-    if (USER_STATUS[g.name] != null) { g.workflow_status = USER_STATUS[g.name]; g._status_source = 'local'; }
-    else if (g._shared_status != null) { g.workflow_status = g._shared_status; g._status_source = 'shared'; }
-    else { g._status_source = 'auto'; }
-  });
+  RAW_GAMES.forEach(resolveGameStatus);
 
   try { showForecast = JSON.parse(localStorage.getItem(LS + 'forecast')); } catch (e) {}
   if (showForecast === null || showForecast === undefined) showForecast = true;
