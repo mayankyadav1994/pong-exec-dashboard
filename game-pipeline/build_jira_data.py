@@ -411,29 +411,37 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
 
     print(f"{OK} Building {jira_project} (sprint field {sprint_field})")
 
-    # 1. Epics
-    epic_jql = (f"project = {jira_project} AND issuetype = Epic "
-                f"AND fixVersion IS NOT EMPTY ORDER BY rank ASC")
+    # 1. Epics — fetch ALL, then keep board-eligible + active candidates (#50).
+    epic_jql = f"project = {jira_project} AND issuetype = Epic ORDER BY rank ASC"
     epics = client.search_jql(
         epic_jql,
         ["summary", "status", "assignee", "priority", "fixVersions",
          "customfield_10014", "duedate"],
     )
-    print(f"   {OK} {len(epics)} epic(s)")
+    print(f"   {OK} {len(epics)} epic(s) total")
 
-    # (#4) Only true games: epics whose name starts with the project prefix.
     prefix = cfg.get("name_prefix")
 
     def _epic_name(e: dict) -> str:
         f = e.get("fields", {}) or {}
         return str(f.get("customfield_10014") or f.get("summary") or e.get("key") or "")
 
-    # (#47) Process ALL fixVersion epics; the name prefix only decides the DEFAULT
-    # roster (in_roster). Non-prefixed epics stay in the data as "+ Add game"
-    # candidates so the team can pull them onto the board on demand.
-    if prefix:
-        n_roster = sum(1 for e in epics if _epic_name(e).startswith(prefix))
-        print(f"   {OK} {n_roster}/{len(epics)} epic(s) are roster games named {prefix!r}; the rest are add-game candidates")
+    def _has_fv(e: dict) -> bool:
+        return bool((e.get("fields", {}) or {}).get("fixVersions"))
+
+    def _is_done(e: dict) -> bool:
+        sc = (((e.get("fields", {}) or {}).get("status") or {}).get("statusCategory") or {}).get("key")
+        return (sc or "").lower() == "done"
+
+    # (#50) Keep an epic if it has a fixVersion (board-eligible + existing infra
+    # candidates) OR it's an ACTIVE (non-Done) prefixed game without a fixVersion
+    # (add-game candidate). Drop non-prefixed no-fixVersion epics and closed
+    # no-fixVersion games — they'd be pure noise / history.
+    before = len(epics)
+    epics = [e for e in epics
+             if _has_fv(e) or (prefix and _epic_name(e).startswith(prefix) and not _is_done(e))]
+    n_board = sum(1 for e in epics if _has_fv(e) and (not prefix or _epic_name(e).startswith(prefix)))
+    print(f"   {OK} kept {len(epics)}/{before} epic(s): ~{n_board} board (prefixed + fixVersion), rest are add-game candidates")
     if not epics:
         print(f"   {WARN} no epics found - writing empty placeholder")
 
@@ -546,7 +554,9 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             auto_status = derive_status(aggs, epic_status)
             stage = derive_stage(aggs)
         gname = ef.get("customfield_10014") or ef.get("summary") or ekey
-        in_roster = (not prefix) or str(gname).startswith(prefix)   # (#47)
+        # Board roster = prefixed game WITH a fixVersion. Prefixed games lacking a
+        # fixVersion are add-game candidates, not on the board by default (#50).
+        in_roster = bool(prefix) and str(gname).startswith(prefix) and bool(fvs)
         games.append({
             "name": gname,
             "jira": ekey,

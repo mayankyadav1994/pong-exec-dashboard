@@ -958,6 +958,32 @@ matches the query. Cache-bust bumped so the working search is actually served.
 
 ---
 
+### #50 · ACTIVE · `data` · 2026-06-10
+**Drop the `fixVersion IS NOT EMPTY` ingest filter so no-fixVersion games are
+add-game candidates (board still requires a fixVersion).**
+
+Many real game epics have **no fixVersion** assigned and were therefore invisible
+to the whole dashboard (not on the board *and* not in "+Add game"): **V2 had 161**
+such epics (`Game: Grim Hunter`, `Cabaret Riches`, `Jolly Roger Jackpots`, …),
+iGaming 17 (`Gen2 Game: Monster Smash`, `Northern Buffalo`, …). The builder's
+epic query required `fixVersion IS NOT EMPTY`.
+
+Change (per user: candidates-only, active-only):
+- **Ingest** = fetch all project epics, then **keep** any epic that *has a
+  fixVersion* **OR** is an *active* (statusCategory ≠ Done) **prefixed** game
+  without one. Non-prefixed no-fixVersion epics and **closed** no-fixVersion games
+  are skipped (noise/history).
+- **Board (`in_roster`)** now = *prefixed game **with** a fixVersion* — so the
+  default board is unchanged (V2 29 / IG 22); no-fixVersion games are
+  `in_roster=false` **candidates**, searchable/addable via "+Add game" (#49).
+- Cost: V2 processes ~166 epics (was 51), IG ~82; full build ≈ 3.6 min, data files
+  V2 ~190 KB / IG ~74 KB. Acceptable for the daily CI.
+
+Refines #34 (a game = prefixed epic; fixVersion now gates the **board**, not
+ingestion) and #47 (candidate pool now includes no-fixVersion active games).
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
