@@ -364,7 +364,9 @@ function buildSkeleton() {
 function buildFilterBar() {
   const statusGroup = document.getElementById('fbStatusGroup');
   const stageGroup = document.getElementById('fbStageGroup');
-  ['ALL', 'Not Started', 'In Pre-Prod', 'In Progress', 'In QA', 'On Hold', 'Signed Off'].forEach(k => {
+  // STATUS chips mirror the Plan Mode "Workflow Statuses" config, not a hard-coded
+  // list, so the top filter always reflects the configured statuses (#51).
+  ['ALL', ...CONFIG.statuses.map(s => s.key)].forEach(k => {
     const c = document.createElement('span');
     c.className = 'fb-chip' + (k === 'ALL' ? ' on' : '');
     c.dataset.filterStatus = k; c.textContent = k === 'ALL' ? 'All' : k;

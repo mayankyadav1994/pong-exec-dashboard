@@ -984,6 +984,20 @@ ingestion) and #47 (candidate pool now includes no-fixVersion active games).
 
 ---
 
+### #51 · ACTIVE · `ui` `status` · 2026-06-10
+**Top STATUS filter chips mirror the Plan Mode "Workflow Statuses" config.**
+
+`buildFilterBar()` previously hard-coded the STATUS chips
+(`Not Started · In Pre-Prod · In Progress · In QA · On Hold · Signed Off`), which
+ignored the configurable enum. Now the chips render from
+`['ALL', ...CONFIG.statuses.map(s => s.key)]`, so the top filter always reflects
+whatever statuses are set in Plan Mode → Settings → Workflow Statuses — per
+project, and live if edited (and shared once published). Nothing else changed:
+the Jira auto-derive, casing, and status pills are untouched (per user), so a chip
+whose label no game currently carries simply filters to none.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
