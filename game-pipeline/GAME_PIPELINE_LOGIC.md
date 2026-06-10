@@ -996,6 +996,13 @@ project, and live if edited (and shared once published). Nothing else changed:
 the Jira auto-derive, casing, and status pills are untouched (per user), so a chip
 whose label no game currently carries simply filters to none.
 
+`buildFilterBar()` is now re-entrant (clears chips, preserves the active filter,
+falls back to ALL if the active status was renamed/removed) and is re-called from
+the status add/edit/delete handlers — so editing Workflow Statuses in Settings
+updates the top chips **live**, no reload. (Shared for everyone still requires
+"Save as default".) Per-project: V2 and iGaming each store their own status list;
+`plan-ig.json` was synced to V2's 7 so both match.
+
 ---
 
 ## Current-State Reference

@@ -364,17 +364,27 @@ function buildSkeleton() {
 function buildFilterBar() {
   const statusGroup = document.getElementById('fbStatusGroup');
   const stageGroup = document.getElementById('fbStageGroup');
+  // Re-entrant: clear existing chips (keep the .fb-label) so this can be re-run
+  // live after a status edit in Plan Mode (#51).
+  statusGroup.querySelectorAll('.fb-chip').forEach(c => c.remove());
+  stageGroup.querySelectorAll('.fb-chip').forEach(c => c.remove());
+  let curStatus = (activeFilters && activeFilters.status) || 'ALL';
+  const curStage = (activeFilters && activeFilters.stage) || 'ALL';
+  // If the active status was renamed/removed, fall back to ALL.
+  if (curStatus !== 'ALL' && !CONFIG.statuses.some(s => s.key === curStatus)) {
+    curStatus = 'ALL'; if (activeFilters) activeFilters.status = 'ALL';
+  }
   // STATUS chips mirror the Plan Mode "Workflow Statuses" config, not a hard-coded
   // list, so the top filter always reflects the configured statuses (#51).
   ['ALL', ...CONFIG.statuses.map(s => s.key)].forEach(k => {
     const c = document.createElement('span');
-    c.className = 'fb-chip' + (k === 'ALL' ? ' on' : '');
+    c.className = 'fb-chip' + (k === curStatus ? ' on' : '');
     c.dataset.filterStatus = k; c.textContent = k === 'ALL' ? 'All' : k;
     statusGroup.appendChild(c);
   });
   ['ALL', 'art', 'design', 'math', 'dev', 'sound', 'qa'].forEach(k => {
     const c = document.createElement('span');
-    c.className = 'fb-chip discipline' + (k === 'ALL' ? ' on' : '');
+    c.className = 'fb-chip discipline' + (k === curStage ? ' on' : '');
     c.dataset.filterStage = k; c.textContent = k === 'ALL' ? 'All' : stageLabel(k);
     stageGroup.appendChild(c);
   });
@@ -968,17 +978,17 @@ function renderDrawerSettings(body) {
     if (type === 'status') CONFIG.statuses[i].key = inp.value;
     if (type === 'stage') CONFIG.stages[i].label = inp.value;
     if (type === 'size') CONFIG.sizes[i].label = inp.value;
-    saveConfig(); renderRows();
+    saveConfig(); if (type === 'status') buildFilterBar(); renderRows();
   }));
   body.querySelectorAll('.pc-item-x').forEach(x => x.addEventListener('click', () => {
     const i = +x.dataset.i, type = x.dataset.type;
     if (type === 'status') CONFIG.statuses.splice(i, 1);
     if (type === 'stage') CONFIG.stages.splice(i, 1);
     if (type === 'size') CONFIG.sizes.splice(i, 1);
-    saveConfig(); renderDrawer(); renderRows();
+    saveConfig(); if (type === 'status') buildFilterBar(); renderDrawer(); renderRows();
   }));
   const add = document.getElementById('pcAddStatus');
-  if (add) add.onclick = () => { CONFIG.statuses.push({ key: 'New Status', cls: 's-notstart' }); saveConfig(); renderDrawer(); renderRows(); };
+  if (add) add.onclick = () => { CONFIG.statuses.push({ key: 'New Status', cls: 's-notstart' }); saveConfig(); buildFilterBar(); renderDrawer(); renderRows(); };
   body.querySelectorAll('input[data-cap]').forEach(inp => inp.addEventListener('change', () => {
     const v = parseInt(inp.value, 10); if (!isNaN(v)) CONFIG.capacities[inp.dataset.cap] = v;
     saveConfig(); if (currentView === 'heatmap') renderHeatmap();
