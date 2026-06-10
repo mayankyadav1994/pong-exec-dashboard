@@ -57,24 +57,24 @@
         "cls": "s-preprod"
       },
       {
-        "key": "In Production",
-        "cls": "s-prod"
+        "key": "In Review",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "Signed off",
+        "cls": "s-notstart"
       },
       {
         "key": "In QA",
-        "cls": "s-qa"
+        "cls": "s-notstart"
       },
       {
-        "key": "Bug Fixing",
-        "cls": "s-bug"
+        "key": "In Production",
+        "cls": "s-notstart"
       },
       {
         "key": "On Hold",
-        "cls": "s-hold"
-      },
-      {
-        "key": "Signed Off",
-        "cls": "s-signed"
+        "cls": "s-notstart"
       }
     ],
     "stages": [
