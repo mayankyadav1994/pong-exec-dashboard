@@ -1,9 +1,163 @@
 {
-  "order": [],
-  "status": {},
+  "order": [
+    "Game: Wildlife Safari Gold",
+    "Game: Arctic Buffalo",
+    "Game: Canada Eh",
+    "Game: Fruit Splitter",
+    "Game: Jewels of Cleopatra Cascade",
+    "Game: Lantern's Rising- Vertical",
+    "Game: Lost Totem",
+    "Game: Northern Buffalo",
+    "Game: Northern Buffalo Fortune [V]",
+    "Game: Quick Win's Diamond 7s - [V]",
+    "Game: Steampunk Fortune",
+    "Game: Viking’s Voyage of Fortune",
+    "Game: Canada Eh Part Deux",
+    "Game: Firecracker Frenzy [V]",
+    "Game: Monster Cake Smash",
+    "Game: Blade of Fortune",
+    "Game: Quick Wins Fortune [V]",
+    "Game: Golden Bank Safe",
+    "Game: Pharaoh's Quest",
+    "Game: Neon Break",
+    "Game: Western Grand Express",
+    "Game: Viking Blox",
+    "Game: Flaming Skulls",
+    "Game: Fangs of Fortune",
+    "Game: Nordic Paws",
+    "Game: Zombie Hunt",
+    "Game: Hollow Graves of Riches",
+    "Game: Viking Blox 2",
+    "Game: Birthday Bash [V]"
+  ],
+  "status": {
+    "Game: Wildlife Safari Gold": "In Review",
+    "Game: Lantern's Rising- Vertical": "Signed Off",
+    "Game: Northern Buffalo Fortune [V]": "Signed Off",
+    "Game: Western Grand Express": "Not Started",
+    "Game: Nordic Paws": "In Review"
+  },
   "sizes": {},
-  "hidden": [],
-  "config": {},
-  "updated_by": null,
-  "updated_at": null
+  "hidden": [
+    "Game: Neon Break",
+    "Game: Zombie Hunt",
+    "Game: Canada Eh",
+    "Game: Lantern's Rising- Vertical",
+    "Game: Northern Buffalo",
+    "Game: Northern Buffalo Fortune [V]",
+    "Game: Blade of Fortune"
+  ],
+  "added": [],
+  "config": {
+    "statuses": [
+      {
+        "key": "Not Started",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "In Progress",
+        "cls": "s-preprod"
+      },
+      {
+        "key": "In Review",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "Signed off",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "In QA",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "In Production",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "On Hold",
+        "cls": "s-notstart"
+      }
+    ],
+    "stages": [
+      {
+        "key": "concept",
+        "label": "Concept",
+        "color": "#fde68a"
+      },
+      {
+        "key": "art",
+        "label": "Art",
+        "color": "#fed7aa"
+      },
+      {
+        "key": "design",
+        "label": "Design",
+        "color": "#bfdbfe"
+      },
+      {
+        "key": "math",
+        "label": "Math",
+        "color": "#bbf7d0"
+      },
+      {
+        "key": "dev",
+        "label": "Dev",
+        "color": "#93c5fd"
+      },
+      {
+        "key": "sound",
+        "label": "Sound",
+        "color": "#f5d0e0"
+      },
+      {
+        "key": "qa",
+        "label": "QA",
+        "color": "#fcd34d"
+      },
+      {
+        "key": "bugfix",
+        "label": "Bug Fix",
+        "color": "#fecaca"
+      },
+      {
+        "key": "done",
+        "label": "Done",
+        "color": "#86efac"
+      }
+    ],
+    "sizes": [
+      {
+        "key": "XS",
+        "label": "Extra Small"
+      },
+      {
+        "key": "S",
+        "label": "Small"
+      },
+      {
+        "key": "M",
+        "label": "Medium"
+      },
+      {
+        "key": "L",
+        "label": "Large"
+      },
+      {
+        "key": "XL",
+        "label": "Extra Large"
+      }
+    ],
+    "capacities": {
+      "art": 240,
+      "design": 80,
+      "math": 320,
+      "dev": 480,
+      "sound": 160,
+      "qa": 200
+    },
+    "velocities": {}
+  },
+  "updated_by": "mayankyadav1994",
+  "updated_at": "2026-06-10 13:46"
 }
