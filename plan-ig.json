@@ -1,38 +1,43 @@
 {
   "order": [
     "Gen2 Game: Jewels of Cleopatra",
+    "Gen2 Game: Ultimate Goal 10x - ELG",
     "Gen2 Game: Liberty Rising",
-    "Gen2 Game: Lantern's Rising [V]",
     "Gen2 Game: Northern Buffalo Fortune [V]",
-    "Gen2 Game: Steampunk Fortune",
-    "Gen2 Game: Viking's Voyage of Fortune",
-    "Gen2 Game: Lost Totem",
     "Gen2 Game: Flaming Skulls",
-    "Gen2 Game: Amaterasu Rising",
-    "Gen2 Game: Pharaoh's Quest",
-    "Gen2 Game: Firecracker Frenzy",
-    "Gen2 Game: Birthday Bash [V]",
-    "Gen2 Game: Neon Break",
-    "Gen2 Game: Fiery 7s",
-    "Gen2 Game: Fruit Splitter",
-    "Gen2 Game: Blue Bird Bonus Extreme",
-    "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: American Wins",
     "Gen2 Game: Fortune Diamond 10X",
-    "Gen2 Game: Luck Bird Bonus",
+    "Gen2 Game: Blue Bird Bonus Extreme",
+    "Gen2 Game: Steampunk Fortune",
+    "Gen2 Game: Lost Totem",
+    "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Strike Forge Boost",
+    "Gen2 Game: Viking's Voyage of Fortune",
+    "Gen2 Game: Fruit Splitter",
+    "Gen2 Game: Firecracker Frenzy",
+    "Gen2 Game: Neon Break",
+    "Gen2 Game: Lantern's Rising [V]",
+    "Gen2 Game: Amaterasu Rising",
     "Gen2 - Game: Quick Wins Diamond Wild",
-    "Gen2 Game: Ultimate Goal 10x - ELG"
+    "Gen2 Game: Birthday Bash [V]",
+    "Gen2 Game: Fiery 7s",
+    "Gen2 Game: Moolah Moolah Moolah",
+    "Gen2 Game: Great Sphinx",
+    "Gen2 Game: Mandarin Madness",
+    "Gen2 Game: Northern Buffalo",
+    "Gen2 Game: Yuan Su Dragons",
+    "Gen2 Game: Luck Party Blue Bird Bonanza",
+    "Gen2 Game: Kandy Land Keno - PFH"
   ],
   "status": {
-    "Gen2 Game: Lost Totem": "In Progress",
+    "Gen2 Game: Liberty Rising": "In Progress",
     "Gen2 Game: Flaming Skulls": "In Progress",
-    "Gen2 Game: Pharaoh's Quest": "In Progress",
-    "Gen2 Game: Neon Break": "Not Started",
-    "Gen2 Game: Moolah Moolah Moolah": "Not Started",
     "Gen2 Game: American Wins": "In Progress",
     "Gen2 Game: Fortune Diamond 10X": "In Progress",
-    "Gen2 Game: Luck Bird Bonus": "In Progress"
+    "Gen2 Game: Lost Totem": "In Progress",
+    "Gen2 Game: Pharaoh's Quest": "In Progress",
+    "Gen2 Game: Neon Break": "Not Started",
+    "Gen2 Game: Moolah Moolah Moolah": "Not Started"
   },
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
@@ -54,27 +59,27 @@
       },
       {
         "key": "In Progress",
-        "cls": "s-notstart"
-      },
-      {
-        "key": "In Review",
-        "cls": "s-notstart"
-      },
-      {
-        "key": "Signed off",
-        "cls": "s-notstart"
-      },
-      {
-        "key": "In QA",
-        "cls": "s-notstart"
+        "cls": "s-preprod"
       },
       {
         "key": "In Production",
-        "cls": "s-notstart"
+        "cls": "s-prod"
+      },
+      {
+        "key": "In QA",
+        "cls": "s-qa"
+      },
+      {
+        "key": "Bug Fixing",
+        "cls": "s-bug"
       },
       {
         "key": "On Hold",
-        "cls": "s-notstart"
+        "cls": "s-hold"
+      },
+      {
+        "key": "Signed Off",
+        "cls": "s-signed"
       }
     ],
     "stages": [
@@ -157,5 +162,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-06-10 15:07"
+  "updated_at": "2026-06-11 17:11"
 }
