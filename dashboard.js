@@ -312,6 +312,7 @@ function buildSkeleton() {
     </div>
     <div class="hdr-actions"><button class="btn" id="planToggle">✎ Plan Mode</button></div>
   </div>
+  <div class="gp-share-banner" id="gpShareBanner" style="display:none"></div>
   <div class="kpi-strip" id="kpiStrip"></div>
   <div class="filter-bar" id="filterBar">
     <div class="fb-group" id="fbStatusGroup"><span class="fb-label">STATUS</span></div>
@@ -1002,11 +1003,42 @@ function renderDrawerSettings(body) {
 }
 
 function resetLocalEdits() {
-  ['order', 'status', 'sizes', 'hidden', 'config'].forEach(k => { try { localStorage.removeItem(LS + k); } catch (e) {} });
+  ['order', 'status', 'sizes', 'hidden', 'config', 'added'].forEach(k => { try { localStorage.removeItem(LS + k); } catch (e) {} });
   showToast('↺ Local edits reset (shared defaults still apply)');
   mount(PROJECT.key, APP);   // rebuild from defaults
   drawerTab = 'games'; drawerOpenRows = new Set();
   openDrawer();
+}
+
+// --- New-shared-plan banner (#52): local edits mask the shared plan, so when a
+// NEWER shared plan is published, offer viewers an opt-in "Apply".
+function getSharedSeen() { try { return localStorage.getItem(LS + 'shared_seen') || ''; } catch (e) { return ''; } }
+function setSharedSeen(v) { try { localStorage.setItem(LS + 'shared_seen', v || ''); } catch (e) {} }
+function hasLocalEdits() {
+  try {
+    const o = localStorage.getItem(LS + 'order');
+    const st = localStorage.getItem(LS + 'status');
+    const sz = localStorage.getItem(LS + 'sizes');
+    const ad = localStorage.getItem(LS + 'added');
+    return !!(o || (st && st !== '{}') || (sz && sz !== '{}') || (ad && ad !== '[]')
+      || localStorage.getItem(LS + 'hidden') || localStorage.getItem(LS + 'config'));
+  } catch (e) { return false; }
+}
+function renderShareBanner() {
+  const el = document.getElementById('gpShareBanner');
+  if (!el) return;
+  const sv = SHARED && SHARED.updated_at;
+  // No shared plan, or this browser already shows shared (no local edits): nothing to offer.
+  if (!sv || !hasLocalEdits()) { el.style.display = 'none'; if (sv) setSharedSeen(sv); return; }
+  // Local edits are masking shared; only prompt if the shared plan is newer than acknowledged.
+  if (getSharedSeen() === sv) { el.style.display = 'none'; return; }
+  const by = SHARED.updated_by ? ' by ' + SHARED.updated_by : '';
+  el.innerHTML = `<span class="gsb-txt">📌 A newer shared plan${by} was published (${sv}). Your local edits are hiding it.</span>`
+    + `<button class="gsb-btn primary" id="gsbApply">Apply shared plan</button>`
+    + `<button class="gsb-btn" id="gsbDismiss">Keep my edits</button>`;
+  el.style.display = 'flex';
+  document.getElementById('gsbApply').onclick = () => { setSharedSeen(sv); resetLocalEdits(); };
+  document.getElementById('gsbDismiss').onclick = () => { setSharedSeen(sv); el.style.display = 'none'; };
 }
 
 // ============================================================
@@ -1063,7 +1095,12 @@ function buildPlanPayload() {
   });
   return {
     order: RAW_GAMES.map(g => g.name), status, sizes, hidden: [...HIDDEN],
-    added: RAW_GAMES.filter(g => g.in_roster === false).map(g => g.jira),   // games added on the board (#47)
+    // Games on the board that aren't default roster — by the explicit added-set
+    // OR a non-roster flag, so `added` can't drift out of sync with `order` (#47/#52).
+    added: (function () {
+      const s = new Set([...(SHARED.added || []), ...(USER_ADDED || [])]);
+      return RAW_GAMES.filter(g => g.in_roster === false || s.has(g.jira)).map(g => g.jira);
+    })(),
     config: { statuses: CONFIG.statuses, stages: CONFIG.stages, sizes: CONFIG.sizes, capacities: CONFIG.capacities, velocities: CONFIG.velocities || {} },
     updated_by: getGhUser() || null, updated_at: nowStamp(),
   };
@@ -1242,7 +1279,7 @@ function mount(projectKey, container) {
     return;
   }
   document.getElementById('hdrCount').textContent = visibleGames().length;
-  buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows();
+  buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows(); renderShareBanner();
 }
 
 // ============================================================

@@ -1005,6 +1005,40 @@ updates the top chips **live**, no reload. (Shared for everyone still requires
 
 ---
 
+### #52 · ACTIVE · `persistence` `plan-mode` `bug` · 2026-06-11
+**Published shared plans now reach viewers via an opt-in banner (local edits no
+longer silently mask them); publish payload hardened.**
+
+*Bug:* a teammate published a reordered iGaming plan; it committed fine to `main`
+(verified), and a *clean* viewer would have seen it — but anyone with their own
+local edits never did. Root cause: precedence is `local > shared`
+(`order = USER_ORDER.length ? USER_ORDER : SHARED.order`), so any viewer who had
+ever dragged/edited was frozen on their local view and silently missed every
+publish. "Reset local edits" fixed it because it clears the local layer.
+
+*Fix (user chose opt-in banner):*
+- `renderShareBanner()` shows a dismissible bar — *"📌 A newer shared plan by X was
+  published … Your local edits are hiding it · [Apply shared plan] [Keep my
+  edits]"* — only when there's a shared plan, the viewer has masking local edits,
+  and `SHARED.updated_at` ≠ the acknowledged `{prefix}shared_seen`. **Apply** =
+  `setSharedSeen` + `resetLocalEdits()` (adopt shared); **Keep** = `setSharedSeen`
+  (stop nagging until a newer publish). Viewers with no local edits already see
+  shared and are auto-acknowledged.
+- `resetLocalEdits()` now also clears the `added` layer (was missed), so Apply
+  fully adopts the shared roster.
+- **Publish hardening:** `buildPlanPayload.added` now = off-roster (`in_roster ===
+  false`) **OR** explicitly-added (`SHARED.added ∪ USER_ADDED`) games in
+  `RAW_GAMES` — so `added` can't drift out of sync with `order` (the prior bug
+  where a stale `in_roster` flag left added games out of `added`, leaving 6
+  un-renderable `order` entries in the teammate's published plan).
+
+*Known remaining gap (not fixed here):* data files (`dashboard-data-*.js`) aren't
+cache-busted, so a publisher on a stale data snapshot can still publish references
+to games a later rebuild dropped. Mitigated by load-time filtering; a proper fix
+(version the data scripts via the refresh CI) is a follow-up.
+
+---
+
 ## Current-State Reference
 
 Fast-lookup of the rules currently in effect. **If anything here conflicts with
