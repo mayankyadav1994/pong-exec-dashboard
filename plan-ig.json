@@ -9,6 +9,7 @@
     "Gen2 Game: Fortune Diamond 10X",
     "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Steampunk Fortune",
+    "Gen2 Game: Luck Party Blue Bird Bonanza",
     "Gen2 Game: Lost Totem",
     "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Strike Forge Boost",
@@ -26,7 +27,6 @@
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Luck Party Blue Bird Bonanza",
     "Gen2 Game: Kandy Land Keno - PFH"
   ],
   "status": {
@@ -47,7 +47,16 @@
       "sound": "M"
     }
   },
-  "hidden": [],
+  "hidden": [
+    "Gen2 Game: Kandy Land Keno - PFH",
+    "Gen2 Game: Birthday Bash [V]",
+    "Gen2 Game: Fiery 7s",
+    "Gen2 Game: Moolah Moolah Moolah",
+    "Gen2 Game: Great Sphinx",
+    "Gen2 Game: Mandarin Madness",
+    "Gen2 Game: Northern Buffalo",
+    "Gen2 Game: Yuan Su Dragons"
+  ],
   "added": [
     "IG-1513"
   ],
@@ -162,5 +171,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-06-11 17:11"
+  "updated_at": "2026-06-11 18:31"
 }
