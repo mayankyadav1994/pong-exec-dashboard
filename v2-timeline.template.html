@@ -310,6 +310,14 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 .ms-pin{position:absolute;top:0;bottom:0;width:1.5px;z-index:4;pointer-events:none}
 .ms-pin-label{position:absolute;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;border:1px solid;white-space:nowrap;transform:translateX(-50%);z-index:5;pointer-events:none;top:34px;max-width:140px;overflow:hidden;text-overflow:ellipsis}
 
+/* Compact row-level chips on the FV label panel (replaces per-assignee
+   pills that used to sit under the bars and collided with milestone
+   labels). Only emitted when there's a signal worth showing. */
+.fv-meta-chips{margin-top:4px;display:flex;gap:4px;flex-wrap:wrap}
+.fv-meta-chip{font-size:9.5px;font-weight:600;padding:1px 6px;border-radius:10px;background:var(--surf2);color:var(--muted);border:1px solid var(--border);cursor:help;white-space:nowrap;line-height:1.4;font-family:'IBM Plex Mono'}
+.fv-meta-chip.bot{background:rgba(220,38,38,.10);color:#991b1b;border-color:rgba(220,38,38,.35)}
+.fv-meta-chip.scn{background:rgba(251,146,60,.10);color:#c2410c;border-color:rgba(251,146,60,.35)}
+
 /* Holiday editor */
 .sp-holiday-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .sp-holiday-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'IBM Plex Mono';padding:3px 6px 3px 10px;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
@@ -1120,15 +1128,19 @@ ordered.forEach((fv,idx)=>{
   const hasSndH=hasTypeHours(effectiveFv,'Sound');
   const typeRowCount=[hasCreH,hasMatH,hasSndH].filter(Boolean).length;
 
-  const devPills=effectiveFv.devPeople.filter(p=>{
-    const h=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
-    const queued=getDynamicQueued(idx,p.name);
-    const hasActive=p.tasks.some(t=>['In Progress','Ready','In QA','To Do','New'].includes(t.status));
-    return h>0||queued>0||hasActive;
-  });
+  // Row-level signals shown as compact chips in the LABEL panel below the
+  // status badge. (Per-assignee pills used to live on the gantt track but
+  // collided with milestone labels — removed.)
+  const activePeople = effectiveFv.devPeople
+    .concat(effectiveFv.otherPeople||[])
+    .filter(p => p.tasks.some(t => !isDone(t.status)));
+  const peopleCount = activePeople.length;
+  const critPerson  = effectiveFv.devPeople.find(p => p.bottleneck || (p.tasks||[]).some(t=>t.bottleneck));
+  const scenarioInjN = effectiveFv.devPeople.reduce((s,p) =>
+    s + (p.tasks||[]).filter(t=>t.isScenario).length, 0);
 
   const pillsTop=34+typeRowCount*20+(typeRowCount>0?4:0);
-  const minH=pillsTop+(devPills.length>0?30:12);
+  const minH=Math.max(pillsTop+12, 56);
 
   // ── FV ITEM WRAPPER ──
   const item=document.createElement('div');item.className='fv-item';item.dataset.idx=idx;
@@ -1142,6 +1154,15 @@ ordered.forEach((fv,idx)=>{
   const dh=document.createElement('div');dh.className='drag-handle';dh.title='Drag to reprioritize';
   dh.innerHTML=`<svg width="10" height="16" viewBox="0 0 10 16" fill="none"><circle cx="3" cy="3" r="1.2" fill="currentColor"/><circle cx="7" cy="3" r="1.2" fill="currentColor"/><circle cx="3" cy="8" r="1.2" fill="currentColor"/><circle cx="7" cy="8" r="1.2" fill="currentColor"/><circle cx="3" cy="13" r="1.2" fill="currentColor"/><circle cx="7" cy="13" r="1.2" fill="currentColor"/></svg>`;
 
+  // Build chip strip — only emit chips that have a signal worth showing
+  const chips = [];
+  if(peopleCount > 0)
+    chips.push(`<span class="fv-meta-chip" title="${peopleCount} ${peopleCount===1?'person':'people'} with open work in this FV">👥 ${peopleCount}</span>`);
+  if(critPerson)
+    chips.push(`<span class="fv-meta-chip bot" title="Critical path">⛓ ${critPerson.name.split(' ')[0]} ${critPerson.name.split(' ').slice(-1)[0].charAt(0)}.</span>`);
+  if(scenarioInjN > 0)
+    chips.push(`<span class="fv-meta-chip scn" title="${scenarioInjN} scenario task${scenarioInjN===1?'':'s'} injected into this FV">⚡ ${scenarioInjN}</span>`);
+
   const lbl=document.createElement('div');lbl.className='fv-label';
   lbl.innerHTML=`<div class="priority-badge">#${idx+1}</div>
     <div class="fv-name" style="color:${effectiveFv.color}">${effectiveFv.key}${hasOth?'<span class="oth-dot"></span>':''}</div>
@@ -1150,7 +1171,8 @@ ordered.forEach((fv,idx)=>{
       ? `<span class="scenario-badge">⚡ SCENARIO</span>`
       : `<span class="fv-badge" style="${effectiveFv.statusStyle}">${effectiveFv.statusLabel}</span>`}
     ${effectiveFv.isLab?'<div class="fv-regulated">🔬 Regulated · Lab Required</div>':''}
-    ${!effectiveFv.isScenario&&countUnlogged(effectiveFv)>0?`<div style="margin-top:4px"><span class="unlogged-badge">⚠ ${countUnlogged(effectiveFv)} tasks 0h logged</span></div>`:''}`;
+    ${!effectiveFv.isScenario&&countUnlogged(effectiveFv)>0?`<div style="margin-top:4px"><span class="unlogged-badge">⚠ ${countUnlogged(effectiveFv)} tasks 0h logged</span></div>`:''}
+    ${chips.length ? `<div class="fv-meta-chips">${chips.join('')}</div>` : ''}`;
 
   const track=document.createElement('div');track.className='fv-track';track.style.minHeight=minH+'px';
 
@@ -1267,29 +1289,12 @@ ordered.forEach((fv,idx)=>{
   });
   barEls[`othbar-${idx}`]=null;
 
-  // Resource pills
-  if(devPills.length>0){
-    const meta=document.createElement('div');meta.className='bar-meta';meta.style.top=pillsTop+'px';
-    pillEls[`pills-${idx}`]=[];
-    devPills.forEach(p=>{
-      const ph=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
-      const isBot=p.bottleneck||p.tasks.some(t=>t.bottleneck);
-      const hasScenario=p.tasks.some(t=>t.isScenario);
-      const pill=document.createElement('span');
-      pill.className='res-pill '+(isBot?'pill-w':hasScenario?'pill-o':'pill-d');
-      pill.dataset.pname=p.name;pill.dataset.fvkey=effectiveFv.key;pill.dataset.ph=ph;pill.dataset.isbot=isBot?'1':'';
-      const fn=p.name.split(' ');
-      const buf=getBuffer(effectiveFv.key,p.name);
-      pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}${hasScenario?' ⚡':''}`;
-      meta.appendChild(pill);pillEls[`pills-${idx}`].push(pill);
-    });
-    if(hasOth){
-      const op=document.createElement('span');op.className='res-pill pill-o';
-      op.textContent=`Others · ${othOpenN} task${othOpenN!==1?'s':''} · ${othRemH}h`;
-      meta.appendChild(op);
-    }
-    track.appendChild(meta);
-  }
+  // Per-assignee pills used to render here under the bars; removed because
+  // they collided with milestone labels. Row-level signals now live as
+  // compact chips on the LABEL panel (see fv-meta-chips). The detail panel
+  // still shows full per-person hours / buffer / critical-path inside the
+  // DEV WORK tab.
+  pillEls[`pills-${idx}`] = [];  // empty registry — refresh code reads this
 
   const chev=document.createElement('div');chev.className='chevron';
   chev.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -1298,19 +1303,34 @@ ordered.forEach((fv,idx)=>{
   // ── DETAIL PANEL ──
   const panel=document.createElement('div');panel.className='dp';panel.id=`panel-${idx}`;
   const head=document.createElement('div');head.className='dp-head';
+  // ── Hour-based stats strip ──
+  // Total scope + done hours give a clean "X of Y" progress signal. Dev /
+  // Others remaining stay separate because the right pane that follows is
+  // organised the same way. Ticket counts intentionally dropped — only
+  // hours, per UX feedback.
+  //   TOTAL  = sum of origH across everything
+  //   DONE   = origH of done tasks + spentH on in-flight tasks
+  const allTasksForStats = [...allDevT, ...allOthT];
+  const totalEstH = Math.round(allTasksForStats.reduce((s,t) => s + (t.origH || 0), 0));
+  const doneEstH  = Math.round(allTasksForStats.reduce((s,t) =>
+    s + (isDone(t.status) ? (t.origH || 0) : (t.spentH || 0)), 0));
+  const pctDone   = totalEstH > 0 ? Math.round(doneEstH / totalEstH * 100) : 0;
   head.innerHTML=`<div>
     <div class="dp-title" style="color:${effectiveFv.color}">${effectiveFv.key} — Work Breakdown</div>
     <div class="dp-subtitle">${effectiveFv.note||effectiveFv.sub} · Dev: ${effectiveFv.devStart?fmtD(devEnd):'Complete'} · QA done: ${effectiveFv.qaWeeks>0?fmtD(qaEnd):'N/A'}</div>
   </div>
   <div class="dp-stats">
-    <div class="dp-stat"><div class="dp-stat-v" style="color:${effectiveFv.color}">${devRemH}h</div><div class="dp-stat-l">DEV REMAINING</div></div>
-    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${devOpenN}</div><div class="dp-stat-l">DEV OPEN</div></div>
-    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${devDoneN}</div><div class="dp-stat-l">DEV DONE</div></div>
-    ${hasOth?`<div class="dp-stat"><div class="dp-stat-v" style="color:var(--oth)">${othRemH}h</div><div class="dp-stat-l">OTHERS REM.</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--muted)">${othOpenN}</div><div class="dp-stat-l">OTHERS OPEN</div></div><div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${othDoneN}</div><div class="dp-stat-l">OTHERS DONE</div></div>`:''}
+    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--text)">${totalEstH}h</div><div class="dp-stat-l">TOTAL SCOPE</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:var(--done)">${doneEstH}h</div><div class="dp-stat-l">DONE</div></div>
+    <div class="dp-stat"><div class="dp-stat-v" style="color:${effectiveFv.color}">${devRemH}h</div><div class="dp-stat-l">DEV REM.</div></div>
+    ${hasOth?`<div class="dp-stat"><div class="dp-stat-v" style="color:var(--oth)">${othRemH}h</div><div class="dp-stat-l">OTHERS REM.</div></div>`:''}
+    <div class="dp-stat"><div class="dp-stat-v" style="color:${pctDone>=80?'var(--done)':pctDone>=50?'#d97706':'var(--muted)'}">${pctDone}%</div><div class="dp-stat-l">PROGRESS</div></div>
   </div>`;
   panel.appendChild(head);
 
-  let activeTab='dev';
+  // Default tab = SCOPE for non-scenario rows (most-used view when drilling in).
+  // Scenario rows have no scope, so they fall back to DEV WORK.
+  let activeTab = effectiveFv.isScenario ? 'dev' : 'scope';
   {
     const tabs=document.createElement('div');tabs.className='dp-tabs';tabs.style.setProperty('--rc',effectiveFv.color);
     const tabDefs=[
@@ -1319,7 +1339,7 @@ ordered.forEach((fv,idx)=>{
       ...(!effectiveFv.isScenario?[{id:'scope',label:'SCOPE'}]:[]),
     ];
     tabDefs.forEach(td=>{
-      const t=document.createElement('div');t.className='dp-tab'+(td.id==='dev'?' active':'');
+      const t=document.createElement('div');t.className='dp-tab'+(td.id===activeTab?' active':'');
       t.dataset.tab=td.id;t.textContent=td.label;tabs.appendChild(t);
     });
     tabs.querySelectorAll('.dp-tab').forEach(t=>{
@@ -1336,14 +1356,17 @@ ordered.forEach((fv,idx)=>{
   }
 
   const devBody=document.createElement('div');devBody.className='dp-body';
+  devBody.style.display = activeTab==='dev' ? 'flex' : 'none';
   effectiveFv.devPeople.forEach(p=>devBody.appendChild(buildPersonCol(effectiveFv,idx,p,'dev')));
   panel.appendChild(devBody);
 
-  const othBody=document.createElement('div');othBody.className='dp-body';othBody.style.display='none';
+  const othBody=document.createElement('div');othBody.className='dp-body';
+  othBody.style.display = activeTab==='others' ? 'flex' : 'none';
   if(hasOth)(effectiveFv.otherPeople||[]).forEach(p=>othBody.appendChild(buildPersonCol(effectiveFv,idx,p,'others')));
   panel.appendChild(othBody);
 
-  const scopeBody=buildScopeBody(effectiveFv);scopeBody.style.display='none';
+  const scopeBody=buildScopeBody(effectiveFv);
+  scopeBody.style.display = activeTab==='scope' ? 'block' : 'none';
   panel.appendChild(scopeBody);
 
   panelRefs[idx]={panel,activeTab};

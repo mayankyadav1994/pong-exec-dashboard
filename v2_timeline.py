@@ -257,7 +257,7 @@ def fetch_fv_tasks(fv_name, types):
         f'ORDER BY assignee ASC'
     )
     fields = ["summary", "status", "issuetype", "assignee",
-              "timeestimate", "timeoriginalestimate", "parent"]
+              "timeestimate", "timeoriginalestimate", "timespent", "parent"]
     return jira_jql(jql, fields)
 
 
@@ -275,11 +275,18 @@ def group_by_assignee(issues, fv_name):
         status   = (fields.get("status") or {}).get("name", "")
         if not status:
             continue
-        hours = round((fields.get("timeestimate") or 0) / 3600)
+        hours   = round((fields.get("timeestimate") or 0) / 3600)
+        # origH / spentH feed the detail-panel "Total Scope · Done · Progress"
+        # strip (used to compute % complete at the FV level). Hours-only;
+        # keep estimates rounded the same way `hours` is for visual consistency.
+        orig_h  = round((fields.get("timeoriginalestimate") or 0) / 3600, 2)
+        spent_h = round((fields.get("timespent") or 0) / 3600, 2)
         task  = {
             "key":     issue["key"],
             "summary": fields.get("summary", ""),
             "hours":   hours,
+            "origH":   orig_h,
+            "spentH":  spent_h,
             "status":  status,
         }
         if status == "In Progress" and hours == 0:
