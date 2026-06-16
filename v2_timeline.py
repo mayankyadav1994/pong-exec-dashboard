@@ -550,6 +550,12 @@ def main():
         .replace("__SPRINT__",        json.dumps(sprint_info, ensure_ascii=False))
         .replace("__SPRINT_LOGS__",   json.dumps(sprint_logs, ensure_ascii=False))
         .replace("__HOLIDAYS__",      json.dumps(sorted(HOLIDAYS), ensure_ascii=False))
+        # SERVER_FV_META = the fv_meta dict actually persisted in config/v2.json
+        # (NOT the merged-with-auto-discovery version). The Save-as-default flow
+        # uses this as the base for the payload so auto-discovered FVs with grey
+        # defaults don't appear as fake "changes" in the diff. See template
+        # buildConfigPayload() for the consumer.
+        .replace("__SERVER_FV_META__",json.dumps(_CONFIG.get("fv_meta") or {}, ensure_ascii=False))
         .replace("__REFRESH_LABEL__", refresh_label)
         .replace("__SPRINT_HEADER__", sprint_header)
     )

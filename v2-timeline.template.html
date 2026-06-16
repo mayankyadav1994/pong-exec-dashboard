@@ -1444,6 +1444,13 @@ const GH_API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
 const GH_PAT_KEY='v2_github_pat';
 const GH_PAT_USER_KEY='v2_github_pat_user';
 
+// Server's persisted fv_meta — the *actual* contents of config/v2.json at
+// render time, NOT the auto-discovery-merged version. buildConfigPayload
+// uses this as the base so saving doesn't accidentally turn every grey
+// auto-discovered FV into a permanent config entry with grey/Jira-description
+// as its "customized" metadata.
+const SERVER_FV_META = __SERVER_FV_META__;
+
 function getPat(){ return localStorage.getItem(GH_PAT_KEY) || ''; }
 function setPat(token, login){
   if(token){
@@ -1467,6 +1474,20 @@ async function ghFetch(url, opts){
   if(!r.ok){
     let msg = `HTTP ${r.status}`;
     try { const j=await r.json(); msg += `: ${j.message||''}`; } catch(e){}
+    // 403 with this body almost always means the fine-grained PAT is missing
+    // a required permission. Surface the specific missing scope so users
+    // can re-mint correctly.
+    if(r.status === 403 && /Resource not accessible/i.test(msg)){
+      if(url.includes('/pulls') && url.includes('/merge')){
+        msg += ' — your PAT is missing Pull Requests: write (needed to merge the PR). Re-mint with all three: Contents r/w, Pull Requests r/w, Metadata r. See docs/CONFIG_EDITOR_SETUP.md';
+      } else if(url.includes('/pulls')){
+        msg += ' — your PAT is missing Pull Requests: write (needed to open the PR). Re-mint with all three: Contents r/w, Pull Requests r/w, Metadata r. See docs/CONFIG_EDITOR_SETUP.md';
+      } else if(url.includes('/contents') || url.includes('/git/refs')){
+        msg += ' — your PAT is missing Contents: write. Re-mint with all three: Contents r/w, Pull Requests r/w, Metadata r. See docs/CONFIG_EDITOR_SETUP.md';
+      } else {
+        msg += ' — your PAT is missing a required permission. Re-mint with all three: Contents r/w, Pull Requests r/w, Metadata r. See docs/CONFIG_EDITOR_SETUP.md';
+      }
+    }
     throw new Error(msg);
   }
   return r.status===204 ? {} : r.json();
@@ -1482,34 +1503,41 @@ async function verifyPat(){
 }
 
 function buildConfigPayload(){
-  const fv_meta = {};
-  FV.forEach(fv => {
-    if(fv.isScenario) return;
-    const entry = {
-      color: fv.color,
-      sub: fv.sub,
-      qaWeeks: fv.qaWeeks,
-    };
-    // Preserve V2-specific fields if they're present (lab pipeline, sales trip)
-    if(fv.note) entry.note = fv.note;
-    if(fv.indev_style) entry.indev_style = fv.indev_style;
-    if(fv.isLab){
-      entry.isLab = true;
-      entry.lab1Weeks = fv.lab1Weeks;
-      entry.pilotWeeks = fv.pilotWeeks;
-      entry.lab2Weeks = fv.lab2Weeks;
-    }
-    if(fv.salesTrip) entry.salesTrip = fv.salesTrip;
-    if(fv.epic_overrides && Object.keys(fv.epic_overrides).length){
-      const ovr = {};
-      Object.keys(fv.epic_overrides).forEach(k => {
-        const v = fv.epic_overrides[k];
-        if(v && Object.keys(v).length) ovr[k] = v;
+  // Compose what should be written to config/v2.json.
+  //
+  // Critical: we DON'T iterate the in-memory FV array and write every field.
+  // After auto-discovery, that array mixes "real config" FVs with Jira+default
+  // FVs, and we have no way to tell which is which. Writing all of them would
+  // turn every grey auto-discovered FV into a permanent config entry with
+  // {color:"#94a3b8", sub:"<Jira description>", qaWeeks:2} as its "customized"
+  // metadata — bloating the config and polluting every diff.
+  //
+  // Instead: start from SERVER_FV_META (the actual current contents of
+  // config/v2.json) and layer LOCAL_CONFIG.fv_meta edits on top. FVs that
+  // have no server config AND no local edits stay out of the saved fv_meta
+  // entirely — they'll be re-derived from Jira on the next workflow run.
+  const fv_meta = JSON.parse(JSON.stringify(SERVER_FV_META || {}));
+  Object.entries(LOCAL_CONFIG.fv_meta || {}).forEach(([key, edits]) => {
+    const existing = fv_meta[key] || {};
+    const merged = { ...existing, ...edits };
+    // epic_overrides is a nested dict — deep-merge per-epic so server-defined
+    // fields on an epic survive a partial local edit to a different field.
+    if(existing.epic_overrides || edits.epic_overrides){
+      const out = {};
+      const allEpics = new Set([
+        ...Object.keys(existing.epic_overrides || {}),
+        ...Object.keys(edits.epic_overrides || {}),
+      ]);
+      allEpics.forEach(ek => {
+        const merged_ep = { ...((existing.epic_overrides || {})[ek] || {}),
+                            ...((edits.epic_overrides    || {})[ek] || {}) };
+        if(Object.keys(merged_ep).length) out[ek] = merged_ep;
       });
-      if(Object.keys(ovr).length) entry.epic_overrides = ovr;
+      if(Object.keys(out).length) merged.epic_overrides = out;
+      else delete merged.epic_overrides;
     }
-    if(fv.milestones && fv.milestones.length) entry.milestones = fv.milestones.slice();
-    fv_meta[fv.key] = entry;
+    if(Object.keys(merged).length) fv_meta[key] = merged;
+    else delete fv_meta[key];
   });
   const fv_order = FV.filter(fv => !fv.isScenario).map(fv => fv.key);
   const hidden_fvs = [...HIDDEN_FVS].filter(k => fv_order.includes(k)).sort();
