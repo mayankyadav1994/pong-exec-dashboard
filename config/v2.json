@@ -1,49 +1,54 @@
 {
-  "_comment": "Editable V2 dashboard config. Don't hand-edit unless you know what you're doing — use the Plan Editor in the dashboard (top-right ⚙ Edit Plan button) and click 'Save as default for everyone'. Hand-edits land via the same workflow.",
   "fv_order": [
-    "V2 SW 15.00",
-    "V2 SW 16.00",
     "V2 PT 13.30",
-    "V2 P2P 16.00",
+    "V2 P2P 15.20",
     "V2 HHR 3.00",
+    "V2 SW 16.00",
+    "V2 P2P 16.00",
     "V2 PT 14.00",
-    "V2 C2 5.10"
+    "V2 C2 5.10",
+    "New Games",
+    "V2 C2 Backlog",
+    "V2 HHR 3.10",
+    "V2 P2P Backlog",
+    "V2 PT 12.20",
+    "V2 PT Backlog",
+    "V2 SW Backlog"
   ],
   "fv_meta": {
-    "V2 SW 15.00": {
-      "color": "#60a5fa",
-      "sub": "Sweepstakes · Games",
+    "V2 PT 13.30": {
+      "color": "#c4b5fd",
+      "sub": "8× Game Ports · Volume Buttons · Server Cleanup",
+      "qaWeeks": 2
+    },
+    "V2 P2P 15.20": {
+      "color": "#94a3b8",
+      "sub": "Missouri E-Raffle Patch",
+      "qaWeeks": 2
+    },
+    "V2 HHR 3.00": {
+      "color": "#4ade80",
+      "sub": "User Role Restrictions · Maintenance Menu",
       "qaWeeks": 2
     },
     "V2 SW 16.00": {
       "color": "#93c5fd",
       "sub": "Offline Upgrader · Pay It Forward",
       "qaWeeks": 2,
-      "note": "Jira fix version \"V2 SW 16.00\" — mapped from \"V2 SW P2P 16.00\"",
-      "indev_style": "color:#1e3a8a;border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.09)"
-    },
-    "V2 PT 13.30": {
-      "color": "#c4b5fd",
-      "sub": "8× Game Ports · Volume Buttons · Server Cleanup",
-      "qaWeeks": 2,
-      "indev_style": "color:#3b0764;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.09)"
+      "note": "Jira fix version \"V2 SW 16.00\" — mapped from \"V2 SW P2P 16.00\""
     },
     "V2 P2P 16.00": {
       "color": "#fb923c",
       "sub": "Georgia P2P · Mechanical Meters · Task Handler R7",
       "qaWeeks": 3,
-      "indev_style": "color:#7c2d12;border-color:rgba(234,88,12,.3);background:rgba(234,88,12,.09)",
       "isLab": true,
       "lab1Weeks": 4,
       "pilotWeeks": 2,
       "lab2Weeks": 4,
-      "salesTrip": {"date": "2026-06-27", "label": "Sales Trip · Georgia"}
-    },
-    "V2 HHR 3.00": {
-      "color": "#4ade80",
-      "sub": "User Role Restrictions · Maintenance Menu",
-      "qaWeeks": 2,
-      "indev_style": "color:#14532d;border-color:rgba(22,163,74,.3);background:rgba(22,163,74,.09)"
+      "salesTrip": {
+        "date": "2026-06-27",
+        "label": "Sales Trip · Georgia"
+      }
     },
     "V2 PT 14.00": {
       "color": "#f87171",
@@ -53,15 +58,60 @@
       "lab1Weeks": 4,
       "pilotWeeks": 2,
       "lab2Weeks": 4,
-      "salesTrip": {"tbd": true, "label": "Sales Trip · Ohio"}
+      "salesTrip": {
+        "tbd": true,
+        "label": "Sales Trip · Ohio"
+      }
     },
     "V2 C2 5.10": {
       "color": "#a78bfa",
       "sub": "C2 Game Ports · Bingo Paytables · 4 Games",
-      "qaWeeks": 2,
-      "indev_style": "color:#3b0764;border-color:rgba(124,58,237,.25);background:rgba(124,58,237,.07)"
+      "qaWeeks": 2
+    },
+    "New Games": {
+      "color": "#94a3b8",
+      "sub": "New Games",
+      "qaWeeks": 2
+    },
+    "V2 C2 Backlog": {
+      "color": "#94a3b8",
+      "sub": "V2 C2 Backlog",
+      "qaWeeks": 2
+    },
+    "V2 HHR 3.10": {
+      "color": "#94a3b8",
+      "sub": "POS work",
+      "qaWeeks": 2
+    },
+    "V2 P2P Backlog": {
+      "color": "#94a3b8",
+      "sub": "V2 P2P Backlog",
+      "qaWeeks": 2
+    },
+    "V2 PT 12.20": {
+      "color": "#94a3b8",
+      "sub": "Ohio Lab - Server",
+      "qaWeeks": 2
+    },
+    "V2 PT Backlog": {
+      "color": "#94a3b8",
+      "sub": "V2 PT Backlog",
+      "qaWeeks": 2
+    },
+    "V2 SW Backlog": {
+      "color": "#94a3b8",
+      "sub": "V2 SW Backlog",
+      "qaWeeks": 2
     }
   },
-  "hidden_fvs": [],
-  "holidays": ["2026-05-18"]
+  "hidden_fvs": [
+    "V2 C2 Backlog",
+    "V2 P2P Backlog",
+    "V2 PT 12.20",
+    "V2 PT Backlog",
+    "V2 SW Backlog"
+  ],
+  "holidays": [
+    "2026-05-18"
+  ]
 }
