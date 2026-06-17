@@ -662,6 +662,13 @@ def main():
         # defaults don't appear as fake "changes" in the diff. See template
         # buildConfigPayload() for the consumer.
         .replace("__SERVER_FV_META__", json.dumps(_CONFIG.get("fv_meta") or {}, ensure_ascii=False))
+        # _meta.published_at + _meta.published_by are written by the
+        # Save-as-default flow (browser → GitHub PUT). The opt-in banner
+        # (ported from game-pipeline #52) compares these to localStorage
+        # so a viewer with local edits learns when a newer shared plan
+        # has been published. Empty string = no publish marker yet.
+        .replace("__SERVER_PUBLISHED_AT__", json.dumps((_CONFIG.get("_meta") or {}).get("published_at") or ""))
+        .replace("__SERVER_PUBLISHED_BY__", json.dumps((_CONFIG.get("_meta") or {}).get("published_by") or ""))
         .replace("__REFRESH_LABEL__",  refresh_label)
         .replace("__SPRINT_HEADER__",  sprint_header)
     )

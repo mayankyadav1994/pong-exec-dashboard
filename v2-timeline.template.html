@@ -19,6 +19,12 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 
 /* HEADER */
 .hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:28px}
+.share-banner{display:flex;align-items:center;gap:12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.35);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#5b21b6}
+.sb-txt{flex:1;font-weight:500;line-height:1.4}
+.sb-btn{font-size:11px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .12s,color .12s}
+.sb-btn:hover{background:var(--surf2);color:var(--text)}
+.sb-btn.primary{background:#7c3aed;color:#fff;border-color:#7c3aed}
+.sb-btn.primary:hover{background:#6d28d9}
 .hdr h1{font-size:19px;font-weight:600;letter-spacing:-.2px}
 .hdr p{font-size:12px;color:var(--muted);margin-top:3px}
 .legend{display:flex;gap:16px;align-items:center}
@@ -459,6 +465,10 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <button class="site-nav-btn nav-whatif-btn" id="openWhatIfBtn" title="Open scenario sandbox — browser-local only">⚡ What-If</button>
   </div>
 </nav>
+<!-- Opt-in banner: shown when a newer shared plan has been published and the
+     viewer still has unsaved local edits masking it. Hidden by default;
+     renderShareBanner() shows it if the condition matches. -->
+<div class="share-banner" id="shareBanner" style="display:none"></div>
 <div class="hdr">
   <div>
     <h1>V2 Release Timeline — Fix Version Delivery Forecast</h1>
@@ -839,6 +849,32 @@ function hasLocalEdits(){
          || Object.keys(LOCAL_CONFIG.fv_meta||{}).length
          || (LOCAL_CONFIG.hidden_fvs||[]).length
          || LOCAL_CONFIG.holidays);
+}
+
+// Opt-in banner (game-pipeline #52 port): when a viewer has local edits AND
+// a NEWER shared plan is published, surface the conflict so they can switch.
+// Without this, local edits silently mask updates from teammates.
+function renderShareBanner(){
+  const el = document.getElementById('shareBanner');
+  if(!el) return;
+  const sv = SERVER_PUBLISHED_AT;
+  // No publish marker yet, OR no local edits: nothing to surface. Self-mark
+  // the current publish as seen so the banner stays quiet on future loads.
+  if(!sv || !hasLocalEdits()){
+    el.style.display = 'none';
+    if(sv) setSharedSeen(sv);
+    return;
+  }
+  // Local edits are masking shared; only prompt if newer than acknowledged.
+  if(getSharedSeen() === sv){ el.style.display = 'none'; return; }
+  const by = SERVER_PUBLISHED_BY ? ' by ' + SERVER_PUBLISHED_BY : '';
+  const when = sv.replace('T',' ').replace(/\..*$/,'').replace(/Z$/,' UTC');
+  el.innerHTML = `<span class="sb-txt">📌 A newer shared plan${by} was published (${when}). Your local edits are hiding it.</span>`
+    + `<button class="sb-btn primary" id="sbApply">Apply shared plan</button>`
+    + `<button class="sb-btn" id="sbDismiss">Keep my edits</button>`;
+  el.style.display = 'flex';
+  document.getElementById('sbApply').onclick = () => { setSharedSeen(sv); resetLocalEdits(); };
+  document.getElementById('sbDismiss').onclick = () => { setSharedSeen(sv); el.style.display = 'none'; };
 }
 function applyLocalConfigToFvArray(){
   if(LOCAL_CONFIG.fv_order && LOCAL_CONFIG.fv_order.length){
@@ -1629,6 +1665,7 @@ ordered.forEach((fv,idx)=>{
 } // end buildRows
 
 buildRows();
+renderShareBanner();
 
 // ─── SCENARIO PANEL LOGIC ──────────────────────────────
 const DEVS=['Rejosh Samuel','Aleksey Vorotilin','Hemmat Rezvani','Justin Kwon',
@@ -1674,6 +1711,23 @@ const GH_PAT_USER_KEY='v2_github_pat_user';
 // auto-discovered FV into a permanent config entry with grey/Jira-description
 // as its "customized" metadata.
 const SERVER_FV_META = __SERVER_FV_META__;
+
+// Publish markers — populated by the Save-as-default flow when it PUTs
+// the config. Empty string = no publish has happened yet (first deploy).
+// The opt-in banner reads these and compares to v2_shared_seen in
+// localStorage. See renderShareBanner() below.
+const SERVER_PUBLISHED_AT = __SERVER_PUBLISHED_AT__;
+const SERVER_PUBLISHED_BY = __SERVER_PUBLISHED_BY__;
+const SHARED_SEEN_KEY = 'v2_shared_seen';
+function getSharedSeen(){ try { return localStorage.getItem(SHARED_SEEN_KEY) || ''; } catch(e) { return ''; } }
+function setSharedSeen(v){ try { localStorage.setItem(SHARED_SEEN_KEY, v || ''); } catch(e) {} }
+function resetLocalEdits(){
+  try {
+    localStorage.removeItem('v2_local_config');
+    localStorage.removeItem('v2_hidden_fvs');
+  } catch(e){}
+  location.reload();
+}
 
 function getPat(){ return localStorage.getItem(GH_PAT_KEY) || ''; }
 function setPat(token, login){
@@ -1766,7 +1820,14 @@ function buildConfigPayload(){
   const fv_order = FV.filter(fv => !fv.isScenario).map(fv => fv.key);
   const hidden_fvs = [...HIDDEN_FVS].filter(k => fv_order.includes(k)).sort();
   const holidays = HOLIDAYS.slice().sort();
-  return { fv_order, fv_meta, hidden_fvs, holidays };
+  // Publish marker — written every Save-as-default so the opt-in banner can
+  // detect when a newer shared plan exists. Not part of the diff (the diff
+  // function only inspects named top-level keys + fv_meta entries).
+  const _meta = {
+    published_at: new Date().toISOString(),
+    published_by: getPatUser() || null,
+  };
+  return { fv_order, fv_meta, hidden_fvs, holidays, _meta };
 }
 
 async function fetchServerConfig(){
