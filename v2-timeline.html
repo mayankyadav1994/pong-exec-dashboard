@@ -656,8 +656,12 @@ function buildSummaryPanel(fv, devEnd, qaEnd, finalEnd){
   const allDevT = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
   const allOthT = (fv.otherPeople||[]).flatMap(p=>p.tasks||[]);
   const allT   = [...allDevT, ...allOthT];
-  const totalEstH = Math.round(allT.reduce((s,t)=>s+(t.origH||0),0));
+  const origEstH  = Math.round(allT.reduce((s,t)=>s+(t.origH||0),0));
   const spentH    = Math.round(allT.reduce((s,t)=>s+(t.spentH||0),0));
+  const remHsum   = Math.round(allT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+(t.hours||0),0));
+  // Effective scope = max(origH, spent + remaining) so % spent stays below
+  // 100% when an FV's real work exceeds the original estimate.
+  const totalEstH = Math.max(origEstH, spentH + remHsum);
   const pctSpent  = totalEstH > 0 ? Math.round(spentH/totalEstH*100) : 0;
 
   const target = fv.targetDate ? D(fv.targetDate) : null;
@@ -1500,12 +1504,17 @@ ordered.forEach((fv,idx)=>{
   // Others remaining stay separate because the right pane that follows is
   // organised the same way. Ticket counts intentionally dropped — only
   // hours, per UX feedback.
-  //   TOTAL  = sum of origH across everything
+  //   TOTAL  = effective scope = max(origH, done + remaining) so the % stays
+  //            below 100% when an FV's actual work exceeds its original
+  //            estimate (scope grew). For FVs where the estimate held, this
+  //            equals origH and the math is unchanged.
   //   DONE   = origH of done tasks + spentH on in-flight tasks
   const allTasksForStats = [...allDevT, ...allOthT];
-  const totalEstH = Math.round(allTasksForStats.reduce((s,t) => s + (t.origH || 0), 0));
+  const origEstH  = Math.round(allTasksForStats.reduce((s,t) => s + (t.origH || 0), 0));
   const doneEstH  = Math.round(allTasksForStats.reduce((s,t) =>
     s + (isDone(t.status) ? (t.origH || 0) : (t.spentH || 0)), 0));
+  const remEstH   = Math.round(allTasksForStats.filter(t => !isDone(t.status)).reduce((s,t) => s + (t.hours || 0), 0));
+  const totalEstH = Math.max(origEstH, doneEstH + remEstH);
   const pctDone   = totalEstH > 0 ? Math.round(doneEstH / totalEstH * 100) : 0;
   head.innerHTML=`<div>
     <div class="dp-title" style="color:${effectiveFv.color}">${effectiveFv.key} — Work Breakdown</div>
