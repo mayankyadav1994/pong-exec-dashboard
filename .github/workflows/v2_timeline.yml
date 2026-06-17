@@ -10,9 +10,13 @@ on:
   push:
     # Rebuild immediately when the editable config changes via the
     # "Save as default" panel button — ~2-3 min from save-click to deployed HTML.
+    # Also rebuild when the template HTML or the builder script changes so
+    # manual edits to those files don't need a separate workflow_dispatch.
     branches: [main]
     paths:
       - "config/v2.json"
+      - "v2-timeline.template.html"
+      - "v2_timeline.py"
 
 # Serialize against exec_dashboard so the two pushes can't race.
 concurrency:
