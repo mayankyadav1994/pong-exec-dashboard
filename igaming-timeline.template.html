@@ -60,12 +60,24 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 .fv-label{width:196px;flex-shrink:0;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
+.fv-summary{position:relative;width:148px;flex-shrink:0;padding:8px 22px 8px 10px;display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--border);background:rgba(248,250,252,.6);font-family:'IBM Plex Mono',monospace;font-size:10.5px;line-height:1.4;gap:1px;color:var(--muted)}
+.fv-summary .sm-big{font-size:15px;font-weight:700;color:var(--text);letter-spacing:.2px;line-height:1.1}
+.fv-summary .sm-sub{font-size:9px;font-weight:600;color:var(--sub);letter-spacing:.3px;text-transform:uppercase}
+.fv-summary .sm-row{display:flex;justify-content:space-between;align-items:baseline;gap:6px;white-space:nowrap}
+.fv-summary .sm-row .sm-lbl{color:var(--sub);font-size:9.5px}
+.fv-summary .sm-row .sm-val{color:var(--text);font-size:10.5px}
+.fv-summary .sm-pct{font-size:10.5px;font-weight:600}
+.fv-summary .sm-delta.early{color:#15803d}
+.fv-summary .sm-delta.late{color:#b91c1c}
+.fv-summary .sm-delta.ontime{color:#6b7280}
+.fv-summary .sm-target,.fv-summary .sm-est{font-size:10px}
+.fv-summary.scn{background:rgba(254,243,199,.55)}
 .fv-name{font-size:13px;font-weight:600}
 .fv-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
 .fv-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:5px;letter-spacing:.3px;border:1px solid}
 .oth-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--oth);margin-left:5px;vertical-align:middle}
 
-.fv-track{flex:1;position:relative;padding:10px 38px 10px 10px}
+.fv-track{flex:1;position:relative;padding:10px 16px 10px 10px;min-width:0}
 .sp-line{position:absolute;top:0;bottom:0;width:1px;background:rgba(148,163,184,.22);pointer-events:none;z-index:0}
 .today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(185,28,28,.5);pointer-events:none;z-index:3}
 
@@ -687,18 +699,25 @@ function hCls(h){return h>=40?'hr':h>=16?'ha':h>0?'hg':'hn'}
 function stCls(s){return({'To Do':'s-todo','In Progress':'s-prog','Ready':'s-rdy','Ready For QA':'s-rfqa','In QA':'s-inqa','In QA R1':'s-inqa','In QA R2':'s-inqa','Closed':'s-done','Done':'s-done','New':'s-new','Pre-Prod In Progress':'s-pp','Reopened':'s-reop','To Be Closed':'s-tbc'})[s]||'s-todo'}
 
 // ─── DEV BAR STYLE (shared by buildRows + refreshAll) ────────────
-// For an active-dev FV, extends the bar BACKWARDS by `spentH/6h-per-day`
-// working days so the historical "tail" of dev work is visible. The split at
-// TODAY is rendered as a two-tone gradient: past = darker, future = lighter.
+// For an active-dev FV, extends the bar BACKWARDS by the larger of:
+//   (a) spentH / 6h-per-day        — actual timesheet progression
+//   (b) (totalOrigH - remainH) / 6 — estimate-based "burnt" hours
+// Using max() makes the tail visible whether the team logs time religiously
+// or only changes ticket status. The split at TODAY is rendered as a
+// two-tone gradient: past = darker, future = lighter.
 function devBarStyle(fv, devEnd){
   if(!fv.devStart){
     return {left:0, width:+pct(TODAY), bg:'', label:'DEV COMPLETE', cls:'bar bar-live'};
   }
   const allDevT = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
   const spent = allDevT.reduce((s,t)=>s+(t.spentH||0),0);
+  const totalOrigH = allDevT.reduce((s,t)=>s+(t.origH||0),0);
+  const remainH = allDevT.filter(t=>!isDone(t.status)).reduce((s,t)=>s+(t.hours||0),0);
+  const burnt = Math.max(0, totalOrigH - remainH);
+  const progressH = Math.max(spent, burnt);
   let visualStart = new Date(TODAY);
-  if(spent > 0){
-    const daysBack = Math.ceil(spent / 6);
+  if(progressH > 0){
+    const daysBack = Math.ceil(progressH / 6);
     let stepped = 0;
     while(stepped < daysBack){
       visualStart.setDate(visualStart.getDate() - 1);
@@ -711,8 +730,8 @@ function devBarStyle(fv, devEnd){
   const lTo = +pct(TODAY);
   const lEnd = +pct(devEnd);
   const w = lEnd - l;
-  const splitPct = (w > 0 && spent > 0 && lTo > l) ? ((lTo - l) / w) * 100 : 0;
-  const PAST = fv.isScenario ? 'rgba(234,88,12,.30)' : 'rgba(37,99,235,.30)';
+  const splitPct = (w > 0 && progressH > 0 && lTo > l) ? ((lTo - l) / w) * 100 : 0;
+  const PAST = fv.isScenario ? 'rgba(234,88,12,.45)' : 'rgba(37,99,235,.45)';
   const FUT  = fv.isScenario ? 'rgba(234,88,12,.10)' : 'rgba(37,99,235,.10)';
   let bg = '';
   if(splitPct > 0.5 && splitPct < 99.5){
@@ -755,6 +774,63 @@ function phasePct(fv, devEnd, qaEnd){
 function sprintByLabel(label){
   if(!label) return null;
   return SPRINTS.find(sp => sp.label === label) || null;
+}
+
+// ─── WORKING-DAY DELTA (signed; positive = a comes after b) ──────
+function wdDelta(a, b){
+  const A = new Date(a), B = new Date(b);
+  if(isNaN(A.getTime()) || isNaN(B.getTime())) return null;
+  if(+A === +B) return 0;
+  const sign = A > B ? 1 : -1;
+  let from = sign > 0 ? new Date(B) : new Date(A);
+  const to  = sign > 0 ? new Date(A) : new Date(B);
+  let count = 0;
+  while(from < to){
+    from.setDate(from.getDate() + 1);
+    const d = from.getDay();
+    if(d !== 0 && d !== 6) count++;
+  }
+  return sign * count;
+}
+
+// ─── BUILD RIGHT SUMMARY PANEL ───────────────────────────────────
+// Mirrors the game-pipeline right column: total estimate, hours spent,
+// % spent, target date, computed est completion, and a delta indicator.
+// iGaming has no lab phases so est completion = qaEnd.
+function buildSummaryPanel(fv, devEnd, qaEnd){
+  const allDevT = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
+  const allOthT = (fv.otherPeople||[]).flatMap(p=>p.tasks||[]);
+  const allT   = [...allDevT, ...allOthT];
+  const totalEstH = Math.round(allT.reduce((s,t)=>s+(t.origH||0),0));
+  const spentH    = Math.round(allT.reduce((s,t)=>s+(t.spentH||0),0));
+  const pctSpent  = totalEstH > 0 ? Math.round(spentH/totalEstH*100) : 0;
+
+  const target = fv.targetDate ? D(fv.targetDate) : null;
+  const est    = qaEnd || devEnd;
+
+  let deltaHtml = '';
+  if(target && est){
+    const d = wdDelta(est, target);
+    if(d === null) deltaHtml = '';
+    else if(d === 0) deltaHtml = `<div class="sm-delta ontime">▪ on target</div>`;
+    else if(d > 0)   deltaHtml = `<div class="sm-delta late">▲ ${d}d late</div>`;
+    else             deltaHtml = `<div class="sm-delta early">▼ ${-d}d early</div>`;
+  } else if(!target){
+    deltaHtml = `<div class="sm-delta ontime" title="No target date set">— no target</div>`;
+  }
+
+  const sum = document.createElement('div');
+  sum.className = 'fv-summary' + (fv.isScenario ? ' scn' : '');
+  sum.innerHTML = `
+    <div class="sm-big">${totalEstH}h</div>
+    <div class="sm-sub">total estimate</div>
+    <div class="sm-row"><span class="sm-lbl">SPENT</span><span class="sm-val">${spentH}h</span></div>
+    <div class="sm-row"><span class="sm-lbl">% spent</span><span class="sm-pct" style="color:${pctSpent>=80?'#15803d':pctSpent>=50?'#d97706':'var(--muted)'}">${pctSpent}%</span></div>
+    <div class="sm-target">🎯 ${target ? fmtD(target) : 'TBD'}</div>
+    <div class="sm-est">≈ ${est ? fmtD(est) : '—'}</div>
+    ${deltaHtml}
+  `;
+  return sum;
 }
 
 // ─── BUFFER STATE ──────────────────────────────────────
@@ -942,6 +1018,29 @@ function refreshAll(){
       const fn=pname.split(' ');
       pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
     });
+
+    // Refresh right summary panel — est completion + delta shift when devEnd
+    // moves (buffer adjustment, scenario inject). Total/spent/target stay put.
+    const sumEl = barEls[`summary-${idx}`];
+    if(sumEl){
+      const target = fv.targetDate ? D(fv.targetDate) : null;
+      const est = qaEnd || devEnd;
+      const estEl = sumEl.querySelector('.sm-est');
+      if(estEl) estEl.textContent = `≈ ${est ? fmtD(est) : '—'}`;
+      let deltaEl = sumEl.querySelector('.sm-delta');
+      if(target && est){
+        const d = wdDelta(est, target);
+        if(d !== null){
+          if(!deltaEl){
+            deltaEl = document.createElement('div');
+            sumEl.appendChild(deltaEl);
+          }
+          if(d === 0){ deltaEl.className = 'sm-delta ontime'; deltaEl.textContent = '▪ on target'; }
+          else if(d > 0){ deltaEl.className = 'sm-delta late'; deltaEl.textContent = `▲ ${d}d late`; }
+          else { deltaEl.className = 'sm-delta early'; deltaEl.textContent = `▼ ${-d}d early`; }
+        }
+      }
+    }
     const pr=panelRefs[idx];
     if(pr&&pr.panel.classList.contains('open')){
       pr.panel.querySelector('.dp-subtitle').textContent=
@@ -1363,7 +1462,12 @@ function buildRows(){
 
     const chev=document.createElement('div');chev.className='chevron';
     chev.innerHTML=`<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-    row.appendChild(dh);row.appendChild(lbl);row.appendChild(track);row.appendChild(chev);
+    // Right summary panel — total est / spent / target / est completion / delta.
+    const summary = buildSummaryPanel(effectiveFv, devEnd, qaEnd);
+    summary.appendChild(chev);  // chevron sits at the right edge of summary panel
+    barEls[`summary-${idx}`] = summary;
+
+    row.appendChild(dh);row.appendChild(lbl);row.appendChild(track);row.appendChild(summary);
 
     if(!effectiveFv.isScenario){
       const btn=document.createElement('button');

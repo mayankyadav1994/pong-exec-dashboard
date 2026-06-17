@@ -188,6 +188,11 @@ def _build_fv_config_live(jira_fvs, cfg):
                 "sub":     jira_fv.get("description") or "",
                 "qaWeeks": 2,
             }
+        # Jira's releaseDate is the default target; config-level target_date
+        # (set via Plan Editor → Save-as-default) overrides it via meta.update.
+        jira_rel = (jira_by_name.get(name) or {}).get("releaseDate")
+        if jira_rel:
+            merged.setdefault("jira_release_date", jira_rel)
         merged.update(meta.get(name, {}))
         merged["key"] = name
         out.append(merged)
@@ -489,6 +494,11 @@ def build_fv(cfg):
         "otherPeople":  other_people,
         "scope":        scope,
     }
+    # Target date for the right-side summary panel: config override wins over
+    # Jira's releaseDate, which wins over None (shown as "TBD" in the UI).
+    target = cfg.get("target_date") or cfg.get("jira_release_date")
+    if target:
+        fv["targetDate"] = target
     if cfg.get("note"):
         fv["note"] = cfg["note"]
     # Regulated-release fields (lab pipeline + Sales Trip pin)

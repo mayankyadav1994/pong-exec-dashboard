@@ -490,6 +490,9 @@ def build_fv_list(fv_struct):
                 "taskKeys": slot["unscoped_taskkeys"],
             })
 
+        # Target date for the right-side summary panel: config override
+        # (meta["target_date"]) wins over Jira's releaseDate (meta["release"]).
+        target = meta.get("target_date") or meta.get("release")
         out.append({
             "key":            fv_name,
             "color":          meta["color"],
@@ -499,6 +502,7 @@ def build_fv_list(fv_struct):
             "statusLabel":    status_label,
             "statusStyle":    STATUS_STYLES.get(status_label, STATUS_STYLES["Scheduled"]),
             "release":        meta.get("release"),
+            "targetDate":     target,
             "devPeople":      dev_people,
             "otherPeople":    other_people,
             "scope":          scope,
