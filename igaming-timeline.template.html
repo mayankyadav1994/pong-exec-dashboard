@@ -685,6 +685,77 @@ function isDone(s){return s==='Closed'||s==='Done'}
 function hCls(h){return h>=40?'hr':h>=16?'ha':h>0?'hg':'hn'}
 function stCls(s){return({'To Do':'s-todo','In Progress':'s-prog','Ready':'s-rdy','Ready For QA':'s-rfqa','In QA':'s-inqa','In QA R1':'s-inqa','In QA R2':'s-inqa','Closed':'s-done','Done':'s-done','New':'s-new','Pre-Prod In Progress':'s-pp','Reopened':'s-reop','To Be Closed':'s-tbc'})[s]||'s-todo'}
 
+// ─── DEV BAR STYLE (shared by buildRows + refreshAll) ────────────
+// For an active-dev FV, extends the bar BACKWARDS by `spentH/6h-per-day`
+// working days so the historical "tail" of dev work is visible. The split at
+// TODAY is rendered as a two-tone gradient: past = darker, future = lighter.
+function devBarStyle(fv, devEnd){
+  if(!fv.devStart){
+    return {left:0, width:+pct(TODAY), bg:'', label:'DEV COMPLETE', cls:'bar bar-live'};
+  }
+  const allDevT = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
+  const spent = allDevT.reduce((s,t)=>s+(t.spentH||0),0);
+  let visualStart = new Date(TODAY);
+  if(spent > 0){
+    const daysBack = Math.ceil(spent / 6);
+    let stepped = 0;
+    while(stepped < daysBack){
+      visualStart.setDate(visualStart.getDate() - 1);
+      const d = visualStart.getDay();
+      if(d !== 0 && d !== 6) stepped++;
+    }
+    if(visualStart < CHART_START) visualStart = new Date(CHART_START);
+  }
+  const l = +pct(visualStart);
+  const lTo = +pct(TODAY);
+  const lEnd = +pct(devEnd);
+  const w = lEnd - l;
+  const splitPct = (w > 0 && spent > 0 && lTo > l) ? ((lTo - l) / w) * 100 : 0;
+  const PAST = fv.isScenario ? 'rgba(234,88,12,.30)' : 'rgba(37,99,235,.30)';
+  const FUT  = fv.isScenario ? 'rgba(234,88,12,.10)' : 'rgba(37,99,235,.10)';
+  let bg = '';
+  if(splitPct > 0.5 && splitPct < 99.5){
+    bg = `linear-gradient(to right, ${PAST} 0%, ${PAST} ${splitPct.toFixed(2)}%, ${FUT} ${splitPct.toFixed(2)}%, ${FUT} 100%)`;
+  }
+  return {
+    left: l,
+    width: Math.max(w, .3),
+    bg,
+    label: w > 3 ? (fv.isScenario ? `⚡ ${fmtD(devEnd)}` : `Dev → ${fmtD(devEnd)}`) : '',
+    cls: `bar ${fv.isScenario ? 'bar-scenario' : 'bar-dev'}`
+  };
+}
+
+// ─── PHASE COMPLETION % (appended to the status pill) ────────────
+// Dev/Pre-Prod statuses → hours-based: (done origH + in-flight spentH) / total origH.
+// QA-ish statuses → calendar-based: elapsed days in QA window / total QA days.
+// Returns null when the status doesn't fit either bucket or data is missing.
+function phasePct(fv, devEnd, qaEnd){
+  const s = (fv.statusLabel || '').trim();
+  const devPhase = /^(In Development|In Dev|In Pre-Prod|Pre-Prod In Progress|Ready|New|Reopened)$/i.test(s);
+  if(devPhase){
+    const tasks = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
+    const tot = tasks.reduce((sum,t)=>sum+(t.origH||0),0);
+    if(tot <= 0) return null;
+    const done = tasks.reduce((sum,t)=>sum+(isDone(t.status)?(t.origH||0):(t.spentH||0)),0);
+    return Math.max(0, Math.min(100, Math.round(done/tot*100)));
+  }
+  if(/QA/i.test(s)){
+    if(!devEnd || !qaEnd) return null;
+    const total = qaEnd - devEnd;
+    if(total <= 0) return null;
+    const elapsed = TODAY - devEnd;
+    return Math.max(0, Math.min(100, Math.round(elapsed/total*100)));
+  }
+  return null;
+}
+
+// ─── SPRINT BY LABEL (used by milestone anchor === 'sprint') ─────
+function sprintByLabel(label){
+  if(!label) return null;
+  return SPRINTS.find(sp => sp.label === label) || null;
+}
+
 // ─── BUFFER STATE ──────────────────────────────────────
 const BUFFERS={};
 function getBuffer(fvKey,name){
@@ -823,14 +894,12 @@ function refreshAll(){
 
     const db=barEls[`devbar-${idx}`];
     if(db){
-      if(!fv.devStart){
-        db.style.left='0%'; db.style.width=pct(TODAY)+'%';
-        db.textContent='DEV COMPLETE';
-      } else {
-        const l=+pct(devStart),w=+pct(devEnd)-l;
-        db.style.left=l+'%'; db.style.width=Math.max(w,.3)+'%';
-        db.textContent = w>3 ? `Dev → ${fmtD(devEnd)}` : '';
-      }
+      const dbs = devBarStyle(fv, devEnd);
+      db.className = dbs.cls;
+      db.style.left = dbs.left + '%';
+      db.style.width = dbs.width + '%';
+      db.style.background = dbs.bg || '';
+      db.textContent = dbs.label;
     }
     const qb=barEls[`qabar-${idx}`];
     if(qb){
@@ -1190,13 +1259,15 @@ function buildRows(){
     if(scenarioInjN > 0)
       chips.push(`<span class="fv-meta-chip scn" title="${scenarioInjN} scenario task${scenarioInjN===1?'':'s'} injected into this FV">⚡ ${scenarioInjN}</span>`);
 
+    const _pp = phasePct(effectiveFv, devEnd, qaEnd);
+    const _badgeText = _pp !== null ? `${effectiveFv.statusLabel} · ${_pp}%` : effectiveFv.statusLabel;
     const lbl=document.createElement('div');lbl.className='fv-label';
     lbl.innerHTML=`<div class="priority-badge">#${idx+1}</div>
       <div class="fv-name" style="color:${effectiveFv.color}">${effectiveFv.key}${hasOth?'<span class="oth-dot"></span>':''}</div>
       <div class="fv-sub">${effectiveFv.sub}</div>
       ${effectiveFv.isScenario
         ? `<span class="scenario-badge">⚡ SCENARIO</span>`
-        : `<span class="fv-badge" style="${effectiveFv.statusStyle}">${effectiveFv.statusLabel}</span>`}
+        : `<span class="fv-badge" style="${effectiveFv.statusStyle}">${_badgeText}</span>`}
       ${!effectiveFv.isScenario&&countUnlogged(effectiveFv)>0?`<div style="margin-top:4px"><span class="unlogged-badge">⚠ ${countUnlogged(effectiveFv)} tasks 0h logged</span></div>`:''}
       ${chips.length ? `<div class="fv-meta-chips">${chips.join('')}</div>` : ''}`;
 
@@ -1206,14 +1277,10 @@ function buildRows(){
     const tl=document.createElement('div');tl.className='today-line';tl.style.left=pct(TODAY)+'%';track.appendChild(tl);
 
     const db=document.createElement('div');db.id=`devbar-${idx}`;
-    if(!effectiveFv.devStart){
-      db.className='bar bar-live';db.style.cssText=`left:0%;width:${pct(TODAY)}%;`;db.textContent='DEV COMPLETE';
-    } else {
-      db.className=`bar ${effectiveFv.isScenario?'bar-scenario':'bar-dev'}`;
-      const l=+pct(devStart),w=+pct(devEnd)-l;
-      db.style.cssText=`left:${l}%;width:${Math.max(w,.3)}%;`;
-      if(w>3) db.textContent = effectiveFv.isScenario ? `⚡ ${fmtD(devEnd)}` : `Dev → ${fmtD(devEnd)}`;
-    }
+    const dbs = devBarStyle(effectiveFv, devEnd);
+    db.className = dbs.cls;
+    db.style.cssText = `left:${dbs.left}%;width:${dbs.width}%;` + (dbs.bg ? `background:${dbs.bg};` : '');
+    db.textContent = dbs.label;
     barEls[`devbar-${idx}`]=db;track.appendChild(db);
 
     const qb=document.createElement('div');qb.id=`qabar-${idx}`;qb.className='bar bar-qa';
@@ -1225,13 +1292,17 @@ function buildRows(){
     barEls[`qabar-${idx}`]=qb;track.appendChild(qb);
 
     // ── Milestone pins ──
-    // Each milestone is either anchored to dev_end + offset_weeks, or a fixed
-    // calendar date. Render as a vertical line + small label above the bar.
+    // Anchor options: 'dev_end' (+ offset_weeks), 'date' (fixed), or 'sprint'
+    // (locked to a sprint's start date — handy for "planned for S8" markers).
     (effectiveFv.milestones || []).forEach((ms, msIdx) => {
       let msDate;
       if(ms.anchor === 'date'){
         if(!ms.date) return;
         try { msDate = D(ms.date); } catch(e) { return; }
+      } else if(ms.anchor === 'sprint'){
+        const sp = sprintByLabel(ms.sprint);
+        if(!sp) return;
+        msDate = new Date(sp.start);
       } else {
         const baseDate = effectiveFv.devStart ? new Date(devEnd) : new Date(TODAY);
         msDate = new Date(baseDate.getTime() + (ms.offset_weeks||0) * 7 * 86400000);
@@ -2272,14 +2343,22 @@ function renderFvsTab(body, foot){
       list.forEach(ms => {
         const mr = document.createElement('div');
         mr.className = 'sp-ms-row ms-dirty';
-        const valHtml = ms.anchor === 'date'
-          ? `<input type="date" data-msfield="date" value="${ms.date||''}" title="Fixed calendar date">`
-          : `<input type="number" data-msfield="offset_weeks" value="${ms.offset_weeks??0}" step="0.5" min="0" max="52" placeholder="weeks" title="Weeks after dev end">`;
+        let valHtml;
+        if(ms.anchor === 'date'){
+          valHtml = `<input type="date" data-msfield="date" value="${ms.date||''}" title="Fixed calendar date">`;
+        } else if(ms.anchor === 'sprint'){
+          const opts = SPRINTS.filter(s => s.label).map(s =>
+            `<option value="${s.label}" ${ms.sprint===s.label?'selected':''}>${s.label}</option>`).join('');
+          valHtml = `<select data-msfield="sprint" title="Sprint start date">${opts}</select>`;
+        } else {
+          valHtml = `<input type="number" data-msfield="offset_weeks" value="${ms.offset_weeks??0}" step="0.5" min="0" max="52" placeholder="weeks" title="Weeks after dev end">`;
+        }
         mr.innerHTML = `
           <input type="text" data-msfield="label" value="${(ms.label||'').replace(/"/g,'&quot;')}" placeholder="e.g. QA Round 2">
           <select data-msfield="anchor">
-            <option value="dev_end" ${ms.anchor!=='date'?'selected':''}>after Dev</option>
+            <option value="dev_end" ${(!ms.anchor||ms.anchor==='dev_end')?'selected':''}>after Dev</option>
             <option value="date" ${ms.anchor==='date'?'selected':''}>fixed date</option>
+            <option value="sprint" ${ms.anchor==='sprint'?'selected':''}>at sprint</option>
           </select>
           ${valHtml}
           <input type="color" data-msfield="color" value="${ms.color||'#d97706'}" title="Pin color">
@@ -2291,8 +2370,19 @@ function renderFvsTab(body, foot){
             if(input.dataset.msfield === 'offset_weeks') v = +v || 0;
             if(input.dataset.msfield === 'date' && !v) v = null;
             updateMilestone(fv.key, ms.id, input.dataset.msfield, v);
+            // When the anchor changes, seed a sensible default for the new field
+            // so the user doesn't see an empty/zero value until they edit it.
+            if(input.dataset.msfield === 'anchor'){
+              if(v === 'sprint' && !ms.sprint){
+                const firstSp = SPRINTS.find(s => s.label);
+                if(firstSp) updateMilestone(fv.key, ms.id, 'sprint', firstSp.label);
+              }
+              if(v === 'dev_end' && ms.offset_weeks == null){
+                updateMilestone(fv.key, ms.id, 'offset_weeks', 1);
+              }
+              renderMs();
+            }
             buildRows();
-            if(input.dataset.msfield === 'anchor') renderMs(); // re-render to swap date↔weeks input
           });
         });
         mr.querySelector('.sp-ms-del').addEventListener('click', () => {
