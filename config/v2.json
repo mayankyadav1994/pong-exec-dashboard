@@ -3,6 +3,7 @@
     "V2 P2P 15.20",
     "V2 PT 13.30",
     "V2 HHR 3.00",
+    "V2 P2P 15.30",
     "V2 SW 16.00",
     "V2 P2P 16.00",
     "V2 PT 14.00",
@@ -75,6 +76,7 @@
     }
   },
   "hidden_fvs": [
+    "New Games",
     "V2 C2 Backlog",
     "V2 P2P Backlog",
     "V2 PT 12.20",
@@ -83,5 +85,9 @@
   ],
   "holidays": [
     "2026-05-18"
-  ]
+  ],
+  "_meta": {
+    "published_at": "2026-06-22T18:24:44.294Z",
+    "published_by": "mayankyadav1994"
+  }
 }
