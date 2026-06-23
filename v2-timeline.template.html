@@ -1787,9 +1787,11 @@ ordered.forEach((fv,idx)=>{
 });
 } // end buildRows
 
-buildRows();
-// renderShareBanner() is invoked AFTER the SERVER_PUBLISHED_AT const declares
-// later in this script — calling it here would hit the temporal dead zone.
+// buildRows() reads SNAPSHOTS / GHOST_SNAPSHOT / wdDiff (declared further
+// down), and renderShareBanner() reads SERVER_PUBLISHED_AT. Both are
+// invoked at the bottom of this script — see the matching call below the
+// const block — to avoid temporal-dead-zone ReferenceErrors that would
+// otherwise wipe out the rest of the script execution.
 
 // ─── SCENARIO PANEL LOGIC ──────────────────────────────
 const DEVS=['Rejosh Samuel','Aleksey Vorotilin','Hemmat Rezvani','Justin Kwon',
@@ -1890,9 +1892,12 @@ function resetLocalEdits(){
   } catch(e){}
   location.reload();
 }
-// Now that SERVER_PUBLISHED_AT is initialized, paint the opt-in banner if a
-// newer shared plan is masked by local edits. The function definition is
-// hoisted (function decl up at line ~860), but the const it reads is not.
+// Now that SNAPSHOTS / GHOST_SNAPSHOT / SERVER_PUBLISHED_AT are initialized,
+// run the initial render. buildRows() reads the snapshot consts for the
+// ghost-bar overlay; renderShareBanner reads the publish marker. Function
+// definitions are hoisted but their `const` dependencies are not — calling
+// either earlier hits TDZ and wipes out script execution.
+buildRows();
 renderShareBanner();
 
 function getPat(){ return localStorage.getItem(GH_PAT_KEY) || ''; }
