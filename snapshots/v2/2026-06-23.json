@@ -74,17 +74,17 @@
       "spentH": 26
     },
     "New Games": {
-      "devEnd": "2029-05-11",
-      "qaEnd": "2029-05-25",
+      "devEnd": "2029-09-20",
+      "qaEnd": "2029-10-04",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 16580,
-      "spentH": 10660
+      "totalEstH": 17300,
+      "spentH": 10665
     },
     "V2 C2 Backlog": {
-      "devEnd": "2029-05-11",
-      "qaEnd": "2029-05-25",
+      "devEnd": "2029-09-20",
+      "qaEnd": "2029-10-04",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -92,8 +92,8 @@
       "spentH": 623
     },
     "V2 HHR 3.10": {
-      "devEnd": "2029-06-07",
-      "qaEnd": "2029-06-21",
+      "devEnd": "2029-10-16",
+      "qaEnd": "2029-10-30",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -101,8 +101,8 @@
       "spentH": 49
     },
     "V2 P2P Backlog": {
-      "devEnd": "2029-07-11",
-      "qaEnd": "2029-07-25",
+      "devEnd": "2029-11-20",
+      "qaEnd": "2029-12-04",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -128,8 +128,8 @@
       "spentH": 214
     },
     "V2 SW Backlog": {
-      "devEnd": "2029-07-11",
-      "qaEnd": "2029-07-25",
+      "devEnd": "2029-11-20",
+      "qaEnd": "2029-12-04",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
