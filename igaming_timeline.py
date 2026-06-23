@@ -9,6 +9,7 @@ lanes including Design, no Lab pipeline, customfield_10103 for Sprint).
 """
 
 import json
+import math
 import os
 import sys
 from datetime import date, timedelta
@@ -231,6 +232,114 @@ def secs_to_hours(secs):
 
 def is_done(status):
     return status in DONE_STATUSES
+
+
+# ── Drift snapshot machinery (history of projected end dates) ───────────────
+# Ported from the template's calcDevEnd so daily Python runs produce the same
+# projection a viewer would see with default buffers. Snapshots live in
+# snapshots/igaming/<YYYY-MM-DD>.json and feed the ghost-bar + HISTORY tab UI.
+
+def _hpd_for(_name):
+    """iGaming uses a single default buffer (75%) for everyone — no per-person
+    override like V2's Rejosh case. 8 * 75/100 = 6h/day effective."""
+    return 6
+
+
+def _add_wd_hours(start, hours, daily_rate):
+    """Add ceil(hours/daily_rate) Mon-Fri non-holiday days to `start`."""
+    if hours <= 0:
+        return start
+    days = math.ceil(hours / daily_rate)
+    d, added = start, 0
+    while added < days:
+        d = d + timedelta(days=1)
+        if d.weekday() < 5 and d.isoformat() not in HOLIDAYS:
+            added += 1
+    return d
+
+
+def _calc_dev_end(fvs, fv_idx, fv):
+    """Mirror of the template's calcDevEnd using default per-person buffers."""
+    if not fv.get("devStart"):
+        return TODAY
+    latest = TODAY
+    for p in fv.get("devPeople", []):
+        name = p.get("name", "")
+        open_h = sum(t["hours"] for t in p.get("tasks", []) if not is_done(t["status"]))
+        # Queued = this person's open hours on higher-priority (lower-index) FVs
+        queued = 0
+        for j in range(fv_idx):
+            other = fvs[j]
+            if other.get("isScenario"):
+                continue
+            for op in other.get("devPeople", []):
+                if op.get("name") == name:
+                    queued += sum(t["hours"] for t in op.get("tasks", []) if not is_done(t["status"]))
+        total = open_h + queued
+        if total <= 0:
+            continue
+        done = _add_wd_hours(TODAY, total, _hpd_for(name))
+        if done > latest:
+            latest = done
+    return latest
+
+
+def compute_snapshot(fvs):
+    """Build today's drift snapshot for all non-scenario FVs."""
+    snap = {"date": TODAY.isoformat(), "fvs": {}}
+    for idx, fv in enumerate(fvs):
+        if fv.get("isScenario"):
+            continue
+        dev_end = _calc_dev_end(fvs, idx, fv)
+        qa_weeks = fv.get("qaWeeks") or 0
+        qa_end = _add_wd_hours(dev_end, qa_weeks * 5 * 8, 8) if qa_weeks > 0 else dev_end
+        # iGaming has no lab phases — finalEnd equals qaEnd.
+        all_tasks = (
+            [t for p in fv.get("devPeople", []) for t in p.get("tasks", [])]
+            + [t for p in fv.get("otherPeople", []) for t in p.get("tasks", [])]
+        )
+        snap["fvs"][fv["key"]] = {
+            "devEnd":   dev_end.isoformat() if dev_end else None,
+            "qaEnd":    qa_end.isoformat()  if qa_end  else None,
+            "lab1End":  None,
+            "pilotEnd": None,
+            "finalEnd": qa_end.isoformat()  if qa_end  else None,
+            "totalEstH": round(sum(t.get("origH", 0) for t in all_tasks)),
+            "spentH":    round(sum(t.get("spentH", 0) for t in all_tasks)),
+        }
+    return snap
+
+
+def write_snapshot(dashboard_key, snap):
+    """Persist snap to snapshots/<dashboard>/<date>.json; trim files >90d old."""
+    snap_dir = Path("snapshots") / dashboard_key
+    snap_dir.mkdir(parents=True, exist_ok=True)
+    (snap_dir / f"{snap['date']}.json").write_text(
+        json.dumps(snap, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    cutoff = TODAY - timedelta(days=90)
+    for f in snap_dir.glob("*.json"):
+        try:
+            if date.fromisoformat(f.stem) < cutoff:
+                f.unlink()
+        except (ValueError, OSError):
+            continue
+
+
+def load_snapshots(dashboard_key, n=30):
+    """Return last n snapshots (chronological) for injection into the template."""
+    snap_dir = Path("snapshots") / dashboard_key
+    if not snap_dir.exists():
+        return []
+    files = sorted(snap_dir.glob("*.json"))[-n:]
+    out = []
+    for f in files:
+        try:
+            out.append(json.loads(f.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+    return out
 
 
 # ── Jira fetches (§3.3) ──────────────────────────────────────────────────────
@@ -648,6 +757,13 @@ def main():
 
     refresh_label = f"{TODAY.strftime('%B')} {TODAY.day}, {TODAY.year}"
 
+    # Drift snapshot — compute today's projections, persist, then load the
+    # recent history. The template uses these for the ghost bar + HISTORY tab.
+    today_snap = compute_snapshot(fv_list)
+    write_snapshot("igaming", today_snap)
+    snapshots = load_snapshots("igaming", n=30)
+    print(f"\n  snapshot: wrote {len(today_snap['fvs'])} FV projections · loaded {len(snapshots)} historical snapshots")
+
     template_path = Path("igaming-timeline.template.html")
     template = template_path.read_text(encoding="utf-8")
     rendered = (template
@@ -669,6 +785,9 @@ def main():
         # has been published. Empty string = no publish marker yet.
         .replace("__SERVER_PUBLISHED_AT__", json.dumps((_CONFIG.get("_meta") or {}).get("published_at") or ""))
         .replace("__SERVER_PUBLISHED_BY__", json.dumps((_CONFIG.get("_meta") or {}).get("published_by") or ""))
+        # SNAPSHOTS: last 30 days of projection history for the ghost-bar +
+        # HISTORY tab. Each entry = {date, fvs:{key:{devEnd,qaEnd,…,spentH}}}.
+        .replace("__SNAPSHOTS__",      json.dumps(snapshots, ensure_ascii=False))
         .replace("__REFRESH_LABEL__",  refresh_label)
         .replace("__SPRINT_HEADER__",  sprint_header)
     )

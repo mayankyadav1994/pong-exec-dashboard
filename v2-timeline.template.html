@@ -98,6 +98,17 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .bar-pilot {background:rgba(236,72,153,.12);border-color:rgba(236,72,153,.5); color:#9d174d;top:8px}
 .bar-lab2  {background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.55);  color:#991b1b;top:8px}
 
+/* Ghost bars — dashed-outline overlays showing where Dev / QA / Lab phases
+   were projected to end ~7 days ago. Hidden until SNAPSHOTS has at least one
+   prior entry; pointer-events:auto + cursor:help so the title-tooltip works. */
+.bar-ghost{position:absolute;height:22px;border-radius:4px;background:transparent;border:1.5px dashed;top:8px;z-index:2;opacity:.65;pointer-events:auto;cursor:help;box-sizing:border-box}
+.bar-ghost-dev  {border-color:rgba(37,99,235,.7)}
+.bar-ghost-qa   {border-color:rgba(217,119,6,.7)}
+.bar-ghost-lab1 {border-color:rgba(251,146,60,.8)}
+.bar-ghost-pilot{border-color:rgba(236,72,153,.7)}
+.bar-ghost-lab2 {border-color:rgba(239,68,68,.75)}
+.bar-ghost:hover{opacity:1;border-style:solid}
+
 /* Launch flag */
 .launch-flag{position:absolute;top:2px;font-size:14px;transform:translateX(-6px);z-index:5;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 
@@ -130,6 +141,21 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 
 /* SCOPE TAB */
 .scope-body{padding:12px 18px;display:flex;flex-direction:column;gap:8px}
+.history-body{padding:12px 18px 18px}
+.history-empty{font-size:11px;color:var(--sub);font-style:italic;padding:14px 4px}
+.history-head{font-size:10px;color:var(--sub);padding:0 0 10px;letter-spacing:.2px;text-transform:uppercase}
+.history-list{display:flex;flex-direction:column;gap:4px}
+.history-row{display:grid;grid-template-columns:74px 1fr 72px 18px 72px 88px;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:11.5px;background:var(--surface);font-family:'IBM Plex Mono',monospace}
+.history-row .h-date{font-size:10px;color:var(--sub);font-weight:500}
+.history-row .h-phase{font-size:11px;color:var(--text);font-weight:600}
+.history-row .h-from{font-size:10.5px;color:var(--sub);text-align:right}
+.history-row .h-arrow{font-size:11px;color:var(--sub);text-align:center}
+.history-row .h-to{font-size:10.5px;color:var(--text);font-weight:600}
+.history-row .h-shift{font-size:11px;font-weight:600;text-align:right}
+.history-row .h-shift.h-late {color:#b91c1c}
+.history-row .h-shift.h-early{color:#15803d}
+.history-row.h-late {border-left:3px solid #ef4444}
+.history-row.h-early{border-left:3px solid #22c55e}
 .scope-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:border-color .15s}
 .scope-item.open{border-color:var(--border2)}
 .scope-header{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;cursor:pointer;user-select:none;gap:8px}
@@ -1291,6 +1317,64 @@ function buildScopeBody(fv){
   return body;
 }
 
+// ── Projection history (drift log) ─────────────────────────────────
+// Walks consecutive snapshots for this FV; emits one row per phase-end
+// change. Reverse-chronological, capped at the 20 most recent moves.
+function buildHistoryBody(fv){
+  const body=document.createElement('div');body.className='history-body';
+  if(!SNAPSHOTS || SNAPSHOTS.length < 2){
+    body.innerHTML=`<div class="history-empty">No projection history yet — drift will start being tracked from today's snapshot onward.</div>`;
+    return body;
+  }
+  const phases=[
+    {field:'devEnd',   label:'Dev end'},
+    {field:'qaEnd',    label:'QA end'},
+    {field:'lab1End',  label:'Lab 1 end'},
+    {field:'pilotEnd', label:'Pilot end'},
+    {field:'finalEnd', label:'Launch (Lab 2 end)'},
+  ];
+  const events=[];
+  for(let i=1; i<SNAPSHOTS.length; i++){
+    const prev = SNAPSHOTS[i-1].fvs?.[fv.key];
+    const curr = SNAPSHOTS[i].fvs?.[fv.key];
+    if(!prev || !curr) continue;
+    phases.forEach(ph => {
+      const a = prev[ph.field], b = curr[ph.field];
+      if(!a || !b) return;
+      if(a === b) return;
+      const shift = wdDiff(b, a);
+      if(shift === null || shift === 0) return;
+      events.push({date: SNAPSHOTS[i].date, label: ph.label, from: a, to: b, shift});
+    });
+  }
+  if(events.length === 0){
+    body.innerHTML=`<div class="history-empty">No projection moves recorded — projected dates have been stable across all ${SNAPSHOTS.length} snapshots.</div>`;
+    return body;
+  }
+  events.reverse();
+  const list = events.slice(0, 20);
+  const header=document.createElement('div');header.className='history-head';
+  header.innerHTML = `<div>${list.length} of ${events.length} most recent shifts · projection history spans ${SNAPSHOTS[0].date} → ${SNAPSHOTS[SNAPSHOTS.length-1].date}</div>`;
+  body.appendChild(header);
+  const tbl=document.createElement('div');tbl.className='history-list';
+  list.forEach(e => {
+    const cls = e.shift > 0 ? 'h-late' : 'h-early';
+    const arrow = e.shift > 0 ? '▲' : '▼';
+    const dStr = e.shift > 0 ? `+${e.shift}d` : `${e.shift}d`;
+    const row=document.createElement('div');row.className=`history-row ${cls}`;
+    row.innerHTML = `
+      <div class="h-date">${e.date}</div>
+      <div class="h-phase">${e.label}</div>
+      <div class="h-from">${fmtD(D(e.from))}</div>
+      <div class="h-arrow">→</div>
+      <div class="h-to">${fmtD(D(e.to))}</div>
+      <div class="h-shift ${cls}">${arrow} ${dStr}</div>`;
+    tbl.appendChild(row);
+  });
+  body.appendChild(tbl);
+  return body;
+}
+
 
 const rowsEl=document.getElementById('rows');
 let dragSrcIdx=null;
@@ -1450,6 +1534,35 @@ ordered.forEach((fv,idx)=>{
     }
   }
 
+  // ── Ghost bars — dashed-outline overlay showing prior projected ends ──
+  // Anchored to GHOST_SNAPSHOT (~7 days old). Each phase (Dev, QA, Lab1,
+  // Pilot, Lab2) gets its own ghost if the recorded date differs from today.
+  const ghostFv = GHOST_SNAPSHOT && GHOST_SNAPSHOT.fvs ? GHOST_SNAPSHOT.fvs[effectiveFv.key] : null;
+  if(ghostFv){
+    const addGhost = (cls, leftDate, rightDate, currentDate, label) => {
+      if(!leftDate || !rightDate) return;
+      let l, r;
+      try { l = +pct(D(leftDate)); r = +pct(D(rightDate)); } catch(e){ return; }
+      const w = r - l;
+      if(w <= 0.2) return;
+      const drift = currentDate ? wdDiff(currentDate.toISOString().slice(0,10), rightDate) : null;
+      const driftTxt = drift === null ? '' : (drift === 0 ? ' · unchanged' : (drift > 0 ? ` · slipped +${drift}d` : ` · earlier by ${-drift}d`));
+      const g = document.createElement('div');
+      g.className = `bar-ghost ${cls}`;
+      g.style.cssText = `left:${l}%;width:${w}%;`;
+      g.title = `${label} was ${fmtD(D(rightDate))} on ${GHOST_SNAPSHOT.date}${driftTxt}`;
+      track.appendChild(g);
+    };
+    addGhost('bar-ghost-dev', effectiveFv.devStart || ghostFv.devEnd, ghostFv.devEnd, devEnd, 'Dev end');
+    if(effectiveFv.qaWeeks > 0)
+      addGhost('bar-ghost-qa', ghostFv.devEnd, ghostFv.qaEnd, qaEnd, 'QA end');
+    if(effectiveFv.isLab){
+      addGhost('bar-ghost-lab1',  ghostFv.qaEnd,    ghostFv.lab1End,  null, 'Lab 1 + Rev');
+      addGhost('bar-ghost-pilot', ghostFv.lab1End,  ghostFv.pilotEnd, null, 'Pilot');
+      addGhost('bar-ghost-lab2',  ghostFv.pilotEnd, ghostFv.finalEnd, finalEnd, 'Lab 2 + Rev (launch)');
+    }
+  }
+
   // ── Milestone pins ──
   // Anchor options: 'dev_end' (+ offset_weeks), 'date' (fixed), or 'sprint'
   // (locked to a sprint's start date — handy for "planned for S6" markers).
@@ -1578,6 +1691,7 @@ ordered.forEach((fv,idx)=>{
       {id:'dev',label:'DEV WORK'},
       ...(hasOth?[{id:'others',label:'CREATIVE · SOUND · MATH'}]:[]),
       ...(!effectiveFv.isScenario?[{id:'scope',label:'SCOPE'}]:[]),
+      ...(!effectiveFv.isScenario?[{id:'history',label:'📅 HISTORY'}]:[]),
     ];
     tabDefs.forEach(td=>{
       const t=document.createElement('div');t.className='dp-tab'+(td.id===activeTab?' active':'');
@@ -1591,6 +1705,7 @@ ordered.forEach((fv,idx)=>{
         devBody.style.display=activeTab==='dev'?'flex':'none';
         othBody.style.display=activeTab==='others'?'flex':'none';
         scopeBody.style.display=activeTab==='scope'?'block':'none';
+        historyBody.style.display=activeTab==='history'?'block':'none';
       });
     });
     panel.appendChild(tabs);
@@ -1609,6 +1724,10 @@ ordered.forEach((fv,idx)=>{
   const scopeBody=buildScopeBody(effectiveFv);
   scopeBody.style.display = activeTab==='scope' ? 'block' : 'none';
   panel.appendChild(scopeBody);
+
+  const historyBody=buildHistoryBody(effectiveFv);
+  historyBody.style.display = activeTab==='history' ? 'block' : 'none';
+  panel.appendChild(historyBody);
 
   panelRefs[idx]={panel,activeTab};
 
@@ -1716,6 +1835,44 @@ const GH_PAT_USER_KEY='v2_github_pat_user';
 // auto-discovered FV into a permanent config entry with grey/Jira-description
 // as its "customized" metadata.
 const SERVER_FV_META = __SERVER_FV_META__;
+
+// Drift snapshots — last 30 days of projected end dates per FV. Powers the
+// ghost-bar overlay (showing where Dev/QA/Lab phases USED to end) and the
+// HISTORY tab in the detail panel. Empty array on the first deploy.
+const SNAPSHOTS = __SNAPSHOTS__;
+const TODAY_ISO = TODAY.toISOString().slice(0,10);
+
+// Find the snapshot closest to ~7 days ago (excluding today) — used as the
+// anchor for the ghost-bar overlay.
+const GHOST_SNAPSHOT = (() => {
+  if(!SNAPSHOTS || SNAPSHOTS.length < 1) return null;
+  const target = new Date(TODAY); target.setDate(target.getDate() - 7);
+  let best = null, bestDiff = Infinity;
+  for(const snap of SNAPSHOTS){
+    if(!snap || !snap.date || snap.date === TODAY_ISO) continue;
+    const diff = Math.abs(new Date(snap.date) - target);
+    if(diff < bestDiff){ bestDiff = diff; best = snap; }
+  }
+  return best;
+})();
+
+// Working-day diff helper for ghost tooltips + HISTORY tab entries. Positive
+// = `a` is later than `b`; negative = earlier; null if either date is bad.
+function wdDiff(a, b){
+  const A = new Date(a), B = new Date(b);
+  if(isNaN(A.getTime()) || isNaN(B.getTime())) return null;
+  if(+A === +B) return 0;
+  const sign = A > B ? 1 : -1;
+  let from = sign > 0 ? new Date(B) : new Date(A);
+  const to  = sign > 0 ? new Date(A) : new Date(B);
+  let count = 0;
+  while(from < to){
+    from.setDate(from.getDate()+1);
+    const d = from.getDay();
+    if(d !== 0 && d !== 6) count++;
+  }
+  return sign * count;
+}
 
 // Publish markers — populated by the Save-as-default flow when it PUTs
 // the config. Empty string = no publish has happened yet (first deploy).
