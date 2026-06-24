@@ -1537,8 +1537,16 @@ ordered.forEach((fv,idx)=>{
   // ── Ghost bars — dashed-outline overlay showing prior projected ends ──
   // Anchored to GHOST_SNAPSHOT (~7 days old). Each phase (Dev, QA, Lab1,
   // Pilot, Lab2) gets its own ghost if the recorded date differs from today.
+  // Compute finalEnd locally — the buildSummaryPanel block further down
+  // re-derives the same value; both reads stay independent and TDZ-safe.
   const ghostFv = GHOST_SNAPSHOT && GHOST_SNAPSHOT.fvs ? GHOST_SNAPSHOT.fvs[effectiveFv.key] : null;
   if(ghostFv){
+    let curFinalEnd = qaEnd;
+    if(effectiveFv.isLab){
+      const _lab1E  = addWD(qaEnd,  effectiveFv.lab1Weeks  * 5 * 8, 8);
+      const _pilotE = addWD(_lab1E, effectiveFv.pilotWeeks * 5 * 8, 8);
+      curFinalEnd   = addWD(_pilotE, effectiveFv.lab2Weeks * 5 * 8, 8);
+    }
     const addGhost = (cls, leftDate, rightDate, currentDate, label) => {
       if(!leftDate || !rightDate) return;
       let l, r;
@@ -1559,7 +1567,7 @@ ordered.forEach((fv,idx)=>{
     if(effectiveFv.isLab){
       addGhost('bar-ghost-lab1',  ghostFv.qaEnd,    ghostFv.lab1End,  null, 'Lab 1 + Rev');
       addGhost('bar-ghost-pilot', ghostFv.lab1End,  ghostFv.pilotEnd, null, 'Pilot');
-      addGhost('bar-ghost-lab2',  ghostFv.pilotEnd, ghostFv.finalEnd, finalEnd, 'Lab 2 + Rev (launch)');
+      addGhost('bar-ghost-lab2',  ghostFv.pilotEnd, ghostFv.finalEnd, curFinalEnd, 'Lab 2 + Rev (launch)');
     }
   }
 
