@@ -53,6 +53,19 @@ jobs:
           CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
         run: python v2_timeline.py
 
+      # Smoke-test the rendered HTML before commit: loads it via jsdom,
+      # asserts rows render, clicks Edit Plan + What-If, fails the run if
+      # any uncaught JS error fires. Blocks the TDZ / silent-handler bugs
+      # that have shipped twice this week.
+      - name: Set up Node for smoke test
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Smoke-test V2 timeline
+        run: |
+          npm install --no-save --silent jsdom
+          node tools/smoke-test.js v2-timeline.html
+
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
