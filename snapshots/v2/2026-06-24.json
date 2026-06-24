@@ -16,8 +16,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 1020,
-      "spentH": 513
+      "totalEstH": 1022,
+      "spentH": 514
     },
     "V2 HHR 3.00": {
       "devEnd": "2026-06-24",
@@ -43,8 +43,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 548,
-      "spentH": 540
+      "totalEstH": 552,
+      "spentH": 545
     },
     "V2 P2P 16.00": {
       "devEnd": "2026-07-31",
@@ -53,7 +53,7 @@
       "pilotEnd": "2026-10-02",
       "finalEnd": "2026-10-30",
       "totalEstH": 2950,
-      "spentH": 3029
+      "spentH": 3030
     },
     "V2 PT 14.00": {
       "devEnd": "2026-08-25",
@@ -79,8 +79,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 16212,
-      "spentH": 8875
+      "totalEstH": 16228,
+      "spentH": 8900
     },
     "V2 C2 Backlog": {
       "devEnd": "2029-09-21",
