@@ -1,0 +1,24 @@
+# ============================================================
+# Apply Team Board Plan
+# Triggered by a repository_dispatch from the Team Board page. Performs ONE
+# Jira write (set due date on a subtask, or add/remove an issue from the open
+# sprint). Jira-only — no commit; the daily refresh reconciles the data file.
+# Reuses JIRA_EMAIL / JIRA_API_TOKEN secrets.
+# ============================================================
+name: Apply Team Board Plan
+on:
+  repository_dispatch:
+    types: [team-board-apply]
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -r requirements.txt
+      - run: python apply_plan.py
+        env:
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          PAYLOAD: ${{ toJson(github.event.client_payload) }}

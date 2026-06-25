@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Board — Pong Game Studios</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F9FAFB; padding: 1.25rem; color:#111827; }
+.db { max-width: 1320px; margin: 0 auto; }
+
+.db-header { background: linear-gradient(135deg, #0F766E 0%, #0891B2 55%, #4F46E5 100%); border-radius: 14px; padding: 18px 22px 16px; margin-bottom: 14px; }
+.db-header h1 { font-size: 19px; font-weight: 600; color: #fff; margin-bottom: 3px; }
+.db-header p { font-size: 12px; color: rgba(255,255,255,0.82); }
+
+/* shared site tabs (same markup as the other pages) */
+.site-tabs { max-width: 1320px; margin: 0 auto 14px; padding: 0 4px; }
+.site-tabs-inner { display: flex; gap: 4px; border-bottom: 1px solid #E5E7EB; }
+.site-tab { padding: 9px 16px; font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none; border-bottom: 2px solid transparent; }
+.site-tab:hover { color: #111827; }
+.site-tab.active { color: #0891B2; border-bottom-color: #0891B2; font-weight: 600; }
+
+.bar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.depttabs { display:flex; gap:4px; }
+.dtab { padding:7px 14px; font-size:13px; font-weight:600; color:#6B7280; background:#fff; border:1px solid #E5E7EB; border-radius:8px; cursor:pointer; }
+.dtab.active { color:#fff; background:#0891B2; border-color:#0891B2; }
+.spinfo { font-size:12px; color:#374151; background:#fff; border:1px solid #E5E7EB; border-radius:8px; padding:7px 10px; }
+.spacer { flex:1; }
+.btn { font-size:12px; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid #E5E7EB; background:#fff; color:#374151; cursor:pointer; }
+.btn-primary { background:#4F46E5; color:#fff; border-color:#4F46E5; }
+.legend { font-size:11px; color:#6B7280; display:flex; gap:12px; align-items:center; }
+.legend .sw { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+
+.workspace { display:grid; grid-template-columns: 250px 1fr; gap:12px; align-items:start; }
+.panel { background:#fff; border:1px solid #E5E7EB; border-radius:12px; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+.panel-head { padding:10px 14px; border-bottom:1px solid #EEF0F3; font-size:12px; font-weight:700; color:#374151; display:flex; justify-content:space-between; align-items:center; background:#F8FAFC; border-radius:12px 12px 0 0; }
+.panel-head .ct { font-size:11px; background:rgba(0,0,0,0.07); color:#333; padding:1px 8px; border-radius:20px; }
+.backlog-body { padding:10px; min-height:220px; max-height:78vh; overflow:auto; display:flex; flex-direction:column; gap:7px; }
+.drop-hot { background:#ECFEFF !important; outline:2px dashed #67E8F9; outline-offset:-4px; }
+
+.cal { padding:10px; }
+.week-lbl { font-size:10px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:.06em; margin:4px 2px 6px; }
+.week { display:grid; grid-template-columns: repeat(7, 1fr); gap:7px; margin-bottom:12px; }
+.day { border:1px solid #EEF0F3; border-radius:10px; min-height:150px; display:flex; flex-direction:column; background:#FCFCFD; }
+.day.weekend { background:#F3F4F6; opacity:.65; }
+.day.today { border-color:#0891B2; box-shadow:0 0 0 2px rgba(8,145,178,.18); }
+.day.empty { visibility:hidden; }
+.day-head { padding:6px 9px 5px; border-bottom:1px solid #F0F2F4; display:flex; justify-content:space-between; align-items:baseline; }
+.day-date { font-size:11px; font-weight:700; color:#374151; }
+.day-dow { font-size:9px; color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em; }
+.cap { font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; padding:1px 6px; border-radius:10px; }
+.cap.ok { background:#D1FAE5; color:#065F46; } .cap.warn { background:#FEF3C7; color:#92400E; } .cap.over { background:#FEE2E2; color:#B91C1C; }
+.day-body { flex:1; padding:6px; display:flex; flex-direction:column; gap:6px; overflow:auto; max-height:46vh; }
+
+.pill { border:1px solid #E5E7EB; border-left-width:4px; border-radius:8px; background:#fff; padding:6px 8px; cursor:grab; box-shadow:0 1px 2px rgba(0,0,0,.05); user-select:none; }
+.pill:active { cursor:grabbing; } .pill.dragging { opacity:.4; }
+.pill.math { border-left-color:#10B981; } .pill.art { border-left-color:#F59E0B; }
+.pill.locked { cursor:not-allowed; opacity:.85; border-left-style:dashed; }
+.pill-top { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.pill-key { font-family:'SFMono-Regular',Consolas,monospace; font-size:10px; font-weight:700; color:#0891B2; text-decoration:none; }
+.pill-key:hover { text-decoration:underline; }
+.pill-hrs { font-size:10px; font-weight:700; color:#6B7280; font-variant-numeric:tabular-nums; }
+.pill-sum { font-size:11px; color:#111827; line-height:1.25; margin:3px 0 4px; }
+.pill-bot { display:flex; justify-content:space-between; align-items:center; gap:6px; }
+.pill-meta { display:flex; align-items:center; gap:5px; min-width:0; }
+.avatar { width:17px; height:17px; border-radius:50%; background:#0891B2; color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.avatar.none { background:#E5E7EB; color:#9CA3AF; }
+.who { font-size:10px; color:#6B7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
+.b-wip{background:#3B82F6;} .b-qa{background:#10B981;} .b-todo{background:#9CA3AF;} .b-hold{background:#F59E0B;} .b-done{background:#34D399;}
+.game { font-size:9px; color:#9CA3AF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.flag { font-size:9px; font-weight:700; padding:0 5px; border-radius:8px; white-space:nowrap; }
+.f-blocked { background:#FEE2E2; color:#B91C1C; } .f-unestimated { background:#FEF3C7; color:#92400E; } .f-unassigned{ background:#F3F4F6; color:#6B7280; }
+
+.scrim { position:fixed; inset:0; background:rgba(17,24,39,.45); display:none; z-index:40; }
+.scrim.open { display:block; }
+.drawer { position:fixed; top:0; right:0; height:100%; width:440px; max-width:94vw; background:#fff; box-shadow:-8px 0 28px rgba(0,0,0,.18); transform:translateX(100%); transition:transform .2s; z-index:50; display:flex; flex-direction:column; }
+.drawer.open { transform:none; }
+.drawer-head { padding:16px 18px; border-bottom:1px solid #EEF0F3; }
+.drawer-head h2 { font-size:15px; font-weight:700; } .drawer-head p { font-size:11px; color:#6B7280; margin-top:2px; }
+.drawer-body { flex:1; overflow:auto; padding:12px 16px; }
+.ep-sec { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#9CA3AF; margin:12px 2px 7px; }
+.ep-row { display:flex; align-items:center; gap:9px; padding:8px 9px; border:1px solid #EEF0F3; border-radius:9px; margin-bottom:6px; }
+.ep-row .k { font-family:'SFMono-Regular',Consolas,monospace; font-size:10px; font-weight:700; color:#0891B2; }
+.ep-row .s { font-size:11px; flex:1; } .ep-row.in { background:#F0FDF4; border-color:#BBF7D0; }
+.ep-row .toggle { font-size:11px; font-weight:700; padding:3px 10px; border-radius:7px; border:none; cursor:pointer; }
+.toggle.add { background:#DBEAFE; color:#1D4ED8; } .toggle.rm { background:#FEE2E2; color:#B91C1C; }
+.ep-search { width:100%; font-size:12px; padding:8px 10px; border:1px solid #E5E7EB; border-radius:8px; margin-bottom:6px; }
+.drawer-foot { padding:12px 16px; border-top:1px solid #EEF0F3; display:flex; gap:8px; }
+
+.toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; font-size:12px; padding:10px 16px; border-radius:10px; box-shadow:0 6px 20px rgba(0,0,0,.25); opacity:0; pointer-events:none; transition:opacity .2s; z-index:60; }
+.toast.show { opacity:1; }
+.footer { font-size:10px; color:#9CA3AF; margin:10px 2px 0; }
+</style>
+</head>
+<body>
+<nav class="site-tabs">
+  <div class="site-tabs-inner">
+    <a href="index.html" class="site-tab">Overview</a>
+    <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
+    <a href="igaming-timeline.html" class="site-tab">iGaming Timeline</a>
+    <a href="team-board.html" class="site-tab active">Team Board</a>
+  </div>
+</nav>
+
+<div class="db">
+  <div class="db-header">
+    <h1>🧭 Team Board — Sprint Planning Calendar</h1>
+    <p id="subhead">Loading…</p>
+  </div>
+
+  <div class="bar">
+    <div class="depttabs" id="depttabs"></div>
+    <span class="spinfo" id="spinfo"></span>
+    <div class="spacer"></div>
+    <div class="legend">
+      <span><span class="sw" style="background:#D1FAE5"></span>under cap</span>
+      <span><span class="sw" style="background:#FEF3C7"></span>near cap</span>
+      <span><span class="sw" style="background:#FEE2E2"></span>over</span>
+    </div>
+    <button class="btn btn-primary" id="editPlanBtn">✎ Edit Plan</button>
+  </div>
+
+  <div class="workspace">
+    <div class="panel">
+      <div class="panel-head">Unscheduled <span class="ct" id="blCount">0</span></div>
+      <div class="backlog-body" id="backlog" data-day="backlog"></div>
+    </div>
+    <div class="panel cal" id="cal"></div>
+  </div>
+  <p class="footer" id="footer"></p>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <h2>✎ Edit Plan — Sprint Work</h2>
+    <p>Add or remove tickets from the open sprint across IG and V2. Changes apply to Jira.</p>
+  </div>
+  <div class="drawer-body" id="epBody"></div>
+  <div class="drawer-foot">
+    <button class="btn" id="epClose" style="flex:1">Close</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="team-board-data.js"></script>
+<script src="team-board.js"></script>
+<script src="team-board-write.js"></script>
+</body>
+</html>
