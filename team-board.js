@@ -18,27 +18,32 @@ var expanded = {};        // pill id -> subtask dropdown open?
 
 // --- date helpers ------------------------------------------------------------
 function parseISO(s) { var p = (s || "").split("-"); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
+function isoOf(d) { var m = ("0" + (d.getMonth() + 1)).slice(-2), day = ("0" + d.getDate()).slice(-2); return d.getFullYear() + "-" + m + "-" + day; }
 function fmtShort(d) { return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
-function sameDay(a, b) { return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function sameDay(a, b) { return a && b && isoOf(a) === isoOf(b); }
 function isWeekend(d) { var g = d.getDay(); return g === 0 || g === 6; }
+function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function startOfWeek(d) { return addDays(d, -((d.getDay() + 6) % 7)); }   // Monday
 
-// Build the sprint day list: [{idx, date, dow, weekend, today}]
-function buildDays() {
-  var s = DATA.sprint;
-  if (!s || !s.start || !s.end) return [];
-  var start = parseISO(s.start), end = parseISO(s.end), today = new Date();
-  var out = [], i = 0, d = new Date(start);
-  while (d <= end && i < 60) {
-    out.push({ idx: i, date: new Date(d), dow: DOW[d.getDay()], weekend: isWeekend(d), today: sameDay(d, today) });
-    d.setDate(d.getDate() + 1); i++;
-  }
-  return out;
-}
-var DAYS = buildDays();
+var TODAY = new Date();
+var SPRINT_START = (DATA.sprint && DATA.sprint.start) ? parseISO(DATA.sprint.start) : null;
+var SPRINT_END = (DATA.sprint && DATA.sprint.end) ? parseISO(DATA.sprint.end) : null;
+var viewMode = "month";                 // 'day' | 'week' | 'month'
+var anchor = new Date(TODAY);           // focal date for the current view
+function inSprint(d) { return SPRINT_START && SPRINT_END && d >= SPRINT_START && d <= SPRINT_END; }
 
 function tickets() { return (DATA.depts[curDept] && DATA.depts[curDept].tickets) || []; }
+function subtasksFlat() {
+  var out = [];
+  tickets().forEach(function (t) { (t.subtasks || []).forEach(function (s) { s._parent = t.id; out.push(s); }); });
+  return out;
+}
+function findItem(id) {
+  return tickets().find(function (x) { return x.id === id; })
+      || subtasksFlat().find(function (s) { return s.id === id; }) || null;
+}
 
-// --- rendering ---------------------------------------------------------------
+// --- cards -------------------------------------------------------------------
 function flagHtml(t) {
   var f = t.flags || {};
   if (f.blocked) return '<span class="flag f-blocked">⛔ blocked</span>';
@@ -79,74 +84,118 @@ function pillHtml(t) {
     foot + panel + "</div>";
 }
 
+// Subtask row inside a parent's dropdown — also draggable onto a day.
 function subRow(s) {
   var bk = esc(s.bucket || "todo");
   var rem = (s.remaining > 0) ? s.remaining + "h" : "—";
-  return '<div class="sub-item">' +
+  return '<div class="sub-row" draggable="true" data-id="' + esc(s.id) + '" title="Drag onto a day to schedule">' +
     '<a class="sub-key" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.id) + "</a>" +
     '<span class="sub-sum" title="' + esc(s.summary) + '">' + esc(s.summary) + "</span>" +
     '<span class="stat st-' + bk + '"><span class="dot b-' + bk + '"></span>' + esc(s.status || "—") + "</span>" +
     '<span class="sub-rem">' + rem + "</span></div>";
 }
 
-function render() {
-  // calendar grid: align weeks Mon–Sun
-  var cal = document.getElementById("cal");
-  if (!DAYS.length) { cal.innerHTML = '<p class="footer">No active sprint window found.</p>'; }
-  else {
-    var lead = (DAYS[0].date.getDay() + 6) % 7;   // Mon=0
-    var cells = [];
-    for (var l = 0; l < lead; l++) cells.push(null);
-    DAYS.forEach(function (d) { cells.push(d); });
-    while (cells.length % 7 !== 0) cells.push(null);
-    var html = "", wk = 0;
-    for (var i = 0; i < cells.length; i += 7) {
-      wk++;
-      html += '<div class="week-lbl">Week ' + wk + "</div><div class=\"week\">";
-      for (var j = i; j < i + 7; j++) {
-        var c = cells[j];
-        if (!c) { html += '<div class="day empty"></div>'; continue; }
-        html += '<div class="day' + (c.today ? " today" : "") + (c.weekend ? " weekend" : "") + '">' +
-          '<div class="day-head"><span><span class="day-date">' + fmtShort(c.date) + '</span> ' +
-          '<span class="day-dow">' + c.dow + '</span></span><span class="cap" data-cap="' + c.idx + '"></span></div>' +
-          '<div class="day-body" data-day="' + c.idx + '"></div></div>';
-      }
-      html += "</div>";
-    }
-    cal.innerHTML = html;
-  }
+// Compact subtask chip shown on a calendar day / backlog.
+function subChipHtml(s) {
+  var bk = esc(s.bucket || "todo");
+  var rem = (s.remaining > 0) ? s.remaining + "h" : "";
+  return '<div class="sub-chip ' + curDept + '" draggable="true" data-id="' + esc(s.id) + '" title="' + esc(s.summary) + '">' +
+    '<span class="dot b-' + bk + '"></span>' +
+    '<a class="chip-key" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.id) + "</a>" +
+    '<span class="chip-sum">' + esc(s.summary) + "</span>" +
+    (rem ? '<span class="chip-rem">' + rem + "</span>" : "") + "</div>";
+}
 
-  // place pills
-  var bl = document.getElementById("backlog");
+// --- calendar views ----------------------------------------------------------
+function mkCell(d) {
+  return {
+    date: new Date(d), iso: isoOf(d), dow: DOW[d.getDay()], weekend: isWeekend(d),
+    today: sameDay(d, TODAY), inSprint: inSprint(d),
+    sprintStart: SPRINT_START && sameDay(d, SPRINT_START),
+    sprintEnd: SPRINT_END && sameDay(d, SPRINT_END),
+  };
+}
+function buildCells() {
+  if (viewMode === "day") return { single: true, rows: [[mkCell(anchor)]] };
+  if (viewMode === "week") {
+    var st = startOfWeek(anchor), row = [];
+    for (var i = 0; i < 7; i++) row.push(mkCell(addDays(st, i)));
+    return { single: false, rows: [row] };
+  }
+  // month: 6 weeks; days outside the month are blank
+  var first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  var d = startOfWeek(first), rows = [];
+  for (var w = 0; w < 6; w++) {
+    var row = [];
+    for (var j = 0; j < 7; j++) { row.push(d.getMonth() === anchor.getMonth() ? mkCell(d) : null); d = addDays(d, 1); }
+    rows.push(row);
+  }
+  return { single: false, rows: rows.filter(function (r) { return r.some(Boolean); }) };
+}
+function dayCellHtml(c, big) {
+  if (!c) return '<div class="day empty"></div>';
+  var cls = "day" + (c.today ? " today" : "") + (c.weekend ? " weekend" : "") +
+            (c.inSprint ? " in-sprint" : "") + (big ? " day-big" : "");
+  var mark = c.sprintStart ? '<span class="sp-marker start">▸ Sprint start</span>'
+           : (c.sprintEnd ? '<span class="sp-marker end">Sprint end ◂</span>' : "");
+  return '<div class="' + cls + '">' +
+    '<div class="day-head"><span><span class="day-date">' + fmtShort(c.date) + '</span> <span class="day-dow">' + c.dow + '</span></span>' +
+    '<span class="cap" data-iso="' + c.iso + '"></span></div>' +
+    (mark ? '<div class="sp-marker-row">' + mark + "</div>" : "") +
+    '<div class="day-body" data-iso="' + c.iso + '"></div></div>';
+}
+function renderGrid(view) {
+  if (view.single) return '<div class="cal-day-single">' + dayCellHtml(view.rows[0][0], true) + "</div>";
+  var head = '<div class="week dow-head">' +
+    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(function (x) { return '<div class="dowh">' + x + "</div>"; }).join("") + "</div>";
+  var body = view.rows.map(function (row) {
+    return '<div class="week">' + row.map(function (c) { return dayCellHtml(c, false); }).join("") + "</div>";
+  }).join("");
+  return head + body;
+}
+
+function render() {
+  var cal = document.getElementById("cal");
+  if (!SPRINT_START) { cal.innerHTML = '<p class="footer">No active sprint window found.</p>'; return; }
+  var view = buildCells();
+  cal.innerHTML = renderGrid(view);
+
+  var tasks = tickets(), subs = subtasksFlat();
+
+  // backlog: anything with no due date (tasks as pills, subtasks as chips)
+  var bl = document.getElementById("backlog"), blCount = 0;
   bl.innerHTML = "";
-  var list = tickets(), blCount = 0;
-  list.forEach(function (t) {
-    var zone = (t.day == null) ? bl : cal.querySelector('.day-body[data-day="' + t.day + '"]');
-    if (!zone) { zone = bl; }                     // day fell outside window → backlog
-    if (zone === bl) blCount++;
-    zone.insertAdjacentHTML("beforeend", pillHtml(t));
-  });
+  tasks.forEach(function (t) { if (t.due == null) { bl.insertAdjacentHTML("beforeend", pillHtml(t)); blCount++; } });
+  subs.forEach(function (s) { if (s.due == null) { bl.insertAdjacentHTML("beforeend", subChipHtml(s)); blCount++; } });
   document.getElementById("blCount").textContent = blCount;
 
-  // capacity per day = sum of REMAINING hours (outstanding work on that day)
-  DAYS.forEach(function (d) {
-    var sum = list.filter(function (t) { return t.day === d.idx; }).reduce(function (a, t) { return a + (t.remaining || 0); }, 0);
-    var el = cal.querySelector('.cap[data-cap="' + d.idx + '"]');
-    if (!el) return;
-    sum = Math.round(sum);
-    el.textContent = sum + "h";
-    el.className = "cap " + (sum > DAILY_CAP ? "over" : (sum >= DAILY_CAP * 0.75 ? "warn" : "ok"));
+  // place items + capacity on each visible day
+  view.rows.forEach(function (row) {
+    row.forEach(function (c) {
+      if (!c) return;
+      var body = cal.querySelector('.day-body[data-iso="' + c.iso + '"]');
+      if (!body) return;
+      tasks.forEach(function (t) { if (t.due === c.iso) body.insertAdjacentHTML("beforeend", pillHtml(t)); });
+      subs.forEach(function (s) { if (s.due === c.iso) body.insertAdjacentHTML("beforeend", subChipHtml(s)); });
+      // capacity = leaf work: subtasks + tasks-without-subtasks (avoid double count)
+      var cap = 0;
+      subs.forEach(function (s) { if (s.due === c.iso) cap += s.remaining || 0; });
+      tasks.forEach(function (t) { if (t.due === c.iso && !(t.sub_count > 0)) cap += t.remaining || 0; });
+      var capEl = cal.querySelector('.cap[data-iso="' + c.iso + '"]');
+      if (capEl) { cap = Math.round(cap); capEl.textContent = cap + "h"; capEl.className = "cap " + (cap > DAILY_CAP ? "over" : (cap >= DAILY_CAP * 0.75 ? "warn" : "ok")); }
+    });
   });
 
+  updateControls();
   wireDrag();
 }
 
 // --- drag & drop -------------------------------------------------------------
 function wireDrag() {
-  document.querySelectorAll(".pill[draggable='true']").forEach(function (p) {
+  document.querySelectorAll(".pill, .sub-chip, .sub-row").forEach(function (p) {
     p.addEventListener("dragstart", function (e) {
-      if (e.target.closest("input, button, a")) { e.preventDefault(); return; }  // don't drag from controls/links
-      curDrag = p.dataset.id; p.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
+      if (e.target.closest("input, button, a")) { e.preventDefault(); return; }   // not from controls/links
+      curDrag = p.dataset.id; e.stopPropagation(); p.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
     });
     p.addEventListener("dragend", function () { p.classList.remove("dragging"); });
   });
@@ -155,16 +204,14 @@ function wireDrag() {
     z.addEventListener("dragleave", function () { z.classList.remove("drop-hot"); });
     z.addEventListener("drop", function (e) {
       e.preventDefault(); z.classList.remove("drop-hot");
-      var t = tickets().find(function (x) { return x.id === curDrag; });
-      if (!t) return;
-      var raw = z.dataset.day;
-      var newDay = (raw === "backlog") ? null : parseInt(raw, 10);
-      if (newDay === t.day) return;
-      var prevDay = t.day;
-      t.day = newDay;                       // optimistic
-      t.due = (newDay == null) ? null : isoForDay(newDay);
+      var item = findItem(curDrag);
+      if (!item) return;
+      var iso = z.dataset.iso || null;                  // backlog has no data-iso → unschedule
+      if ((iso || null) === (item.due || null)) return;
+      var prev = item.due;
+      item.due = iso || null;                            // optimistic
       render();
-      persistDay(t, newDay, prevDay);
+      persistDue(item, iso || null, prev);
     });
   });
   // expand / collapse subtasks
@@ -185,49 +232,44 @@ function wireDrag() {
   });
 }
 
-// Persist a day move to Jira (Due Date on the subtask). Filled in by the relay
-// (team-board-write.js sets window.TBWrite). Falls back to a local-only toast.
-function persistDay(ticket, newDay, prevDay) {
-  var dateStr = (newDay == null) ? null : isoForDay(newDay);
+// Persist a due-date change to Jira via the relay (optimistic; revert on fail).
+function persistDue(item, iso, prev) {
   if (window.TBWrite && window.TBWrite.setDueDate) {
-    window.TBWrite.setDueDate(ticket, dateStr, function (ok, msg) {
-      if (!ok) { ticket.day = prevDay; render(); toast("⚠️ " + (msg || "Jira write failed — reverted")); }
-      else toast("✓ " + ticket.id + (dateStr ? " → " + dateStr : " → unscheduled"));
+    window.TBWrite.setDueDate(item, iso, function (ok, msg) {
+      if (!ok) { item.due = prev; render(); toast("⚠️ " + (msg || "Jira write failed — reverted")); }
+      else toast("✓ " + item.id + (iso ? " → " + iso : " → unscheduled"));
     });
   } else {
-    toast("Moved " + ticket.id + (dateStr ? " → " + dateStr : " → unscheduled") + " (local only — connect Jira write in Edit Plan)");
+    toast("Moved " + item.id + (iso ? " → " + iso : " → unscheduled") + " (local only — connect Jira write in Edit Plan)");
   }
-}
-function isoForDay(idx) {
-  var d = DAYS.find(function (x) { return x.idx === idx; });
-  if (!d) return null;
-  var dt = d.date, m = ("0" + (dt.getMonth() + 1)).slice(-2), day = ("0" + dt.getDate()).slice(-2);
-  return dt.getFullYear() + "-" + m + "-" + day;
-}
-function dayForIso(iso) {
-  if (!iso) return null;
-  var d = DAYS.find(function (x) { return isoForDay(x.idx) === iso; });
-  return d ? d.idx : null;     // outside the sprint window → backlog (date still set in Jira)
 }
 
-// Edit a pill's due date directly from the date picker. Writes to Jira; the
-// pill jumps to that day (or backlog if the date is outside the sprint).
+// Edit a due date from the date picker (tasks/stories).
 function editDueDate(id, iso) {
-  var t = tickets().find(function (x) { return x.id === id; });
-  if (!t) return;
-  if (iso === t.due) return;
-  var prevDue = t.due, prevDay = t.day;
+  var t = findItem(id);
+  if (!t || iso === t.due) return;
+  var prev = t.due;
   t.due = iso || null;
-  t.day = dayForIso(iso);
   render();
-  if (window.TBWrite && window.TBWrite.setDueDate) {
-    window.TBWrite.setDueDate(t, iso || null, function (ok, msg) {
-      if (!ok) { t.due = prevDue; t.day = prevDay; render(); toast("⚠️ " + (msg || "Jira write failed — reverted")); }
-      else toast("✓ " + t.id + (iso ? " due " + iso : " due cleared"));
-    });
-  } else {
-    toast("Set " + t.id + (iso ? " due " + iso : " cleared") + " (local only)");
-  }
+  persistDue(t, iso || null, prev);
+}
+
+// --- view + navigation controls ---------------------------------------------
+function setView(v) { viewMode = v; render(); }
+function shiftView(dir) {
+  if (viewMode === "day") anchor = addDays(anchor, dir);
+  else if (viewMode === "week") anchor = addDays(anchor, 7 * dir);
+  else anchor = new Date(anchor.getFullYear(), anchor.getMonth() + dir, 1);
+  render();
+}
+function rangeLabel() {
+  if (viewMode === "day") return anchor.toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric", year: "numeric" });
+  if (viewMode === "week") { var st = startOfWeek(anchor); return fmtShort(st) + " – " + fmtShort(addDays(st, 6)) + ", " + addDays(st, 6).getFullYear(); }
+  return anchor.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+function updateControls() {
+  var lab = document.getElementById("rangeLabel"); if (lab) lab.textContent = rangeLabel();
+  document.querySelectorAll(".viewsw button").forEach(function (b) { b.classList.toggle("active", b.dataset.view === viewMode); });
 }
 
 // --- dept tabs + chrome ------------------------------------------------------
@@ -246,7 +288,7 @@ function renderTabs() {
 function chrome() {
   var s = DATA.sprint || {};
   document.getElementById("subhead").textContent =
-    "DAMS open sprint · drag subtasks onto days · Edit Plan to add/remove work · IG + V2";
+    "DAMS open sprint · drag tasks & subtasks onto days · Day/Week/Month views · Edit Plan to add/remove · IG + V2";
   document.getElementById("spinfo").textContent =
     (s.name || "Open sprint") + (s.start ? " · " + s.start + " – " + s.end : "") +
     (s.activeCount > 1 ? " · " + s.activeCount + " active sprints" : "");
@@ -298,9 +340,31 @@ function openDrawer() { document.getElementById("scrim").classList.add("open"); 
 function closeDrawer() { document.getElementById("scrim").classList.remove("open"); document.getElementById("drawer").classList.remove("open"); }
 
 // --- boot --------------------------------------------------------------------
+// Open the calendar where the work actually is: the due date carrying the most
+// items (else today). Avoids landing on an empty month when everything is
+// parked on the sprint-end date.
+function busiestAnchor() {
+  var tally = {};
+  tickets().forEach(function (t) { if (t.due) tally[t.due] = (tally[t.due] || 0) + 1; });
+  subtasksFlat().forEach(function (s) { if (s.due) tally[s.due] = (tally[s.due] || 0) + 1; });
+  var best = null, n = 0;
+  Object.keys(tally).forEach(function (iso) { if (tally[iso] > n) { n = tally[iso]; best = iso; } });
+  return best ? parseISO(best) : new Date(TODAY);
+}
+
 function start() {
   if (!curDept) { document.getElementById("cal").innerHTML = '<p class="footer">No data — run team_board.py.</p>'; return; }
-  chrome(); renderTabs(); render();
+  chrome(); renderTabs();
+  anchor = busiestAnchor();
+  // calendar view + navigation controls
+  document.querySelectorAll(".viewsw button").forEach(function (b) {
+    b.addEventListener("click", function () { setView(b.dataset.view); });
+  });
+  document.getElementById("navPrev").addEventListener("click", function () { shiftView(-1); });
+  document.getElementById("navNext").addEventListener("click", function () { shiftView(1); });
+  document.getElementById("navToday").addEventListener("click", function () { anchor = new Date(TODAY); render(); });
+  document.getElementById("navSprint").addEventListener("click", function () { if (SPRINT_START) { anchor = new Date(SPRINT_START); render(); } });
+  render();
   document.getElementById("editPlanBtn").addEventListener("click", openDrawer);
   document.getElementById("epClose").addEventListener("click", closeDrawer);
   document.getElementById("scrim").addEventListener("click", closeDrawer);

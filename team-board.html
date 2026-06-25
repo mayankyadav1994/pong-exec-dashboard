@@ -81,15 +81,50 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .due-edit-wrap { font-size:9px; display:inline-flex; align-items:center; gap:3px; color:#6B7280; }
 .due-edit { font-size:9px; border:1px solid #E5E7EB; border-radius:6px; padding:2px 4px; font-family:inherit; color:#374151; }
 .sub-panel { margin-top:6px; display:flex; flex-direction:column; gap:4px; border-top:1px solid #F0F2F4; padding-top:6px; }
-.sub-item { display:grid; grid-template-columns:auto 1fr auto auto; gap:6px; align-items:center; font-size:9px; }
+.sub-row { display:grid; grid-template-columns:auto 1fr auto auto; gap:6px; align-items:center; font-size:9px; cursor:grab; padding:2px 3px; border-radius:5px; }
+.sub-row:hover { background:#F3F4F6; }
+.sub-row.dragging { opacity:.4; }
 .sub-key { font-family:'SFMono-Regular',Consolas,monospace; font-weight:700; color:#0891B2; text-decoration:none; }
 .sub-key:hover { text-decoration:underline; }
 .sub-sum { color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .sub-rem { font-variant-numeric:tabular-nums; color:#6B7280; font-weight:600; }
-.sub-item .stat { font-size:8px; padding:0 5px; }
+.sub-row .stat { font-size:8px; padding:0 5px; }
 .game { font-size:9px; color:#9CA3AF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .flag { font-size:9px; font-weight:700; padding:0 5px; border-radius:8px; white-space:nowrap; }
 .f-blocked { background:#FEE2E2; color:#B91C1C; } .f-unestimated { background:#FEF3C7; color:#92400E; } .f-unassigned{ background:#F3F4F6; color:#6B7280; }
+
+/* compact subtask chip on the calendar / backlog */
+.sub-chip { display:flex; align-items:center; gap:5px; border:1px solid #E5E7EB; border-left:3px solid #94A3B8; border-radius:6px; background:#fff; padding:3px 6px; cursor:grab; font-size:10px; box-shadow:0 1px 1px rgba(0,0,0,.04); }
+.sub-chip.dragging { opacity:.4; }
+.sub-chip.math { border-left-color:#10B981; } .sub-chip.art { border-left-color:#F59E0B; }
+.chip-key { font-family:'SFMono-Regular',Consolas,monospace; font-size:9px; font-weight:700; color:#0891B2; text-decoration:none; flex-shrink:0; }
+.chip-key:hover { text-decoration:underline; }
+.chip-sum { color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; }
+.chip-rem { font-size:9px; font-weight:700; color:#6B7280; font-variant-numeric:tabular-nums; flex-shrink:0; }
+
+/* calendar controls bar */
+.calbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.viewsw { display:inline-flex; border:1px solid #E5E7EB; border-radius:8px; overflow:hidden; }
+.viewsw button { font-size:12px; font-weight:600; padding:7px 14px; border:none; background:#fff; color:#6B7280; cursor:pointer; border-right:1px solid #E5E7EB; }
+.viewsw button:last-child { border-right:none; }
+.viewsw button.active { background:#0891B2; color:#fff; }
+.navgrp { display:inline-flex; gap:4px; align-items:center; }
+.navgrp button { font-size:12px; font-weight:600; padding:7px 11px; border:1px solid #E5E7EB; background:#fff; color:#374151; border-radius:8px; cursor:pointer; }
+.navgrp button:hover { background:#F3F4F6; }
+#navSprint { color:#0891B2; border-color:#BAE6FD; background:#ECFEFF; }
+.range-label { font-size:14px; font-weight:700; color:#111827; }
+
+/* day-of-week header + month/day layout */
+.dow-head { margin-bottom:6px; }
+.dowh { font-size:10px; font-weight:700; color:#9CA3AF; text-transform:uppercase; letter-spacing:.05em; text-align:center; padding:2px 0; }
+.cal-day-single .day-big { min-height:420px; }
+.cal-day-single .day-big .day-body { max-height:64vh; }
+.day.in-sprint { background:#F0FDFA; border-color:#99F6E4; }
+.day.in-sprint.weekend { background:#ECFDF5; }
+.sp-marker-row { padding:0 8px 4px; }
+.sp-marker { font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:1px 6px; border-radius:8px; }
+.sp-marker.start { background:#CCFBF1; color:#0F766E; }
+.sp-marker.end { background:#FEE2E2; color:#B91C1C; }
 
 .scrim { position:fixed; inset:0; background:rgba(17,24,39,.45); display:none; z-index:40; }
 .scrim.open { display:block; }
@@ -131,6 +166,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <span><span class="sw" style="background:#FEE2E2"></span>over</span>
     </div>
     <button class="btn btn-primary" id="editPlanBtn">✎ Edit Plan</button>
+  </div>
+
+  <div class="calbar">
+    <div class="viewsw">
+      <button data-view="day">Day</button>
+      <button data-view="week">Week</button>
+      <button data-view="month">Month</button>
+    </div>
+    <div class="navgrp">
+      <button id="navPrev" title="Previous">‹</button>
+      <button id="navToday">Today</button>
+      <button id="navNext" title="Next">›</button>
+      <button id="navSprint" title="Jump to the open sprint">◆ Current Sprint</button>
+    </div>
+    <span id="rangeLabel" class="range-label"></span>
   </div>
 
   <div class="workspace">

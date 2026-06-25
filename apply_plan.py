@@ -14,9 +14,8 @@ Payload (env PAYLOAD, JSON):
     { "action": "removeFromSprint", "key": "IG-1234" }
 
 Guardrails:
-  * setDueDate is REFUSED on *Subtasks*. The Team Board plans at Task/Story
-    level (pills are parent items; subtasks are view-only in the dropdown), so
-    only parent-level due dates are written.
+  * setDueDate is allowed on any ticket — Tasks/Stories AND Subtasks are all
+    draggable onto calendar days.
   * Before the first due-date change, the original value is stashed in the issue
     property ``teamboard.originalDueDate`` so a move is reversible.
 """
@@ -67,10 +66,8 @@ def put_property(key, prop, value):
 
 def set_due_date(key, date):
     meta = jira_get(f"/issue/{key}", params={"fields": "issuetype,duedate"})
-    itype = ((meta.get("fields", {}) or {}).get("issuetype") or {}).get("name", "")
-    if itype.strip().lower().endswith("subtask"):
-        fail(f"refusing to set due date on subtask {key} — the Team Board plans "
-             f"at Task/Story level; subtasks are view-only")
+    # Both Task/Story and Subtask due dates are editable from the board (every
+    # ticket is draggable onto a day). No issuetype restriction.
     # stash original due date once, for reversibility
     if get_property(key, ORIG_DUE_PROP) is None:
         original = (meta.get("fields", {}) or {}).get("duedate")
