@@ -68,6 +68,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .who { font-size:10px; color:#6B7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
 .b-wip{background:#3B82F6;} .b-qa{background:#10B981;} .b-todo{background:#9CA3AF;} .b-hold{background:#F59E0B;} .b-done{background:#34D399;}
+.stat { display:inline-flex; align-items:center; gap:4px; font-size:9px; font-weight:700; padding:1px 7px; border-radius:10px; white-space:nowrap; }
+.stat .dot { width:6px; height:6px; }
+.st-todo{ background:#F3F4F6; color:#4B5563; } .st-wip{ background:#DBEAFE; color:#1D4ED8; }
+.st-qa{ background:#D1FAE5; color:#065F46; } .st-hold{ background:#FEF3C7; color:#92400E; } .st-done{ background:#DCFCE7; color:#166534; }
+.rem { font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
+.rem.has { color:#1D4ED8; } .rem.none { color:#9CA3AF; }
 .game { font-size:9px; color:#9CA3AF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .flag { font-size:9px; font-weight:700; padding:0 5px; border-radius:8px; white-space:nowrap; }
 .f-blocked { background:#FEE2E2; color:#B91C1C; } .f-unestimated { background:#FEF3C7; color:#92400E; } .f-unassigned{ background:#F3F4F6; color:#6B7280; }

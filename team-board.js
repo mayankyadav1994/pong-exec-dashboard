@@ -53,13 +53,21 @@ function pillHtml(t) {
     : '<span class="avatar none">—</span><span class="who">Unassigned</span>';
   var locked = t.is_subtask ? "" : " locked";              // only subtasks are drag-persisted (guardrail)
   var rel = t.release || t.game || "";
+  var bk = esc(t.bucket || "todo");
+  var rem = t.remaining;
+  var remHtml = (rem > 0)
+    ? '<span class="rem has" title="Remaining estimate">' + rem + "h left</span>"
+    : '<span class="rem none" title="No remaining estimate">' + (t.est ? "0h left" : "no est") + "</span>";
+  var statHtml = '<span class="stat st-' + bk + '" title="' + esc(t.status || "") + '">' +
+    '<span class="dot b-' + bk + '"></span>' + esc(t.status || "—") + "</span>";
   return '<div class="pill ' + curDept + locked + '" draggable="' + (t.is_subtask ? "true" : "false") + '" data-id="' + esc(t.id) + '"' +
     (t.is_subtask ? "" : ' title="Tasks aren\'t day-planned — only their subtasks (protects target dates)"') + '>' +
     '<div class="pill-top"><a class="pill-key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
-      '<span class="pill-hrs">' + (t.est ? t.est + "h" : "—") + "</span></div>" +
+      remHtml + "</div>" +
     '<div class="pill-sum">' + esc(t.summary) + "</div>" +
-    '<div class="pill-bot"><span class="pill-meta"><span class="dot b-' + esc(t.bucket || "todo") + '"></span>' + who + "</span>" + flagHtml(t) + "</div>" +
-    '<div class="game">' + esc(rel) + "</div></div>";
+    '<div class="pill-bot">' + statHtml + flagHtml(t) + "</div>" +
+    '<div class="pill-bot"><span class="pill-meta">' + who + "</span>" +
+      '<span class="game">' + esc(rel) + "</span></div></div>";
 }
 
 function render() {
@@ -101,9 +109,9 @@ function render() {
   });
   document.getElementById("blCount").textContent = blCount;
 
-  // capacity per day
+  // capacity per day = sum of REMAINING hours (outstanding work on that day)
   DAYS.forEach(function (d) {
-    var sum = list.filter(function (t) { return t.day === d.idx; }).reduce(function (a, t) { return a + (t.est || 0); }, 0);
+    var sum = list.filter(function (t) { return t.day === d.idx; }).reduce(function (a, t) { return a + (t.remaining || 0); }, 0);
     var el = cal.querySelector('.cap[data-cap="' + d.idx + '"]');
     if (!el) return;
     sum = Math.round(sum);

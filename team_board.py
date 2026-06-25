@@ -76,7 +76,7 @@ DEPTS = {
 
 ISSUE_FIELDS = [
     "summary", "status", "assignee", "issuetype",
-    "timeoriginalestimate", "timespent", "duedate", "parent",
+    "timeoriginalestimate", "timespent", "timeestimate", "duedate", "parent",
     "fixVersions", "priority", "issuelinks",
 ] + SPRINT_FIELDS
 
@@ -212,18 +212,14 @@ def resolve_release(fields, cache):
 
 
 def day_index(due, start, end):
-    """Index within the sprint window, or None (backlog).
+    """0-based index within the sprint window from the Due Date, else None.
 
-    A due date equal to the sprint end is the default "stamp it to sprint end"
-    value most tickets carry — that's not a deliberate day plan, so we treat it
-    as unscheduled (backlog) and let the planner drag it onto a real day.
-    Anything outside the window is also backlog.
+    Tickets are placed on the calendar by their Jira Due Date. Anything without
+    a due date, or due outside the sprint window, lands in the Unscheduled rail.
     """
     if not (due and start and end):
         return None
-    if due == end:
-        return None
-    if start <= due < end:
+    if start <= due <= end:
         return (due - start).days
     return None
 
@@ -279,6 +275,7 @@ def build_dept(dept_key, cfg, verbose=False):
             "initials": initials(who),
             "est": est,
             "spent": secs_to_hours(f.get("timespent")),
+            "remaining": secs_to_hours(f.get("timeestimate")),   # Jira remaining estimate
             "due": due.isoformat() if due else None,
             "release": rel,
             "game": game,
