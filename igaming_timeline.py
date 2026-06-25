@@ -355,12 +355,15 @@ SPRINT_TASKS_FIELDS = FV_TASKS_FIELDS  # same shape for now
 
 
 def fetch_fv_tasks():
-    """All active FV-eligible tasks across all unreleased fix versions."""
+    """All FV-eligible tasks across all unreleased fix versions, INCLUDING
+    done ones — they belong in the scope tab even when work is complete, and
+    without them an all-done FV (e.g. Horse Play 1.00 just before release)
+    silently disappears from the dashboard. is_done() in Python downstream
+    flags the closed tasks so progress maths still works correctly."""
     return jira_jql(
         jql=(
             'project = IG '
             'AND fixVersion in unreleasedVersions() '
-            'AND statusCategory != Done '
             'AND issuetype not in ("Bug", "Enhancement", "QA Task") '
             'AND summary !~ "Release" '
             'AND summary !~ "Merge"'
@@ -437,7 +440,9 @@ def build_fv_structure(fv_tasks, epic_by_key):
         if not status:
             continue
 
-        parent_key = ((f.get("parent") or {}).get("key")) if f.get("parent") else None
+        parent_obj    = f.get("parent") or {}
+        parent_key    = parent_obj.get("key")
+        parent_fields = parent_obj.get("fields") or {}
         fvs = f.get("fixVersions") or []
         if not fvs:
             continue
@@ -471,10 +476,19 @@ def build_fv_structure(fv_tasks, epic_by_key):
                 op = slot["other_people"].setdefault(key, {"name": aname, "type": grp, "tasks": []})
                 op["tasks"].append(task_obj)
 
-            # Scope tracking — record the task key against its epic (or unscoped bucket)
-            if parent_key and parent_key in epic_by_key:
+            # Scope tracking — group by whatever the parent is (Epic OR Story),
+            # mirroring V2's compute_scope. The IG project's hierarchy is
+            # Epic → Story → Subtask for most work, so requiring parent ∈ epics
+            # would drop ~86% of tasks into the "no epic" bucket. When the
+            # parent IS a known epic we prefer that cached record; otherwise
+            # we read inline from the task's parent.fields (summary + status).
+            if parent_key:
                 slot["epics_taskkeys"].setdefault(parent_key, []).append(issue["key"])
-                slot["epics_status"][parent_key] = epic_by_key[parent_key]
+                if parent_key not in slot["epics_status"]:
+                    slot["epics_status"][parent_key] = epic_by_key.get(parent_key) or {
+                        "summary": parent_fields.get("summary") or parent_key,
+                        "status":  (parent_fields.get("status") or {}).get("name") or "New",
+                    }
             else:
                 slot["unscoped_taskkeys"].append(issue["key"])
 
