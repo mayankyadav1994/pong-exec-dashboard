@@ -53,7 +53,7 @@
       "pilotEnd": "2026-10-05",
       "finalEnd": "2026-11-02",
       "totalEstH": 2961,
-      "spentH": 3030
+      "spentH": 3036
     },
     "V2 PT 14.00": {
       "devEnd": "2026-08-25",
@@ -79,8 +79,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 16228,
-      "spentH": 8908
+      "totalEstH": 16230,
+      "spentH": 8931
     },
     "V2 C2 Backlog": {
       "devEnd": "2029-09-24",
