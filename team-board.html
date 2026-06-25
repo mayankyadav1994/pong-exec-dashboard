@@ -74,6 +74,19 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .st-qa{ background:#D1FAE5; color:#065F46; } .st-hold{ background:#FEF3C7; color:#92400E; } .st-done{ background:#DCFCE7; color:#166534; }
 .rem { font-size:10px; font-weight:700; font-variant-numeric:tabular-nums; }
 .rem.has { color:#1D4ED8; } .rem.none { color:#9CA3AF; }
+.pill-foot { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:6px; padding-top:5px; border-top:1px dashed #EEF0F3; }
+.sub-toggle { font-size:9px; font-weight:700; color:#0891B2; background:#ECFEFF; border:1px solid #BAE6FD; border-radius:7px; padding:2px 7px; cursor:pointer; }
+.sub-toggle:hover { background:#CFFAFE; }
+.sub-none { font-size:9px; color:#B6BCC6; }
+.due-edit-wrap { font-size:9px; display:inline-flex; align-items:center; gap:3px; color:#6B7280; }
+.due-edit { font-size:9px; border:1px solid #E5E7EB; border-radius:6px; padding:2px 4px; font-family:inherit; color:#374151; }
+.sub-panel { margin-top:6px; display:flex; flex-direction:column; gap:4px; border-top:1px solid #F0F2F4; padding-top:6px; }
+.sub-item { display:grid; grid-template-columns:auto 1fr auto auto; gap:6px; align-items:center; font-size:9px; }
+.sub-key { font-family:'SFMono-Regular',Consolas,monospace; font-weight:700; color:#0891B2; text-decoration:none; }
+.sub-key:hover { text-decoration:underline; }
+.sub-sum { color:#374151; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sub-rem { font-variant-numeric:tabular-nums; color:#6B7280; font-weight:600; }
+.sub-item .stat { font-size:8px; padding:0 5px; }
 .game { font-size:9px; color:#9CA3AF; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .flag { font-size:9px; font-weight:700; padding:0 5px; border-radius:8px; white-space:nowrap; }
 .f-blocked { background:#FEE2E2; color:#B91C1C; } .f-unestimated { background:#FEF3C7; color:#92400E; } .f-unassigned{ background:#F3F4F6; color:#6B7280; }

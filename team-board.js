@@ -14,6 +14,7 @@ var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 var deptKeys = Object.keys(DATA.depts || {});
 var curDept = deptKeys[0] || null;
 var curDrag = null;
+var expanded = {};        // pill id -> subtask dropdown open?
 
 // --- date helpers ------------------------------------------------------------
 function parseISO(s) { var p = (s || "").split("-"); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
@@ -51,23 +52,41 @@ function pillHtml(t) {
   var who = t.assignee
     ? '<span class="avatar">' + esc(t.initials || "?") + '</span><span class="who">' + esc(t.assignee) + "</span>"
     : '<span class="avatar none">—</span><span class="who">Unassigned</span>';
-  var locked = t.is_subtask ? "" : " locked";              // only subtasks are drag-persisted (guardrail)
   var rel = t.release || t.game || "";
   var bk = esc(t.bucket || "todo");
   var rem = t.remaining;
   var remHtml = (rem > 0)
-    ? '<span class="rem has" title="Remaining estimate">' + rem + "h left</span>"
-    : '<span class="rem none" title="No remaining estimate">' + (t.est ? "0h left" : "no est") + "</span>";
+    ? '<span class="rem has" title="Remaining (rolled up incl. subtasks)">' + rem + "h left</span>"
+    : '<span class="rem none">' + (t.est ? "0h left" : "no est") + "</span>";
   var statHtml = '<span class="stat st-' + bk + '" title="' + esc(t.status || "") + '">' +
     '<span class="dot b-' + bk + '"></span>' + esc(t.status || "—") + "</span>";
-  return '<div class="pill ' + curDept + locked + '" draggable="' + (t.is_subtask ? "true" : "false") + '" data-id="' + esc(t.id) + '"' +
-    (t.is_subtask ? "" : ' title="Tasks aren\'t day-planned — only their subtasks (protects target dates)"') + '>' +
-    '<div class="pill-top"><a class="pill-key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
-      remHtml + "</div>" +
+  var isOpen = !!expanded[t.id];
+  var nSub = t.sub_count || 0;
+  var subToggle = nSub > 0
+    ? '<button class="sub-toggle" data-id="' + esc(t.id) + '">' + (isOpen ? "▾ " : "▸ ") + nSub + " subtask" + (nSub > 1 ? "s" : "") + "</button>"
+    : '<span class="sub-none">no subtasks</span>';
+  var dueVal = t.due ? esc(t.due) : "";
+  var foot = '<div class="pill-foot">' + subToggle +
+    '<label class="due-edit-wrap" title="Set due date — writes to Jira">📅<input type="date" class="due-edit" data-id="' + esc(t.id) + '" value="' + dueVal + '"></label></div>';
+  var panel = nSub > 0
+    ? '<div class="sub-panel" data-panel="' + esc(t.id) + '"' + (isOpen ? "" : " hidden") + ">" + (t.subtasks || []).map(subRow).join("") + "</div>"
+    : "";
+  return '<div class="pill ' + curDept + '" draggable="true" data-id="' + esc(t.id) + '">' +
+    '<div class="pill-top"><a class="pill-key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" + remHtml + "</div>" +
     '<div class="pill-sum">' + esc(t.summary) + "</div>" +
     '<div class="pill-bot">' + statHtml + flagHtml(t) + "</div>" +
-    '<div class="pill-bot"><span class="pill-meta">' + who + "</span>" +
-      '<span class="game">' + esc(rel) + "</span></div></div>";
+    '<div class="pill-bot"><span class="pill-meta">' + who + '</span><span class="game">' + esc(rel) + "</span></div>" +
+    foot + panel + "</div>";
+}
+
+function subRow(s) {
+  var bk = esc(s.bucket || "todo");
+  var rem = (s.remaining > 0) ? s.remaining + "h" : "—";
+  return '<div class="sub-item">' +
+    '<a class="sub-key" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.id) + "</a>" +
+    '<span class="sub-sum" title="' + esc(s.summary) + '">' + esc(s.summary) + "</span>" +
+    '<span class="stat st-' + bk + '"><span class="dot b-' + bk + '"></span>' + esc(s.status || "—") + "</span>" +
+    '<span class="sub-rem">' + rem + "</span></div>";
 }
 
 function render() {
@@ -125,7 +144,10 @@ function render() {
 // --- drag & drop -------------------------------------------------------------
 function wireDrag() {
   document.querySelectorAll(".pill[draggable='true']").forEach(function (p) {
-    p.addEventListener("dragstart", function (e) { curDrag = p.dataset.id; p.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; });
+    p.addEventListener("dragstart", function (e) {
+      if (e.target.closest("input, button, a")) { e.preventDefault(); return; }  // don't drag from controls/links
+      curDrag = p.dataset.id; p.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
+    });
     p.addEventListener("dragend", function () { p.classList.remove("dragging"); });
   });
   document.querySelectorAll(".day-body, #backlog").forEach(function (z) {
@@ -140,9 +162,26 @@ function wireDrag() {
       if (newDay === t.day) return;
       var prevDay = t.day;
       t.day = newDay;                       // optimistic
+      t.due = (newDay == null) ? null : isoForDay(newDay);
       render();
       persistDay(t, newDay, prevDay);
     });
+  });
+  // expand / collapse subtasks
+  document.querySelectorAll(".sub-toggle").forEach(function (b) {
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var id = b.dataset.id;
+      expanded[id] = !expanded[id];
+      var panel = document.querySelector('.sub-panel[data-panel="' + id + '"]');
+      if (panel) panel.hidden = !expanded[id];
+      b.textContent = (expanded[id] ? "▾ " : "▸ ") + b.textContent.replace(/^[▸▾]\s/, "");
+    });
+  });
+  // edit due date directly (writes to Jira)
+  document.querySelectorAll(".due-edit").forEach(function (inp) {
+    inp.addEventListener("click", function (e) { e.stopPropagation(); });
+    inp.addEventListener("change", function () { editDueDate(inp.dataset.id, inp.value || null); });
   });
 }
 
@@ -164,6 +203,31 @@ function isoForDay(idx) {
   if (!d) return null;
   var dt = d.date, m = ("0" + (dt.getMonth() + 1)).slice(-2), day = ("0" + dt.getDate()).slice(-2);
   return dt.getFullYear() + "-" + m + "-" + day;
+}
+function dayForIso(iso) {
+  if (!iso) return null;
+  var d = DAYS.find(function (x) { return isoForDay(x.idx) === iso; });
+  return d ? d.idx : null;     // outside the sprint window → backlog (date still set in Jira)
+}
+
+// Edit a pill's due date directly from the date picker. Writes to Jira; the
+// pill jumps to that day (or backlog if the date is outside the sprint).
+function editDueDate(id, iso) {
+  var t = tickets().find(function (x) { return x.id === id; });
+  if (!t) return;
+  if (iso === t.due) return;
+  var prevDue = t.due, prevDay = t.day;
+  t.due = iso || null;
+  t.day = dayForIso(iso);
+  render();
+  if (window.TBWrite && window.TBWrite.setDueDate) {
+    window.TBWrite.setDueDate(t, iso || null, function (ok, msg) {
+      if (!ok) { t.due = prevDue; t.day = prevDay; render(); toast("⚠️ " + (msg || "Jira write failed — reverted")); }
+      else toast("✓ " + t.id + (iso ? " due " + iso : " due cleared"));
+    });
+  } else {
+    toast("Set " + t.id + (iso ? " due " + iso : " cleared") + " (local only)");
+  }
 }
 
 // --- dept tabs + chrome ------------------------------------------------------

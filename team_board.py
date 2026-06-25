@@ -224,6 +224,45 @@ def day_index(due, start, end):
     return None
 
 
+def build_ticket(it, cache):
+    """Common ticket dict for a pill (Task/Story) or a nested subtask."""
+    f = it.get("fields", {}) or {}
+    status_name = (f.get("status") or {}).get("name")
+    who = (f.get("assignee") or {}).get("displayName")
+    est = secs_to_hours(f.get("timeoriginalestimate"))
+    due = parse_date(f.get("duedate"))
+    rel, game = resolve_release(f, cache)
+    itype = (f.get("issuetype") or {}).get("name", "")
+    return {
+        "id": it["key"],
+        "url": JIRA_BROWSE + it["key"],
+        "summary": f.get("summary") or "",
+        "issuetype": itype,
+        "is_subtask": itype.strip().lower().endswith("subtask"),
+        "status": status_name,
+        "bucket": bucket(status_name),
+        "assignee": who,
+        "initials": initials(who),
+        "est": est,
+        "spent": secs_to_hours(f.get("timespent")),
+        "remaining": secs_to_hours(f.get("timeestimate")),   # Jira remaining estimate
+        "due": due.isoformat() if due else None,
+        "release": rel,
+        "game": game,
+        "priority": (f.get("priority") or {}).get("name"),
+        "parent_key": (f.get("parent") or {}).get("key"),
+        "flags": {
+            "unassigned": who is None,
+            "unestimated": est == 0,
+            "blocked": is_blocked(f),
+        },
+    }
+
+
+def _is_subtask_issue(it):
+    return (it.get("fields", {}).get("issuetype") or {}).get("name", "").strip().lower().endswith("subtask")
+
+
 def build_dept(dept_key, cfg, verbose=False):
     types = ", ".join(f'"{t}"' for t in cfg["issuetypes"])
     jql = (f"project in (IG, V2) AND sprint in openSprints() "
@@ -231,62 +270,79 @@ def build_dept(dept_key, cfg, verbose=False):
     if verbose:
         print(f"   {OK} {dept_key}: {jql}")
     issues = jira_jql(jql, ISSUE_FIELDS)
-    print(f"   {OK} {cfg['label']}: {len(issues)} ticket(s) in open sprint")
-    cache = build_parent_cache(issues, verbose) if issues else {}
+    print(f"   {OK} {cfg['label']}: {len(issues)} dept issue(s) in open sprint")
 
-    # Collect active sprint windows (for the calendar) across all returned issues.
+    # Active sprint windows (for the calendar) across all returned issues.
     sprints = {}
     for it in issues:
         for s in active_sprints(it.get("fields", {}) or {}):
             sid = s.get("id")
-            if sid is not None and sid not in sprints:
-                sprints[sid] = {
-                    "name": s.get("name"),
-                    "start": parse_date(s.get("startDate")),
-                    "end": parse_date(s.get("endDate")),
-                    "count": 0,
-                }
-        # tally membership for "most populated" pick
-        for s in active_sprints(it.get("fields", {}) or {}):
-            if s.get("id") in sprints:
-                sprints[s["id"]]["count"] += 1
+            if sid is None:
+                continue
+            if sid not in sprints:
+                sprints[sid] = {"name": s.get("name"), "start": parse_date(s.get("startDate")),
+                                "end": parse_date(s.get("endDate")), "count": 0}
+            sprints[sid]["count"] += 1
 
-    tickets = []
-    for it in issues:
-        f = it.get("fields", {}) or {}
-        status_name = (f.get("status") or {}).get("name")
-        assignee = f.get("assignee") or {}
-        who = assignee.get("displayName")
-        est = secs_to_hours(f.get("timeoriginalestimate"))
-        due = parse_date(f.get("duedate"))
-        rel, game = resolve_release(f, cache)
-        itype = (f.get("issuetype") or {}).get("name", "")
-        blocked = is_blocked(f)
-        tickets.append({
-            "id": it["key"],
-            "url": JIRA_BROWSE + it["key"],
-            "summary": f.get("summary") or "",
-            "issuetype": itype,
-            "is_subtask": itype.strip().lower().endswith("subtask"),
-            "status": status_name,
-            "bucket": bucket(status_name),
-            "assignee": who,
-            "assignee_id": assignee.get("accountId"),
-            "initials": initials(who),
-            "est": est,
-            "spent": secs_to_hours(f.get("timespent")),
-            "remaining": secs_to_hours(f.get("timeestimate")),   # Jira remaining estimate
-            "due": due.isoformat() if due else None,
-            "release": rel,
-            "game": game,
-            "priority": (f.get("priority") or {}).get("name"),
-            "flags": {
-                "unassigned": who is None,
-                "unestimated": est == 0,
-                "blocked": blocked,
-            },
+    # Pills = parent-level items (Task/Story/Bug/etc.); subtasks nest under them.
+    dept_tasks = [it for it in issues if not _is_subtask_issue(it)]
+    subs = [it for it in issues if _is_subtask_issue(it)]
+
+    # Fetch the parent items of subtasks that aren't already in the dept-task set
+    # (subtasks often hang off Stories / Bugs / Dev Tasks, not just Math/Creative).
+    have = {it["key"] for it in dept_tasks}
+    need = sorted({(s["fields"].get("parent") or {}).get("key") for s in subs} - have - {None})
+    fetched = []
+    for i in range(0, len(need), 50):
+        chunk = need[i:i + 50]
+        fetched += jira_jql("key in (" + ",".join(chunk) + ")", ISSUE_FIELDS)
+    pill_issues = dept_tasks + fetched
+    if verbose:
+        print(f"      {OK} {len(dept_tasks)} dept task(s) + {len(fetched)} fetched parent(s) "
+              f"= pills; {len(subs)} subtask(s) nested")
+
+    cache = build_parent_cache(pill_issues + subs, verbose) if (pill_issues or subs) else {}
+
+    # Subtask dicts grouped by their parent key.
+    subs_by_parent = {}
+    for s in subs:
+        st = build_ticket(s, cache)
+        subs_by_parent.setdefault(st["parent_key"], []).append(st)
+
+    # Build one pill per parent item (preserve order; dedupe by key).
+    seen, pills = set(), []
+    for it in pill_issues:
+        k = it["key"]
+        if k in seen:
+            continue
+        seen.add(k)
+        p = build_ticket(it, cache)
+        kids = subs_by_parent.get(k, [])
+        p["subtasks"] = kids
+        p["sub_count"] = len(kids)
+        # Roll the work up: parent's own hours + its (dept) subtasks'.
+        p["est"] = round(p["est"] + sum(c["est"] for c in kids), 1)
+        p["spent"] = round(p["spent"] + sum(c["spent"] for c in kids), 1)
+        p["remaining"] = round(p["remaining"] + sum(c["remaining"] for c in kids), 1)
+        p["flags"]["unestimated"] = p["remaining"] == 0
+        pills.append(p)
+
+    # Safety: subtasks whose parent couldn't be fetched → a placeholder pill.
+    for pk in sorted(set(subs_by_parent) - seen - {None}):
+        kids = subs_by_parent[pk]
+        pills.append({
+            "id": pk, "url": JIRA_BROWSE + pk, "summary": "(parent not in open sprint)",
+            "issuetype": "", "is_subtask": False, "status": None, "bucket": "todo",
+            "assignee": None, "initials": None,
+            "est": round(sum(c["est"] for c in kids), 1),
+            "spent": round(sum(c["spent"] for c in kids), 1),
+            "remaining": round(sum(c["remaining"] for c in kids), 1),
+            "due": None, "release": None, "game": None, "priority": None, "parent_key": None,
+            "subtasks": kids, "sub_count": len(kids),
+            "flags": {"unassigned": True, "unestimated": False, "blocked": False},
         })
-    return tickets, sprints
+
+    return pills, sprints
 
 
 def choose_sprint(all_sprints):
