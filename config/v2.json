@@ -78,8 +78,6 @@
   "hidden_fvs": [
     "New Games",
     "V2 C2 Backlog",
-    "V2 P2P Backlog",
-    "V2 PT 12.20",
     "V2 PT Backlog",
     "V2 SW Backlog"
   ],
@@ -87,7 +85,7 @@
     "2026-05-18"
   ],
   "_meta": {
-    "published_at": "2026-06-22T18:24:44.294Z",
+    "published_at": "2026-06-26T18:42:36.159Z",
     "published_by": "mayankyadav1994"
   }
 }
