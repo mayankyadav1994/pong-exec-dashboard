@@ -19,6 +19,8 @@ var curDrag = null;                 // { id, mode: 'move'|'start'|'due'|'list' }
 var viewMode = "week";              // 'day' | 'week' | 'month'
 var anchor;                         // focal date
 var sortMode = "rank", statusFilter = "all";
+var expandedTasks = {};      // taskId -> its subtasks shown (default collapsed)
+var allExpanded = false;
 var collapsed = false;
 try { collapsed = localStorage.getItem("tb_list_collapsed") === "1"; } catch (e) {}
 
@@ -69,6 +71,13 @@ function avatarHtml(t) {
     ? '<span class="avatar">' + esc(t.initials || "?") + '</span><span class="who">' + esc(t.assignee) + "</span>"
     : '<span class="avatar none">—</span><span class="who">Unassigned</span>';
 }
+// Status drives the ticket-NUMBER colour: in-progress green, to-do red,
+// in-QA blue, on-hold amber, closed grey.
+function keyClass(bk) { return ({ wip: "k-wip", todo: "k-todo", done: "k-done", qa: "k-qa", hold: "k-hold" })[bk] || "k-todo"; }
+function avatarMini(t) {
+  return t.assignee ? '<span class="av2" title="' + esc(t.assignee) + '">' + esc(t.initials || "?") + "</span>"
+                    : '<span class="av2 none" title="Unassigned">–</span>';
+}
 
 // --- left list panel ---------------------------------------------------------
 function dateBadge(t) {
@@ -77,12 +86,15 @@ function dateBadge(t) {
   if (one) return '<span class="dates">' + fmtIso(one) + ' <span class="d1">(1 day)</span></span>';
   return '<span class="dates none">⃠ no dates</span>';
 }
-function listRowHtml(it, sub) {
+function listRowHtml(it, sub, hasSubs, isOpen) {
   var bk = esc(it.bucket || "todo");
-  return '<div class="li ' + curDept + (sub ? " sub" : "") + '" draggable="true" data-id="' + esc(it.id) + '" data-mode="list">' +
-    '<div class="li-top"><span class="dot b-' + bk + '"></span>' +
-      '<a class="li-key" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.id) + "</a>" +
-      '<span class="stat st-' + bk + '">' + esc(it.status || "—") + "</span>" +
+  var caret = (!sub && hasSubs)
+    ? '<button class="li-caret" data-id="' + esc(it.id) + '" title="Show/hide subtasks">' + (isOpen ? "▾" : "▸") + "</button>"
+    : '<span class="li-caret-sp"></span>';
+  return '<div class="li' + (sub ? " sub" : "") + (bk === "done" ? " isdone" : "") + '" draggable="true" data-id="' + esc(it.id) + '" data-mode="list">' +
+    '<div class="li-top">' + caret + '<span class="dot b-' + bk + '"></span>' +
+      '<a class="li-key ' + keyClass(it.bucket) + '" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.id) + "</a>" +
+      '<span class="li-status">' + esc(it.status || "—") + "</span>" +
       '<span class="li-hrs">' + (it.remaining > 0 ? it.remaining + "h" : "") + "</span></div>" +
     '<div class="li-sum">' + (sub ? "↳ " : "") + esc(it.summary) + "</div>" +
     '<div class="li-meta">' + avatarHtml(it) + dateBadge(it) + flagHtml(it) + "</div></div>";
@@ -94,18 +106,24 @@ function cmp(a, b, key) {
   if (key === "assignee") return (a.assignee || "~").localeCompare(b.assignee || "~");
   return 0;
 }
-function listRows() {
-  var rows;
-  if (sortMode === "rank") rows = allItemsFlat();
-  else { rows = allItemsFlat().slice().sort(function (a, b) { return cmp(a.it, b.it, sortMode); }); }
-  if (statusFilter !== "all") rows = rows.filter(function (r) { return (r.it.bucket || "") === statusFilter; });
-  return rows;
-}
+function pass(it) { return statusFilter === "all" || (it.bucket || "") === statusFilter; }
 function renderList() {
-  var rows = listRows();
-  document.getElementById("listBody").innerHTML = rows.map(function (r) { return listRowHtml(r.it, r.sub); }).join("") ||
-    '<p class="lp-empty">No items.</p>';
-  document.getElementById("lpCount").textContent = rows.length;
+  var body = document.getElementById("listBody"), html;
+  if (sortMode === "rank") {
+    html = "";
+    tickets().forEach(function (t) {
+      var subs = t.subtasks || [], open = !!expandedTasks[t.id];
+      if (pass(t)) html += listRowHtml(t, false, subs.length > 0, open);
+      if (open) subs.forEach(function (s) { if (pass(s)) html += listRowHtml(s, true, false, false); });
+    });
+  } else {
+    html = allItemsFlat().slice().sort(function (a, b) { return cmp(a.it, b.it, sortMode); })
+      .filter(function (r) { return pass(r.it); })
+      .map(function (r) { return listRowHtml(r.it, r.sub, false, false); }).join("");
+  }
+  body.innerHTML = html || '<p class="lp-empty">No items.</p>';
+  var total = allItemsFlat().filter(function (r) { return pass(r.it); }).length;
+  document.getElementById("lpCount").textContent = total;
 }
 
 // --- calendar ----------------------------------------------------------------
@@ -157,15 +175,15 @@ function packLanes(segs) {
 }
 function barHtml(seg) {
   var t = seg.item, bk = esc(t.bucket || "todo");
-  var cls = "tbar " + curDept + (seg.single ? " chip" : "") + (seg.contL ? " cont-l" : "") + (seg.contR ? " cont-r" : "");
+  var cls = "tbar" + (seg.single ? " chip" : "") + (bk === "done" ? " isdone" : "") + (seg.contL ? " cont-l" : "") + (seg.contR ? " cont-r" : "");
   var gL = seg.contL ? "" : '<span class="grip l" draggable="true" data-id="' + esc(t.id) + '" data-mode="start"></span>';
   var gR = seg.contR ? "" : '<span class="grip r" draggable="true" data-id="' + esc(t.id) + '" data-mode="due"></span>';
   var mid = seg.single ? "" : '<span class="sum">' + (t.is_subtask ? "↳ " : "") + esc(t.summary) + "</span>";
-  return '<div class="' + cls + '" draggable="true" data-id="' + esc(t.id) + '" data-mode="move" title="' + esc(t.id + " · " + t.summary) +
+  return '<div class="' + cls + '" draggable="true" data-id="' + esc(t.id) + '" data-mode="move" title="' + esc(t.id + " · " + t.summary + (t.assignee ? " · " + t.assignee : "")) +
     '" style="grid-column:' + (seg.col + 1) + "/span " + seg.span + ";grid-row:" + (seg.lane + 1) + '">' +
     gL + '<span class="dot b-' + bk + '"></span>' +
-    '<a class="key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
-    mid + '<span class="hrs">' + (t.remaining > 0 ? t.remaining + "h" : "") + "</span>" + gR + "</div>";
+    '<a class="key ' + keyClass(t.bucket) + '" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
+    mid + avatarMini(t) + '<span class="hrs">' + (t.remaining > 0 ? t.remaining + "h" : "") + "</span>" + gR + "</div>";
 }
 function dayHeadHtml(c) {
   if (!c) return '<div class="dcell blank"></div>';
@@ -193,10 +211,10 @@ function dayViewHtml(c) {
     var e = eff(x.it); if (!e) return;
     if (parseISO(e.s) <= c.date && c.date <= parseISO(e.d)) {
       var t = x.it, bk = esc(t.bucket || "todo");
-      bars.push('<div class="dbar ' + curDept + '" draggable="true" data-id="' + esc(t.id) + '" data-mode="move">' +
-        '<span class="dot b-' + bk + '"></span><a class="key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
+      bars.push('<div class="dbar' + (bk === "done" ? " isdone" : "") + '" draggable="true" data-id="' + esc(t.id) + '" data-mode="move">' +
+        '<span class="dot b-' + bk + '"></span><a class="key ' + keyClass(t.bucket) + '" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
         '<span class="sum">' + (t.is_subtask ? "↳ " : "") + esc(t.summary) + "</span>" +
-        '<span class="stat st-' + bk + '">' + esc(t.status || "—") + "</span>" +
+        avatarMini(t) + '<span class="li-status">' + esc(t.status || "—") + "</span>" +
         '<span class="hrs">' + (t.remaining > 0 ? t.remaining + "h" : "") + "</span>" +
         '<span class="drange">' + (t.start && t.due && t.start !== t.due ? fmtIso(t.start) + "→" + fmtIso(t.due) : "") + "</span></div>");
     }
@@ -222,12 +240,20 @@ function render() { renderList(); renderCalendar(); updateControls(); wireDrag()
 function wireDrag() {
   document.querySelectorAll(".tbar, .dbar, .li, .grip").forEach(function (el) {
     el.addEventListener("dragstart", function (e) {
-      if (e.target.tagName === "A") { e.preventDefault(); return; }
+      if (e.target.tagName === "A" || e.target.tagName === "BUTTON") { e.preventDefault(); return; }
       e.stopPropagation();
       curDrag = { id: el.dataset.id, mode: el.dataset.mode };
       el.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
     });
     el.addEventListener("dragend", function () { el.classList.remove("dragging"); curDrag = null; });
+  });
+  document.querySelectorAll(".li-caret").forEach(function (b) {
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var id = b.dataset.id;
+      if (expandedTasks[id]) delete expandedTasks[id]; else expandedTasks[id] = true;
+      renderList(); wireDrag();
+    });
   });
   document.querySelectorAll(".wkrow").forEach(function (row) {
     row.addEventListener("dragover", function (e) { e.preventDefault(); });
@@ -366,6 +392,13 @@ function start() {
   document.getElementById("navSprint").addEventListener("click", function () { if (SPRINT_START) { anchor = new Date(SPRINT_START); render(); } });
   document.getElementById("collapseBtn").addEventListener("click", function () { collapsed = true; applyCollapse(); });
   document.getElementById("railBtn").addEventListener("click", function () { collapsed = false; applyCollapse(); });
+  document.getElementById("foldAllBtn").addEventListener("click", function () {
+    allExpanded = !allExpanded;
+    expandedTasks = {};
+    if (allExpanded) tickets().forEach(function (t) { if ((t.subtasks || []).length) expandedTasks[t.id] = true; });
+    document.getElementById("foldAllBtn").textContent = allExpanded ? "⊟ Collapse all" : "⊞ Expand all";
+    renderList(); wireDrag();
+  });
   document.getElementById("lpSort").addEventListener("change", function (e) { sortMode = e.target.value; renderList(); wireDrag(); });
   document.getElementById("lpFilter").addEventListener("change", function (e) { statusFilter = e.target.value; renderList(); wireDrag(); });
   render();
