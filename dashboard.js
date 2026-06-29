@@ -26,6 +26,12 @@ const SHARED_CACHE = {};   // project key -> committed shared plan object
 let SHARED = {};           // current project's shared plan
 let EDITORS = [];          // allowed GitHub logins (UX gate; real gate = repo perms)
 let SHARED_STATUS = {}, SHARED_SIZES = {};
+// Notes per game: { "<game name>": [{ts, author, body}, ...] }. Shared via
+// plan-{key}.json. New notes append to a working copy in NOTES, persisted to
+// SHARED_NOTES on Save-as-default. Append-only via the UI — older entries
+// stay readable as the history of decisions / context for stakeholders.
+let SHARED_NOTES = {};
+let NOTES = {};
 
 // --- Project metadata --------------------------------------------------------
 const PROJECT_META = {
@@ -287,9 +293,32 @@ function saveAdded()  { try { localStorage.setItem(LS + 'added',  JSON.stringify
 function visibleGames() { return RAW_GAMES.filter(g => !HIDDEN.has(g.name)); }
 
 // Effective workflow status for a game: local override > shared plan > Jira auto.
+// Status progression rank — used for auto-promotion: when Jira has advanced
+// the auto status past a stale shared override (e.g. shared=In Progress but
+// Jira tickets now show In QA), we ignore the override and surface the live
+// auto value. statusIdx returns -1 for anything not in this chain (e.g. a
+// custom status the dashboard hasn't seen) — those skip auto-promotion.
+const STATUS_PROGRESSION = [
+  'Not Started', 'On Hold', 'In Pre-Prod', 'In Progress', 'In QA',
+  'Signed Off', 'Delivered',
+];
+function statusIdx(s) { return STATUS_PROGRESSION.indexOf(s); }
+
 function resolveGameStatus(g) {
   if (g._auto_status == null) g._auto_status = g.workflow_status;   // Jira-derived (#32), captured once
   g._shared_status = SHARED_STATUS[g.name] || null;
+  g._auto_promoted_from = null;
+  // Option B (#53): if Jira's auto status sits strictly downstream of the
+  // shared override, the override is stale — drop it for display, remember
+  // the original so the banner can list "from X → to Y" and offer to
+  // permanently clear it via Save-as-default.
+  if (g._shared_status && g._shared_status !== g._auto_status) {
+    const ai = statusIdx(g._auto_status), si = statusIdx(g._shared_status);
+    if (ai >= 0 && si >= 0 && ai > si) {
+      g._auto_promoted_from = g._shared_status;
+      g._shared_status = null;
+    }
+  }
   if (USER_STATUS[g.name] != null) { g.workflow_status = USER_STATUS[g.name]; g._status_source = 'local'; }
   else if (g._shared_status != null) { g.workflow_status = g._shared_status; g._status_source = 'shared'; }
   else { g.workflow_status = g._auto_status; g._status_source = 'auto'; }
@@ -328,6 +357,7 @@ function buildSkeleton() {
     <div class="hdr-actions"><button class="btn" id="planToggle">✎ Plan Mode</button></div>
   </div>
   <div class="gp-share-banner" id="gpShareBanner" style="display:none"></div>
+  <div class="gp-promote-banner" id="gpPromoteBanner" style="display:none"></div>
   <div class="kpi-strip" id="kpiStrip"></div>
   <div class="filter-bar" id="filterBar">
     <div class="fb-group" id="fbStatusGroup"><span class="fb-label">STATUS</span></div>
@@ -682,11 +712,60 @@ function renderDetail(g) {
   head.innerHTML = `<h3>${g.name} — Lifecycle Detail</h3><div class="meta"><strong>Stage</strong>: ${stageLabel(g.current_stage)} · <strong>Status</strong>: ${g.workflow_status}${ovrNote} · <strong>Jira epic</strong>: ${g.epic_status || '—'} · <strong>Lead Dev</strong>: ${g.dev_name || '—'}</div>`;
   panel.appendChild(head);
   const tabs = document.createElement('div'); tabs.className = 'detail-tabs';
-  tabs.innerHTML = `<div class="detail-tab active" data-tab="timeline">TIMELINE</div><div class="detail-tab" data-tab="milestones">SPRINTS</div><div class="detail-tab" data-tab="hours">HOURS</div>`;
+  // Tab order: NOTES first (default active on expand) — gives editors a
+  // place to keep stakeholder-facing context that doesn't fit in Jira fields.
+  tabs.innerHTML =
+    `<div class="detail-tab active" data-tab="notes">📝 NOTES</div>` +
+    `<div class="detail-tab" data-tab="timeline">TIMELINE</div>` +
+    `<div class="detail-tab" data-tab="milestones">SPRINTS</div>` +
+    `<div class="detail-tab" data-tab="hours">HOURS</div>`;
   panel.appendChild(tabs);
   const body = document.createElement('div'); body.className = 'detail-body';
 
-  const tlPane = document.createElement('div');
+  // ── NOTES pane ──
+  // Default-visible. Most-recent-first list of timestamped notes + an
+  // append-only entry box. Each entry stamps `getGhUser()` (anon if no PAT).
+  // Ctrl/Cmd+Enter on the textarea OR the "+ Add note" button commits.
+  const notesPane = document.createElement('div'); notesPane.className = 'notes-pane';
+  const renderNotesList = () => {
+    const list = NOTES[g.name] || [];
+    const items = list.map(n => {
+      const ts = n.ts ? new Date(n.ts) : null;
+      const stamp = ts ? `${ts.toISOString().slice(0,10)} ${ts.toISOString().slice(11,16)} UTC` : '';
+      const author = n.author || 'anon';
+      const body = String(n.body || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+      return `<div class="note-card"><div class="note-meta"><span class="note-date">${stamp}</span> · <span class="note-author">${author}</span></div><div class="note-body">${body}</div></div>`;
+    }).join('') || `<div class="note-empty">No notes yet for this game. Add one below to log context for stakeholders.</div>`;
+    notesList.innerHTML = items;
+  };
+  const notesEditor = document.createElement('div'); notesEditor.className = 'note-editor';
+  notesEditor.innerHTML =
+    `<textarea class="note-input" placeholder="Add a note for ${g.name}…  (Ctrl/⌘+Enter to save)"></textarea>` +
+    `<div class="note-editor-row">` +
+    `  <span class="note-hint">${getGhUser() ? '✓ ' + getGhUser() : 'not signed in — note will be stamped "anon"'}</span>` +
+    `  <button class="gsb-btn primary note-add-btn">+ Add note</button>` +
+    `</div>`;
+  const notesList = document.createElement('div'); notesList.className = 'notes-list';
+  notesPane.appendChild(notesEditor);
+  notesPane.appendChild(notesList);
+  renderNotesList();
+  const inputEl = notesEditor.querySelector('.note-input');
+  const commitNote = () => {
+    if (addNote(g.name, inputEl.value)) {
+      inputEl.value = '';
+      renderNotesList();
+      showToast('Note added — Save as default to publish');
+    }
+  };
+  notesEditor.querySelector('.note-add-btn').addEventListener('click', e => { e.stopPropagation(); commitNote(); });
+  inputEl.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); commitNote(); }
+    e.stopPropagation();
+  });
+  inputEl.addEventListener('click', e => e.stopPropagation());
+  body.appendChild(notesPane);
+
+  const tlPane = document.createElement('div'); tlPane.style.display = 'none';
   // Month band header so the department bars read under labelled month columns (#41).
   const mh = document.createElement('div'); mh.className = 'disc-row disc-month-head';
   let mhTrack = '';
@@ -751,6 +830,7 @@ function renderDetail(g) {
     e.stopPropagation();
     tabs.querySelectorAll('.detail-tab').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
+    notesPane.style.display = t.dataset.tab === 'notes' ? 'block' : 'none';
     tlPane.style.display = t.dataset.tab === 'timeline' ? 'block' : 'none';
     msPane.style.display = t.dataset.tab === 'milestones' ? 'block' : 'none';
     hrsPane.style.display = t.dataset.tab === 'hours' ? 'block' : 'none';
@@ -1035,9 +1115,39 @@ function hasLocalEdits() {
     const st = localStorage.getItem(LS + 'status');
     const sz = localStorage.getItem(LS + 'sizes');
     const ad = localStorage.getItem(LS + 'added');
+    const nt = localStorage.getItem(LS + 'notes');
     return !!(o || (st && st !== '{}') || (sz && sz !== '{}') || (ad && ad !== '[]')
+      || (nt && nt !== '{}')
       || localStorage.getItem(LS + 'hidden') || localStorage.getItem(LS + 'config'));
   } catch (e) { return false; }
+}
+
+// Notes persistence — staged in localStorage like other plan edits, then
+// pushed to plan-<key>.json via publishPlan. Append-only from the UI; older
+// entries stay readable as the history of decisions for stakeholders.
+function saveNotes() {
+  try { localStorage.setItem(LS + 'notes', JSON.stringify(NOTES || {})); } catch (e) {}
+}
+function loadNotesOverlay() {
+  try {
+    const raw = localStorage.getItem(LS + 'notes');
+    if (!raw) return;
+    const local = JSON.parse(raw);
+    if (local && typeof local === 'object') NOTES = local;   // local overlay wins for this browser
+  } catch (e) {}
+}
+function addNote(gameName, body) {
+  body = String(body || '').trim();
+  if (!body) return false;
+  NOTES = NOTES || {};
+  NOTES[gameName] = NOTES[gameName] || [];
+  NOTES[gameName].unshift({
+    ts: new Date().toISOString(),
+    author: getGhUser() || 'anon',
+    body,
+  });
+  saveNotes();
+  return true;
 }
 function renderShareBanner() {
   const el = document.getElementById('gpShareBanner');
@@ -1054,6 +1164,52 @@ function renderShareBanner() {
   el.style.display = 'flex';
   document.getElementById('gsbApply').onclick = () => { setSharedSeen(sv); resetLocalEdits(); };
   document.getElementById('gsbDismiss').onclick = () => { setSharedSeen(sv); el.style.display = 'none'; };
+}
+
+// Auto-promote banner: lists every game whose shared override was passed by
+// the live auto status this load. Offers two actions:
+//   • Save to plan  → publishes a plan with those stale entries removed
+//   • Keep manual   → re-pins the overrides locally so they survive the auto
+//                     promotion (writes to USER_STATUS); editor can later
+//                     Save-as-default to push them back to shared.
+function renderPromoteBanner() {
+  const el = document.getElementById('gpPromoteBanner');
+  if (!el) return;
+  const promoted = RAW_GAMES.filter(g => g._auto_promoted_from);
+  if (!promoted.length) { el.style.display = 'none'; return; }
+  const rows = promoted.map(g =>
+    `<li><b>${g.name}</b> <span class="ap-from">${g._auto_promoted_from}</span> → <span class="ap-to">${g._auto_status}</span></li>`
+  ).join('');
+  el.innerHTML = `<div class="apb-head">📢 ${promoted.length} game${promoted.length > 1 ? 's' : ''} auto-released from manual override — Jira status has progressed past them.</div>`
+    + `<ul class="apb-list">${rows}</ul>`
+    + `<div class="apb-actions">`
+    + `  <button class="gsb-btn primary" id="apbSave">Save to plan</button>`
+    + `  <button class="gsb-btn" id="apbKeep">Keep manual overrides</button>`
+    + `</div>`;
+  el.style.display = 'block';
+  document.getElementById('apbSave').onclick = async () => {
+    if (!getPat()) { openSignInModal(); return; }
+    try {
+      // Remove the stale entries permanently — the existing publishPlan reads
+      // RAW_GAMES.workflow_status; since auto-promoted games now have
+      // workflow_status === _auto_status, their entries naturally fall out of
+      // the published `status` map (see buildPlanPayload).
+      await publishPlan();
+      showToast(`✓ Cleared ${promoted.length} stale override${promoted.length > 1 ? 's' : ''}`);
+      // Refresh the cache locally so the banner doesn't reappear on next render
+      SHARED_STATUS = (SHARED_CACHE[PROJECT.key] || {}).status || {};
+      RAW_GAMES.forEach(resolveGameStatus);
+      renderPromoteBanner(); renderRows();
+    } catch (e) { showToast('Save failed: ' + e.message); }
+  };
+  document.getElementById('apbKeep').onclick = () => {
+    // Repin as a local override so it survives — user keeps the manual call
+    // visible to themselves; not shared with others until they Save.
+    promoted.forEach(g => { USER_STATUS[g.name] = g._auto_promoted_from; g.workflow_status = g._auto_promoted_from; g._status_source = 'local'; g._auto_promoted_from = null; });
+    saveStatus();
+    el.style.display = 'none';
+    renderRows();
+  };
 }
 
 // ============================================================
@@ -1108,8 +1264,12 @@ function buildPlanPayload() {
     ['art', 'math', 'dev', 'sound'].forEach(k => { if (sz[k]) keep[k] = sz[k]; });
     if (Object.keys(keep).length) sizes[g.name] = keep;
   });
+  // Notes — strip empty arrays so the JSON stays clean. Anything that's been
+  // appended via addNote() shows up here.
+  const notes = {};
+  Object.keys(NOTES || {}).forEach(k => { const arr = NOTES[k] || []; if (arr.length) notes[k] = arr; });
   return {
-    order: RAW_GAMES.map(g => g.name), status, sizes, hidden: [...HIDDEN],
+    order: RAW_GAMES.map(g => g.name), status, sizes, hidden: [...HIDDEN], notes,
     // Games on the board that aren't default roster — by the explicit added-set
     // OR a non-roster flag, so `added` can't drift out of sync with `order` (#47/#52).
     added: (function () {
@@ -1239,6 +1399,12 @@ function mount(projectKey, container) {
   SHARED = SHARED_CACHE[PROJECT.key] || {};
   SHARED_STATUS = SHARED.status || {};
   SHARED_SIZES = SHARED.sizes || {};
+  SHARED_NOTES = SHARED.notes || {};
+  // Working copy of notes — starts identical to shared, mutated by addNote()
+  // and persisted via publishPlan. Deep-clone so adding a note doesn't
+  // retroactively mutate the SHARED_CACHE entry.
+  NOTES = JSON.parse(JSON.stringify(SHARED_NOTES));
+  loadNotesOverlay();   // local unpublished notes win for this browser
 
   CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   if (SHARED.config) CONFIG = { ...CONFIG, ...SHARED.config };
@@ -1294,7 +1460,7 @@ function mount(projectKey, container) {
     return;
   }
   document.getElementById('hdrCount').textContent = visibleGames().length;
-  buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows(); renderShareBanner();
+  buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows(); renderShareBanner(); renderPromoteBanner();
 }
 
 // ============================================================
