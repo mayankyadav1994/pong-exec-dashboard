@@ -381,13 +381,18 @@ def derive_status(aggs: dict, epic_status: Optional[str]) -> str:
     # QA phase = the QA discipline is active (its tickets WIP or in-QA), or any
     # discipline has an explicit in-QA ticket.
     any_qa = flags["qa"]["active"] or any(flags[k]["qa"] > 0 for k in DISCIPLINE_ORDER)
+    # Open Bug tickets anywhere in the subtree → game is effectively in QA,
+    # even when the epic's own Jira status still says "In Progress". Matches
+    # the on-the-ground rule: bugs filed = the game is being QA'd. Bugs are
+    # still excluded from hour aggregation; this is just a status signal.
+    has_open_bug = (aggs.get("_open_bugs") or 0) > 0
     prod_wip = any(flags[k]["wip"] > 0 for k in ("art", "math", "dev", "sound"))
     design_wip = flags["design"]["wip"] > 0
     any_preprod = any(flags[k]["preprod"] > 0 for k in DISCIPLINE_ORDER)
 
     if (rel["done"] > 0 and not active_any) or all_done:
         return "Signed Off"
-    if any_qa or rel["active"]:
+    if any_qa or has_open_bug or rel["active"]:
         return "In QA"
     if not active_any and (hold_any or epic_hold):
         return "On Hold"
@@ -470,6 +475,11 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                     "preprod": 0}
         aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
         aggs["_release"] = _new_agg()
+        # Open bug signal — set by add_issue() when it encounters an open Bug
+        # ticket anywhere in the epic subtree. Used by derive_status to
+        # auto-classify the epic as "In QA" even when the epic's own Jira
+        # status hasn't been moved yet.
+        aggs["_open_bugs"] = 0
 
         # Count classified sub-tasks per parent → drives the estimate fallback.
         classified_subs = {}
@@ -482,10 +492,16 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         def add_issue(fields, include_est):
             itype = ((fields.get("issuetype") or {}).get("name")) or ""
             cat = classify_child(itype)
-            if cat == "exclude":
-                return
             status_l = ((fields.get("status") or {}).get("name") or "").strip().lower()
             bk = bucket(status_l)
+            if cat == "exclude":
+                # Bugs are excluded from hour aggregation but ARE counted as a
+                # QA signal so the epic gets classified "In QA" when bug
+                # tickets are filed even if the epic itself hasn't been moved.
+                # Only OPEN bugs count — closed/signed-off ones don't reopen QA.
+                if itype.strip().lower() == "bug" and bk != "done":
+                    aggs["_open_bugs"] += 1
+                return
             if cat == "release":
                 aggs["_release"]["buckets"][bk] += 1     # signal only — no hours
                 return
