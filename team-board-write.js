@@ -54,6 +54,9 @@ window.TBWrite = {
   setDueDate: function (ticket, dateStr, cb) {
     dispatch({ action: "setDueDate", key: ticket.id, date: dateStr }, cb);
   },
+  setDates: function (ticket, startStr, dueStr, cb) {
+    dispatch({ action: "setDates", key: ticket.id, start: startStr, due: dueStr }, cb);
+  },
   addToSprint: function (key, cb) {
     dispatch({ action: "addToSprint", key: key }, cb);
   },

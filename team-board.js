@@ -1,260 +1,280 @@
 /* ============================================================
    Team Board — sprint planning calendar engine.
-   Reads window.TB_DATA (from team-board-data.js); renders a draggable
-   day calendar per department. Drag/drop + Edit Plan persist to Jira via
-   the GitHub Actions relay in team-board-write.js (loaded last, optional).
+   Reads window.TB_DATA. Renders a collapsible "Sprint Items" list +
+   a Day/Week/Month calendar where each ticket is a START→DUE bar.
+   Drag the bar body to move (keeps duration), drag an edge to change
+   just start or due. Subtasks are independently draggable so a shared
+   Story's dates never move. Writes go through team-board-write.js.
    ============================================================ */
 (function () {
 "use strict";
 
 var DATA = window.TB_DATA || { depts: {}, sprint: null, refreshed_at: "" };
-var DAILY_CAP = 16;                       // hours/day before a column goes red
+var DAILY_CAP = 16;
 var DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 var deptKeys = Object.keys(DATA.depts || {});
 var curDept = deptKeys[0] || null;
-var curDrag = null;
-var expanded = {};        // pill id -> subtask dropdown open?
+var curDrag = null;                 // { id, mode: 'move'|'start'|'due'|'list' }
+var viewMode = "week";              // 'day' | 'week' | 'month'
+var anchor;                         // focal date
+var sortMode = "rank", statusFilter = "all";
+var collapsed = false;
+try { collapsed = localStorage.getItem("tb_list_collapsed") === "1"; } catch (e) {}
+
+var TODAY = new Date();
+var SPRINT_START = (DATA.sprint && DATA.sprint.start) ? parseISO(DATA.sprint.start) : null;
+var SPRINT_END = (DATA.sprint && DATA.sprint.end) ? parseISO(DATA.sprint.end) : null;
 
 // --- date helpers ------------------------------------------------------------
 function parseISO(s) { var p = (s || "").split("-"); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
 function isoOf(d) { var m = ("0" + (d.getMonth() + 1)).slice(-2), day = ("0" + d.getDate()).slice(-2); return d.getFullYear() + "-" + m + "-" + day; }
 function fmtShort(d) { return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function fmtIso(iso) { var d = parseISO(iso); return d ? fmtShort(d) : iso; }
 function sameDay(a, b) { return a && b && isoOf(a) === isoOf(b); }
 function isWeekend(d) { var g = d.getDay(); return g === 0 || g === 6; }
 function addDays(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
-function startOfWeek(d) { return addDays(d, -((d.getDay() + 6) % 7)); }   // Monday
-
-var TODAY = new Date();
-var SPRINT_START = (DATA.sprint && DATA.sprint.start) ? parseISO(DATA.sprint.start) : null;
-var SPRINT_END = (DATA.sprint && DATA.sprint.end) ? parseISO(DATA.sprint.end) : null;
-var viewMode = "month";                 // 'day' | 'week' | 'month'
-var anchor = new Date(TODAY);           // focal date for the current view
+function startOfWeek(d) { return addDays(d, -((d.getDay() + 6) % 7)); }
+function daysInc(aIso, bIso) { return Math.round((parseISO(bIso) - parseISO(aIso)) / 86400000) + 1; }
 function inSprint(d) { return SPRINT_START && SPRINT_END && d >= SPRINT_START && d <= SPRINT_END; }
 
+// --- data accessors ----------------------------------------------------------
 function tickets() { return (DATA.depts[curDept] && DATA.depts[curDept].tickets) || []; }
 function subtasksFlat() {
   var out = [];
   tickets().forEach(function (t) { (t.subtasks || []).forEach(function (s) { s._parent = t.id; out.push(s); }); });
   return out;
 }
+function allItemsFlat() {
+  var out = [];
+  tickets().forEach(function (t) { out.push({ it: t, sub: false }); (t.subtasks || []).forEach(function (s) { s._parent = t.id; out.push({ it: s, sub: true }); }); });
+  return out;
+}
 function findItem(id) {
   return tickets().find(function (x) { return x.id === id; })
       || subtasksFlat().find(function (s) { return s.id === id; }) || null;
 }
+function eff(t) { var s = t.start || t.due, d = t.due || t.start; return (s && d) ? { s: s, d: d } : null; }
 
-// --- cards -------------------------------------------------------------------
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
 function flagHtml(t) {
   var f = t.flags || {};
-  if (f.blocked) return '<span class="flag f-blocked">⛔ blocked</span>';
+  if (f.blocked) return '<span class="flag f-blocked">⛔</span>';
   if (f.unassigned) return '<span class="flag f-unassigned">no owner</span>';
   if (f.unestimated) return '<span class="flag f-unestimated">no est</span>';
   return "";
 }
-function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
-
-function pillHtml(t) {
-  var who = t.assignee
+function avatarHtml(t) {
+  return t.assignee
     ? '<span class="avatar">' + esc(t.initials || "?") + '</span><span class="who">' + esc(t.assignee) + "</span>"
     : '<span class="avatar none">—</span><span class="who">Unassigned</span>';
-  var rel = t.release || t.game || "";
-  var bk = esc(t.bucket || "todo");
-  var rem = t.remaining;
-  var remHtml = (rem > 0)
-    ? '<span class="rem has" title="Remaining (rolled up incl. subtasks)">' + rem + "h left</span>"
-    : '<span class="rem none">' + (t.est ? "0h left" : "no est") + "</span>";
-  var statHtml = '<span class="stat st-' + bk + '" title="' + esc(t.status || "") + '">' +
-    '<span class="dot b-' + bk + '"></span>' + esc(t.status || "—") + "</span>";
-  var isOpen = !!expanded[t.id];
-  var nSub = t.sub_count || 0;
-  var subToggle = nSub > 0
-    ? '<button class="sub-toggle" data-id="' + esc(t.id) + '">' + (isOpen ? "▾ " : "▸ ") + nSub + " subtask" + (nSub > 1 ? "s" : "") + "</button>"
-    : '<span class="sub-none">no subtasks</span>';
-  var dueVal = t.due ? esc(t.due) : "";
-  var foot = '<div class="pill-foot">' + subToggle +
-    '<label class="due-edit-wrap" title="Set due date — writes to Jira">📅<input type="date" class="due-edit" data-id="' + esc(t.id) + '" value="' + dueVal + '"></label></div>';
-  var panel = nSub > 0
-    ? '<div class="sub-panel" data-panel="' + esc(t.id) + '"' + (isOpen ? "" : " hidden") + ">" + (t.subtasks || []).map(subRow).join("") + "</div>"
-    : "";
-  return '<div class="pill ' + curDept + '" draggable="true" data-id="' + esc(t.id) + '">' +
-    '<div class="pill-top"><a class="pill-key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" + remHtml + "</div>" +
-    '<div class="pill-sum">' + esc(t.summary) + "</div>" +
-    '<div class="pill-bot">' + statHtml + flagHtml(t) + "</div>" +
-    '<div class="pill-bot"><span class="pill-meta">' + who + '</span><span class="game">' + esc(rel) + "</span></div>" +
-    foot + panel + "</div>";
 }
 
-// Subtask row inside a parent's dropdown — also draggable onto a day.
-function subRow(s) {
-  var bk = esc(s.bucket || "todo");
-  var rem = (s.remaining > 0) ? s.remaining + "h" : "—";
-  return '<div class="sub-row" draggable="true" data-id="' + esc(s.id) + '" title="Drag onto a day to schedule">' +
-    '<a class="sub-key" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.id) + "</a>" +
-    '<span class="sub-sum" title="' + esc(s.summary) + '">' + esc(s.summary) + "</span>" +
-    '<span class="stat st-' + bk + '"><span class="dot b-' + bk + '"></span>' + esc(s.status || "—") + "</span>" +
-    '<span class="sub-rem">' + rem + "</span></div>";
+// --- left list panel ---------------------------------------------------------
+function dateBadge(t) {
+  if (t.start && t.due && t.start !== t.due) return '<span class="dates">' + fmtIso(t.start) + '<span class="arrow">→</span>' + fmtIso(t.due) + "</span>";
+  var one = t.due || t.start;
+  if (one) return '<span class="dates">' + fmtIso(one) + ' <span class="d1">(1 day)</span></span>';
+  return '<span class="dates none">⃠ no dates</span>';
+}
+function listRowHtml(it, sub) {
+  var bk = esc(it.bucket || "todo");
+  return '<div class="li ' + curDept + (sub ? " sub" : "") + '" draggable="true" data-id="' + esc(it.id) + '" data-mode="list">' +
+    '<div class="li-top"><span class="dot b-' + bk + '"></span>' +
+      '<a class="li-key" href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(it.id) + "</a>" +
+      '<span class="stat st-' + bk + '">' + esc(it.status || "—") + "</span>" +
+      '<span class="li-hrs">' + (it.remaining > 0 ? it.remaining + "h" : "") + "</span></div>" +
+    '<div class="li-sum">' + (sub ? "↳ " : "") + esc(it.summary) + "</div>" +
+    '<div class="li-meta">' + avatarHtml(it) + dateBadge(it) + flagHtml(it) + "</div></div>";
+}
+function cmp(a, b, key) {
+  if (key === "start") return (a.start || "9999") < (b.start || "9999") ? -1 : 1;
+  if (key === "due") return (a.due || "9999") < (b.due || "9999") ? -1 : 1;
+  if (key === "status") return (a.bucket || "").localeCompare(b.bucket || "");
+  if (key === "assignee") return (a.assignee || "~").localeCompare(b.assignee || "~");
+  return 0;
+}
+function listRows() {
+  var rows;
+  if (sortMode === "rank") rows = allItemsFlat();
+  else { rows = allItemsFlat().slice().sort(function (a, b) { return cmp(a.it, b.it, sortMode); }); }
+  if (statusFilter !== "all") rows = rows.filter(function (r) { return (r.it.bucket || "") === statusFilter; });
+  return rows;
+}
+function renderList() {
+  var rows = listRows();
+  document.getElementById("listBody").innerHTML = rows.map(function (r) { return listRowHtml(r.it, r.sub); }).join("") ||
+    '<p class="lp-empty">No items.</p>';
+  document.getElementById("lpCount").textContent = rows.length;
 }
 
-// Compact subtask chip shown on a calendar day / backlog.
-function subChipHtml(s) {
-  var bk = esc(s.bucket || "todo");
-  var rem = (s.remaining > 0) ? s.remaining + "h" : "";
-  return '<div class="sub-chip ' + curDept + '" draggable="true" data-id="' + esc(s.id) + '" title="' + esc(s.summary) + '">' +
-    '<span class="dot b-' + bk + '"></span>' +
-    '<a class="chip-key" href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.id) + "</a>" +
-    '<span class="chip-sum">' + esc(s.summary) + "</span>" +
-    (rem ? '<span class="chip-rem">' + rem + "</span>" : "") + "</div>";
-}
-
-// --- calendar views ----------------------------------------------------------
+// --- calendar ----------------------------------------------------------------
 function mkCell(d) {
-  return {
-    date: new Date(d), iso: isoOf(d), dow: DOW[d.getDay()], weekend: isWeekend(d),
+  return { date: new Date(d), iso: isoOf(d), dow: DOW[d.getDay()], weekend: isWeekend(d),
     today: sameDay(d, TODAY), inSprint: inSprint(d),
-    sprintStart: SPRINT_START && sameDay(d, SPRINT_START),
-    sprintEnd: SPRINT_END && sameDay(d, SPRINT_END),
-  };
+    sprintStart: SPRINT_START && sameDay(d, SPRINT_START), sprintEnd: SPRINT_END && sameDay(d, SPRINT_END) };
 }
-function buildCells() {
-  if (viewMode === "day") return { single: true, rows: [[mkCell(anchor)]] };
-  if (viewMode === "week") {
-    var st = startOfWeek(anchor), row = [];
-    for (var i = 0; i < 7; i++) row.push(mkCell(addDays(st, i)));
-    return { single: false, rows: [row] };
+function buildWeeks() {
+  if (viewMode === "day") return { single: true, cell: mkCell(anchor) };
+  if (viewMode === "week") { var st = startOfWeek(anchor); return { single: false, weeks: [wkObj(st)] }; }
+  var first = new Date(anchor.getFullYear(), anchor.getMonth(), 1), st = startOfWeek(first), weeks = [];
+  for (var w = 0; w < 6; w++) weeks.push(wkObj(addDays(st, w * 7)));
+  return { single: false, weeks: weeks.filter(function (wk) { return wk.cells.some(Boolean); }) };
+}
+function wkObj(wkStart) {
+  var cells = [];
+  for (var i = 0; i < 7; i++) {
+    var d = addDays(wkStart, i);
+    var show = (viewMode === "week") || d.getMonth() === anchor.getMonth();
+    cells.push(show ? mkCell(d) : null);
   }
-  // month: 6 weeks; days outside the month are blank
-  var first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-  var d = startOfWeek(first), rows = [];
-  for (var w = 0; w < 6; w++) {
-    var row = [];
-    for (var j = 0; j < 7; j++) { row.push(d.getMonth() === anchor.getMonth() ? mkCell(d) : null); d = addDays(d, 1); }
-    rows.push(row);
-  }
-  return { single: false, rows: rows.filter(function (r) { return r.some(Boolean); }) };
+  return { wkStart: wkStart, cells: cells };
 }
-function dayCellHtml(c, big) {
-  if (!c) return '<div class="day empty"></div>';
-  var cls = "day" + (c.today ? " today" : "") + (c.weekend ? " weekend" : "") +
-            (c.inSprint ? " in-sprint" : "") + (big ? " day-big" : "");
-  var mark = c.sprintStart ? '<span class="sp-marker start">▸ Sprint start</span>'
-           : (c.sprintEnd ? '<span class="sp-marker end">Sprint end ◂</span>' : "");
-  return '<div class="' + cls + '">' +
-    '<div class="day-head"><span><span class="day-date">' + fmtShort(c.date) + '</span> <span class="day-dow">' + c.dow + '</span></span>' +
-    '<span class="cap" data-iso="' + c.iso + '"></span></div>' +
-    (mark ? '<div class="sp-marker-row">' + mark + "</div>" : "") +
-    '<div class="day-body" data-iso="' + c.iso + '"></div></div>';
+function capFor(iso) {        // no split: count once on the due day; leaf work only
+  var cap = 0;
+  subtasksFlat().forEach(function (s) { if (s.due === iso) cap += s.remaining || 0; });
+  tickets().forEach(function (t) { if (t.due === iso && !(t.sub_count > 0)) cap += t.remaining || 0; });
+  return Math.round(cap);
 }
-function renderGrid(view) {
-  if (view.single) return '<div class="cal-day-single">' + dayCellHtml(view.rows[0][0], true) + "</div>";
-  var head = '<div class="week dow-head">' +
-    ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(function (x) { return '<div class="dowh">' + x + "</div>"; }).join("") + "</div>";
-  var body = view.rows.map(function (row) {
-    return '<div class="week">' + row.map(function (c) { return dayCellHtml(c, false); }).join("") + "</div>";
-  }).join("");
-  return head + body;
-}
+function capCls(c) { return c > DAILY_CAP ? "over" : (c >= DAILY_CAP * 0.75 ? "warn" : (c > 0 ? "ok" : "")); }
 
-function render() {
+function weekSeg(t, wkStart) {
+  var e = eff(t); if (!e) return null;
+  var s = parseISO(e.s), d = parseISO(e.d), wkEnd = addDays(wkStart, 6);
+  if (d < wkStart || s > wkEnd) return null;
+  var segS = s < wkStart ? wkStart : s, segE = d > wkEnd ? wkEnd : d;
+  return { item: t, col: Math.round((segS - wkStart) / 86400000), span: Math.round((segE - segS) / 86400000) + 1,
+    contL: s < wkStart, contR: d > wkEnd, single: e.s === e.d };
+}
+function packLanes(segs) {
+  var lanes = [];
+  segs.sort(function (a, b) { return a.col - b.col || b.span - a.span; });
+  segs.forEach(function (s) {
+    for (var i = 0; i < lanes.length; i++) { if (lanes[i] <= s.col) { s.lane = i; lanes[i] = s.col + s.span; return; } }
+    s.lane = lanes.length; lanes.push(s.col + s.span);
+  });
+  return segs;
+}
+function barHtml(seg) {
+  var t = seg.item, bk = esc(t.bucket || "todo");
+  var cls = "tbar " + curDept + (seg.single ? " chip" : "") + (seg.contL ? " cont-l" : "") + (seg.contR ? " cont-r" : "");
+  var gL = seg.contL ? "" : '<span class="grip l" draggable="true" data-id="' + esc(t.id) + '" data-mode="start"></span>';
+  var gR = seg.contR ? "" : '<span class="grip r" draggable="true" data-id="' + esc(t.id) + '" data-mode="due"></span>';
+  var mid = seg.single ? "" : '<span class="sum">' + (t.is_subtask ? "↳ " : "") + esc(t.summary) + "</span>";
+  return '<div class="' + cls + '" draggable="true" data-id="' + esc(t.id) + '" data-mode="move" title="' + esc(t.id + " · " + t.summary) +
+    '" style="grid-column:' + (seg.col + 1) + "/span " + seg.span + ";grid-row:" + (seg.lane + 1) + '">' +
+    gL + '<span class="dot b-' + bk + '"></span>' +
+    '<a class="key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
+    mid + '<span class="hrs">' + (t.remaining > 0 ? t.remaining + "h" : "") + "</span>" + gR + "</div>";
+}
+function dayHeadHtml(c) {
+  if (!c) return '<div class="dcell blank"></div>';
+  var cap = capFor(c.iso);
+  return '<div class="dcell' + (c.inSprint ? " sprint" : "") + (c.today ? " today" : "") + (c.weekend ? " wknd" : "") + '">' +
+    '<div class="dn">' + c.date.getDate() + '</div><div class="dw">' + c.dow + "</div>" +
+    (c.sprintStart ? '<span class="sp-start">▸ sprint</span>' : "") + (c.sprintEnd ? '<span class="sp-end">end ◂</span>' : "") +
+    '<span class="cap ' + capCls(cap) + '">' + (cap ? cap + "h" : "") + "</span></div>";
+}
+function weekRowHtml(wk) {
+  var heads = wk.cells.map(dayHeadHtml).join("");
+  var segs = [];
+  allItemsFlat().forEach(function (x) { var s = weekSeg(x.it, wk.wkStart); if (s) segs.push(s); });
+  packLanes(segs);
+  var laneN = segs.reduce(function (m, s) { return Math.max(m, s.lane + 1); }, 1);
+  var bg = wk.cells.map(function (c) { return "<div" + (c && c.inSprint ? ' class="sprint"' : "") + "></div>"; }).join("");
+  return '<div class="wkrow" data-wkstart="' + isoOf(wk.wkStart) + '">' +
+    '<div class="wk-head">' + heads + "</div>" +
+    '<div class="lanes-wrap"><div class="wk-bg">' + bg + "</div>" +
+    '<div class="wk-lanes" style="min-height:' + (laneN * 34) + 'px">' + segs.map(barHtml).join("") + "</div></div></div>";
+}
+function dayViewHtml(c) {
+  var bars = [];
+  allItemsFlat().forEach(function (x) {
+    var e = eff(x.it); if (!e) return;
+    if (parseISO(e.s) <= c.date && c.date <= parseISO(e.d)) {
+      var t = x.it, bk = esc(t.bucket || "todo");
+      bars.push('<div class="dbar ' + curDept + '" draggable="true" data-id="' + esc(t.id) + '" data-mode="move">' +
+        '<span class="dot b-' + bk + '"></span><a class="key" href="' + esc(t.url) + '" target="_blank" rel="noopener">' + esc(t.id) + "</a>" +
+        '<span class="sum">' + (t.is_subtask ? "↳ " : "") + esc(t.summary) + "</span>" +
+        '<span class="stat st-' + bk + '">' + esc(t.status || "—") + "</span>" +
+        '<span class="hrs">' + (t.remaining > 0 ? t.remaining + "h" : "") + "</span>" +
+        '<span class="drange">' + (t.start && t.due && t.start !== t.due ? fmtIso(t.start) + "→" + fmtIso(t.due) : "") + "</span></div>");
+    }
+  });
+  var cap = capFor(c.iso);
+  return '<div class="dayview" data-iso="' + c.iso + '">' +
+    '<div class="dv-head"><span class="dv-date">' + c.date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) + "</span>" +
+    (c.inSprint ? '<span class="sp-start">in sprint</span>' : "") + '<span class="cap ' + capCls(cap) + '">' + (cap ? cap + "h" : "0h") + "</span></div>" +
+    '<div class="dv-body">' + (bars.join("") || '<p class="lp-empty">Nothing scheduled for this day.</p>') + "</div></div>";
+}
+function renderCalendar() {
   var cal = document.getElementById("cal");
   if (!SPRINT_START) { cal.innerHTML = '<p class="footer">No active sprint window found.</p>'; return; }
-  var view = buildCells();
-  cal.innerHTML = renderGrid(view);
-
-  var tasks = tickets(), subs = subtasksFlat();
-
-  // backlog: anything with no due date (tasks as pills, subtasks as chips)
-  var bl = document.getElementById("backlog"), blCount = 0;
-  bl.innerHTML = "";
-  tasks.forEach(function (t) { if (t.due == null) { bl.insertAdjacentHTML("beforeend", pillHtml(t)); blCount++; } });
-  subs.forEach(function (s) { if (s.due == null) { bl.insertAdjacentHTML("beforeend", subChipHtml(s)); blCount++; } });
-  document.getElementById("blCount").textContent = blCount;
-
-  // place items + capacity on each visible day
-  view.rows.forEach(function (row) {
-    row.forEach(function (c) {
-      if (!c) return;
-      var body = cal.querySelector('.day-body[data-iso="' + c.iso + '"]');
-      if (!body) return;
-      tasks.forEach(function (t) { if (t.due === c.iso) body.insertAdjacentHTML("beforeend", pillHtml(t)); });
-      subs.forEach(function (s) { if (s.due === c.iso) body.insertAdjacentHTML("beforeend", subChipHtml(s)); });
-      // capacity = leaf work: subtasks + tasks-without-subtasks (avoid double count)
-      var cap = 0;
-      subs.forEach(function (s) { if (s.due === c.iso) cap += s.remaining || 0; });
-      tasks.forEach(function (t) { if (t.due === c.iso && !(t.sub_count > 0)) cap += t.remaining || 0; });
-      var capEl = cal.querySelector('.cap[data-iso="' + c.iso + '"]');
-      if (capEl) { cap = Math.round(cap); capEl.textContent = cap + "h"; capEl.className = "cap " + (cap > DAILY_CAP ? "over" : (cap >= DAILY_CAP * 0.75 ? "warn" : "ok")); }
-    });
-  });
-
-  updateControls();
-  wireDrag();
+  var v = buildWeeks();
+  if (v.single) { cal.innerHTML = dayViewHtml(v.cell); return; }
+  var head = '<div class="wk-head dow-head">' + ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(function (x) { return '<div class="dowh">' + x + "</div>"; }).join("") + "</div>";
+  cal.innerHTML = head + v.weeks.map(weekRowHtml).join("");
 }
+
+function render() { renderList(); renderCalendar(); updateControls(); wireDrag(); }
 
 // --- drag & drop -------------------------------------------------------------
 function wireDrag() {
-  document.querySelectorAll(".pill, .sub-chip, .sub-row").forEach(function (p) {
-    p.addEventListener("dragstart", function (e) {
-      if (e.target.closest("input, button, a")) { e.preventDefault(); return; }   // not from controls/links
-      curDrag = p.dataset.id; e.stopPropagation(); p.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
-    });
-    p.addEventListener("dragend", function () { p.classList.remove("dragging"); });
-  });
-  document.querySelectorAll(".day-body, #backlog").forEach(function (z) {
-    z.addEventListener("dragover", function (e) { e.preventDefault(); z.classList.add("drop-hot"); });
-    z.addEventListener("dragleave", function () { z.classList.remove("drop-hot"); });
-    z.addEventListener("drop", function (e) {
-      e.preventDefault(); z.classList.remove("drop-hot");
-      var item = findItem(curDrag);
-      if (!item) return;
-      var iso = z.dataset.iso || null;                  // backlog has no data-iso → unschedule
-      if ((iso || null) === (item.due || null)) return;
-      var prev = item.due;
-      item.due = iso || null;                            // optimistic
-      render();
-      persistDue(item, iso || null, prev);
-    });
-  });
-  // expand / collapse subtasks
-  document.querySelectorAll(".sub-toggle").forEach(function (b) {
-    b.addEventListener("click", function (e) {
+  document.querySelectorAll(".tbar, .dbar, .li, .grip").forEach(function (el) {
+    el.addEventListener("dragstart", function (e) {
+      if (e.target.tagName === "A") { e.preventDefault(); return; }
       e.stopPropagation();
-      var id = b.dataset.id;
-      expanded[id] = !expanded[id];
-      var panel = document.querySelector('.sub-panel[data-panel="' + id + '"]');
-      if (panel) panel.hidden = !expanded[id];
-      b.textContent = (expanded[id] ? "▾ " : "▸ ") + b.textContent.replace(/^[▸▾]\s/, "");
+      curDrag = { id: el.dataset.id, mode: el.dataset.mode };
+      el.classList.add("dragging"); e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", function () { el.classList.remove("dragging"); curDrag = null; });
+  });
+  document.querySelectorAll(".wkrow").forEach(function (row) {
+    row.addEventListener("dragover", function (e) { e.preventDefault(); });
+    row.addEventListener("drop", function (e) {
+      e.preventDefault(); if (!curDrag) return;
+      var r = row.getBoundingClientRect();
+      var col = Math.max(0, Math.min(6, Math.floor((e.clientX - r.left) / (r.width / 7))));
+      applyDrop(isoOf(addDays(parseISO(row.dataset.wkstart), col)));
     });
   });
-  // edit due date directly (writes to Jira)
-  document.querySelectorAll(".due-edit").forEach(function (inp) {
-    inp.addEventListener("click", function (e) { e.stopPropagation(); });
-    inp.addEventListener("change", function () { editDueDate(inp.dataset.id, inp.value || null); });
-  });
+  var dv = document.querySelector(".dayview");
+  if (dv) {
+    dv.addEventListener("dragover", function (e) { e.preventDefault(); });
+    dv.addEventListener("drop", function (e) { e.preventDefault(); if (curDrag) applyDrop(dv.dataset.iso); });
+  }
+  var lb = document.getElementById("listBody");
+  lb.addEventListener("dragover", function (e) { e.preventDefault(); lb.classList.add("drop-hot"); });
+  lb.addEventListener("dragleave", function () { lb.classList.remove("drop-hot"); });
+  lb.addEventListener("drop", function (e) { e.preventDefault(); lb.classList.remove("drop-hot"); if (curDrag) unschedule(); });
 }
-
-// Persist a due-date change to Jira via the relay (optimistic; revert on fail).
-function persistDue(item, iso, prev) {
-  if (window.TBWrite && window.TBWrite.setDueDate) {
-    window.TBWrite.setDueDate(item, iso, function (ok, msg) {
-      if (!ok) { item.due = prev; render(); toast("⚠️ " + (msg || "Jira write failed — reverted")); }
-      else toast("✓ " + item.id + (iso ? " → " + iso : " → unscheduled"));
+function applyDrop(iso) {
+  var dd = curDrag; if (!dd) return;
+  var t = findItem(dd.id); if (!t) return;
+  var ps = t.start, pd = t.due;
+  if (dd.mode === "start") { t.start = iso; if (!t.due || iso > t.due) t.due = iso; }
+  else if (dd.mode === "due") { t.due = iso; if (!t.start || iso < t.start) t.start = iso; }
+  else { var dur = (t.start && t.due) ? daysInc(t.start, t.due) : 1; t.start = iso; t.due = isoOf(addDays(parseISO(iso), dur - 1)); }
+  render(); persistDates(t, ps, pd);
+}
+function unschedule() {
+  var t = findItem(curDrag.id); if (!t) return;
+  var ps = t.start, pd = t.due;
+  if (ps == null && pd == null) return;
+  t.start = null; t.due = null; render(); persistDates(t, ps, pd);
+}
+function persistDates(t, ps, pd) {
+  if (window.TBWrite && window.TBWrite.setDates) {
+    window.TBWrite.setDates(t, t.start, t.due, function (ok, msg) {
+      if (!ok) { t.start = ps; t.due = pd; render(); toast("⚠️ " + (msg || "Jira write failed — reverted")); }
+      else toast("✓ " + t.id + " · " + (t.start || "—") + " → " + (t.due || "—"));
     });
   } else {
-    toast("Moved " + item.id + (iso ? " → " + iso : " → unscheduled") + " (local only — connect Jira write in Edit Plan)");
+    toast("Set " + t.id + " " + (t.start || "—") + " → " + (t.due || "—") + " (local only — connect Jira write in Edit Plan)");
   }
 }
 
-// Edit a due date from the date picker (tasks/stories).
-function editDueDate(id, iso) {
-  var t = findItem(id);
-  if (!t || iso === t.due) return;
-  var prev = t.due;
-  t.due = iso || null;
-  render();
-  persistDue(t, iso || null, prev);
-}
-
-// --- view + navigation controls ---------------------------------------------
+// --- view + collapse controls ------------------------------------------------
 function setView(v) { viewMode = v; render(); }
 function shiftView(dir) {
   if (viewMode === "day") anchor = addDays(anchor, dir);
@@ -271,99 +291,83 @@ function updateControls() {
   var lab = document.getElementById("rangeLabel"); if (lab) lab.textContent = rangeLabel();
   document.querySelectorAll(".viewsw button").forEach(function (b) { b.classList.toggle("active", b.dataset.view === viewMode); });
 }
+function applyCollapse() {
+  document.getElementById("board").classList.toggle("collapsed", collapsed);
+  try { localStorage.setItem("tb_list_collapsed", collapsed ? "1" : "0"); } catch (e) {}
+}
 
 // --- dept tabs + chrome ------------------------------------------------------
 function renderTabs() {
-  var box = document.getElementById("depttabs");
-  var icon = { math: "📐", art: "🎨" };
+  var box = document.getElementById("depttabs"), icon = { math: "📐", art: "🎨" };
   box.innerHTML = deptKeys.map(function (k) {
-    return '<button class="dtab' + (k === curDept ? " active" : "") + '" data-dept="' + k + '">' +
-      (icon[k] || "") + " " + esc(DATA.depts[k].label) + "</button>";
+    return '<button class="dtab' + (k === curDept ? " active" : "") + '" data-dept="' + k + '">' + (icon[k] || "") + " " + esc(DATA.depts[k].label) + "</button>";
   }).join("");
   box.querySelectorAll(".dtab").forEach(function (b) {
-    b.addEventListener("click", function () { curDept = b.dataset.dept; renderTabs(); render(); });
+    b.addEventListener("click", function () { curDept = b.dataset.dept; renderTabs(); anchor = busiestAnchor(); render(); });
   });
 }
-
 function chrome() {
   var s = DATA.sprint || {};
   document.getElementById("subhead").textContent =
-    "DAMS open sprint · drag tasks & subtasks onto days · Day/Week/Month views · Edit Plan to add/remove · IG + V2";
+    "DAMS open sprint · bars span start→due · drag body to move, edge to resize · subtasks drag independently · IG + V2";
   document.getElementById("spinfo").textContent =
-    (s.name || "Open sprint") + (s.start ? " · " + s.start + " – " + s.end : "") +
-    (s.activeCount > 1 ? " · " + s.activeCount + " active sprints" : "");
+    (s.name || "Open sprint") + (s.start ? " · " + s.start + " – " + s.end : "") + (s.activeCount > 1 ? " · " + s.activeCount + " active sprints" : "");
   document.getElementById("footer").textContent =
-    "Source: DAMS Jira · project in (IG, V2) AND sprint in openSprints() ORDER BY Rank · day = Due Date · refreshed " + (DATA.refreshed_at || "?");
+    "Source: DAMS Jira · start = Target start (customfield_10684), due = Due date · refreshed " + (DATA.refreshed_at || "?");
 }
 
 // --- toast -------------------------------------------------------------------
 var toastTimer;
 function toast(msg) {
-  var el = document.getElementById("toast");
-  el.textContent = msg; el.classList.add("show");
+  var el = document.getElementById("toast"); el.textContent = msg; el.classList.add("show");
   clearTimeout(toastTimer); toastTimer = setTimeout(function () { el.classList.remove("show"); }, 3200);
 }
 window.TBToast = toast;
 
 // --- Edit Plan drawer --------------------------------------------------------
 function renderEP() {
-  var body = document.getElementById("epBody");
-  var inS = tickets();
+  var body = document.getElementById("epBody"), inS = tickets();
   function row(t) {
     return '<div class="ep-row in"><span class="k">' + esc(t.id) + '</span>' +
-      '<span class="s">' + esc(t.summary) + '<br><span class="game">' + esc(t.release || t.game || "") +
-      ' · ' + (t.est ? t.est + "h" : "no est") + '</span></span>' +
+      '<span class="s">' + esc(t.summary) + '<br><span class="game">' + esc(t.release || t.game || "") + " · " + (t.est ? t.est + "h" : "no est") + "</span></span>" +
       '<button class="toggle rm" data-id="' + esc(t.id) + '">Remove</button></div>';
   }
   body.innerHTML =
     '<div class="ep-sec">Add a ticket to the open sprint</div>' +
     '<input class="ep-search" id="epAdd" placeholder="Type a Jira key (e.g. IG-1234) and press Enter">' +
-    '<div class="ep-sec">In sprint — ' + esc(DATA.depts[curDept].label) + ' (' + inS.length + ')</div>' +
-    inS.map(row).join("");
-  body.querySelectorAll(".toggle.rm").forEach(function (btn) {
-    btn.addEventListener("click", function () { removeFromSprint(btn.dataset.id); });
-  });
+    '<div class="ep-sec">In sprint — ' + esc(DATA.depts[curDept].label) + " (" + inS.length + ")</div>" + inS.map(row).join("");
+  body.querySelectorAll(".toggle.rm").forEach(function (btn) { btn.addEventListener("click", function () { removeFromSprint(btn.dataset.id); }); });
   var add = document.getElementById("epAdd");
   add.addEventListener("keydown", function (e) { if (e.key === "Enter" && add.value.trim()) addToSprint(add.value.trim().toUpperCase()); });
 }
-function removeFromSprint(id) {
-  if (window.TBWrite && window.TBWrite.removeFromSprint) window.TBWrite.removeFromSprint(id, afterPlanChange);
-  else toast("Remove " + id + " (connect Jira write to apply)");
-}
-function addToSprint(id) {
-  if (window.TBWrite && window.TBWrite.addToSprint) window.TBWrite.addToSprint(id, afterPlanChange);
-  else toast("Add " + id + " (connect Jira write to apply)");
-}
+function removeFromSprint(id) { if (window.TBWrite && window.TBWrite.removeFromSprint) window.TBWrite.removeFromSprint(id, afterPlanChange); else toast("Remove " + id + " (connect Jira write)"); }
+function addToSprint(id) { if (window.TBWrite && window.TBWrite.addToSprint) window.TBWrite.addToSprint(id, afterPlanChange); else toast("Add " + id + " (connect Jira write)"); }
 function afterPlanChange(ok, msg) { toast((ok ? "✓ " : "⚠️ ") + (msg || "")); }
-
 function openDrawer() { document.getElementById("scrim").classList.add("open"); document.getElementById("drawer").classList.add("open"); renderEP(); }
 function closeDrawer() { document.getElementById("scrim").classList.remove("open"); document.getElementById("drawer").classList.remove("open"); }
 
 // --- boot --------------------------------------------------------------------
-// Open the calendar where the work actually is: the due date carrying the most
-// items (else today). Avoids landing on an empty month when everything is
-// parked on the sprint-end date.
 function busiestAnchor() {
   var tally = {};
-  tickets().forEach(function (t) { if (t.due) tally[t.due] = (tally[t.due] || 0) + 1; });
-  subtasksFlat().forEach(function (s) { if (s.due) tally[s.due] = (tally[s.due] || 0) + 1; });
+  allItemsFlat().forEach(function (r) { var due = r.it.due; if (due) tally[due] = (tally[due] || 0) + 1; });
   var best = null, n = 0;
   Object.keys(tally).forEach(function (iso) { if (tally[iso] > n) { n = tally[iso]; best = iso; } });
   return best ? parseISO(best) : new Date(TODAY);
 }
-
 function start() {
   if (!curDept) { document.getElementById("cal").innerHTML = '<p class="footer">No data — run team_board.py.</p>'; return; }
   chrome(); renderTabs();
   anchor = busiestAnchor();
-  // calendar view + navigation controls
-  document.querySelectorAll(".viewsw button").forEach(function (b) {
-    b.addEventListener("click", function () { setView(b.dataset.view); });
-  });
+  applyCollapse();
+  document.querySelectorAll(".viewsw button").forEach(function (b) { b.addEventListener("click", function () { setView(b.dataset.view); }); });
   document.getElementById("navPrev").addEventListener("click", function () { shiftView(-1); });
   document.getElementById("navNext").addEventListener("click", function () { shiftView(1); });
   document.getElementById("navToday").addEventListener("click", function () { anchor = new Date(TODAY); render(); });
   document.getElementById("navSprint").addEventListener("click", function () { if (SPRINT_START) { anchor = new Date(SPRINT_START); render(); } });
+  document.getElementById("collapseBtn").addEventListener("click", function () { collapsed = true; applyCollapse(); });
+  document.getElementById("railBtn").addEventListener("click", function () { collapsed = false; applyCollapse(); });
+  document.getElementById("lpSort").addEventListener("change", function (e) { sortMode = e.target.value; renderList(); wireDrag(); });
+  document.getElementById("lpFilter").addEventListener("change", function (e) { statusFilter = e.target.value; renderList(); wireDrag(); });
   render();
   document.getElementById("editPlanBtn").addEventListener("click", openDrawer);
   document.getElementById("epClose").addEventListener("click", closeDrawer);

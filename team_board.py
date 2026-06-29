@@ -60,6 +60,7 @@ JIRA_BROWSE = "https://ponggamestudios.atlassian.net/browse/"
 # Sprint custom field differs per project (from build_jira_data.py).
 SPRINT_FIELDS = ["customfield_10020", "customfield_10103"]
 EPIC_NAME_FIELD = "customfield_10014"
+START_FIELD = "customfield_10684"   # "Target start" — paired with duedate for spans
 
 # Department -> issue types. Mirrors DISCIPLINE_BY_ISSUETYPE in
 # game-pipeline/build_jira_data.py. Add more depts here later (dev/qa/sound/design).
@@ -76,7 +77,7 @@ DEPTS = {
 
 ISSUE_FIELDS = [
     "summary", "status", "assignee", "issuetype",
-    "timeoriginalestimate", "timespent", "timeestimate", "duedate", "parent",
+    "timeoriginalestimate", "timespent", "timeestimate", "duedate", START_FIELD, "parent",
     "fixVersions", "priority", "issuelinks",
 ] + SPRINT_FIELDS
 
@@ -231,6 +232,7 @@ def build_ticket(it, cache):
     who = (f.get("assignee") or {}).get("displayName")
     est = secs_to_hours(f.get("timeoriginalestimate"))
     due = parse_date(f.get("duedate"))
+    start = parse_date(f.get(START_FIELD))
     rel, game = resolve_release(f, cache)
     itype = (f.get("issuetype") or {}).get("name", "")
     return {
@@ -246,6 +248,7 @@ def build_ticket(it, cache):
         "est": est,
         "spent": secs_to_hours(f.get("timespent")),
         "remaining": secs_to_hours(f.get("timeestimate")),   # Jira remaining estimate
+        "start": start.isoformat() if start else None,
         "due": due.isoformat() if due else None,
         "release": rel,
         "game": game,

@@ -42,6 +42,7 @@ load_dotenv(_ROOT / "game-pipeline" / ".env")
 
 PROJECT_BOARD = {"IG": "250", "V2": "316"}     # from refresh-game-pipeline.yml
 ORIG_DUE_PROP = "teamboard.originalDueDate"
+START_FIELD = "customfield_10684"              # "Target start" (paired with duedate)
 
 
 def fail(msg):
@@ -75,6 +76,18 @@ def set_due_date(key, date):
         print(f"[ok] stashed original due date for {key}: {original!r}")
     jira_put(f"/issue/{key}", {"fields": {"duedate": date}})
     print(f"[ok] {key} duedate -> {date!r}")
+
+
+def set_dates(key, start, due):
+    """Write Target start + Due date together (either may be null). Used by the
+    span calendar: drag the body to move both, an edge to change one."""
+    meta = jira_get(f"/issue/{key}", params={"fields": f"issuetype,duedate,{START_FIELD}"})
+    if get_property(key, ORIG_DUE_PROP) is None:
+        f = meta.get("fields", {}) or {}
+        put_property(key, ORIG_DUE_PROP, {"start": f.get(START_FIELD), "due": f.get("duedate")})
+        print(f"[ok] stashed original dates for {key}: start={f.get(START_FIELD)!r} due={f.get('duedate')!r}")
+    jira_put(f"/issue/{key}", {"fields": {"duedate": due, START_FIELD: start}})
+    print(f"[ok] {key} start -> {start!r} · due -> {due!r}")
 
 
 def project_of(key):
@@ -119,6 +132,8 @@ def main():
     print(f"[ok] apply {action} on {key}")
     if action == "setDueDate":
         set_due_date(key, p.get("date"))
+    elif action == "setDates":
+        set_dates(key, p.get("start"), p.get("due"))
     elif action == "addToSprint":
         add_to_sprint(key)
     elif action == "removeFromSprint":
