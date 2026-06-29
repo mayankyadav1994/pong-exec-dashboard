@@ -13,6 +13,18 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 6 * * *'  # daily at 6am UTC
+  push:
+    # Auto-promote subfolder edits to the served root copies. Without this,
+    # edits to game-pipeline/dashboard.js (forecast logic, HTML cache-buster
+    # bumps, etc.) sit in the subfolder until the next 6am UTC refresh — the
+    # root copies (what Pages actually serves) stay stale and viewers see
+    # old behaviour.
+    branches: [main]
+    paths:
+      - 'game-pipeline/dashboard.js'
+      - 'game-pipeline/dashboard.css'
+      - 'game-pipeline/game-pipeline.html'
+      - 'game-pipeline/build_jira_data.py'
 jobs:
   build:
     runs-on: ubuntu-latest

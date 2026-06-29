@@ -195,11 +195,26 @@ function applyForecast() {
   if (firstFuture < 0) firstFuture = SPRINT_LIST.length;
 
   let maxNeed = 0;
+  // Statuses that mean "no further work projected" (Option B: manual override
+  // is the source of truth — if the dashboard's effective status says the
+  // game is past dev, we trust it instead of redoing hours math).
+  const STATUS_TERMINAL = new Set(['Signed Off', 'Delivered', 'On Hold']);
+  const STATUS_QA_ONLY  = new Set(['In QA']);
   RAW_GAMES.forEach(g => {
     if (g.delivered) return;
+    const ws = g.workflow_status || '';
+    if (STATUS_TERMINAL.has(ws)) return;  // no forecast for done/held games
+    const qaOnly = STATUS_QA_ONLY.has(ws);
     const disc = {}; let ship = 0, any = false;
     LANE_ORDER.forEach(k => {
       const d = (g.disciplines || []).find(x => x.key === k); if (!d) return;
+      // Option A: if the discipline was flagged done by the Jira-side
+      // classifier (build_jira_data.py phase=='done'), don't second-guess it.
+      if (d.phase === 'done') return;
+      // QA-only mode: game is officially In QA, every non-QA lane is treated
+      // as done regardless of its est-vs-spent gap. Stops the dashboard from
+      // projecting more art / sound / dev when the game has moved past those.
+      if (qaOnly && k !== 'qa') return;
       const rem = Math.max(0, (d.est || 0) - (d.spent || 0)); if (rem <= 0) return;
       const need = Math.max(1, Math.ceil(rem / effRate(d)));
       disc[k] = need; any = true; ship = Math.max(ship, need); maxNeed = Math.max(maxNeed, need);
