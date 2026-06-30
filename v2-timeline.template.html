@@ -655,6 +655,12 @@ function phasePct(fv, devEnd, qaEnd){
     return Math.max(0, Math.min(100, Math.round(done/tot*100)));
   }
   if(/QA/i.test(s)){
+    // Prefer task-based progress when the Release-ticket signal populated
+    // fv.qaProgress (V2 Python compute_qa_progress). Falls back to the
+    // calendar-based percentage when no QA-testing tickets exist.
+    if(fv.qaProgress && typeof fv.qaProgress.progress === 'number'){
+      return Math.max(0, Math.min(100, Math.round(fv.qaProgress.progress)));
+    }
     if(!devEnd || !qaEnd) return null;
     const total = qaEnd - devEnd;
     if(total <= 0) return null;
@@ -662,6 +668,26 @@ function phasePct(fv, devEnd, qaEnd){
     return Math.max(0, Math.min(100, Math.round(elapsed/total*100)));
   }
   return null;
+}
+
+// ─── Dynamic QA-end (scale-based on actual progress) ─────────────────────
+// When fv.qaProgress is set, the QA bar's right edge slides based on real
+// burn rate rather than the static qaWeeks window. Formula:
+//   remaining_qa_hours = (1 - progress%) × qaWeeks × 5d × 8h
+//   qaEnd = TODAY + remaining_qa_hours (in working days)
+// At 0% (just entered QA): qaEnd = TODAY + qaWeeks*5d (same as static).
+// At 50%: qaEnd = TODAY + qaWeeks*2.5d (half the planned window left).
+// At 100%: qaEnd = TODAY (basically done).
+// Falls through to the static calc when fv.qaProgress is missing.
+function calcQaEnd(fv, devEnd){
+  const planHours = (fv.qaWeeks || 0) * 5 * 8;
+  if(planHours <= 0) return devEnd;
+  if(fv.qaProgress && typeof fv.qaProgress.progress === 'number' && fv.qaProgress.progress >= 0){
+    const remainPct = Math.max(0, 100 - fv.qaProgress.progress);
+    const remainHours = planHours * (remainPct / 100);
+    return addWD(TODAY, remainHours, 8);
+  }
+  return addWD(devEnd, planHours, 8);
 }
 
 // ─── SPRINT BY LABEL (used by milestone anchor === 'sprint') ─────
@@ -993,7 +1019,7 @@ function refreshAll(){
   FV.forEach((fv,idx)=>{
     const devEnd=calcDevEnd(fv,idx);
     const othEnd=calcOthersEnd(fv);
-    const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8); // QA in work days (5-day week, excludes weekends & holidays)
+    const qaEnd=calcQaEnd(fv, devEnd); // dynamic when fv.qaProgress is set; else qaWeeks-based
     const devStart=fv.devStart||TODAY;
 
     // Dev bar
@@ -1416,7 +1442,7 @@ ordered.forEach((fv,idx)=>{
 
   const devEnd=calcDevEnd(effectiveFv,idx);
   const othEnd=calcOthersEnd(effectiveFv);
-  const qaEnd=addWD(devEnd,effectiveFv.qaWeeks*5*8,8);
+  const qaEnd=calcQaEnd(effectiveFv, devEnd); // dynamic when qaProgress is set; else qaWeeks-based
   const devStart=effectiveFv.devStart||TODAY;
   const hasOth=(effectiveFv.otherPeople||[]).length>0;
   const hasOthH=hasOthersHours(effectiveFv);

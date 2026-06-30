@@ -306,23 +306,84 @@ def fetch_release_tickets(fv_name):
 
 
 def detect_qa_round(release_tickets):
-    """If any release-round child is in an active QA-cycle status, return
-    its 'R<n>' tag. With multiple active rounds in flight, picks the
-    HIGHEST R-number (most current round). Returns None when nothing
-    active matches the pattern."""
-    active = []
+    """Return 'R<n>' = the highest R-number across ALL release-round children
+    of the Release parents, regardless of each child's status. Rationale: if
+    an R2 ticket exists (even if still 'New'), the team is heading to R2 next
+    — that's what we want stakeholders to see. Returns None when no children
+    carry an 'R<n>' suffix in their summary."""
+    rounds = []
     for p in release_tickets:
         for c in p.get("_children", []):
             cf = c.get("fields") or {}
-            status_name = (cf.get("status") or {}).get("name", "")
-            if status_name in ACTIVE_QA_STATUSES:
-                r = _extract_round(cf.get("summary", ""))
-                if r:
-                    active.append(r)
-    if not active:
+            r = _extract_round(cf.get("summary", ""))
+            if r:
+                rounds.append(r)
+    if not rounds:
         return None
-    active.sort(key=lambda r: int(r[1:]), reverse=True)
-    return active[0]
+    rounds.sort(key=lambda r: int(r[1:]), reverse=True)
+    return rounds[0]
+
+
+# ── QA-testing progress (hours-based, V2-only) ─────────────────────────────
+# Convention: QA work for an FV lives in tickets whose summary contains
+# "QA testing <FV name>" (e.g. "QA testing P2P 15.20"). Subtasks may not
+# repeat "QA testing" so we fetch them separately by parent. Progress is
+# done_estimate / total_estimate, matching the PROGRESS column logic
+# elsewhere on the dashboard.
+
+def fetch_qa_tickets(fv_name):
+    """QA-testing tickets (parents + their sub-tasks) for an FV."""
+    parents = jira_jql(
+        jql=f'project = V2 AND fixVersion = "{fv_name}" AND summary ~ "QA testing"',
+        fields=["summary", "status", "issuetype", "timeoriginalestimate", "timespent", "parent"],
+    )
+    if not parents:
+        return []
+    keys = ",".join(p["key"] for p in parents)
+    subs = jira_jql(
+        jql=f"parent in ({keys})",
+        fields=["summary", "status", "timeoriginalestimate", "timespent", "parent"],
+    )
+    return parents + subs
+
+
+def compute_qa_progress(fv_name):
+    """Hour-based progress on QA-testing tickets for an FV. Returns
+    `{ totalH, doneH, totalN, doneN, progress }` or None if no QA-testing
+    tickets exist for the FV (caller falls back to calendar-based %)."""
+    tickets = fetch_qa_tickets(fv_name)
+    if not tickets:
+        return None
+    total_h = 0.0
+    done_h = 0.0
+    total_n = len(tickets)
+    done_n = 0
+    for t in tickets:
+        f = t.get("fields") or {}
+        orig_h = (f.get("timeoriginalestimate") or 0) / 3600.0
+        spent_h = (f.get("timespent") or 0) / 3600.0
+        status = (f.get("status") or {}).get("name", "")
+        total_h += orig_h
+        if is_done(status):
+            done_h += orig_h
+            done_n += 1
+        elif orig_h > 0:
+            # In-flight ticket: contribute its spent hours (capped at its
+            # original estimate so a logging overshoot doesn't push >100%).
+            done_h += min(spent_h, orig_h)
+    if total_h > 0:
+        progress = round(done_h / total_h * 100, 1)
+    else:
+        # No estimates anywhere — fall back to ticket-count progress so the
+        # number still moves as tickets close.
+        progress = round(done_n / max(1, total_n) * 100, 1)
+    return {
+        "totalH":   round(total_h, 1),
+        "doneH":    round(done_h, 1),
+        "totalN":   total_n,
+        "doneN":    done_n,
+        "progress": progress,
+    }
 
 
 def fetch_fv_tasks(fv_name, types):
@@ -677,6 +738,16 @@ def build_fv(cfg):
     if scope:
         print(f"  scope: {len(scope)} parent groups")
 
+    # QA progress: only worth fetching when we know the FV is in a QA round
+    # (Release-ticket signal active). The dashboard JS uses qaProgress to:
+    #   1. replace calendar-based QA% with task-based QA% on the pill, and
+    #   2. shrink/expand the QA bar's right edge to reflect actual progress.
+    qa_progress = compute_qa_progress(cfg["key"]) if qa_round else None
+    if qa_progress:
+        print(f"  qa progress: {qa_progress['progress']}% · "
+              f"{qa_progress['doneN']}/{qa_progress['totalN']} tickets · "
+              f"{qa_progress['doneH']:.0f}/{qa_progress['totalH']:.0f}h")
+
     fv = {
         "key":          cfg["key"],
         "color":        cfg["color"],
@@ -689,6 +760,8 @@ def build_fv(cfg):
         "otherPeople":  other_people,
         "scope":        scope,
     }
+    if qa_progress:
+        fv["qaProgress"] = qa_progress
     # Target date for the right-side summary panel: config override wins over
     # Jira's releaseDate, which wins over None (shown as "TBD" in the UI).
     target = cfg.get("target_date") or cfg.get("jira_release_date")
