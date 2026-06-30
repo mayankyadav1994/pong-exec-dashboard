@@ -10,6 +10,7 @@ in docs/V2_TIMELINE_EDGE_CASES.md are intentionally not implemented yet.
 
 import json
 import math
+import re
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -253,6 +254,77 @@ def parent_is_admin(issue):
 
 # ── Fetch ─────────────────────────────────────────────────────────────────────
 
+# ── QA-cycle detection (Release-ticket signal, V2-only) ─────────────────────
+# When an FV has a Release-issuetype parent ticket and any of its child
+# round-tickets is currently being worked, the build is in a QA cycle —
+# even if the regular dev-task-count rule still sees a few `Ready` /
+# `In Progress` stragglers that would otherwise classify it as
+# "In Development". The Release-ticket signal trumps the count rule.
+#
+# Child summaries follow the convention "<FV name> - R<n>" (e.g.
+# "V2 PT 13.30 - R3"), so the round label on the pill becomes the same
+# "R<n>" suffix.
+
+_ROUND_RE = re.compile(r'\bR(\d+)\b', re.IGNORECASE)
+
+ACTIVE_QA_STATUSES = {
+    "In Progress", "In-Progress", "In QA", "In QA R1", "In QA R2",
+    "Ready For QA", "QA In Progress", "In-Review", "Reopened", "Re-opened",
+}
+
+def _extract_round(summary):
+    """Pull the 'R<n>' suffix out of a child ticket summary; None if missing."""
+    if not summary:
+        return None
+    m = _ROUND_RE.search(summary)
+    return f"R{m.group(1)}" if m else None
+
+
+def fetch_release_tickets(fv_name):
+    """Fetch Release-type parents for an FV plus any tickets parented under
+    them (the 'round' sub-tickets). Returns the parent list with each
+    parent's children attached as `_children`."""
+    parents = jira_jql(
+        jql=f'project = V2 AND fixVersion = "{fv_name}" AND issuetype = "Release"',
+        fields=["summary", "status", "issuetype"],
+    )
+    if not parents:
+        return []
+    keys = ",".join(p["key"] for p in parents)
+    children = jira_jql(
+        jql=f"parent in ({keys})",
+        fields=["summary", "status", "parent"],
+    )
+    by_parent = {p["key"]: [] for p in parents}
+    for c in children:
+        pk = ((c.get("fields", {}).get("parent") or {}).get("key"))
+        if pk in by_parent:
+            by_parent[pk].append(c)
+    for p in parents:
+        p["_children"] = by_parent.get(p["key"], [])
+    return parents
+
+
+def detect_qa_round(release_tickets):
+    """If any release-round child is in an active QA-cycle status, return
+    its 'R<n>' tag. With multiple active rounds in flight, picks the
+    HIGHEST R-number (most current round). Returns None when nothing
+    active matches the pattern."""
+    active = []
+    for p in release_tickets:
+        for c in p.get("_children", []):
+            cf = c.get("fields") or {}
+            status_name = (cf.get("status") or {}).get("name", "")
+            if status_name in ACTIVE_QA_STATUSES:
+                r = _extract_round(cf.get("summary", ""))
+                if r:
+                    active.append(r)
+    if not active:
+        return None
+    active.sort(key=lambda r: int(r[1:]), reverse=True)
+    return active[0]
+
+
 def fetch_fv_tasks(fv_name, types):
     """Knowledge base §3.3 / §12.2 JQL template."""
     types_jql = ", ".join(f'"{t}"' for t in types)
@@ -306,17 +378,24 @@ def group_by_assignee(issues, fv_name):
     return list(by_name.values())
 
 
-def classify_status_label(dev_people):
+def classify_status_label(dev_people, qa_round=None):
     """Auto-derive FV status label from the *majority* of open task statuses.
 
     Rules (50% threshold, inclusive — see docs/V2_TIMELINE_EDGE_CASES.md §16):
+      • Release-ticket signal (qa_round set)        → In QA · R<n>   (NEW)
       • ≥50% of open tickets in QA-like status     → In QA      (devStart=null)
       • ≥50% of open tickets in "New" status        → Scheduled (devStart=today)
       • otherwise                                    → In Development
 
+    The Release-ticket signal beats every count-based rule — when a release
+    round is in flight, the build is in QA regardless of how many `Ready` or
+    `In Progress` stragglers still sit on the dev side.
+
     QA check runs before New, so a hypothetical 50/50 QA/New tie lands on
     "In QA" — defensible because QA is the later phase.
     """
+    if qa_round:
+        return (f"In QA · {qa_round}", None)
     open_tasks = [t for p in dev_people for t in p["tasks"] if not is_done(t["status"])]
     if not open_tasks:
         return ("In QA", None)
@@ -574,14 +653,24 @@ def build_fv(cfg):
     if not dev_people and not other_people:
         print(f"  ⚠ {cfg['key']} has no tasks — fix version may be empty in Jira")
 
-    status_label, dev_start = classify_status_label(dev_people)
+    # Release-ticket signal — trumps the dev-task-count rule when the build
+    # is in QA cycles. Adds one extra Jira call per FV (parents + children).
+    release_tickets = fetch_release_tickets(cfg["key"])
+    qa_round = detect_qa_round(release_tickets)
+    if qa_round:
+        print(f"  release signal: QA round in progress → {qa_round}")
+    status_label, dev_start = classify_status_label(dev_people, qa_round=qa_round)
 
     # Use per-FV indev_style when available and the FV is in development,
-    # otherwise fall back to the global STATUS_STYLES table.
-    if status_label == "In Development" and cfg.get("indev_style"):
+    # otherwise fall back to the global STATUS_STYLES table. For composite
+    # labels like "In QA · R3", strip the " · …" suffix before the lookup so
+    # we reuse the base "In QA" style rather than needing a new dict key per
+    # round.
+    style_key = status_label.split(" · ", 1)[0]
+    if style_key == "In Development" and cfg.get("indev_style"):
         status_style = cfg["indev_style"]
     else:
-        status_style = STATUS_STYLES[status_label]
+        status_style = STATUS_STYLES.get(style_key) or STATUS_STYLES["Scheduled"]
 
     # Scope: group dev + other issues by Jira parent (epic/story)
     scope = compute_scope(dev_issues + other_issues)
