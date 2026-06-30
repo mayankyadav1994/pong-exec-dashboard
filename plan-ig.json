@@ -1,7 +1,5 @@
 {
   "order": [
-    "Gen2 Game: Jewels of Cleopatra",
-    "Gen2 Game: Ultimate Goal 10x - ELG",
     "Gen2 Game: Liberty Rising",
     "Gen2 Game: Northern Buffalo Fortune [V]",
     "Gen2 Game: Flaming Skulls",
@@ -27,18 +25,10 @@
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Kandy Land Keno - PFH"
+    "Gen2 Game: Kandy Land Keno - PFH",
+    "Gen2 Game: Nordic Paws"
   ],
-  "status": {
-    "Gen2 Game: Liberty Rising": "In Progress",
-    "Gen2 Game: Flaming Skulls": "In Progress",
-    "Gen2 Game: American Wins": "In Progress",
-    "Gen2 Game: Fortune Diamond 10X": "In Progress",
-    "Gen2 Game: Lost Totem": "In Progress",
-    "Gen2 Game: Pharaoh's Quest": "In Progress",
-    "Gen2 Game: Neon Break": "Not Started",
-    "Gen2 Game: Moolah Moolah Moolah": "Not Started"
-  },
+  "status": {},
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
       "art": "M",
@@ -59,6 +49,7 @@
     "Gen2 Game: Jewels of Cleopatra",
     "Gen2 Game: Ultimate Goal 10x - ELG"
   ],
+  "notes": {},
   "added": [
     "IG-1513"
   ],
@@ -173,5 +164,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-06-11 18:31"
+  "updated_at": "2026-06-30 14:18"
 }
