@@ -212,6 +212,13 @@ function applyForecast() {
     if (STATUS_TERMINAL.has(ws)) return;  // no forecast for done/held games
     const qaOnly = STATUS_QA_ONLY.has(ws);
     const disc = {}; let ship = 0, any = false;
+    // The lane the game is actively sitting in (its current stage; QA for an
+    // In-QA game). Even when this lane has overrun its estimate (remaining
+    // hours <= 0) the game is provably not finished, so it must still forecast
+    // to at least the current/next sprint rather than drop out of the forecast
+    // entirely. Without this, an over-budget-but-still-active QA game shows no
+    // ≈ Est line and no projected bar at all.
+    const activeKey = qaOnly ? 'qa' : g.current_stage;
     LANE_ORDER.forEach(k => {
       const d = (g.disciplines || []).find(x => x.key === k); if (!d) return;
       // Option A: if the discipline was flagged done by the Jira-side
@@ -221,8 +228,12 @@ function applyForecast() {
       // as done regardless of its est-vs-spent gap. Stops the dashboard from
       // projecting more art / sound / dev when the game has moved past those.
       if (qaOnly && k !== 'qa') return;
-      const rem = Math.max(0, (d.est || 0) - (d.spent || 0)); if (rem <= 0) return;
-      const need = Math.max(1, Math.ceil(rem / effRate(d)));
+      const rem = Math.max(0, (d.est || 0) - (d.spent || 0));
+      // No remaining hours: skip unless this is the active lane, which floors
+      // to one sprint of remaining work so the game still forecasts to its
+      // current/next sprint instead of disappearing.
+      if (rem <= 0 && k !== activeKey) return;
+      const need = rem > 0 ? Math.max(1, Math.ceil(rem / effRate(d))) : 1;
       disc[k] = need; any = true; ship = Math.max(ship, need); maxNeed = Math.max(maxNeed, need);
     });
     if (any) g._proj = { disc, shipOffset: ship };
