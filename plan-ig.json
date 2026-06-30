@@ -3,8 +3,8 @@
     "Gen2 Game: Liberty Rising",
     "Gen2 Game: Fortune Diamond 10X",
     "Gen2 Game: American Wins",
-    "Gen2 Game: Northern Buffalo Fortune [V]",
     "Gen2 Game: Flaming Skulls",
+    "Gen2 Game: Northern Buffalo Fortune [V]",
     "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Steampunk Fortune",
     "Gen2 Game: Luck Party Blue Bird Bonanza",
@@ -30,7 +30,8 @@
   ],
   "status": {
     "Gen2 Game: Fortune Diamond 10X": "Signed Off",
-    "Gen2 Game: American Wins": "Signed Off"
+    "Gen2 Game: American Wins": "Signed Off",
+    "Gen2 Game: Northern Buffalo Fortune [V]": "In Progress"
   },
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
