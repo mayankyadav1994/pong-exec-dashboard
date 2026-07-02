@@ -1,0 +1,43 @@
+# ============================================================
+# Deploy GitHub Pages (Actions-based, serialized)
+# Replaces the built-in "deploy from branch" deploy, which was spawning
+# overlapping deployments that collided and failed with "Timeout reached,
+# aborting!" (multiple failures 2026-06-24/25, 07-02). A single concurrency
+# group serializes deploys so bursts of commits (the 5 daily refresh workflows
+# + team-board/game-pipeline + plan saves) never overlap.
+#
+# ONE-TIME SETUP: repo Settings → Pages → Build and deployment → Source =
+# "GitHub Actions" (instead of "Deploy from a branch"). Until that's set this
+# workflow's deploy step will fail and the old branch deploy keeps running.
+# ============================================================
+name: Deploy Pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialize: let an in-flight deploy finish, queue the rest. No overlap → no
+# collision timeouts. The last queued deploy always reflects the newest commit.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+      - id: deployment
+        uses: actions/deploy-pages@v4
