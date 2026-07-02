@@ -1,10 +1,11 @@
 {
   "order": [
     "Gen2 Game: Liberty Rising",
-    "Gen2 Game: Northern Buffalo Fortune [V]",
     "Gen2 Game: Flaming Skulls",
+    "Gen2 Game: Northern Buffalo Fortune [V]",
     "Gen2 Game: American Wins",
     "Gen2 Game: Fortune Diamond 10X",
+    "Gen2 Game: Luck Party Blue Bird Bonanza",
     "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Steampunk Fortune",
     "Gen2 Game: Lost Totem",
@@ -17,26 +18,28 @@
     "Gen2 Game: Lantern's Rising [V]",
     "Gen2 Game: Amaterasu Rising",
     "Gen2 - Game: Quick Wins Diamond Wild",
+    "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: Birthday Bash [V]",
     "Gen2 Game: Fiery 7s",
-    "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Luck Party Blue Bird Bonanza",
     "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Nordic Paws"
   ],
   "status": {
-    "Gen2 Game: Flaming Skulls": "Signed Off",
-    "Gen2 Game: American Wins": "In Progress",
-    "Gen2 Game: Fortune Diamond 10X": "In Progress",
-    "Gen2 Game: Lost Totem": "Signed Off",
+    "Gen2 Game: Liberty Rising": "In Production",
+    "Gen2 Game: Flaming Skulls": "In Production",
+    "Gen2 Game: American Wins": "In Production",
+    "Gen2 Game: Fortune Diamond 10X": "In Production",
     "Gen2 Game: Pharaoh's Quest": "In Progress",
     "Gen2 Game: Strike Forge Boost": "In Progress",
+    "Gen2 Game: Viking's Voyage of Fortune": "In Progress",
+    "Gen2 Game: Fruit Splitter": "In Progress",
     "Gen2 Game: Firecracker Frenzy": "Not Started",
     "Gen2 Game: Neon Break": "Not Started",
+    "Gen2 Game: Lantern's Rising [V]": "Bug Fixing",
     "Gen2 Game: Moolah Moolah Moolah": "Not Started"
   },
   "sizes": {
@@ -172,5 +175,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-02 15:37"
+  "updated_at": "2026-07-02 17:06"
 }
