@@ -1,53 +1,70 @@
 {
   "order": [
+    "Game: Enchanted East [V]",
+    "Game: Flaming Skulls",
     "Game: Wildlife Safari Gold",
-    "Game: Arctic Buffalo",
-    "Game: Canada Eh",
+    "Game: Canada Eh Part Deux",
+    "Game: Nordic Paws",
+    "Game: Firecracker Frenzy [V]",
+    "Game: Golden Bank Safe",
+    "Game: Monster Cake Smash",
     "Game: Fruit Splitter",
+    "Game: Western Grand Express",
+    "Game: Viking Blox 2",
     "Game: Jewels of Cleopatra Cascade",
-    "Game: Lantern's Rising- Vertical",
+    "Game: Birthday Bash [V]",
+    "Game: Viking Blox",
+    "Game: Canada Eh",
+    "Game: Arctic Buffalo",
     "Game: Lost Totem",
     "Game: Northern Buffalo",
     "Game: Northern Buffalo Fortune [V]",
     "Game: Quick Win's Diamond 7s - [V]",
     "Game: Steampunk Fortune",
     "Game: Viking’s Voyage of Fortune",
-    "Game: Canada Eh Part Deux",
-    "Game: Firecracker Frenzy [V]",
-    "Game: Monster Cake Smash",
     "Game: Blade of Fortune",
+    "Game: Lantern's Rising- Vertical",
     "Game: Quick Wins Fortune [V]",
-    "Game: Golden Bank Safe",
     "Game: Pharaoh's Quest",
-    "Game: Neon Break",
-    "Game: Western Grand Express",
-    "Game: Viking Blox",
-    "Game: Flaming Skulls",
     "Game: Fangs of Fortune",
-    "Game: Nordic Paws",
-    "Game: Zombie Hunt",
     "Game: Hollow Graves of Riches",
-    "Game: Viking Blox 2",
-    "Game: Birthday Bash [V]"
+    "Game: Neon Break",
+    "Game: Zombie Hunt"
   ],
   "status": {
     "Game: Wildlife Safari Gold": "In Review",
-    "Game: Lantern's Rising- Vertical": "Signed Off",
-    "Game: Northern Buffalo Fortune [V]": "Signed Off",
+    "Game: Canada Eh Part Deux": "In Review",
+    "Game: Nordic Paws": "In Review",
+    "Game: Fruit Splitter": "In QA",
     "Game: Western Grand Express": "Not Started",
-    "Game: Nordic Paws": "In Review"
+    "Game: Jewels of Cleopatra Cascade": "In QA",
+    "Game: Arctic Buffalo": "In QA",
+    "Game: Lost Totem": "In QA",
+    "Game: Northern Buffalo": "In QA",
+    "Game: Northern Buffalo Fortune [V]": "Signed Off",
+    "Game: Quick Win's Diamond 7s - [V]": "In QA",
+    "Game: Steampunk Fortune": "In QA",
+    "Game: Viking’s Voyage of Fortune": "In QA",
+    "Game: Blade of Fortune": "In QA",
+    "Game: Lantern's Rising- Vertical": "In QA",
+    "Game: Neon Break": "In QA"
   },
-  "sizes": {},
+  "sizes": {
+    "Game: Enchanted East [V]": {
+      "art": "L",
+      "math": "XL",
+      "dev": "L",
+      "sound": "M"
+    }
+  },
   "hidden": [
-    "Game: Neon Break",
     "Game: Zombie Hunt",
     "Game: Canada Eh",
-    "Game: Lantern's Rising- Vertical",
-    "Game: Northern Buffalo",
-    "Game: Northern Buffalo Fortune [V]",
-    "Game: Blade of Fortune"
+    "Game: Northern Buffalo Fortune [V]"
   ],
-  "added": [],
+  "added": [
+    "V2-22634"
+  ],
   "config": {
     "statuses": [
       {
@@ -159,5 +176,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-06-10 13:46"
+  "updated_at": "2026-07-02 17:21"
 }
