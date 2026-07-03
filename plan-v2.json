@@ -35,16 +35,8 @@
     "Game: Wildlife Safari Gold": "In Review",
     "Game: Canada Eh Part Deux": "In Review",
     "Game: Nordic Paws": "In Review",
-    "Game: Fruit Splitter": "In QA",
-    "Game: Western Grand Express": "Not Started",
-    "Game: Jewels of Cleopatra Cascade": "In QA",
-    "Game: Lost Totem": "In QA",
-    "Game: Northern Buffalo": "In QA",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
-    "Game: Viking’s Voyage of Fortune": "In QA",
-    "Game: Blade of Fortune": "In QA",
-    "Game: Lantern's Rising- Vertical": "In QA",
-    "Game: Neon Break": "In QA"
+    "Game: Lantern's Rising- Vertical": "In QA"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -174,5 +166,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-03 17:01"
+  "updated_at": "2026-07-03 17:20"
 }
