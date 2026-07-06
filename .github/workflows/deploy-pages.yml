@@ -21,11 +21,14 @@ permissions:
   pages: write
   id-token: write
 
-# Serialize: let an in-flight deploy finish, queue the rest. No overlap → no
-# collision timeouts. The last queued deploy always reflects the newest commit.
+# Serialize deploys. The morning bursts (5 refresh workflows, 3 of them at
+# 06:00 UTC) push several commits within minutes; cancel-in-progress collapses
+# them to a single deploy of the latest commit — which, on a linear main,
+# already contains every refresh — instead of a pile-up that collides. This is
+# what fixes the "Deployment failed, try again later." failures.
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
