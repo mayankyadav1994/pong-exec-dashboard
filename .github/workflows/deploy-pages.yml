@@ -12,8 +12,20 @@
 # ============================================================
 name: Deploy Pages
 on:
+  # Human / PAT commits (e.g. the "Save as default" plan saves) trigger this.
   push:
     branches: [main]
+  # The daily refresh workflows commit with GITHUB_TOKEN, whose pushes do NOT
+  # trigger other workflows (GitHub's recursion guard). So re-run the deploy
+  # after each refresh completes — otherwise the site would stop updating daily.
+  workflow_run:
+    workflows:
+      - "Exec Dashboard"
+      - "V2 Timeline"
+      - "iGaming Timeline"
+      - "Refresh Team Board Data"
+      - "Refresh Game Pipeline Dashboard"
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -32,6 +44,9 @@ concurrency:
 
 jobs:
   deploy:
+    # For refresh-triggered runs, only deploy if the refresh actually succeeded.
+    # push / manual runs always deploy.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
