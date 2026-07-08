@@ -37,7 +37,8 @@
     "Game: Canada Eh Part Deux": "In Review",
     "Game: Nordic Paws": "In Review",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
-    "Game: Lantern's Rising- Vertical": "In QA"
+    "Game: Lantern's Rising- Vertical": "In QA",
+    "Game: Neon Break": "In Progress"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -50,7 +51,18 @@
   "hidden": [
     "Game: Zombie Hunt",
     "Game: Canada Eh",
-    "Game: Northern Buffalo Fortune [V]"
+    "Game: Northern Buffalo Fortune [V]",
+    "Game: Arctic Buffalo",
+    "Game: Lost Totem",
+    "Game: Northern Buffalo",
+    "Game: Quick Win's Diamond 7s - [V]",
+    "Game: Steampunk Fortune",
+    "Game: Viking’s Voyage of Fortune",
+    "Game: Blade of Fortune",
+    "Game: Lantern's Rising- Vertical",
+    "Game: Pharaoh's Quest",
+    "Game: Hollow Graves of Riches",
+    "Game: Neon Break"
   ],
   "notes": {},
   "added": [
@@ -168,5 +180,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-08 17:31"
+  "updated_at": "2026-07-08 17:38"
 }
