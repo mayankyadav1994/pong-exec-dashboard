@@ -1,5 +1,6 @@
 {
   "order": [
+    "Game: Flaming Skulls [V]",
     "Game: Enchanted East [V]",
     "Game: Wildlife Safari Gold",
     "Game: Canada Eh Part Deux",
@@ -29,8 +30,7 @@
     "Game: Pharaoh's Quest",
     "Game: Hollow Graves of Riches",
     "Game: Neon Break",
-    "Game: Zombie Hunt",
-    "Game: Flaming Skulls [V]"
+    "Game: Zombie Hunt"
   ],
   "status": {
     "Game: Wildlife Safari Gold": "In Review",
@@ -180,5 +180,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-08 17:38"
+  "updated_at": "2026-07-08 21:15"
 }
