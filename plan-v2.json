@@ -9,11 +9,12 @@
     "Game: Monster Cake Smash",
     "Game: Fruit Splitter",
     "Game: Western Grand Express",
-    "Game: Viking Blox 2",
+    "Game: Viking Blox",
+    "Game: Fortune of Z",
     "Game: Jewels of Cleopatra Cascade",
     "Game: Birthday Bash [V]",
+    "Game: Viking Blox 2",
     "Game: Fangs of Fortune",
-    "Game: Viking Blox",
     "Game: Canada Eh",
     "Game: Arctic Buffalo",
     "Game: Lost Totem",
@@ -53,7 +54,8 @@
   ],
   "notes": {},
   "added": [
-    "V2-22634"
+    "V2-22634",
+    "V2-21483"
   ],
   "config": {
     "statuses": [
@@ -166,5 +168,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-03 17:20"
+  "updated_at": "2026-07-08 17:31"
 }
