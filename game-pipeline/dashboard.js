@@ -282,6 +282,31 @@ function discSprints(disc) {
   return ids.map(id => SPRINT_BY_ID[String(id)]).filter(Boolean)
             .sort((a, b) => new Date(a.start) - new Date(b.start));
 }
+// Per-department people breakdown (#51). Names + logged hours come from the
+// build (discipline.people, assignee-attributed, sorted by hours desc).
+const DEPT_COLORS = { art: '#f59e0b', design: '#3b82f6', math: '#22c55e', dev: '#6366f1', sound: '#ec4899', qa: '#eab308' };
+function initialsOf(n) { return String(n || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase(); }
+function fmtHrs(h) { return (Math.round(h * 10) / 10).toString(); }
+// Chip line for the HOURS tab — one avatar+name+hours chip per person; the
+// top contributor is outlined and zero-hour (assigned, not started) dimmed.
+function peopleChips(disc) {
+  const ppl = (disc && disc.people) ? disc.people : [];
+  if (!ppl.length) return '';
+  const col = DEPT_COLORS[disc.key] || 'var(--muted)';
+  return '<div class="people">' + ppl.map((p, i) => {
+    const zero = !(p.hours > 0);
+    return `<span class="person${i === 0 && !zero ? ' lead' : ''}${zero ? ' zero' : ''}" data-tip="<b>${p.name}</b><div class='t-sub'>${fmtHrs(p.hours)}h on ${disc.key.toUpperCase()}</div>">`
+      + `<span class="av" style="background:${col}">${initialsOf(p.name)}</span>`
+      + `<span class="nm">${p.name}</span><span class="hh">${fmtHrs(p.hours)}h</span></span>`;
+  }).join('') + '</div>';
+}
+// Compact people list appended to a burndown lane tooltip (department total).
+function peopleTip(disc) {
+  const ppl = (disc && disc.people || []).filter(p => p.hours > 0);
+  if (!ppl.length) return '';
+  return '<div class="t-people">' + ppl.map(p =>
+    `<div class="t-person"><span>${p.name}</span><span>${fmtHrs(p.hours)}h</span></div>`).join('') + '</div>';
+}
 function gameSizes(g) { return { ...(SHARED_SIZES[g.name] || {}), ...(USER_SIZES[g.name] || {}) }; }
 function hasAnySize(g) { const s = gameSizes(g); return ['art', 'math', 'dev', 'sound'].some(k => s[k]); }
 function fvRow(g) {
@@ -633,7 +658,7 @@ function renderRow(g, idx) {
       const chip = document.createElement('div');
       chip.className = 'lane-spr lane-' + dKey + (dashed ? ' proj' : '');
       chip.style.left = l + '%'; chip.style.width = w + '%'; chip.style.top = top + 'px';
-      chip.dataset.tip = `<b>${dKey.toUpperCase()} · ${s.label}</b><div class="t-sub">${fmtRange(s.start, end)}${dashed ? ' · projected' : ''}</div>`;
+      chip.dataset.tip = `<b>${dKey.toUpperCase()} · ${s.label}</b><div class="t-sub">${fmtRange(s.start, end)}${dashed ? ' · projected' : ''}</div>${dashed ? '' : peopleTip(disc)}`;
       chip.textContent = w > 3 ? shortSprint(s.label) : '';
       trackInner.appendChild(chip);
     };
@@ -831,7 +856,8 @@ function renderDetail(g) {
   const hrsPane = document.createElement('div'); hrsPane.style.display = 'none';
   const hoursRows = (g.disciplines || []).map(d => {
     const ratio = d.est > 0 ? d.spent / d.est : 0, over = ratio > 1, pctNum = Math.round(ratio * 100);
-    return `<div class="disc-row"><div class="disc-label">${d.key}</div><div class="disc-track"><div class="disc-bar" style="left:0;width:${Math.min(100, pctNum)}%;background:${over ? '#dc2626' : '#2563eb'};color:#fff">${pctNum}%</div></div><div class="disc-hrs">${Math.round(d.spent)} / ${Math.round(d.est)}h ${over ? '<span class="over">⚠</span>' : ''}</div></div>`;
+    const row = `<div class="disc-row"><div class="disc-label">${d.key}</div><div class="disc-track"><div class="disc-bar" style="left:0;width:${Math.min(100, pctNum)}%;background:${over ? '#dc2626' : '#2563eb'};color:#fff">${pctNum}%</div></div><div class="disc-hrs">${Math.round(d.spent)} / ${Math.round(d.est)}h ${over ? '<span class="over">⚠</span>' : ''}</div></div>`;
+    return `<div class="disc-block">${row}${peopleChips(d)}</div>`;
   }).join('');
   hrsPane.innerHTML = hoursRows || '<div style="font-size:11px;color:var(--sub);font-style:italic;padding:10px">No hours data.</div>';
   body.appendChild(hrsPane);

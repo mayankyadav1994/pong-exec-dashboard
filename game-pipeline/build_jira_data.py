@@ -460,7 +460,7 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         ef = epic.get("fields", {}) or {}
         # Full subtree: epic's direct children + their sub-tasks (Decision #37).
         ISSUE_FIELDS = ["issuetype", "status", "timeoriginalestimate", "timespent",
-                        "duedate", sprint_field]
+                        "duedate", "assignee", sprint_field]
         children = client.search_jql(f"parent = {ekey}", ISSUE_FIELDS + ["subtasks"])
         child_keys = [c.get("key") for c in children if c.get("key")]
         subtasks = []
@@ -470,9 +470,12 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 "parent in (" + ",".join(chunk) + ")", ISSUE_FIELDS + ["parent"])
 
         def _new_agg():
+            # people: assignee displayName -> spent hours, for the per-department
+            # "who worked on this" breakdown (#51). Assignees are kept even at 0h
+            # so assigned-but-not-started owners still surface (dimmed in the UI).
             return {"est": 0.0, "spent": 0.0, "sprints": set(), "due": [],
                     "buckets": {"todo": 0, "wip": 0, "qa": 0, "hold": 0, "done": 0},
-                    "preprod": 0}
+                    "preprod": 0, "people": {}}
         aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
         aggs["_release"] = _new_agg()
         # Open bug signal — set by add_issue() when it encounters an open Bug
@@ -515,7 +518,14 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             dd = _parse_date(fields.get("duedate"))   # department-task target (#40)
             if dd is not None:
                 d["due"].append(dd)
-            d["spent"] += _secs_to_hours(fields.get("timespent"))        # every issue's own time
+            issue_spent = _secs_to_hours(fields.get("timespent"))        # every issue's own time
+            d["spent"] += issue_spent
+            # Attribute this issue's logged hours to its assignee (#51). Worklog
+            # authors are unusable here (all logged via the "Timesheets by Tempo"
+            # bot), so the assignee is the reliable per-person signal.
+            who = ((fields.get("assignee") or {}).get("displayName") or "").strip()
+            if who:
+                d["people"][who] = d["people"].get(who, 0.0) + issue_spent
             if include_est:
                 d["est"] += _secs_to_hours(fields.get("timeoriginalestimate"))
             for spr in parse_sprint_field(fields.get(sprint_field)):
@@ -551,6 +561,10 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 # Department target = latest due date among this discipline's
                 # tickets (the producer's targeted dates on dept tasks; #40).
                 "target_date": max(d["due"]).isoformat() if d["due"] else None,
+                # Who worked in this department, most hours first (#51).
+                "people": sorted(
+                    ({"name": n, "hours": round(h, 2)} for n, h in d["people"].items()),
+                    key=lambda p: (-p["hours"], p["name"].lower())),
             })
 
         est = round(sum(x["est"] for x in disciplines), 2)

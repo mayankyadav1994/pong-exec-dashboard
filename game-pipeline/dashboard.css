@@ -250,6 +250,19 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .disc-bar{position:absolute;height:14px;border-radius:3px;font-size:9px;font-weight:600;padding:0 5px;display:flex;align-items:center;white-space:nowrap;overflow:hidden}
 .disc-hrs{width:120px;font-size:10px;font-family:'IBM Plex Mono';color:var(--muted);text-align:right;flex-shrink:0;padding-left:8px;line-height:1.25}
 .disc-hrs .over{color:#dc2626;font-weight:600}
+/* Per-department people (#51): HOURS-tab chip line + burndown tooltip list */
+.disc-block{margin-bottom:8px}
+.people{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 0 90px}
+.person{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;background:var(--surf2);border:1px solid var(--border);border-radius:20px;padding:2px 7px 2px 3px}
+.person .av{width:16px;height:16px;border-radius:50%;color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.person .nm{color:var(--text);font-weight:500}
+.person .hh{color:var(--muted);font-size:9.5px;font-family:'IBM Plex Mono'}
+.person.lead{border-color:#2563eb}
+.person.zero{opacity:.55}
+.person.zero .hh{color:var(--sub)}
+.gp-tip .t-people{margin-top:6px;border-top:1px solid rgba(255,255,255,.14);padding-top:5px}
+.gp-tip .t-person{display:flex;justify-content:space-between;gap:14px;font-size:10px;padding:1px 0;color:#dbe1f0}
+.gp-tip .t-person span:last-child{color:#aab4cf;font-family:'IBM Plex Mono'}
 .disc-tgt{font-size:9px;font-weight:700;color:#0e7490}
 /* Department target tick in the dropdown timeline */
 .disc-target{position:absolute;top:-3px;bottom:-3px;width:0;border-left:2px solid #0891b2;z-index:3;pointer-events:auto;cursor:help}
