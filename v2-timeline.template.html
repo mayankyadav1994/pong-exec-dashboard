@@ -1638,6 +1638,11 @@ ordered.forEach((fv,idx)=>{
 
   // ── FV ITEM WRAPPER ──
   const item=document.createElement('div');item.className='fv-item';item.dataset.idx=idx;
+  // Hide the whole row when the FV has been toggled off in the Plan Editor.
+  // Scenarios always render regardless — they're a separate what-if overlay.
+  if(HIDDEN_FVS.has(effectiveFv.key) && !effectiveFv.isScenario){
+    item.style.display='none';
+  }
 
   // ── GANTT ROW ──
   const row=document.createElement('div');
