@@ -670,6 +670,142 @@ def load_snapshots(dashboard_key, n=30):
     return out
 
 
+# ── Scope-deviation baseline (scope-creep tracking) ─────────────────────────
+# Baseline = the ticket set captured the FIRST time the workflow saw the FV.
+# Never rewritten; the anchor for every subsequent "how much has scope
+# changed since we started tracking?" measurement.
+#
+# File shape (one file per dashboard):
+#   snapshots/<dashboard>-scope-baseline.json = {
+#     "V2 P2P 15.20": {
+#       "date": "2026-06-30",
+#       "orig_hours_by_key": {"V2-28051": 8, "V2-29369": 20, ...}
+#     },
+#     ...
+#   }
+# On every build we compute additions / resizes / removals vs this dict.
+
+def _scope_baseline_path(dashboard_key):
+    return Path("snapshots") / f"{dashboard_key}-scope-baseline.json"
+
+
+def load_scope_baseline(dashboard_key):
+    p = _scope_baseline_path(dashboard_key)
+    if not p.exists():
+        return {}
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_scope_baseline(dashboard_key, baseline):
+    p = _scope_baseline_path(dashboard_key)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        json.dumps(baseline, indent=2, ensure_ascii=False, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _fv_current_tickets(fv):
+    """Flatten the FV's dev + other tasks into {key: origH} for delta math."""
+    out = {}
+    for p in fv.get("devPeople", []) + fv.get("otherPeople", []):
+        for t in p.get("tasks", []):
+            key = t.get("key")
+            if key:
+                out[key] = float(t.get("origH") or 0)
+    return out
+
+
+def _fv_task_lookup(fv):
+    """key → task record; used to enrich delta entries with summary."""
+    out = {}
+    for p in fv.get("devPeople", []) + fv.get("otherPeople", []):
+        for t in p.get("tasks", []):
+            key = t.get("key")
+            if key:
+                out[key] = t
+    return out
+
+
+def compute_scope_delta(fv, baseline_entry):
+    """Diff current vs baseline for one FV. Returns None when there's
+    nothing meaningful to report (all zero counts). `baseline_entry` is the
+    dict for this FV inside the baseline JSON — {date, orig_hours_by_key}."""
+    if not baseline_entry:
+        return None
+    baseline_hours = baseline_entry.get("orig_hours_by_key") or {}
+    baseline_date  = baseline_entry.get("date")
+    current = _fv_current_tickets(fv)
+    lookup  = _fv_task_lookup(fv)
+
+    added, resized, removed = [], [], []
+    for key, cur_h in current.items():
+        if key not in baseline_hours:
+            added.append({
+                "key":     key,
+                "summary": (lookup.get(key) or {}).get("summary") or "",
+                "hours":   round(cur_h, 1),
+            })
+        else:
+            delta = cur_h - baseline_hours[key]
+            if abs(delta) >= 0.5:   # ignore sub-30-minute rounding noise
+                resized.append({
+                    "key":     key,
+                    "summary": (lookup.get(key) or {}).get("summary") or "",
+                    "fromH":   round(baseline_hours[key], 1),
+                    "toH":     round(cur_h, 1),
+                    "delta":   round(delta, 1),
+                })
+    for key, bh in baseline_hours.items():
+        if key not in current:
+            removed.append({"key": key, "hours": round(bh, 1)})
+
+    added_h   = round(sum(a["hours"] for a in added), 1)
+    resized_h = round(sum(r["delta"] for r in resized), 1)
+    removed_h = round(sum(r["hours"] for r in removed), 1)
+    if not added and not resized and not removed:
+        return None
+    return {
+        "baselineDate":     baseline_date,
+        "addedHours":       added_h,
+        "resizedHours":     resized_h,
+        "removedHours":     removed_h,
+        "netHours":         round(added_h + resized_h - removed_h, 1),
+        "addedTickets":     added,
+        "resizedTickets":   resized,
+        "removedTickets":   removed,
+    }
+
+
+def apply_scope_baseline(dashboard_key, fvs):
+    """Post-process step: for every non-scenario FV, either seed the
+    baseline (first time we see it) or attach a `scopeDelta` field
+    describing the deviation. Persists the baseline back to disk so the
+    next build sees the same anchor."""
+    baseline = load_scope_baseline(dashboard_key)
+    for fv in fvs:
+        if fv.get("isScenario"):
+            continue
+        key = fv.get("key")
+        if not key:
+            continue
+        current = _fv_current_tickets(fv)
+        if key not in baseline:
+            baseline[key] = {
+                "date": TODAY.isoformat(),
+                "orig_hours_by_key": current,
+            }
+            # No delta on the very first sighting — nothing to compare against.
+            continue
+        delta = compute_scope_delta(fv, baseline[key])
+        if delta:
+            fv["scopeDelta"] = delta
+    save_scope_baseline(dashboard_key, baseline)
+
+
 def _fmt_period(start, end_inclusive):
     """'May 11 – May 24' (cross-platform)."""
     try:
@@ -833,6 +969,14 @@ def main():
     write_snapshot("v2", today_snap)
     snapshots = load_snapshots("v2", n=30)
     print(f"\n  snapshot: wrote {len(today_snap['fvs'])} FV projections · loaded {len(snapshots)} historical snapshots")
+
+    # Scope-deviation baseline — first pass seeds it; subsequent runs attach
+    # fv.scopeDelta = { addedHours, resizedHours, removedHours, addedTickets,
+    # resizedTickets, removedTickets, baselineDate }. See apply_scope_baseline.
+    apply_scope_baseline("v2", fvs)
+    n_with_delta = sum(1 for f in fvs if f.get("scopeDelta"))
+    if n_with_delta:
+        print(f"  scope baseline: {n_with_delta} FV(s) show a deviation vs baseline")
 
     template = Path("v2-timeline.template.html").read_text(encoding="utf-8")
     rendered = (template

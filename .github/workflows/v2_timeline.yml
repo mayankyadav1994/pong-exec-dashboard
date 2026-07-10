@@ -73,7 +73,7 @@ jobs:
           # Stage and commit the regenerated HTML first so the working tree is
           # clean before we touch the remote. If the build produced no diff,
           # exit cleanly without pulling/pushing.
-          git add v2-timeline.html snapshots/v2/ || true
+          git add v2-timeline.html snapshots/v2/ snapshots/v2-scope-baseline.json || true
           if git diff --staged --quiet; then
             echo "No V2 timeline changes to commit."
             exit 0

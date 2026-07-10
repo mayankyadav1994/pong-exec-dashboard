@@ -78,6 +78,47 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .fv-summary .sm-delta.ontime{color:#6b7280}
 .fv-summary .sm-target,.fv-summary .sm-est{font-size:10px}
 .fv-summary.scn{background:rgba(254,243,199,.55)}
+
+/* Discipline breakdown (Feature 2) — chevron toggle next to the big total */
+.fv-summary .sm-big-row{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+.fv-summary .sm-bd-toggle{background:none;border:none;color:var(--sub);font-size:11px;cursor:pointer;padding:0 2px;line-height:1;font-family:inherit;transition:color .12s}
+.fv-summary .sm-bd-toggle:hover{color:var(--text)}
+.fv-summary .sm-breakdown{margin:4px 0 6px;padding:5px 0;border-top:1px dashed var(--border);border-bottom:1px dashed var(--border);display:flex;flex-direction:column;gap:1px}
+.fv-summary .sm-bd-row{display:flex;justify-content:space-between;gap:6px;font-size:10px}
+.fv-summary .sm-bd-lbl{color:var(--sub)}
+.fv-summary .sm-bd-val{color:var(--text);font-weight:600}
+
+/* Scope-delta chip (Feature 1) — inline chip under TOTAL ESTIMATE */
+.fv-summary .sc-chip{font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:10px;margin:2px 0;letter-spacing:.2px;line-height:1.3;white-space:nowrap;cursor:help}
+.fv-summary .sc-chip.sc-add{background:rgba(220,38,38,.10);color:#b91c1c;border:1px solid rgba(220,38,38,.4)}
+.fv-summary .sc-chip.sc-rem{background:rgba(22,163,74,.10);color:#15803d;border:1px solid rgba(22,163,74,.4)}
+.fv-summary .sc-chip.sc-flat{background:rgba(100,116,139,.10);color:#475569;border:1px solid rgba(100,116,139,.35)}
+
+/* Scope-changes section in SCOPE tab */
+.scope-changes{margin:0 0 14px;padding:10px 12px;background:rgba(220,38,38,.03);border:1px solid rgba(220,38,38,.2);border-radius:6px;font-size:11px}
+.scope-changes .sc-head{font-size:11.5px;color:var(--text);margin-bottom:6px;letter-spacing:.2px}
+.scope-changes .sc-head .sc-add{color:#b91c1c;font-weight:600}
+.scope-changes .sc-head .sc-rem{color:#15803d;font-weight:600}
+.scope-changes .sc-head .sc-flat{color:#475569;font-weight:600}
+.scope-changes .sc-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.scope-changes .sc-pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;border:1px solid;letter-spacing:.2px}
+.scope-changes .sc-pill.sc-add{background:rgba(220,38,38,.08);color:#b91c1c;border-color:rgba(220,38,38,.35)}
+.scope-changes .sc-pill.sc-res{background:rgba(217,119,6,.08);color:#c2410c;border-color:rgba(217,119,6,.35)}
+.scope-changes .sc-pill.sc-rem{background:rgba(22,163,74,.08);color:#15803d;border-color:rgba(22,163,74,.35)}
+.scope-changes .sc-group{margin-top:6px}
+.scope-changes .sc-group-h{font-size:9.5px;color:var(--sub);font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:4px 0 3px}
+.scope-changes .sc-row{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);margin-bottom:3px;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.scope-changes .sc-row a{font-size:10px;color:var(--sub);text-decoration:none}
+.scope-changes .sc-row a:hover{color:var(--text);text-decoration:underline}
+.scope-changes .sc-key-plain{font-size:10px;color:var(--sub)}
+.scope-changes .sc-title{color:var(--text);font-family:inherit;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scope-changes .sc-title.sc-muted{color:var(--sub);font-style:italic}
+.scope-changes .sc-h{font-size:10.5px;font-weight:600;white-space:nowrap}
+.scope-changes .sc-row.sc-add{border-left:3px solid #ef4444}
+.scope-changes .sc-row.sc-add .sc-h{color:#b91c1c}
+.scope-changes .sc-row.sc-rem{border-left:3px solid #22c55e}
+.scope-changes .sc-row.sc-rem .sc-h{color:#15803d}
+.scope-changes .sc-more{font-size:10px;color:var(--sub);font-style:italic;padding:4px 0}
 .fv-name{font-size:13px;font-weight:600}
 .fv-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
 .fv-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:5px;letter-spacing:.3px;border:1px solid}
@@ -885,18 +926,92 @@ function buildSummaryPanel(fv, devEnd, qaEnd){
     deltaHtml = `<div class="sm-delta ontime" title="No target date set">— no target</div>`;
   }
 
+  // Scope-delta chip — shown when baseline drift exists.
+  let scopeChipHtml = '';
+  const sd = fv.scopeDelta;
+  if(sd){
+    const net = sd.netHours || 0;
+    const cls = net > 0 ? 'sc-add' : (net < 0 ? 'sc-rem' : 'sc-flat');
+    const sign = net > 0 ? '+' : (net < 0 ? '' : '±');
+    const parts = [];
+    if(sd.addedHours   > 0) parts.push(`${sd.addedTickets.length} added`);
+    if(sd.resizedHours && sd.resizedTickets.length) parts.push(`${sd.resizedTickets.length} resized`);
+    if(sd.removedHours > 0) parts.push(`${sd.removedTickets.length} removed`);
+    const tip = `Baseline set ${sd.baselineDate} · ${parts.join(' · ') || 'no changes'}`;
+    scopeChipHtml = `<div class="sc-chip ${cls}" title="${tip}">${sign}${Math.round(net)}h scope Δ</div>`;
+  }
+
+  // Discipline breakdown per FV (Feature 2). iGaming lanes: Dev, QA (via
+  // qaProgress if set — usually 0 here), Art (=Creative), Math, Sound, Design.
+  const disciplineHours = {dev:0, qa:0, art:0, math:0, sound:0, design:0};
+  allDevT.forEach(t => { disciplineHours.dev += (t.origH||0); });
+  (fv.otherPeople||[]).forEach(p => {
+    const type = (p.type || '').toLowerCase();
+    let bucket = null;
+    if(type === 'creative')  bucket = 'art';
+    else if(type === 'math') bucket = 'math';
+    else if(type === 'sound') bucket = 'sound';
+    else if(type === 'design') bucket = 'design';
+    if(!bucket) return;
+    p.tasks.forEach(t => { disciplineHours[bucket] += (t.origH||0); });
+  });
+  if(fv.qaProgress && fv.qaProgress.totalH != null) disciplineHours.qa = fv.qaProgress.totalH;
+  const bdOrder = [
+    ['dev','Dev'], ['qa','QA'], ['art','Art'],
+    ['math','Math'], ['sound','Sound'], ['design','Design'],
+  ];
+  const bdRows = bdOrder.map(([k,label]) => {
+    const h = disciplineHours[k] || 0;
+    const shown = h > 0 ? `${Math.round(h)}h` : '—';
+    return `<div class="sm-bd-row"><span class="sm-bd-lbl">${label}</span><span class="sm-bd-val">${shown}</span></div>`;
+  }).join('');
+  const bdOpen = getBreakdownExpanded(fv.key);
+
   const sum = document.createElement('div');
   sum.className = 'fv-summary' + (fv.isScenario ? ' scn' : '');
   sum.innerHTML = `
-    <div class="sm-big">${totalEstH}h</div>
+    <div class="sm-big-row">
+      <div class="sm-big">${totalEstH}h</div>
+      <button class="sm-bd-toggle" title="Show hours breakdown per discipline" data-bd-fv="${fv.key.replace(/"/g,'&quot;')}">${bdOpen ? '▴' : '▾'}</button>
+    </div>
     <div class="sm-sub">total estimate</div>
+    <div class="sm-breakdown" style="display:${bdOpen ? 'block' : 'none'}">${bdRows}</div>
+    ${scopeChipHtml}
     <div class="sm-row"><span class="sm-lbl">SPENT</span><span class="sm-val">${spentH}h</span></div>
     <div class="sm-row"><span class="sm-lbl">% spent</span><span class="sm-pct" style="color:${pctSpent>=80?'#15803d':pctSpent>=50?'#d97706':'var(--muted)'}">${pctSpent}%</span></div>
     <div class="sm-target">🎯 ${target ? fmtD(target) : 'TBD'}</div>
     <div class="sm-est">≈ ${est ? fmtD(est) : '—'}</div>
     ${deltaHtml}
   `;
+  const toggleBtn = sum.querySelector('.sm-bd-toggle');
+  if(toggleBtn){
+    toggleBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const bd = sum.querySelector('.sm-breakdown');
+      const open = bd.style.display === 'block';
+      bd.style.display = open ? 'none' : 'block';
+      toggleBtn.textContent = open ? '▾' : '▴';
+      setBreakdownExpanded(fv.key, !open);
+    });
+  }
   return sum;
+}
+
+// Breakdown persistence — one localStorage key holding a Set of expanded FV
+// keys. Uses 'ig_bd_expanded' to keep V2 and iGaming preferences separate.
+const BD_KEY = 'ig_bd_expanded';
+function _bdRead(){
+  try { return new Set(JSON.parse(localStorage.getItem(BD_KEY) || '[]')); }
+  catch(e){ return new Set(); }
+}
+function _bdWrite(s){
+  try { localStorage.setItem(BD_KEY, JSON.stringify([...s])); } catch(e){}
+}
+function getBreakdownExpanded(fvKey){ return _bdRead().has(fvKey); }
+function setBreakdownExpanded(fvKey, val){
+  const s = _bdRead();
+  val ? s.add(fvKey) : s.delete(fvKey);
+  _bdWrite(s);
 }
 
 // ─── BUFFER STATE ──────────────────────────────────────
@@ -1253,6 +1368,44 @@ function buildScopeBody(fv){
   // Resolve override storage key (real epic key, or sentinel for the
   // "Other tasks (no epic)" virtual bucket) — same convention as the editor.
   const ovrKeyOf = (epic) => epic.key || '__unscoped__';
+
+  // Scope-changes header (Feature 1) — added/resized/removed tickets vs baseline.
+  const sd = fv.scopeDelta;
+  if(sd && (sd.addedTickets.length || sd.resizedTickets.length || sd.removedTickets.length)){
+    const sc=document.createElement('div');sc.className='scope-changes';
+    const net = sd.netHours || 0;
+    const netCls = net > 0 ? 'sc-add' : (net < 0 ? 'sc-rem' : 'sc-flat');
+    const netSign = net > 0 ? '+' : (net < 0 ? '' : '±');
+    const summary = [];
+    if(sd.addedTickets.length)   summary.push(`<span class="sc-pill sc-add">+${sd.addedHours}h · ${sd.addedTickets.length} added</span>`);
+    if(sd.resizedTickets.length){
+      const rs = sd.resizedHours || 0;
+      const rsSign = rs > 0 ? '+' : '';
+      summary.push(`<span class="sc-pill sc-res">${rsSign}${rs}h · ${sd.resizedTickets.length} resized</span>`);
+    }
+    if(sd.removedTickets.length) summary.push(`<span class="sc-pill sc-rem">−${sd.removedHours}h · ${sd.removedTickets.length} removed</span>`);
+    const escape = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const cap = 30;
+    const rowsBlock = (title, arr, render) => {
+      if(!arr.length) return '';
+      const shown = arr.slice(0, cap).map(render).join('');
+      const more = arr.length > cap ? `<div class="sc-more">… ${arr.length - cap} more earlier</div>` : '';
+      return `<div class="sc-group"><div class="sc-group-h">${title}</div>${shown}${more}</div>`;
+    };
+    sc.innerHTML =
+      `<div class="sc-head">📈 <b>SCOPE CHANGES</b> since ${sd.baselineDate} · net <span class="${netCls}">${netSign}${Math.round(net)}h</span></div>` +
+      `<div class="sc-pills">${summary.join(' ')}</div>` +
+      rowsBlock('Added',   sd.addedTickets,   t =>
+        `<div class="sc-row sc-add"><a href="${BASE}${t.key}" target="_blank" onclick="event.stopPropagation()">${t.key}</a><span class="sc-title">${escape(t.summary)}</span><span class="sc-h">+${t.hours}h</span></div>`) +
+      rowsBlock('Resized', sd.resizedTickets, t => {
+        const s = t.delta > 0 ? '+' : '';
+        const cls = t.delta > 0 ? 'sc-add' : 'sc-rem';
+        return `<div class="sc-row ${cls}"><a href="${BASE}${t.key}" target="_blank" onclick="event.stopPropagation()">${t.key}</a><span class="sc-title">${escape(t.summary)}</span><span class="sc-h">${t.fromH}h → ${t.toH}h (${s}${t.delta}h)</span></div>`;
+      }) +
+      rowsBlock('Removed', sd.removedTickets, t =>
+        `<div class="sc-row sc-rem"><span class="sc-key-plain">${t.key}</span><span class="sc-title sc-muted">(no longer in fixVersion)</span><span class="sc-h">−${t.hours}h</span></div>`);
+    body.appendChild(sc);
+  }
   (fv.scope||[]).filter(epic => !(overrides[ovrKeyOf(epic)] && overrides[ovrKeyOf(epic)].hidden)).forEach(epic=>{
     const pctDone=epic.total>0?(epic.done/epic.total*100):0;
     const open=epic.total-epic.done;
