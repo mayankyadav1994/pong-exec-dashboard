@@ -71,7 +71,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 17092,
-      "spentH": 9275
+      "spentH": 9279
     },
     "V2 C2 Backlog": {
       "devEnd": "2030-02-14",
@@ -83,8 +83,8 @@
       "spentH": 623
     },
     "V2 HHR 3.10": {
-      "devEnd": "2030-02-14",
-      "qaEnd": "2030-02-28",
+      "devEnd": "2026-09-02",
+      "qaEnd": "2026-09-16",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
