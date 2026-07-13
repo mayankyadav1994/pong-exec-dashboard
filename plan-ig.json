@@ -1,6 +1,5 @@
 {
   "order": [
-    "Gen2 Game: Liberty Rising",
     "Gen2 Game: Fortune Diamond 10X",
     "Gen2 Game: American Wins",
     "Gen2 Game: Flaming Skulls",
@@ -29,7 +28,6 @@
     "Gen2 Game: Nordic Paws"
   ],
   "status": {
-    "Gen2 Game: Liberty Rising": "In Production",
     "Gen2 Game: Fortune Diamond 10X": "In Production",
     "Gen2 Game: American Wins": "In Production",
     "Gen2 Game: Flaming Skulls": "In Production"
@@ -46,7 +44,6 @@
     "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Birthday Bash [V]",
     "Gen2 Game: Fiery 7s",
-    "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
@@ -169,5 +166,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-02 17:26"
+  "updated_at": "2026-07-13 17:00"
 }
