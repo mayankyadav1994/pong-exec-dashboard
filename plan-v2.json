@@ -37,8 +37,7 @@
     "Game: Canada Eh Part Deux": "In Review",
     "Game: Nordic Paws": "In Review",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
-    "Game: Lantern's Rising- Vertical": "In QA",
-    "Game: Neon Break": "In Progress"
+    "Game: Lantern's Rising- Vertical": "In QA"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -180,5 +179,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-14 16:35"
+  "updated_at": "2026-07-14 21:00"
 }
