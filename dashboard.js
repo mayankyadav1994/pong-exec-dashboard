@@ -210,14 +210,28 @@ function applyForecast() {
     if (g.delivered) return;
     const ws = g.workflow_status || '';
     if (STATUS_TERMINAL.has(ws)) return;  // no forecast for done/held games
-    const qaOnly = STATUS_QA_ONLY.has(ws);
+    // "In QA" alone does NOT mean production is finished. derive_status
+    // (build_jira_data.py) flips a game to In QA on a single reopened bug or an
+    // active QA sub-task, even while dev/art still have substantial open work.
+    // Only collapse to a QA-only forecast when production is genuinely done —
+    // otherwise forecast the unfinished production lanes too, so a game that is
+    // a third of the way through dev can't show an "≈ Est … 72d early" that
+    // silently discounts the remaining production hours in front of
+    // stakeholders (#52). A production lane counts as open if the build did not
+    // flag it done/hold and it still has estimated hours left.
+    const PROD_LANES = ['art', 'design', 'math', 'dev', 'sound'];
+    const prodOpen = PROD_LANES.some(k => {
+      const d = (g.disciplines || []).find(x => x.key === k);
+      return d && d.phase !== 'done' && d.phase !== 'hold' && ((d.est || 0) - (d.spent || 0)) > 0;
+    });
+    const qaOnly = STATUS_QA_ONLY.has(ws) && !prodOpen;
     const disc = {}; let ship = 0, any = false;
-    // The lane the game is actively sitting in (its current stage; QA for an
-    // In-QA game). Even when this lane has overrun its estimate (remaining
-    // hours <= 0) the game is provably not finished, so it must still forecast
-    // to at least the current/next sprint rather than drop out of the forecast
-    // entirely. Without this, an over-budget-but-still-active QA game shows no
-    // ≈ Est line and no projected bar at all.
+    // The lane the game is actively sitting in (its current stage; QA for a
+    // genuinely-QA-only game). Even when this lane has overrun its estimate
+    // (remaining hours <= 0) the game is provably not finished, so it must
+    // still forecast to at least the current/next sprint rather than drop out
+    // of the forecast entirely. Without this, an over-budget-but-still-active
+    // QA game shows no ≈ Est line and no projected bar at all.
     const activeKey = qaOnly ? 'qa' : g.current_stage;
     LANE_ORDER.forEach(k => {
       const d = (g.disciplines || []).find(x => x.key === k); if (!d) return;
