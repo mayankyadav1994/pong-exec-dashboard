@@ -1,5 +1,7 @@
 {
   "order": [
+    "Game: Steampunk Fortune",
+    "Game: Neon Break",
     "Game: Flaming Skulls [V]",
     "Game: Enchanted East [V]",
     "Game: Wildlife Safari Gold",
@@ -22,14 +24,12 @@
     "Game: Northern Buffalo",
     "Game: Northern Buffalo Fortune [V]",
     "Game: Quick Win's Diamond 7s - [V]",
-    "Game: Steampunk Fortune",
     "Game: Viking’s Voyage of Fortune",
     "Game: Blade of Fortune",
     "Game: Lantern's Rising- Vertical",
     "Game: Quick Wins Fortune [V]",
     "Game: Pharaoh's Quest",
     "Game: Hollow Graves of Riches",
-    "Game: Neon Break",
     "Game: Zombie Hunt"
   ],
   "status": {
@@ -55,13 +55,11 @@
     "Game: Lost Totem",
     "Game: Northern Buffalo",
     "Game: Quick Win's Diamond 7s - [V]",
-    "Game: Steampunk Fortune",
     "Game: Viking’s Voyage of Fortune",
     "Game: Blade of Fortune",
     "Game: Lantern's Rising- Vertical",
     "Game: Pharaoh's Quest",
-    "Game: Hollow Graves of Riches",
-    "Game: Neon Break"
+    "Game: Hollow Graves of Riches"
   ],
   "notes": {},
   "added": [
@@ -179,5 +177,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-14 21:00"
+  "updated_at": "2026-07-15 17:26"
 }
