@@ -460,6 +460,11 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         ef = epic.get("fields", {}) or {}
         # Full subtree: epic's direct children + their sub-tasks (Decision #37).
         ISSUE_FIELDS = ["issuetype", "status", "timeoriginalestimate", "timespent",
+                        # timeestimate = Jira's Remaining Estimate — required for
+                        # the scope = spent + remaining formula. Missing this in
+                        # the fetch list means every ticket's remaining reads as
+                        # 0 regardless of what Jira actually holds.
+                        "timeestimate",
                         "duedate", "assignee", sprint_field]
         children = client.search_jql(f"parent = {ekey}", ISSUE_FIELDS + ["subtasks"])
         child_keys = [c.get("key") for c in children if c.get("key")]
