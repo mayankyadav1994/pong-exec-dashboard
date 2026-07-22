@@ -473,7 +473,12 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             # people: assignee displayName -> spent hours, for the per-department
             # "who worked on this" breakdown (#51). Assignees are kept even at 0h
             # so assigned-but-not-started owners still surface (dimmed in the UI).
-            return {"est": 0.0, "spent": 0.0, "sprints": set(), "due": [],
+            # `remaining` = sum of Jira `timeestimate` (Remaining Estimate).
+            # Together with `spent` it defines the live scope per the formula
+            # scope = spent + remaining — how much total work the ticket will
+            # actually take, not what someone originally thought.
+            return {"est": 0.0, "spent": 0.0, "remaining": 0.0,
+                    "sprints": set(), "due": [],
                     "buckets": {"todo": 0, "wip": 0, "qa": 0, "hold": 0, "done": 0},
                     "preprod": 0, "people": {}}
         aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
@@ -509,7 +514,16 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 aggs["_release"]["buckets"][bk] += 1     # signal only — no hours
                 return
             if cat == "unmapped":
-                all_skips.append(f"{itype!r}")
+                # Log with the issue KEY and hours so scope audits can find
+                # exactly which tickets got dropped (not just the issuetype).
+                orig_h = _secs_to_hours(fields.get("timeoriginalestimate"))
+                rem_h  = _secs_to_hours(fields.get("timeestimate"))
+                spent_h = _secs_to_hours(fields.get("timespent"))
+                # `_issue_key_for_unmapped` is stashed onto `fields` a few lines
+                # above the call site so we can identify it here without
+                # threading a new argument through.
+                key = fields.get("_issue_key_for_unmapped") or "?"
+                all_skips.append(f"{ekey}/{key} type={itype!r} orig={orig_h}h spent={spent_h}h rem={rem_h}h")
                 return
             d = aggs[cat]
             d["buckets"][bk] += 1
@@ -528,6 +542,10 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 d["people"][who] = d["people"].get(who, 0.0) + issue_spent
             if include_est:
                 d["est"] += _secs_to_hours(fields.get("timeoriginalestimate"))
+                # Remaining Estimate — gated the same way so a parent Story
+                # with classified sub-tasks doesn't double-count its own
+                # remaining alongside the sub-tasks' remaining.
+                d["remaining"] += _secs_to_hours(fields.get("timeestimate"))
             for spr in parse_sprint_field(fields.get(sprint_field)):
                 sid = spr["id"]
                 if spr["start"] is not None:
@@ -540,22 +558,36 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         # Children: count own estimate only when they have NO classified sub-task
         # (otherwise the sub-task estimates represent the work).
         for ch in children:
-            add_issue(ch.get("fields", {}) or {}, classified_subs.get(ch.get("key"), 0) == 0)
+            f = ch.get("fields", {}) or {}
+            f["_issue_key_for_unmapped"] = ch.get("key")   # for the loud log
+            add_issue(f, classified_subs.get(ch.get("key"), 0) == 0)
         # Sub-tasks: always contribute their own est + spent.
         for st in subtasks:
-            add_issue(st.get("fields", {}) or {}, True)
+            f = st.get("fields", {}) or {}
+            f["_issue_key_for_unmapped"] = st.get("key")
+            add_issue(f, True)
 
         disciplines = []
         for dkey in DISCIPLINE_ORDER:
             d = aggs[dkey]
             est = round(d["est"], 2)
             spent = round(d["spent"], 2)
+            remaining = round(d["remaining"], 2)
+            scope = round(spent + remaining, 2)   # live scope per team directive
             disciplines.append({
                 "name": DISCIPLINE_LABEL[dkey],
                 "key": dkey,
+                # est = original planning estimate (kept for reference / audits)
                 "est": est,
                 "spent": spent,
-                "pct": round(spent / est, 4) if est > 0 else 0.0,
+                # remaining = Jira's Remaining Estimate (what's still to do)
+                "remaining": remaining,
+                # scope = spent + remaining = live total this discipline will
+                # actually take, per the user directive from Jul 22.
+                "scope": scope,
+                # pct is now spent / scope so "100%" means done (not "budget
+                # exhausted") — matches how the number reads on the pill.
+                "pct": round(spent / scope, 4) if scope > 0 else 0.0,
                 "sprints": sorted(d["sprints"]),
                 "phase": discipline_phase(d),
                 # Department target = latest due date among this discipline's
@@ -569,6 +601,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
 
         est = round(sum(x["est"] for x in disciplines), 2)
         spent = round(sum(x["spent"] for x in disciplines), 2)
+        remaining = round(sum(x["remaining"] for x in disciplines), 2)
+        scope = round(spent + remaining, 2)
         assignee = ef.get("assignee") or {}
         priority = ef.get("priority") or {}
         epic_status = (ef.get("status") or {}).get("name")
@@ -592,10 +626,18 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             "jira": ekey,
             "in_roster": in_roster,                 # default board vs add-game candidate (#47)
             "priority": str(priority.get("name") or "?"),
+            # est = original planning estimate (kept for audits + backward-compat).
             "est": est,
             "spent": spent,
-            "remaining": round(est - spent, 2),
-            "pct": round(spent / est, 4) if est > 0 else 0.0,
+            # remaining now comes straight from Jira's Remaining Estimate
+            # summed across the same tickets — not "est - spent" which was
+            # wrong for anything with scope growth. See directive from Jul 22.
+            "remaining": remaining,
+            # scope = live total effort (spent + remaining), the new denominator
+            # used everywhere the dashboard shows spent/est or spent/scope.
+            "scope": scope,
+            # pct = spent / scope so 100% means done, not "budget exhausted".
+            "pct": round(spent / scope, 4) if scope > 0 else 0.0,
             "dev_name": assignee.get("displayName"),
             "fixVersions": fvs,                     # [{name,released,releaseDate}]
             "delivered": delivered,                 # (#2/#3)
@@ -650,11 +692,16 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         for d in g["disciplines"]:
             d["sprints"] = [sid for sid in d["sprints"] if sid in kept_ids]
 
-    if all_skips and verbose:
+    # Loud unmapped-ticket log — always printed (not gated on `verbose`) so
+    # scope audits can see exactly which tickets were dropped. Bug lookups
+    # like "why isn't IG-XXXX in my math total?" resolve here in one grep.
+    if all_skips:
         uniq = sorted(set(all_skips))
-        print(f"   {WARN} skipped {len(all_skips)} unmapped child issue(s); {len(uniq)} distinct type/summary:")
-        for s in uniq[:25]:
+        print(f"   {WARN} skipped {len(all_skips)} unmapped child issue(s); {len(uniq)} distinct:")
+        for s in uniq[:50]:
             print(f"        - {s}")
+        if len(uniq) > 50:
+            print(f"        … {len(uniq) - 50} more (raise the cap in build_jira_data.py if you need them all)")
 
     return {"games": games, "sprints": sprints}
 
