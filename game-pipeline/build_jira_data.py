@@ -561,11 +561,19 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 d["sprints"].add(sid)
 
         # Children: count own estimate only when they have NO classified sub-task
-        # (otherwise the sub-task estimates represent the work).
+        # (otherwise the sub-task estimates represent the work). Exception per
+        # the Jul 22 directive: if any hours are logged directly on the parent
+        # (timespent > 0), then real parent-level work happened — include its
+        # est + remaining as well so that work isn't dropped from scope. This
+        # matters for Stories where reviews / meetings / integration hours get
+        # logged on the Story itself while sub-tasks track the granular work.
         for ch in children:
             f = ch.get("fields", {}) or {}
             f["_issue_key_for_unmapped"] = ch.get("key")   # for the loud log
-            add_issue(f, classified_subs.get(ch.get("key"), 0) == 0)
+            has_classified_subs = classified_subs.get(ch.get("key"), 0) > 0
+            parent_own_spent = _secs_to_hours(f.get("timespent")) > 0
+            include_own_est = (not has_classified_subs) or parent_own_spent
+            add_issue(f, include_own_est)
         # Sub-tasks: always contribute their own est + spent.
         for st in subtasks:
             f = st.get("fields", {}) or {}
