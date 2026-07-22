@@ -222,7 +222,10 @@ function applyForecast() {
     const PROD_LANES = ['art', 'design', 'math', 'dev', 'sound'];
     const prodOpen = PROD_LANES.some(k => {
       const d = (g.disciplines || []).find(x => x.key === k);
-      return d && d.phase !== 'done' && d.phase !== 'hold' && ((d.est || 0) - (d.spent || 0)) > 0;
+      // "remaining work exists" — use Jira's Remaining Estimate directly
+      // when the builder emitted it, else fall back to est-minus-spent.
+      const rem = (d && d.remaining != null) ? d.remaining : Math.max(0, (d.est || 0) - (d.spent || 0));
+      return d && d.phase !== 'done' && d.phase !== 'hold' && rem > 0;
     });
     const qaOnly = STATUS_QA_ONLY.has(ws) && !prodOpen;
     const disc = {}; let ship = 0, any = false;
@@ -242,7 +245,9 @@ function applyForecast() {
       // as done regardless of its est-vs-spent gap. Stops the dashboard from
       // projecting more art / sound / dev when the game has moved past those.
       if (qaOnly && k !== 'qa') return;
-      const rem = Math.max(0, (d.est || 0) - (d.spent || 0));
+      // Prefer Jira's Remaining Estimate directly; fall back to est-minus-spent
+      // for old data payloads that haven't been rebuilt with the new field.
+      const rem = (d.remaining != null) ? Math.max(0, d.remaining) : Math.max(0, (d.est || 0) - (d.spent || 0));
       // No remaining hours: skip unless this is the active lane, which floors
       // to one sprint of remaining work so the game still forecasts to its
       // current/next sprint instead of disappearing.
@@ -700,15 +705,20 @@ function renderRow(g, idx) {
   registerScroller(track);
 
   const hrs = document.createElement('div'); hrs.className = 'epic-hrs';
-  const over = g.spent > g.est && g.est > 0;
-  const progressPct = g.est > 0 ? Math.min(100, Math.round(g.spent / g.est * 100)) : 0;
+  // Scope = spent + remaining (Jira Remaining Estimate). Falls back to est
+  // for pre-fix data payloads. "Over" is only meaningful vs the original
+  // planning estimate — kept for the ⚠ over-budget indicator only.
+  const gScope = (g.scope != null) ? g.scope : g.est;
+  const gRem   = (g.remaining != null) ? g.remaining : Math.max(0, g.est - g.spent);
+  const over   = g.spent > g.est && g.est > 0;
+  const progressPct  = gScope > 0 ? Math.min(100, Math.round(g.spent / gScope * 100)) : 0;
   const progressColor = over ? '#dc2626' : (progressPct >= 70 ? gameColor(g) : '#60a5fa');
   const dl = (g.target_date && proj && proj.ship) ? targetDelta(g.target_date, proj.ship.start) : null;
   hrs.innerHTML = `
     <div class="epic-hrs-v ${over ? 'over' : ''}">${Math.round(g.spent)}h</div>
-    <div class="epic-hrs-l">SPENT / ${Math.round(g.est)}h est</div>
+    <div class="epic-hrs-l" title="Scope = spent + remaining (from Jira Remaining Estimate). Original est: ${Math.round(g.est)}h">SPENT / ${Math.round(gScope)}h scope</div>
     <div class="epic-prog"><div class="epic-prog-fill" style="width:${progressPct}%;background:${progressColor}"></div></div>
-    <div class="epic-hrs-l" style="color:${over ? '#dc2626' : 'var(--sub)'};margin-top:4px">${over ? `⚠ +${Math.round(g.spent - g.est)}h over` : `${progressPct}% spent`}</div>
+    <div class="epic-hrs-l" style="color:${over ? '#dc2626' : 'var(--sub)'};margin-top:4px">${over ? `⚠ +${Math.round(g.spent - g.est)}h over est` : `${progressPct}% done · ${Math.round(gRem)}h to go`}</div>
     ${g.target_date ? `<div class="epic-hrs-l tgt-line" title="Targeted due date (Jira epic due date)">🎯 Target ${fmtD(g.target_date)}</div>` : ''}
     ${proj && proj.ship ? `<div class="epic-hrs-l proj-ship" title="Forecast: remaining hours ÷ velocity (parallel)">≈ Est ${shortSprint(proj.ship.label)} · ${fmtD(proj.ship.start)}</div>` : ''}
     ${dl ? `<div class="dl-chip ${dl.cls}" title="Forecast ship vs target">${dl.txt}</div>` : ''}`;
@@ -868,9 +878,18 @@ function renderDetail(g) {
   body.appendChild(msPane);
 
   const hrsPane = document.createElement('div'); hrsPane.style.display = 'none';
+  // HOURS panel uses SCOPE (spent + remaining) as the denominator now, so
+  // "100%" = discipline done. "Over" indicator still fires vs the ORIGINAL
+  // planning estimate — that's the meaningful "budget exceeded" signal.
   const hoursRows = (g.disciplines || []).map(d => {
-    const ratio = d.est > 0 ? d.spent / d.est : 0, over = ratio > 1, pctNum = Math.round(ratio * 100);
-    const row = `<div class="disc-row"><div class="disc-label">${d.key}</div><div class="disc-track"><div class="disc-bar" style="left:0;width:${Math.min(100, pctNum)}%;background:${over ? '#dc2626' : '#2563eb'};color:#fff">${pctNum}%</div></div><div class="disc-hrs">${Math.round(d.spent)} / ${Math.round(d.est)}h ${over ? '<span class="over">⚠</span>' : ''}</div></div>`;
+    const scope = (d.scope != null) ? d.scope : d.est;
+    const remaining = (d.remaining != null) ? d.remaining : Math.max(0, d.est - d.spent);
+    const ratio = scope > 0 ? d.spent / scope : 0;
+    const pctNum = Math.min(100, Math.round(ratio * 100));
+    const overOrig = d.est > 0 && d.spent > d.est;
+    const overWarn = overOrig ? `<span class="over" title="Spent ${Math.round(d.spent - d.est)}h more than the original ${Math.round(d.est)}h estimate">⚠</span>` : '';
+    const remChip = remaining > 0 ? ` · ${Math.round(remaining)}h left` : '';
+    const row = `<div class="disc-row"><div class="disc-label">${d.key}</div><div class="disc-track"><div class="disc-bar" style="left:0;width:${pctNum}%;background:${overOrig ? '#dc2626' : '#2563eb'};color:#fff">${pctNum}%</div></div><div class="disc-hrs" title="Scope = spent + Jira Remaining Estimate. Original est: ${Math.round(d.est)}h">${Math.round(d.spent)} / ${Math.round(scope)}h${remChip} ${overWarn}</div></div>`;
     return `<div class="disc-block">${row}${peopleChips(d)}</div>`;
   }).join('');
   hrsPane.innerHTML = hoursRows || '<div style="font-size:11px;color:var(--sub);font-style:italic;padding:10px">No hours data.</div>';
