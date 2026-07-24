@@ -33,9 +33,10 @@
     "Game: Zombie Hunt"
   ],
   "status": {
-    "Game: Neon Break": "Not Started",
     "Game: Wildlife Safari Gold": "In Review",
-    "Game: Nordic Paws": "On Hold",
+    "Game: Canada Eh Part Deux": "In Review",
+    "Game: Nordic Paws": "In Review",
+    "Game: Fortune of Z": "In Review",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
     "Game: Lantern's Rising- Vertical": "In QA"
   },
@@ -177,5 +178,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-24 15:46"
+  "updated_at": "2026-07-24 15:50"
 }
