@@ -26,6 +26,11 @@ const SHARED_CACHE = {};   // project key -> committed shared plan object
 let SHARED = {};           // current project's shared plan
 let EDITORS = [];          // allowed GitHub logins (UX gate; real gate = repo perms)
 let SHARED_STATUS = {}, SHARED_SIZES = {};
+// Same override pattern as status: shared plan holds team-wide overrides,
+// USER_STAGE holds per-browser edits until the next Save-as-default. Auto
+// value (from Jira classifier) is captured once as g._auto_stage so we can
+// detect drift and offer revert.
+let SHARED_STAGE = {};
 // Notes per game: { "<game name>": [{ts, author, body}, ...] }. Shared via
 // plan-{key}.json. New notes append to a working copy in NOTES, persisted to
 // SHARED_NOTES on Save-as-default. Append-only via the UI — older entries
@@ -52,6 +57,10 @@ const DEFAULT_CONFIG = {
     { key: 'Bug Fixing',    cls: 's-bug' },
     { key: 'On Hold',       cls: 's-hold' },
     { key: 'Signed Off',    cls: 's-signed' },
+    // Terminal state — game intentionally shelved / discontinued. Not
+    // auto-derived (Jira has no equivalent status the classifier maps to);
+    // only reachable via a manual override in Plan Mode.
+    { key: 'Cancelled',     cls: 's-cancel' },
   ],
   stages: [
     { key: 'concept', label: 'Concept', color: '#fde68a' },
@@ -85,7 +94,7 @@ function getData(key) {
 let PROJECT, LS, APP;
 let RAW_GAMES, RAW_SPRINTS, REFRESHED, SPRINT_LIST, SPRINT_BY_ID, CHART_START, CHART_END, TODAY;
 let ALL_SPRINTS, showForecast, studioVel;   // forecast (Decision #38)
-let CONFIG, USER_ORDER, USER_STATUS, USER_SIZES, HIDDEN, ALL_GAMES, USER_ADDED;
+let CONFIG, USER_ORDER, USER_STATUS, USER_STAGE, USER_SIZES, HIDDEN, ALL_GAMES, USER_ADDED;
 let activeFilters, currentView, planMode, openPanel, dragSrcIdx, toastTimer;
 let drawerTab, drawerOpenRows, drawerDragIdx;
 
@@ -341,6 +350,7 @@ function fvRow(g) {
 
 function saveOrder()  { try { localStorage.setItem(LS + 'order',  JSON.stringify(RAW_GAMES.map(g => g.name))); } catch (e) {} }
 function saveStatus() { try { localStorage.setItem(LS + 'status', JSON.stringify(USER_STATUS)); } catch (e) {} }
+function saveStage()  { try { localStorage.setItem(LS + 'stage',  JSON.stringify(USER_STAGE)); } catch (e) {} }
 function saveSizes()  { try { localStorage.setItem(LS + 'sizes',  JSON.stringify(USER_SIZES)); } catch (e) {} }
 function saveConfig() { try { localStorage.setItem(LS + 'config', JSON.stringify(CONFIG)); } catch (e) {} }
 function saveHidden() { try { localStorage.setItem(LS + 'hidden', JSON.stringify([...HIDDEN])); } catch (e) {} }
@@ -379,12 +389,40 @@ function resolveGameStatus(g) {
   else { g.workflow_status = g._auto_status; g._status_source = 'auto'; }
 }
 
+// Stage progression — mirrors the discipline-pipeline order so auto-promote
+// can detect when Jira's derived stage has advanced past a stale shared
+// override (e.g. shared=dev but Jira tickets now show qa work active).
+const STAGE_PROGRESSION = [
+  'concept', 'design', 'art', 'math', 'dev', 'sound', 'qa', 'bugfix', 'done',
+];
+function stageIdx(s) { return STAGE_PROGRESSION.indexOf(s); }
+
+function resolveGameStage(g) {
+  // Capture the Jira-derived stage exactly once so subsequent renders don't
+  // treat an overridden value as the auto baseline.
+  if (g._auto_stage == null) g._auto_stage = g.current_stage;
+  g._shared_stage = SHARED_STAGE[g.name] || null;
+  g._auto_stage_promoted_from = null;
+  // Same auto-promote rule as status: shared override strictly upstream of
+  // the current auto value → drop the override, remember it for the banner.
+  if (g._shared_stage && g._shared_stage !== g._auto_stage) {
+    const ai = stageIdx(g._auto_stage), si = stageIdx(g._shared_stage);
+    if (ai >= 0 && si >= 0 && ai > si) {
+      g._auto_stage_promoted_from = g._shared_stage;
+      g._shared_stage = null;
+    }
+  }
+  if (USER_STAGE[g.name] != null) { g.current_stage = USER_STAGE[g.name]; g._stage_source = 'local'; }
+  else if (g._shared_stage != null) { g.current_stage = g._shared_stage; g._stage_source = 'shared'; }
+  else { g.current_stage = g._auto_stage; g._stage_source = 'auto'; }
+}
+
 // "+ Add game" (#47): pull an off-roster Jira epic onto the board, editable like any game.
 function addGameToRoster(jira) {
   if (RAW_GAMES.some(g => g.jira === jira)) return;
   const g = ALL_GAMES.find(x => x.jira === jira); if (!g) return;
   if (!USER_ADDED.includes(jira)) USER_ADDED.push(jira);
-  saveAdded(); resolveGameStatus(g); RAW_GAMES.push(g); saveOrder();
+  saveAdded(); resolveGameStatus(g); resolveGameStage(g); RAW_GAMES.push(g); saveOrder();
   applyForecast(); renderAxis(); renderRows(); renderKPI(); renderDrawer();
   const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
   showToast('✓ Added ' + g.name);
@@ -1029,23 +1067,33 @@ function renderDrawerGames(body) {
   const sizeOpts = ['—', ...CONFIG.sizes.map(s => s.key)];
   const sizeSel = (g, k) => `<label>${k.toUpperCase()}<select data-size-game="${g.name}" data-disc="${k}">` +
     sizeOpts.map(o => `<option value="${o === '—' ? '' : o}"${(gameSizes(g)[k] || '') === (o === '—' ? '' : o) ? ' selected' : ''}>${o}</option>`).join('') + `</select></label>`;
+  const stageOptions = g => CONFIG.stages.map(s => `<option value="${s.key}"${s.key === g.current_stage ? ' selected' : ''}>${s.label}</option>`).join('');
   const list = RAW_GAMES.map((g, idx) => {
-    const on = !HIDDEN.has(g.name), open = drawerOpenRows.has(g.name), src = g._status_source;
+    const on = !HIDDEN.has(g.name), open = drawerOpenRows.has(g.name);
+    const src   = g._status_source;
+    const srcSt = g._stage_source;
     const added = USER_ADDED.includes(g.jira);
-    const mark = src === 'shared' ? ' <span class="pin-mark" title="shared default (auto: ' + g._auto_status + ')">📌</span>'
+    // Mark next to each dropdown: 📌 shared default, ✎ local override. Kept
+    // separate for status and stage so an editor sees which one they've
+    // touched independently.
+    const statusMark = src === 'shared' ? ' <span class="pin-mark" title="shared default (auto: ' + g._auto_status + ')">📌</span>'
       : (src === 'local' ? ' <span class="ovr-mark" title="local override (auto: ' + g._auto_status + ')">✎</span>' : '');
+    const stageMark  = srcSt === 'shared' ? ' <span class="pin-mark" title="shared default (auto: ' + stageLabel(g._auto_stage) + ')">📌</span>'
+      : (srcSt === 'local' ? ' <span class="ovr-mark" title="local override (auto: ' + stageLabel(g._auto_stage) + ')">✎</span>' : '');
+    const revertNeeded = src !== 'auto' || srcSt !== 'auto';
     return `<div class="gpg${on ? '' : ' off'}${open ? ' open' : ''}" data-idx="${idx}" draggable="true">
       <div class="gpg-head">
         <span class="gpg-handle" title="Drag to reorder">⠿</span>
         <button class="gpg-toggle${on ? ' on' : ''}" data-hide="${g.name}" title="${on ? 'Visible — click to hide' : 'Hidden — click to show'}"></button>
         <span class="gpg-name">${g.name}${g.jira ? `<span class="k">${g.jira}</span>` : ''}${added ? '<span class="gpg-added" title="Added on the board">+added</span>' : ''}</span>
-        <span class="gpg-status"><select data-status-game="${g.name}">${statusOptions(g)}</select>${mark}</span>
+        <span class="gpg-stage" title="Lifecycle stage — the discipline the game is most-downstream in"><select data-stage-game="${g.name}">${stageOptions(g)}</select>${stageMark}</span>
+        <span class="gpg-status"><select data-status-game="${g.name}">${statusOptions(g)}</select>${statusMark}</span>
         ${added ? `<button class="gpg-remove" data-remove="${g.jira}" title="Remove from board">✕</button>` : ''}
         <span class="gpg-chev" data-expand="${g.name}">▾</span>
       </div>
       <div class="gpg-expand">
         <div class="gpg-sizes">${sizeSel(g, 'art')}${sizeSel(g, 'math')}${sizeSel(g, 'dev')}${sizeSel(g, 'sound')}</div>
-        <div style="margin-top:8px;font-size:10px;color:var(--sub)">Stage: <strong>${stageLabel(g.current_stage)}</strong> · Jira epic: ${g.epic_status || '—'}${src !== 'auto' ? ` · <button class="revert-auto" data-revert="${g.name}">↺ revert to auto (${g._auto_status})</button>` : ''}</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--sub)">Jira epic: ${g.epic_status || '—'}${revertNeeded ? ` · <button class="revert-auto" data-revert="${g.name}" title="Clear local + shared overrides on BOTH status and stage; restore Jira-derived values">↺ revert to auto (status: ${g._auto_status} · stage: ${stageLabel(g._auto_stage)})</button>` : ''}</div>
       </div>
     </div>`;
   }).join('');
@@ -1086,9 +1134,18 @@ function renderDrawerGames(body) {
   }));
   body.querySelectorAll('select[data-status-game]').forEach(sel => sel.addEventListener('change', () => {
     const g = RAW_GAMES.find(x => x.name === sel.dataset.statusGame); if (!g) return;
-    if (sel.value === g._auto_status) { delete USER_STATUS[g.name]; g.workflow_status = g._auto_status; }
-    else { USER_STATUS[g.name] = sel.value; g.workflow_status = sel.value; }
+    if (sel.value === g._auto_status) { delete USER_STATUS[g.name]; g.workflow_status = g._auto_status; g._status_source = 'auto'; }
+    else { USER_STATUS[g.name] = sel.value; g.workflow_status = sel.value; g._status_source = 'local'; }
     saveStatus(); renderRows(); renderKPI(); renderDrawer();
+  }));
+  // Stage dropdown mirrors the status handler: match auto → clear the local
+  // override so it re-syncs with Jira; anything else → pin as a local edit
+  // that will ship into the shared plan when the user saves.
+  body.querySelectorAll('select[data-stage-game]').forEach(sel => sel.addEventListener('change', () => {
+    const g = RAW_GAMES.find(x => x.name === sel.dataset.stageGame); if (!g) return;
+    if (sel.value === g._auto_stage) { delete USER_STAGE[g.name]; g.current_stage = g._auto_stage; g._stage_source = 'auto'; }
+    else { USER_STAGE[g.name] = sel.value; g.current_stage = sel.value; g._stage_source = 'local'; }
+    saveStage(); renderRows(); renderKPI(); renderDrawer();
   }));
   body.querySelectorAll('select[data-size-game]').forEach(sel => sel.addEventListener('change', () => {
     const n = sel.dataset.sizeGame, d = sel.dataset.disc;
@@ -1098,8 +1155,9 @@ function renderDrawerGames(body) {
   }));
   body.querySelectorAll('.revert-auto').forEach(b => b.addEventListener('click', () => {
     const g = RAW_GAMES.find(x => x.name === b.dataset.revert); if (!g) return;
-    delete USER_STATUS[g.name]; g.workflow_status = g._auto_status;
-    saveStatus(); renderRows(); renderKPI(); renderDrawer();
+    delete USER_STATUS[g.name]; g.workflow_status = g._auto_status; g._status_source = 'auto';
+    delete USER_STAGE[g.name];  g.current_stage  = g._auto_stage;  g._stage_source  = 'auto';
+    saveStatus(); saveStage(); renderRows(); renderKPI(); renderDrawer();
   }));
   // drag-reorder within the drawer
   body.querySelectorAll('.gpg').forEach(rowEl => {
@@ -1245,12 +1303,18 @@ function renderShareBanner() {
 function renderPromoteBanner() {
   const el = document.getElementById('gpPromoteBanner');
   if (!el) return;
-  const promoted = RAW_GAMES.filter(g => g._auto_promoted_from);
+  // Two independent kinds of drift — shared status override that Jira has
+  // moved past, and shared stage override in the same shape. Group them into
+  // one banner so the editor sees everything to reconcile in one pass.
+  const promoted = RAW_GAMES.filter(g => g._auto_promoted_from || g._auto_stage_promoted_from);
   if (!promoted.length) { el.style.display = 'none'; return; }
-  const rows = promoted.map(g =>
-    `<li><b>${g.name}</b> <span class="ap-from">${g._auto_promoted_from}</span> → <span class="ap-to">${g._auto_status}</span></li>`
-  ).join('');
-  el.innerHTML = `<div class="apb-head">📢 ${promoted.length} game${promoted.length > 1 ? 's' : ''} auto-released from manual override — Jira status has progressed past them.</div>`
+  const rows = promoted.map(g => {
+    const parts = [];
+    if (g._auto_promoted_from) parts.push(`status <span class="ap-from">${g._auto_promoted_from}</span> → <span class="ap-to">${g._auto_status}</span>`);
+    if (g._auto_stage_promoted_from) parts.push(`stage <span class="ap-from">${stageLabel(g._auto_stage_promoted_from)}</span> → <span class="ap-to">${stageLabel(g._auto_stage)}</span>`);
+    return `<li><b>${g.name}</b> — ${parts.join(' · ')}</li>`;
+  }).join('');
+  el.innerHTML = `<div class="apb-head">📢 ${promoted.length} game${promoted.length > 1 ? 's' : ''} auto-released from shared overrides — Jira has progressed past them.</div>`
     + `<ul class="apb-list">${rows}</ul>`
     + `<div class="apb-actions">`
     + `  <button class="gsb-btn primary" id="apbSave">Save to plan</button>`
@@ -1260,23 +1324,32 @@ function renderPromoteBanner() {
   document.getElementById('apbSave').onclick = async () => {
     if (!getPat()) { openSignInModal(); return; }
     try {
-      // Remove the stale entries permanently — the existing publishPlan reads
-      // RAW_GAMES.workflow_status; since auto-promoted games now have
-      // workflow_status === _auto_status, their entries naturally fall out of
-      // the published `status` map (see buildPlanPayload).
+      // Remove the stale entries permanently — publishPlan reads current values
+      // off RAW_GAMES; auto-promoted games now match _auto_* so their entries
+      // naturally fall out of the published status/stage maps (buildPlanPayload).
       await publishPlan();
       showToast(`✓ Cleared ${promoted.length} stale override${promoted.length > 1 ? 's' : ''}`);
-      // Refresh the cache locally so the banner doesn't reappear on next render
+      // Refresh caches locally so the banner doesn't reappear on next render.
       SHARED_STATUS = (SHARED_CACHE[PROJECT.key] || {}).status || {};
-      RAW_GAMES.forEach(resolveGameStatus);
+      SHARED_STAGE  = (SHARED_CACHE[PROJECT.key] || {}).stage  || {};
+      RAW_GAMES.forEach(g => { resolveGameStatus(g); resolveGameStage(g); });
       renderPromoteBanner(); renderRows();
     } catch (e) { showToast('Save failed: ' + e.message); }
   };
   document.getElementById('apbKeep').onclick = () => {
-    // Repin as a local override so it survives — user keeps the manual call
-    // visible to themselves; not shared with others until they Save.
-    promoted.forEach(g => { USER_STATUS[g.name] = g._auto_promoted_from; g.workflow_status = g._auto_promoted_from; g._status_source = 'local'; g._auto_promoted_from = null; });
-    saveStatus();
+    // Repin each drifted override as a local edit so the editor keeps their
+    // call visible to themselves; not shared with others until they Save.
+    promoted.forEach(g => {
+      if (g._auto_promoted_from) {
+        USER_STATUS[g.name] = g._auto_promoted_from;
+        g.workflow_status = g._auto_promoted_from; g._status_source = 'local'; g._auto_promoted_from = null;
+      }
+      if (g._auto_stage_promoted_from) {
+        USER_STAGE[g.name] = g._auto_stage_promoted_from;
+        g.current_stage = g._auto_stage_promoted_from; g._stage_source = 'local'; g._auto_stage_promoted_from = null;
+      }
+    });
+    saveStatus(); saveStage();
     el.style.display = 'none';
     renderRows();
   };
@@ -1327,9 +1400,12 @@ async function verifyPat() {
 }
 function nowStamp() { const d = new Date(); return d.toISOString().slice(0, 16).replace('T', ' '); }
 function buildPlanPayload() {
-  const status = {}, sizes = {};
+  const status = {}, stage = {}, sizes = {};
   RAW_GAMES.forEach(g => {
     if (g.workflow_status !== g._auto_status) status[g.name] = g.workflow_status;
+    // Only ship stage entries that actually diverge from what Jira derives; matches
+    // the status pattern so auto-promotion naturally purges them on next save.
+    if (g.current_stage && g._auto_stage && g.current_stage !== g._auto_stage) stage[g.name] = g.current_stage;
     const sz = gameSizes(g), keep = {};
     ['art', 'math', 'dev', 'sound'].forEach(k => { if (sz[k]) keep[k] = sz[k]; });
     if (Object.keys(keep).length) sizes[g.name] = keep;
@@ -1339,7 +1415,7 @@ function buildPlanPayload() {
   const notes = {};
   Object.keys(NOTES || {}).forEach(k => { const arr = NOTES[k] || []; if (arr.length) notes[k] = arr; });
   return {
-    order: RAW_GAMES.map(g => g.name), status, sizes, hidden: [...HIDDEN], notes,
+    order: RAW_GAMES.map(g => g.name), status, stage, sizes, hidden: [...HIDDEN], notes,
     // Games on the board that aren't default roster — by the explicit added-set
     // OR a non-roster flag, so `added` can't drift out of sync with `order` (#47/#52).
     added: (function () {
@@ -1468,6 +1544,7 @@ function mount(projectKey, container) {
   // Precedence: Jira auto  <  shared committed plan  <  this browser's local edits.
   SHARED = SHARED_CACHE[PROJECT.key] || {};
   SHARED_STATUS = SHARED.status || {};
+  SHARED_STAGE  = SHARED.stage  || {};
   SHARED_SIZES = SHARED.sizes || {};
   SHARED_NOTES = SHARED.notes || {};
   // Working copy of notes — starts identical to shared, mutated by addNote()
@@ -1480,9 +1557,10 @@ function mount(projectKey, container) {
   if (SHARED.config) CONFIG = { ...CONFIG, ...SHARED.config };
   try { const s = localStorage.getItem(LS + 'config'); if (s) CONFIG = { ...CONFIG, ...JSON.parse(s) }; } catch (e) {}
 
-  USER_ORDER = []; USER_STATUS = {}; USER_SIZES = {};
+  USER_ORDER = []; USER_STATUS = {}; USER_STAGE = {}; USER_SIZES = {};
   try { USER_ORDER = JSON.parse(localStorage.getItem(LS + 'order') || '[]'); } catch (e) {}
   try { USER_STATUS = JSON.parse(localStorage.getItem(LS + 'status') || '{}'); } catch (e) {}
+  try { USER_STAGE  = JSON.parse(localStorage.getItem(LS + 'stage')  || '{}'); } catch (e) {}
   try { USER_SIZES = JSON.parse(localStorage.getItem(LS + 'sizes') || '{}'); } catch (e) {}
   // hidden: local set if this browser has touched it, else the shared set
   const lhid = localStorage.getItem(LS + 'hidden');
@@ -1501,8 +1579,9 @@ function mount(projectKey, container) {
     const missing = RAW_GAMES.filter(g => !order.includes(g.name));
     RAW_GAMES = [...ordered, ...missing];
   }
-  // Resolve effective status per game: local > shared > auto.
+  // Resolve effective status + stage per game: local > shared > auto.
   RAW_GAMES.forEach(resolveGameStatus);
+  RAW_GAMES.forEach(resolveGameStage);
 
   try { showForecast = JSON.parse(localStorage.getItem(LS + 'forecast')); } catch (e) {}
   if (showForecast === null || showForecast === undefined) showForecast = true;

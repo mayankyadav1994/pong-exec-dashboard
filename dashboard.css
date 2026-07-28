@@ -148,6 +148,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .epic-status.s-bug{color:#991b1b;border-color:rgba(220,38,38,.4);background:rgba(220,38,38,.06)}
 .epic-status.s-signed{color:#14532d;border-color:rgba(22,163,74,.4);background:rgba(22,163,74,.06)}
 .epic-status.s-hold{color:#374151;border-color:rgba(75,85,99,.5);background:rgba(75,85,99,.10)}
+.epic-status.s-cancel{color:#4b5563;border-color:rgba(107,114,128,.5);background:rgba(107,114,128,.08);text-decoration:line-through;text-decoration-thickness:1px;text-decoration-color:rgba(107,114,128,.6)}
 
 /* manual-override mark + drift note */
 .ovr-mark{color:#d97706;font-weight:700;cursor:help}
@@ -338,11 +339,12 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 /* per-game drawer row */
 .gpg{border:1px solid var(--border);border-radius:6px;background:var(--surface)}
 .gpg.off{opacity:.55;background:var(--surf2)}
-.gpg-head{display:grid;grid-template-columns:auto auto 1fr auto auto;gap:8px;align-items:center;padding:7px 10px}
+.gpg-head{display:grid;grid-template-columns:auto auto 1fr auto auto auto;gap:8px;align-items:center;padding:7px 10px}
 .gpg-handle{cursor:grab;color:var(--border2);font-size:11px;user-select:none}
 .gpg-handle:active{cursor:grabbing}
 .gpg-name{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .gpg-name .k{font-family:'IBM Plex Mono';font-size:9px;color:var(--sub);margin-left:6px}
+.gpg-stage select,
 .gpg-status select{font-size:10px;font-family:'IBM Plex Mono';padding:3px 6px;border:1px solid var(--border2);border-radius:3px;background:var(--surface);color:var(--text);max-width:118px}
 .gpg-chev{cursor:pointer;color:var(--sub);font-size:11px;transition:transform .15s;user-select:none;padding:0 4px}
 .gpg.open .gpg-chev{transform:rotate(180deg)}
