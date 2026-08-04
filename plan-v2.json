@@ -14,11 +14,9 @@
     "Game: Western Grand Express",
     "Game: Viking Blox",
     "Game: Fortune of Z",
-    "Game: Jewels of Cleopatra Cascade",
     "Game: Birthday Bash [V]",
     "Game: Viking Blox 2",
     "Game: Fangs of Fortune",
-    "Game: Fall of Pompeii: Triple Link",
     "Game: Canada Eh",
     "Game: Arctic Buffalo",
     "Game: Lost Totem",
@@ -31,9 +29,14 @@
     "Game: Quick Wins Fortune [V]",
     "Game: Pharaoh's Quest",
     "Game: Hollow Graves of Riches",
-    "Game: Zombie Hunt"
+    "Game: Zombie Hunt",
+    "Game: Jewels of Cleopatra",
+    "Game: Fall of Pompeii: Triple Link"
   ],
   "status": {
+    "Game: Steampunk Fortune": "In QA",
+    "Game: Neon Break": "In QA",
+    "Game: Flaming Skulls [V]": "In QA",
     "Game: Wildlife Safari Gold": "In Review",
     "Game: Canada Eh Part Deux": "In Review",
     "Game: Nordic Paws": "In Review",
@@ -41,6 +44,7 @@
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
     "Game: Lantern's Rising- Vertical": "In QA"
   },
+  "stage": {},
   "sizes": {
     "Game: Enchanted East [V]": {
       "art": "L",
@@ -180,5 +184,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-24 17:22"
+  "updated_at": "2026-08-04 15:38"
 }
