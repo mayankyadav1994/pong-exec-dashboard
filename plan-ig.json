@@ -30,6 +30,7 @@
   "status": {
     "Gen2 Game: Northern Buffalo Fortune [V]": "In Production",
     "Gen2 Game: Luck Party Blue Bird Bonanza": "In Production",
+    "Gen2 Game: Lantern's Rising [V]": "In Progress",
     "Gen2 Game: Nordic Paws": "In Progress",
     "Gen2 Game: 3 Chilli Riches": "In Progress",
     "Gen2 - Game: Quick Wins Diamond Wild": "On Hold",
@@ -37,6 +38,7 @@
     "Gen2 Game: Moolah Moolah Moolah": "On Hold"
   },
   "stage": {
+    "Gen2 Game: Lantern's Rising [V]": "dev",
     "Gen2 Game: Nordic Paws": "art",
     "Gen2 Game: 3 Chilli Riches": "art",
     "Gen2 Game: Golden Fortune Grand": "art",
@@ -178,5 +180,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-04 19:03"
+  "updated_at": "2026-08-04 19:18"
 }
