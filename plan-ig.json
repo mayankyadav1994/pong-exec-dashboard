@@ -1,17 +1,17 @@
 {
   "order": [
     "Gen2 Game: Northern Buffalo Fortune [V]",
-    "Gen2 Game: Luck Party Blue Bird Bonanza",
-    "Gen2 Game: Lost Totem",
     "Gen2 Game: Blue Bird Bonus Extreme",
-    "Gen2 Game: Viking's Voyage of Fortune",
-    "Gen2 Game: Lantern's Rising [V]",
-    "Gen2 Game: Fruit Splitter",
     "Gen2 Game: Steampunk Fortune",
+    "Gen2 Game: Lost Totem",
+    "Gen2 Game: Luck Party Blue Bird Bonanza",
     "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Strike Forge Boost",
+    "Gen2 Game: Viking's Voyage of Fortune",
+    "Gen2 Game: Fruit Splitter",
     "Gen2 Game: Firecracker Frenzy",
     "Gen2 Game: Neon Break",
+    "Gen2 Game: Lantern's Rising [V]",
     "Gen2 Game: Amaterasu Rising",
     "Gen2 - Game: Quick Wins Diamond Wild",
     "Gen2 Game: Birthday Bash [V]",
@@ -22,9 +22,14 @@
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
     "Gen2 Game: Kandy Land Keno - PFH",
-    "Gen2 Game: Nordic Paws"
+    "Gen2 Game: Nordic Paws",
+    "Gen2 Game: 3 Chilli Riches"
   ],
-  "status": {},
+  "status": {
+    "Gen2 Game: Northern Buffalo Fortune [V]": "In Production",
+    "Gen2 Game: Luck Party Blue Bird Bonanza": "In Production"
+  },
+  "stage": {},
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
       "art": "M",
@@ -46,7 +51,8 @@
   ],
   "notes": {},
   "added": [
-    "IG-1513"
+    "IG-1513",
+    "IG-5593"
   ],
   "config": {
     "statuses": [
@@ -159,5 +165,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-07-21 15:51"
+  "updated_at": "2026-08-04 15:59"
 }
