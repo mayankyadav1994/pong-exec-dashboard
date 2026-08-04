@@ -13,21 +13,25 @@
     "Gen2 Game: Neon Break",
     "Gen2 Game: Lantern's Rising [V]",
     "Gen2 Game: Amaterasu Rising",
+    "Gen2 Game: Nordic Paws",
+    "Gen2 Game: 3 Chilli Riches",
     "Gen2 - Game: Quick Wins Diamond Wild",
     "Gen2 Game: Birthday Bash [V]",
+    "Gen2 Game: Golden Fortune Grand",
+    "Gen2 Game: Plentiful Bounty",
     "Gen2 Game: Fiery 7s",
     "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Kandy Land Keno - PFH",
-    "Gen2 Game: Nordic Paws",
-    "Gen2 Game: 3 Chilli Riches"
+    "Gen2 Game: Kandy Land Keno - PFH"
   ],
   "status": {
     "Gen2 Game: Northern Buffalo Fortune [V]": "In Production",
-    "Gen2 Game: Luck Party Blue Bird Bonanza": "In Production"
+    "Gen2 Game: Luck Party Blue Bird Bonanza": "In Production",
+    "Gen2 Game: 3 Chilli Riches": "In Progress",
+    "Gen2 Game: Moolah Moolah Moolah": "On Hold"
   },
   "stage": {},
   "sizes": {
@@ -40,7 +44,6 @@
   },
   "hidden": [
     "Gen2 Game: Kandy Land Keno - PFH",
-    "Gen2 Game: Birthday Bash [V]",
     "Gen2 Game: Fiery 7s",
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Mandarin Madness",
@@ -51,8 +54,10 @@
   ],
   "notes": {},
   "added": [
+    "IG-5593",
     "IG-1513",
-    "IG-5593"
+    "IG-5761",
+    "IG-5708"
   ],
   "config": {
     "statuses": [
@@ -165,5 +170,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-04 15:59"
+  "updated_at": "2026-08-04 19:02"
 }
