@@ -106,6 +106,10 @@
       {
         "key": "Signed Off",
         "cls": "s-signed"
+      },
+      {
+        "key": "In Review",
+        "cls": "s-notstart"
       }
     ],
     "stages": [
@@ -188,5 +192,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-07 17:54"
+  "updated_at": "2026-08-07 17:55"
 }
