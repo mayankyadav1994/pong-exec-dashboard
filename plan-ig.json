@@ -21,17 +21,23 @@
     "Gen2 Game: Golden Fortune Grand",
     "Gen2 Game: Plentiful Bounty",
     "Gen2 Game: Moolah Moolah Moolah",
-    "Gen2 Game: Christmas Skin",
     "Gen2 Game: Fiery 7s",
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Kandy Land Keno - PFH"
+    "Gen2 Game: Kandy Land Keno - PFH",
+    "Gen2 Game: Chain Lock 7 Refueled",
+    "Gen2 Game: Devil 3 pot [3x3]"
   ],
   "status": {
     "Gen2 Game: Luck Party Blue Bird Bonanza": "In Production",
     "Gen2 Game: Lost Totem": "In Production",
+    "Gen2 Game: Blue Bird Bonus Extreme": "In Review",
+    "Gen2 Game: Viking's Voyage of Fortune": "In Review",
+    "Gen2 Game: Lantern's Rising [V]": "In Review",
+    "Gen2 Game: Fruit Splitter": "In Review",
+    "Gen2 Game: Strike Forge Boost": "In Progress",
     "Gen2 Game: 3 Chilli Riches": "In Progress",
     "Gen2 Game: Neon Break": "In Progress",
     "Gen2 Game: Nordic Paws": "In Progress",
@@ -64,7 +70,6 @@
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
-    "Gen2 Game: Yuan Su Dragons",
     "Gen2 Game: Jewels of Cleopatra",
     "Gen2 Game: Ultimate Goal 10x - ELG",
     "Gen2 Game: Luck Party Blue Bird Bonanza",
@@ -192,5 +197,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-07 17:55"
+  "updated_at": "2026-08-10 15:29"
 }
