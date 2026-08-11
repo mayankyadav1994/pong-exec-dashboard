@@ -1,15 +1,6 @@
 {
   "date": "2026-08-11",
   "fvs": {
-    "V2 HHR 3.10": {
-      "devEnd": "2026-08-11",
-      "qaEnd": "2026-08-18",
-      "lab1End": null,
-      "pilotEnd": null,
-      "finalEnd": null,
-      "totalEstH": 58,
-      "spentH": 56
-    },
     "V2 SW 16.00": {
       "devEnd": "2026-08-11",
       "qaEnd": "2026-08-25",
@@ -53,7 +44,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 17170,
-      "spentH": 10000
+      "spentH": 10022
     },
     "V2 C2 Backlog": {
       "devEnd": "2030-02-08",
