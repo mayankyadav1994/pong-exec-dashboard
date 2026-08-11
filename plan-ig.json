@@ -71,11 +71,23 @@
     "Gen2 Game: Moolah Moolah Moolah"
   ],
   "notes": {
-    "Gen2 Game: Steampunk Fortune": [
+    "IG-1511": [
+      {
+        "ts": "2026-08-10T19:27:48.402Z",
+        "author": "mayankyadav1994",
+        "body": "Need Math changes from Sonali - 10th Aug"
+      },
       {
         "ts": "2026-07-27T15:44:03.817Z",
         "author": "mayankyadav1994",
         "body": "Math and Art is being changed on V2, once done we will be using those changes in iGaming. Renaming the game is also part of the new scope [Steampunk II]"
+      }
+    ],
+    "IG-3034": [
+      {
+        "ts": "2026-08-10T19:28:43.308Z",
+        "author": "mayankyadav1994",
+        "body": "After math changes for Funny Bird anticipation needed - 10th Aug"
       }
     ]
   },

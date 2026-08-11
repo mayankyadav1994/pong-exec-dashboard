@@ -826,7 +826,7 @@ function renderDetail(g) {
   // Ctrl/Cmd+Enter on the textarea OR the "+ Add note" button commits.
   const notesPane = document.createElement('div'); notesPane.className = 'notes-pane';
   const renderNotesList = () => {
-    const list = NOTES[g.name] || [];
+    const list = notesFor(g);
     const items = list.map(n => {
       const ts = n.ts ? new Date(n.ts) : null;
       const stamp = ts ? `${ts.toISOString().slice(0,10)} ${ts.toISOString().slice(11,16)} UTC` : '';
@@ -849,7 +849,7 @@ function renderDetail(g) {
   renderNotesList();
   const inputEl = notesEditor.querySelector('.note-input');
   const commitNote = () => {
-    if (addNote(g.name, inputEl.value)) {
+    if (addNote(g, inputEl.value)) {
       inputEl.value = '';
       renderNotesList();
       showToast('Note added — Save as default to publish');
@@ -1264,12 +1264,49 @@ function loadNotesOverlay() {
     if (local && typeof local === 'object') NOTES = local;   // local overlay wins for this browser
   } catch (e) {}
 }
-function addNote(gameName, body) {
+// Notes are keyed by the game's STABLE Jira epic key (#53). They used to be
+// keyed by the display name, so a Jira rename silently orphaned a game's notes
+// (the dashboard looked them up under the new name and found nothing).
+function noteKey(game) { return (game && game.jira) || (game && game.name) || game; }
+// Union two note lists, de-duped by (ts|author|body), newest first — the
+// ordering addNote() maintains via unshift.
+function mergeNoteLists(a, b) {
+  const seen = new Set(), out = [];
+  [...(a || []), ...(b || [])].forEach(n => {
+    if (!n || !n.body) return;
+    const id = (n.ts || '') + '|' + (n.author || '') + '|' + n.body;
+    if (seen.has(id)) return;
+    seen.add(id); out.push(n);
+  });
+  out.sort((x, y) => String(y.ts || '').localeCompare(String(x.ts || '')));
+  return out;
+}
+// Notes for a game: its jira-keyed list, plus any legacy list still filed under
+// the current display name (belt-and-braces during the name→jira transition).
+function notesFor(g) {
+  const byJira = (g && g.jira && NOTES) ? NOTES[g.jira] : null;
+  const byName = (g && g.name && NOTES) ? NOTES[g.name] : null;
+  return mergeNoteLists(byJira, byName);
+}
+// Fold any legacy name-keyed note lists onto their stable jira key, so a past
+// or future Jira rename can't hide a game's notes. Unknown keys are left as-is.
+function migrateNotesToJira() {
+  const byName = {}, jiraSet = new Set();
+  (ALL_GAMES || []).forEach(g => { if (g.jira) { jiraSet.add(g.jira); if (g.name) byName[g.name] = g.jira; } });
+  const out = {};
+  Object.keys(NOTES || {}).forEach(k => {
+    const key = jiraSet.has(k) ? k : (byName[k] || k);
+    out[key] = mergeNoteLists(out[key], NOTES[k]);
+  });
+  NOTES = out;
+}
+function addNote(game, body) {
   body = String(body || '').trim();
   if (!body) return false;
+  const key = noteKey(game);
   NOTES = NOTES || {};
-  NOTES[gameName] = NOTES[gameName] || [];
-  NOTES[gameName].unshift({
+  NOTES[key] = NOTES[key] || [];
+  NOTES[key].unshift({
     ts: new Date().toISOString(),
     author: getGhUser() || 'anon',
     body,
@@ -1429,9 +1466,23 @@ function buildPlanPayload() {
 async function publishPlan() {
   const path = `plan-${PROJECT.key}.json`;
   const payload = buildPlanPayload();
+  let sha = null, remote = null;
+  try {
+    const cur = await ghFetch(`${GH_API}/contents/${path}`);
+    sha = cur.sha;
+    try { remote = JSON.parse(decodeURIComponent(escape(atob((cur.content || '').replace(/\s/g, ''))))); } catch (e) { remote = null; }
+  } catch (e) { /* first time: no file */ }
+  // Never lose a note to a stale tab (#53): notes are append-only, so union
+  // this session's notes with whatever is currently on main rather than
+  // overwriting the file wholesale. (Other maps still overwrite — see #53
+  // follow-up; notes are the append-only case that must never regress.)
+  if (remote && remote.notes) {
+    const merged = {};
+    new Set([...Object.keys(remote.notes), ...Object.keys(payload.notes || {})])
+      .forEach(k => { merged[k] = mergeNoteLists(remote.notes[k], (payload.notes || {})[k]); });
+    payload.notes = merged;
+  }
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-  let sha = null;
-  try { const cur = await ghFetch(`${GH_API}/contents/${path}`); sha = cur.sha; } catch (e) { /* first time: no file */ }
   const body = { message: `plan(${PROJECT.key}): save as default by ${getGhUser() || 'editor'}`, content, branch: 'main' };
   if (sha) body.sha = sha;
   await ghFetch(`${GH_API}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
@@ -1552,6 +1603,7 @@ function mount(projectKey, container) {
   // retroactively mutate the SHARED_CACHE entry.
   NOTES = JSON.parse(JSON.stringify(SHARED_NOTES));
   loadNotesOverlay();   // local unpublished notes win for this browser
+  migrateNotesToJira(); // fold legacy name-keyed notes onto stable jira keys (#53)
 
   CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   if (SHARED.config) CONFIG = { ...CONFIG, ...SHARED.config };
