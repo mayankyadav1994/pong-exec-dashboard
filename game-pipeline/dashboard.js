@@ -1263,13 +1263,23 @@ function loadNotesOverlay() {
     const raw = localStorage.getItem(LS + 'notes');
     if (!raw) return;
     const local = JSON.parse(raw);
-    if (local && typeof local === 'object') NOTES = local;   // local overlay wins for this browser
+    if (!local || typeof local !== 'object') return;
+    // Merge the local overlay OVER shared per game (union) — NEVER replace (#55).
+    // A stale overlay keyed by a game's old (pre-rename) name must not wipe the
+    // shared notes for that game or any other; it only adds this browser's own
+    // unpublished notes on top.
+    NOTES = NOTES || {};
+    Object.keys(local).forEach(k => { NOTES[k] = mergeNoteLists(NOTES[k], local[k]); });
   } catch (e) {}
 }
 // Notes are keyed by the game's STABLE Jira epic key (#53). They used to be
 // keyed by the display name, so a Jira rename silently orphaned a game's notes
 // (the dashboard looked them up under the new name and found nothing).
 function noteKey(game) { return (game && game.jira) || (game && game.name) || game; }
+// Old game display names that were renamed in Jira → their stable jira key. Jira
+// data doesn't retain old names, so notes filed pre-rename can't be auto-mapped;
+// this folds them onto the game instead of leaving them orphaned (#55).
+const NOTE_KEY_ALIASES = { 'Gen2 Game: Steampunk Fortune': 'IG-1511' };
 // Union two note lists, de-duped by (ts|author|body), newest first — the
 // ordering addNote() maintains via unshift.
 function mergeNoteLists(a, b) {
@@ -1297,7 +1307,7 @@ function migrateNotesToJira() {
   (ALL_GAMES || []).forEach(g => { if (g.jira) { jiraSet.add(g.jira); if (g.name) byName[g.name] = g.jira; } });
   const out = {};
   Object.keys(NOTES || {}).forEach(k => {
-    const key = jiraSet.has(k) ? k : (byName[k] || k);
+    const key = jiraSet.has(k) ? k : (byName[k] || NOTE_KEY_ALIASES[k] || k);
     out[key] = mergeNoteLists(out[key], NOTES[k]);
   });
   NOTES = out;
@@ -1673,6 +1683,7 @@ function mount(projectKey, container) {
   NOTES = JSON.parse(JSON.stringify(SHARED_NOTES));
   loadNotesOverlay();   // local unpublished notes win for this browser
   migrateNotesToJira(); // fold legacy name-keyed notes onto stable jira keys (#53)
+  saveNotes();          // persist the merged, jira-keyed set so a stale local overlay self-heals (#55)
 
   CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   if (SHARED.config) CONFIG = { ...CONFIG, ...SHARED.config };
