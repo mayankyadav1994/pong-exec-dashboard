@@ -1,0 +1,122 @@
+{
+  "date": "2026-08-11",
+  "fvs": {
+    "V2 HHR 3.10": {
+      "devEnd": "2026-08-11",
+      "qaEnd": "2026-08-18",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 58,
+      "spentH": 56
+    },
+    "V2 SW 16.00": {
+      "devEnd": "2026-08-11",
+      "qaEnd": "2026-08-25",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 728,
+      "spentH": 730
+    },
+    "V2 P2P 16.00": {
+      "devEnd": "2026-09-07",
+      "qaEnd": "2026-09-28",
+      "lab1End": "2026-10-26",
+      "pilotEnd": "2026-11-09",
+      "finalEnd": "2026-12-07",
+      "totalEstH": 1598,
+      "spentH": 1640
+    },
+    "V2 PT 14.00": {
+      "devEnd": "2026-09-28",
+      "qaEnd": "2026-10-19",
+      "lab1End": "2026-11-16",
+      "pilotEnd": "2026-11-30",
+      "finalEnd": "2026-12-28",
+      "totalEstH": 966,
+      "spentH": 537
+    },
+    "V2 C2 5.10": {
+      "devEnd": "2026-09-22",
+      "qaEnd": "2026-10-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 174,
+      "spentH": 26
+    },
+    "New Games": {
+      "devEnd": "2030-02-08",
+      "qaEnd": "2030-02-22",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 17170,
+      "spentH": 10000
+    },
+    "V2 C2 Backlog": {
+      "devEnd": "2030-02-08",
+      "qaEnd": "2030-02-22",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 684,
+      "spentH": 623
+    },
+    "V2 P2P Backlog": {
+      "devEnd": "2030-03-14",
+      "qaEnd": "2030-03-28",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 1956,
+      "spentH": 2501
+    },
+    "V2 PT Backlog": {
+      "devEnd": "2026-08-11",
+      "qaEnd": "2026-08-25",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 152,
+      "spentH": 214
+    },
+    "V2 SW Backlog": {
+      "devEnd": "2030-03-14",
+      "qaEnd": "2030-03-28",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 84,
+      "spentH": 97
+    },
+    "V2 HHR 3.20": {
+      "devEnd": "2030-04-09",
+      "qaEnd": "2030-04-23",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 128,
+      "spentH": 49
+    },
+    "V2 Georgia Show Release - 2026": {
+      "devEnd": "2030-04-10",
+      "qaEnd": "2030-04-24",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 88,
+      "spentH": 60
+    },
+    "V2 P2P 15.40": {
+      "devEnd": "2026-08-11",
+      "qaEnd": "2026-08-25",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 1096,
+      "spentH": 1816
+    }
+  }
+}
