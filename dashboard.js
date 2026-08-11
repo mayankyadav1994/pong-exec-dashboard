@@ -23,6 +23,8 @@ const GH_OWNER = 'mayankyadav1994', GH_REPO = 'pong-exec-dashboard';
 const GH_API = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
 const GH_PAT_KEY = 'gp_github_pat', GH_USER_KEY = 'gp_github_user', GH_ED_KEY = 'gp_github_editor';  // sessionStorage
 const SHARED_CACHE = {};   // project key -> committed shared plan object
+const PLAN_VERSION = {};   // key -> shared-plan version captured at load (stale-publish guard, #54)
+let _lastSharedRefresh = 0; // throttle timestamp for the viewer soft auto-refresh (#54)
 let SHARED = {};           // current project's shared plan
 let EDITORS = [];          // allowed GitHub logins (UX gate; real gate = repo perms)
 let SHARED_STATUS = {}, SHARED_SIZES = {};
@@ -1371,7 +1373,7 @@ function renderPromoteBanner() {
       SHARED_STAGE  = (SHARED_CACHE[PROJECT.key] || {}).stage  || {};
       RAW_GAMES.forEach(g => { resolveGameStatus(g); resolveGameStage(g); });
       renderPromoteBanner(); renderRows();
-    } catch (e) { showToast('Save failed: ' + e.message); }
+    } catch (e) { if (e && e.stale) { openStaleModal(e); return; } showToast('Save failed: ' + e.message); }
   };
   document.getElementById('apbKeep').onclick = () => {
     // Repin each drifted override as a local edit so the editor keeps their
@@ -1395,10 +1397,44 @@ function renderPromoteBanner() {
 // ============================================================
 //  SHARED PLAN — load + publish via GitHub (Decision #39)
 // ============================================================
+// A cheap version stamp for the shared plan (#54). Two loads with the same
+// stamp are the same published state; a change means someone published since.
+function planVersion(p) { return (p && p.updated_at) ? (p.updated_at + '|' + (p.updated_by || '')) : null; }
 async function loadSharedData(key) {
   try { const r = await fetch(`plan-${key}.json?ts=` + new Date().getTime()); if (r.ok) SHARED_CACHE[key] = await r.json(); } catch (e) {}
   if (SHARED_CACHE[key] === undefined) SHARED_CACHE[key] = {};
+  PLAN_VERSION[key] = planVersion(SHARED_CACHE[key]);   // baseline for the stale-publish guard
   try { const r = await fetch('editors.json?ts=' + new Date().getTime()); if (r.ok) { const j = await r.json(); EDITORS = j.editors || []; } } catch (e) {}
+}
+// True when this browser has unpublished edits we must not silently discard on a
+// soft refresh (#54): plan mode, local status/stage/size/order/hidden overrides,
+// or local notes not yet saved as default.
+function hasLocalEdits() {
+  if (planMode) return true;
+  const some = o => o && Object.keys(o).length > 0;
+  if (some(USER_STATUS) || some(USER_STAGE) || some(USER_SIZES) || (USER_ORDER && USER_ORDER.length)) return true;
+  try { if (localStorage.getItem(LS + 'notes') || localStorage.getItem(LS + 'hidden') != null) return true; } catch (e) {}
+  return false;
+}
+// Soft auto-refresh for viewers (#54): when a tab regains focus (throttled), pull
+// the latest shared plan and re-render in place if it changed — so everyone sees
+// the current default without a disruptive full reload. Never runs while this
+// browser has unpublished edits or is typing, so it can't yank work in progress.
+async function maybeRefreshShared(opts) {
+  opts = opts || {};
+  const key = PROJECT && PROJECT.key; if (!key) return;
+  if (hasLocalEdits()) return;
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT')) return;   // don't interrupt typing
+  const now = Date.now();
+  if (!opts.force && now - _lastSharedRefresh < 60000) return;               // throttle to once/min
+  _lastSharedRefresh = now;
+  let latest = null;
+  try { const r = await fetch(`plan-${key}.json?ts=` + now); if (r.ok) latest = await r.json(); } catch (e) { return; }
+  if (!latest || planVersion(latest) === PLAN_VERSION[key]) return;          // unchanged → nothing to do
+  SHARED_CACHE[key] = latest; PLAN_VERSION[key] = planVersion(latest);
+  mount(key, APP);
+  showToast('↻ Updated to the latest shared view');
 }
 // Team token persists in localStorage so it's entered ONCE per browser (#46),
 // not every session. Treat it like a password (see TEAM_ACCESS.md).
@@ -1463,7 +1499,7 @@ function buildPlanPayload() {
     updated_by: getGhUser() || null, updated_at: nowStamp(),
   };
 }
-async function publishPlan() {
+async function publishPlan(force) {
   const path = `plan-${PROJECT.key}.json`;
   const payload = buildPlanPayload();
   let sha = null, remote = null;
@@ -1472,6 +1508,18 @@ async function publishPlan() {
     sha = cur.sha;
     try { remote = JSON.parse(decodeURIComponent(escape(atob((cur.content || '').replace(/\s/g, ''))))); } catch (e) { remote = null; }
   } catch (e) { /* first time: no file */ }
+  // Stale-publish guard (#54): if the shared plan changed since this tab loaded
+  // it (someone else published), don't silently overwrite their status/stage/
+  // order/hidden edits. Notes still union-merge below and are never lost; for
+  // everything else the editor must reload & re-apply (or explicitly force).
+  if (!force && remote) {
+    const loaded = PLAN_VERSION[PROJECT.key], current = planVersion(remote);
+    if (loaded && current && current !== loaded) {
+      const err = new Error('The shared view changed since you loaded it.');
+      err.stale = true; err.by = remote.updated_by || 'someone'; err.at = remote.updated_at || '';
+      throw err;
+    }
+  }
   // Never lose a note to a stale tab (#53): notes are append-only, so union
   // this session's notes with whatever is currently on main rather than
   // overwriting the file wholesale. (Other maps still overwrite — see #53
@@ -1487,6 +1535,7 @@ async function publishPlan() {
   if (sha) body.sha = sha;
   await ghFetch(`${GH_API}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   SHARED_CACHE[PROJECT.key] = payload;   // reflect immediately for this browser
+  PLAN_VERSION[PROJECT.key] = planVersion(payload);   // our publish is the new baseline (#54)
 }
 
 // --- modal helpers ---
@@ -1532,6 +1581,26 @@ function confirmPublish() {
   document.getElementById('gpPubGo').onclick = async () => {
     const msg = document.getElementById('gpPubMsg'); msg.textContent = 'Committing…';
     try { await publishPlan(); closeModal(); showToast('✓ Saved as default — live after redeploy'); renderDrawer(); }
+    catch (e) { if (e && e.stale) { openStaleModal(e); return; } msg.textContent = '✗ ' + e.message; }
+  };
+}
+// Shown when "Save as default" is blocked because someone published since this
+// tab loaded (#54). Reload re-applies this browser's edits on top of the latest;
+// "Save anyway" force-publishes (notes still merge, never lost).
+function openStaleModal(info) {
+  openModal(`<h3>⚠ Shared view changed since you loaded</h3>
+    <p class="gp-modal-note"><b>${info.by || 'Someone'}</b> saved a new default${info.at ? ' at <b>' + info.at + '</b>' : ''} while your tab was open. Saving now would roll back their changes. Reload the latest — your own edits re-apply on top — then Save as default again. <span style="color:var(--sub)">(Notes are always merged, never lost.)</span></p>
+    <div class="gp-modal-msg" id="gpStaleMsg"></div>
+    <div class="gp-modal-foot"><button class="gp-foot-btn primary" id="gpStaleReload">↻ Reload latest &amp; re-apply</button><button class="gp-foot-btn" id="gpStaleForce">Save anyway</button></div>`);
+  document.getElementById('gpStaleReload').onclick = async () => {
+    closeModal();
+    await loadSharedData(PROJECT.key);   // refresh SHARED_CACHE + PLAN_VERSION to latest
+    mount(PROJECT.key, APP);             // re-mount; this browser's local edits re-layer on top
+    showToast('↻ Loaded the latest shared view — review, then Save as default again');
+  };
+  document.getElementById('gpStaleForce').onclick = async () => {
+    const msg = document.getElementById('gpStaleMsg'); msg.textContent = 'Committing…';
+    try { await publishPlan(true); closeModal(); showToast('✓ Saved (overwrote newer changes; notes merged)'); renderDrawer(); }
     catch (e) { msg.textContent = '✗ ' + e.message; }
   };
 }
@@ -1646,6 +1715,14 @@ function mount(projectKey, container) {
 
   buildSkeleton();
   setupTips();
+  // Viewer soft auto-refresh (#54): pick up newly-published shared views on tab
+  // focus + a slow backstop timer. Registered once; gated inside maybeRefreshShared.
+  if (!window._gpRefreshInit) {
+    window._gpRefreshInit = true;
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) maybeRefreshShared(); });
+    window.addEventListener('focus', () => maybeRefreshShared());
+    setInterval(() => { if (!document.hidden) maybeRefreshShared(); }, 5 * 60 * 1000);
+  }
   // First visit to a project: fetch its shared plan + editor list, then re-mount.
   if (SHARED_CACHE[PROJECT.key] === undefined) {
     loadSharedData(PROJECT.key).then(() => mount(projectKey, container));
