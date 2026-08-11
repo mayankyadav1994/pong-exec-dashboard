@@ -10,7 +10,6 @@
     "Game: Firecracker Frenzy [V]",
     "Game: Golden Bank Safe",
     "Game: Monster Cake Smash",
-    "Game: Fruit Splitter",
     "Game: Western Grand Express",
     "Game: Viking Blox",
     "Game: Fortune of Z",
@@ -18,25 +17,18 @@
     "Game: Viking Blox 2",
     "Game: Fangs of Fortune",
     "Game: Canada Eh",
-    "Game: Arctic Buffalo",
-    "Game: Lost Totem",
     "Game: Northern Buffalo",
     "Game: Northern Buffalo Fortune [V]",
-    "Game: Quick Win's Diamond 7s - [V]",
     "Game: Viking’s Voyage of Fortune",
-    "Game: Blade of Fortune",
     "Game: Lantern's Rising- Vertical",
     "Game: Quick Wins Fortune [V]",
     "Game: Pharaoh's Quest",
     "Game: Hollow Graves of Riches",
-    "Game: Zombie Hunt",
-    "Game: Jewels of Cleopatra",
     "Game: Fall of Pompeii: Triple Link"
   ],
   "status": {
     "Game: Steampunk Fortune": "In Review",
     "Game: Neon Break": "In Review",
-    "Game: Flaming Skulls [V]": "In QA",
     "Game: Wildlife Safari Gold": "In Review",
     "Game: Canada Eh Part Deux": "In Review",
     "Game: Nordic Paws": "In Review",
@@ -184,5 +176,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-04 15:39"
+  "updated_at": "2026-08-11 17:39"
 }
