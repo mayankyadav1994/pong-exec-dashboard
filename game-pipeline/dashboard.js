@@ -109,14 +109,22 @@ function pct(d) {
   if (!total) return 0;
   return Math.max(0, Math.min(100, ((dt - CHART_START) / total) * 100));
 }
+// Interpret a value as a calendar date for DISPLAY (#56). A date-only string
+// ('YYYY-MM-DD') is built at LOCAL midnight so a due/sprint/delivery date shows
+// the SAME calendar day in every viewer timezone. `new Date("2026-08-31")` would
+// parse as UTC midnight and render a day early for any viewer west of UTC (e.g.
+// a Jira duedate of Aug 31 showing as Aug 30). Date objects pass through as-is.
+function asDate(d) {
+  if (d instanceof Date) return d;
+  const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(d);
+}
 function fmtD(d) {
-  const dt = d instanceof Date ? d : new Date(d);
-  return dt.toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: '2-digit' });
+  return asDate(d).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: '2-digit' });
 }
 function fmtRange(s, e) {
-  const ds = new Date(s), de = new Date(e || s);
-  return ds.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) +
-    ' – ' + de.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+  return asDate(s).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) +
+    ' – ' + asDate(e || s).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 }
 function sprintEnd(s) {
   if (s.end) return new Date(s.end);
