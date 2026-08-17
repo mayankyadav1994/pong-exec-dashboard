@@ -32,7 +32,6 @@
     "Game: Neon Break": "Not Started",
     "Game: Flaming Skulls [V]": "In QA",
     "Game: Wildlife Safari Gold": "In Review",
-    "Game: Canada Eh Part Deux": "In Review",
     "Game: Nordic Paws": "In Review",
     "Game: Fortune of Z": "In Review",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
@@ -40,7 +39,9 @@
   },
   "stage": {
     "Game: Steampunk Fortune": "math",
-    "Game: Neon Break": "math"
+    "Game: Neon Break": "math",
+    "Game: Wildlife Safari Gold": "math",
+    "Game: Canada Eh Part Deux": "math"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -73,6 +74,11 @@
       }
     ],
     "V2-22634": [
+      {
+        "ts": "2026-08-17T15:43:28.378Z",
+        "author": "mayankyadav1994",
+        "body": "Respin Feature is missing but we can review the demo -Pruthvi"
+      },
       {
         "ts": "2026-08-14T16:56:36.642Z",
         "author": "mayankyadav1994",
@@ -196,5 +202,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-17 15:42"
+  "updated_at": "2026-08-17 15:44"
 }
