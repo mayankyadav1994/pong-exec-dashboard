@@ -37,6 +37,7 @@
     "Gen2 Game: Lantern's Rising [V]": "Signed Off",
     "Gen2 Game: Blue Bird Bonus Extreme": "In Review",
     "Gen2 Game: Fruit Splitter": "In Review",
+    "Gen2 Game: Haunted Harvest": "In Progress",
     "Gen2 Game: Strike Forge Boost": "In Progress",
     "Gen2 Game: 3 Chilli Riches": "In Progress",
     "Gen2 Game: Neon Break": "In Progress",
@@ -48,6 +49,7 @@
     "Gen2 Game: Viking's Voyage of Fortune": "art",
     "Gen2 Game: Lantern's Rising [V]": "art",
     "Gen2 Game: Fruit Splitter": "dev",
+    "Gen2 Game: Haunted Harvest": "art",
     "Gen2 Game: Strike Forge Boost": "art",
     "Gen2 Game: 3 Chilli Riches": "art",
     "Gen2 Game: Neon Break": "art",
@@ -220,5 +222,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-17 19:51"
+  "updated_at": "2026-08-17 19:56"
 }
