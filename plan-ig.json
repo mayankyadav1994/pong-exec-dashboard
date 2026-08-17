@@ -2,11 +2,10 @@
   "order": [
     "Gen2 Game: Luck Party Blue Bird Bonanza",
     "Gen2 Game: Lost Totem",
-    "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Viking's Voyage of Fortune",
     "Gen2 Game: Lantern's Rising [V]",
+    "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Fruit Splitter",
-    "Gen2 Game: Steampunk Fortune [Vendor 2 Steampunk 2]",
     "Gen2 Game: Haunted Harvest",
     "Gen2 Game: Amaterasu Rising",
     "Gen2 Game: Pharaoh's Quest",
@@ -28,15 +27,17 @@
     "Gen2 Game: Yuan Su Dragons",
     "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Chain Lock 7 Refueled",
-    "Gen2 Game: Devil 3 pot [3x3]"
+    "Gen2 Game: Devil 3 pot [3x3]",
+    "Gen2 Game: Steampunk Fortune"
   ],
   "status": {
     "Gen2 Game: Luck Party Blue Bird Bonanza": "In Production",
     "Gen2 Game: Lost Totem": "In Production",
+    "Gen2 Game: Viking's Voyage of Fortune": "Signed Off",
+    "Gen2 Game: Lantern's Rising [V]": "Signed Off",
     "Gen2 Game: Blue Bird Bonus Extreme": "In Review",
-    "Gen2 Game: Viking's Voyage of Fortune": "In Review",
-    "Gen2 Game: Lantern's Rising [V]": "In Review",
     "Gen2 Game: Fruit Splitter": "In Review",
+    "Gen2 Game: Strike Forge Boost": "In Progress",
     "Gen2 Game: 3 Chilli Riches": "In Progress",
     "Gen2 Game: Neon Break": "In Progress",
     "Gen2 Game: Nordic Paws": "In Progress",
@@ -44,7 +45,16 @@
     "Gen2 Game: Birthday Bash [V]": "In Progress"
   },
   "stage": {
-    "Gen2 Game: Birthday Bash [V]": "art"
+    "Gen2 Game: Viking's Voyage of Fortune": "art",
+    "Gen2 Game: Lantern's Rising [V]": "art",
+    "Gen2 Game: Fruit Splitter": "dev",
+    "Gen2 Game: Strike Forge Boost": "art",
+    "Gen2 Game: 3 Chilli Riches": "art",
+    "Gen2 Game: Neon Break": "art",
+    "Gen2 Game: Nordic Paws": "art",
+    "Gen2 Game: Birthday Bash [V]": "art",
+    "Gen2 Game: Golden Fortune Grand": "art",
+    "Gen2 Game: Plentiful Bounty": "art"
   },
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
@@ -64,7 +74,9 @@
     "Gen2 Game: Yuan Su Dragons",
     "Gen2 Game: Jewels of Cleopatra",
     "Gen2 Game: Ultimate Goal 10x - ELG",
-    "Gen2 Game: Moolah Moolah Moolah"
+    "Gen2 Game: Moolah Moolah Moolah",
+    "Gen2 Game: Luck Party Blue Bird Bonanza",
+    "Gen2 Game: Lost Totem"
   ],
   "notes": {
     "IG-1511": [
@@ -208,5 +220,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-11 18:47"
+  "updated_at": "2026-08-17 19:51"
 }
