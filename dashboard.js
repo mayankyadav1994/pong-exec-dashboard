@@ -1078,7 +1078,7 @@ function renderDrawer() {
   document.getElementById('gpReset').onclick = resetLocalEdits;
   const si = document.getElementById('gpSignIn'); if (si) si.onclick = openSignInModal;
   const pub = document.getElementById('gpPublish'); if (pub) pub.onclick = confirmPublish;
-  const so = document.getElementById('gpSignOut'); if (so) so.onclick = () => { setPat(''); showToast('Signed out'); renderDrawer(); };
+  const so = document.getElementById('gpSignOut'); if (so) so.onclick = () => { setPat(''); showToast('Signed out'); renderDrawer(); renderPromoteBanner(); };
 }
 
 function renderDrawerGames(body) {
@@ -1388,6 +1388,12 @@ function renderShareBanner() {
 function renderPromoteBanner() {
   const el = document.getElementById('gpPromoteBanner');
   if (!el) return;
+  // Managing shared overrides is an editor-only action (#58). A normal viewer
+  // already sees the auto-promoted (daily-Jira) state — the stale override is
+  // dropped for display in resolveGameStatus/Stage — so they need no banner and
+  // must not get "Save to plan" (sign-in prompt) or "Keep manual overrides"
+  // (which would pin stale overrides into their own browser).
+  if (!getGhEditor()) { el.style.display = 'none'; return; }
   // Two independent kinds of drift — shared status override that Jira has
   // moved past, and shared stage override in the same shape. Group them into
   // one banner so the editor sees everything to reconcile in one pass.
@@ -1613,7 +1619,7 @@ function openSignInModal() {
       const allow = EDITORS.map(x => String(x).toLowerCase());
       const display = emails.find(e => allow.includes(e)) || login;
       setPat(tok, display, ed);
-      closeModal(); showToast('✓ Signed in as ' + display + ' — you can publish'); renderDrawer();
+      closeModal(); showToast('✓ Signed in as ' + display + ' — you can publish'); renderDrawer(); renderPromoteBanner();
     } catch (e) { setPat(''); msg.textContent = '✗ ' + e.message; }
   };
 }
