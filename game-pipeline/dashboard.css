@@ -453,7 +453,11 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .note-hint{font-size:10.5px;color:var(--sub);font-style:italic}
 .note-add-btn{padding:4px 10px;font-size:11px}
 .notes-list{display:flex;flex-direction:column;gap:6px}
-.note-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:8px 10px}
+.note-card{background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:8px 10px;position:relative}
+.note-del{position:absolute;top:6px;right:6px;border:none;background:transparent;cursor:pointer;font-size:11px;line-height:1;padding:2px 4px;border-radius:4px;color:var(--sub);opacity:0;transition:opacity .12s}
+.note-card:hover .note-del{opacity:.65}
+.note-del:hover{opacity:1;background:var(--surf2);color:#dc2626}
+.note-del:focus-visible{opacity:1;outline:2px solid #dc2626;outline-offset:1px}
 .note-meta{font-size:10px;color:var(--sub);font-family:'IBM Plex Mono',monospace;letter-spacing:.3px;margin-bottom:4px}
 .note-date{color:var(--muted);font-weight:600}
 .note-author{color:#7c3aed;font-weight:600}

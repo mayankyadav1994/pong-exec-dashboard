@@ -836,15 +836,24 @@ function renderDetail(g) {
   // Ctrl/Cmd+Enter on the textarea OR the "+ Add note" button commits.
   const notesPane = document.createElement('div'); notesPane.className = 'notes-pane';
   const renderNotesList = () => {
-    const list = notesFor(g);
+    const list = notesFor(g).filter(n => !n.deleted);   // hide tombstoned notes (#57)
+    const canDelete = getGhEditor();                    // only signed-in editors can delete
     const items = list.map(n => {
       const ts = n.ts ? new Date(n.ts) : null;
       const stamp = ts ? `${ts.toISOString().slice(0,10)} ${ts.toISOString().slice(11,16)} UTC` : '';
       const author = n.author || 'anon';
       const body = String(n.body || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-      return `<div class="note-card"><div class="note-meta"><span class="note-date">${stamp}</span> · <span class="note-author">${author}</span></div><div class="note-body">${body}</div></div>`;
+      const del = canDelete ? `<button class="note-del" data-id="${encodeURIComponent(noteId(n))}" title="Delete this note">🗑</button>` : '';
+      return `<div class="note-card"><div class="note-meta"><span class="note-date">${stamp}</span> · <span class="note-author">${author}</span></div><div class="note-body">${body}</div>${del}</div>`;
     }).join('') || `<div class="note-empty">No notes yet for this game. Add one below to log context for stakeholders.</div>`;
     notesList.innerHTML = items;
+    notesList.querySelectorAll('.note-del').forEach(btn => btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm('Delete this note? It will be removed for everyone once you Save as default.')) return;
+      deleteNote(g, decodeURIComponent(btn.dataset.id));
+      renderNotesList();
+      showToast('Note removed — Save as default to publish');
+    }));
   };
   const notesEditor = document.createElement('div'); notesEditor.className = 'note-editor';
   notesEditor.innerHTML =
@@ -1288,16 +1297,23 @@ function noteKey(game) { return (game && game.jira) || (game && game.name) || ga
 // data doesn't retain old names, so notes filed pre-rename can't be auto-mapped;
 // this folds them onto the game instead of leaving them orphaned (#55).
 const NOTE_KEY_ALIASES = { 'Gen2 Game: Steampunk Fortune': 'IG-1511' };
-// Union two note lists, de-duped by (ts|author|body), newest first — the
-// ordering addNote() maintains via unshift.
+// Stable identity for a note (timestamp + author + body).
+function noteId(n) { return (n && n.ts || '') + '|' + (n && n.author || '') + '|' + (n && n.body || ''); }
+// Union two note lists, de-duped by identity, newest first (the order addNote
+// maintains via unshift). Deletion is a tombstone: if the same note appears both
+// deleted and not-deleted (a stale tab or main still carrying the live copy),
+// the delete WINS, so a removed note can't be resurrected by the union (#57).
+// Returns clones so a display-time merge never mutates the underlying NOTES.
 function mergeNoteLists(a, b) {
-  const seen = new Set(), out = [];
+  const byId = new Map();
   [...(a || []), ...(b || [])].forEach(n => {
     if (!n || !n.body) return;
-    const id = (n.ts || '') + '|' + (n.author || '') + '|' + n.body;
-    if (seen.has(id)) return;
-    seen.add(id); out.push(n);
+    const id = noteId(n);
+    const prev = byId.get(id);
+    if (prev) { if (n.deleted) prev.deleted = true; }
+    else byId.set(id, { ...n });
   });
+  const out = [...byId.values()];
   out.sort((x, y) => String(y.ts || '').localeCompare(String(x.ts || '')));
   return out;
 }
@@ -1330,6 +1346,18 @@ function addNote(game, body) {
     ts: new Date().toISOString(),
     author: getGhUser() || 'anon',
     body,
+  });
+  saveNotes();
+  return true;
+}
+// Soft-delete a note (#57): tombstone it (deleted:true) rather than removing it,
+// so the append-only union-merge on publish/load can't resurrect it. Marks it
+// under both the jira key and any legacy name key it might still live under.
+function deleteNote(game, id) {
+  NOTES = NOTES || {};
+  [noteKey(game), game && game.name].forEach(k => {
+    if (!k || !NOTES[k]) return;
+    NOTES[k].forEach(n => { if (noteId(n) === id) n.deleted = true; });
   });
   saveNotes();
   return true;
