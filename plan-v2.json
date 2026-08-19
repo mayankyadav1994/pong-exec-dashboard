@@ -33,6 +33,7 @@
     "Game: Flaming Skulls [V]": "In QA",
     "Game: Wildlife Safari Gold": "In Review",
     "Game: Nordic Paws": "In Review",
+    "Game: Firecracker Frenzy [V]": "In Review",
     "Game: Fortune of Z": "In Review",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
     "Game: Lantern's Rising- Vertical": "In QA"
@@ -68,6 +69,11 @@
   "notes": {
     "V2-22808": [
       {
+        "ts": "2026-08-17T15:46:39.590Z",
+        "author": "mayankyadav1994",
+        "body": "Luck bonus change request - pruthvi"
+      },
+      {
         "ts": "2026-08-11T19:08:15.304Z",
         "author": "mayankyadav1994",
         "body": "Added the change request of Fern's PPT - adding more changes to the review."
@@ -83,6 +89,13 @@
         "ts": "2026-08-14T16:56:36.642Z",
         "author": "mayankyadav1994",
         "body": "because we made math completly diffrent"
+      }
+    ],
+    "V2-22766": [
+      {
+        "ts": "2026-08-17T15:44:35.296Z",
+        "author": "mayankyadav1994",
+        "body": "Sonali needs to create change request - Pruthvi"
       }
     ]
   },
@@ -202,5 +215,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-17 15:44"
+  "updated_at": "2026-08-19 16:05"
 }
