@@ -884,36 +884,69 @@ function renderDetail(g) {
   body.appendChild(notesPane);
 
   const tlPane = document.createElement('div'); tlPane.style.display = 'none';
-  // Month band header so the department bars read under labelled month columns (#41).
+  // Activity "pulse" (#60): each lane is a rail; rounded pills mark the weeks work
+  // was actually logged (from disc.weeks), so gaps = paused work. Per-department
+  // colour on both the pill and the department name. Local x-axis covers the real
+  // worklog history (which often predates the sprint plan) + targets + today.
+  const MSWK = 7 * 864e5;
+  const tlDates = [TODAY];
+  (g.disciplines || []).forEach(d => {
+    Object.keys(d.weeks || {}).forEach(k => tlDates.push(asDate(k)));
+    discSprints(d).forEach(s => { tlDates.push(asDate(s.start)); tlDates.push(sprintEnd(s)); });
+    if (d.target_date) tlDates.push(asDate(d.target_date));
+  });
+  const ts = tlDates.map(x => +x);
+  let tlStart = new Date(Math.min(...ts)), tlEnd = new Date(Math.max(...ts));
+  tlStart = new Date(tlStart.getFullYear(), tlStart.getMonth(), 1);              // pad to month bounds
+  tlEnd = new Date(tlEnd.getFullYear(), tlEnd.getMonth() + 1, 1);
+  const tlSpan = (tlEnd - tlStart) || 1;
+  const pctL = x => Math.max(0, Math.min(100, ((+(x instanceof Date ? x : asDate(x)) - tlStart) / tlSpan) * 100));
+  const laneCol = k => DEPT_COLORS[k] || 'var(--muted)';
+
+  // Month band header.
   const mh = document.createElement('div'); mh.className = 'disc-row disc-month-head';
   let mhTrack = '';
-  chartMonths().forEach(m => {
-    const l = pct(m);
+  for (let m = new Date(tlStart); m <= tlEnd; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
+    const l = pctL(m);
     mhTrack += `<div class="dmh-div" style="left:${l}%"></div><div class="dmh-lab" style="left:${l}%">${monthLabel(m)}</div>`;
-  });
+  }
   mh.innerHTML = `<div class="disc-label"></div><div class="disc-track dmh-track">${mhTrack}</div><div class="disc-hrs"></div>`;
   tlPane.appendChild(mh);
+
+  // Merge consecutive active weeks into runs → rounded pills.
+  const pulsePills = (disc) => {
+    const weeks = disc.weeks || {}, keys = Object.keys(weeks).sort();
+    if (!keys.length) return '';
+    const col = laneCol(disc.key), runs = [];
+    let runA = keys[0], prev = keys[0];
+    for (let i = 1; i < keys.length; i++) {
+      if (Math.round((asDate(keys[i]) - asDate(prev)) / 864e5) === 7) prev = keys[i];
+      else { runs.push([runA, prev]); runA = keys[i]; prev = keys[i]; }
+    }
+    runs.push([runA, prev]);
+    return runs.map(([a, b]) => {
+      const l = pctL(a), end = new Date(+asDate(b) + MSWK), w = Math.max(pctL(end) - l, 0.8);
+      const hrs = keys.filter(k => k >= a && k <= b).reduce((s, k) => s + weeks[k], 0);
+      return `<div class="tl-pill" style="left:${l}%;width:${w}%;background:${col}" data-tip="<b>${disc.key.toUpperCase()}</b><div class='t-sub'>${fmtD(a)} → ${fmtD(end)} · ${Math.round(hrs)}h logged</div>"></div>`;
+    }).join('');
+  };
+
+  const todayL = (TODAY >= tlStart && TODAY <= tlEnd) ? `<div class="tl-today" style="left:${pctL(TODAY)}%"></div>` : '';
   LANE_ORDER.forEach(dKey => {
     const disc = g.disciplines ? g.disciplines.find(d => d.key === dKey) : null;
     if (!disc) return;
-    const sprs = discSprints(disc);
     const r = document.createElement('div'); r.className = 'disc-row';
-    let bar = '';
-    if (sprs.length) {
-      const start = new Date(sprs[0].start), end = sprintEnd(sprs[sprs.length - 1]);
-      const l = pct(start), w = Math.max(pct(end) - l, 0.6);
-      bar = `<div class="disc-bar lane-${dKey}" style="left:${l}%;width:${w}%;color:rgba(0,0,0,.6)">${fmtD(start)} → ${fmtD(end)}</div>`;
-    }
-    // Department target (latest due date among this discipline's tasks; #40):
-    // a tick on the track, tinted late if the bar runs past it, plus a dated line.
+    const pills = pulsePills(disc);
     let tgtTick = '', tgtTxt = '';
     if (disc.target_date) {
-      const cls = sprs.length ? (dayDelta(disc.target_date, sprintEnd(sprs[sprs.length - 1])) > 0 ? 'late' : 'early') : '';
-      tgtTick = `<div class="disc-target ${cls}" style="left:${pct(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>`;
+      tgtTick = `<div class="disc-target" style="left:${pctL(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>`;
       tgtTxt = `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>`;
     }
-    const hrsOver = disc.spent > disc.est && disc.est > 0;
-    r.innerHTML = `<div class="disc-label">${dKey}</div><div class="disc-track">${bar}${tgtTick}</div><div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.est)}h ${hrsOver ? '<span class="over">⚠</span>' : ''}</div>${tgtTxt}</div>`;
+    const empty = pills ? '' : `<span class="tl-empty">no work logged yet</span>`;
+    const over = disc.spent > disc.scope && disc.scope > 0;
+    r.innerHTML = `<div class="disc-label" style="color:${laneCol(dKey)}">${dKey}</div>`
+      + `<div class="disc-track tl-track">${todayL}${pills}${empty}${tgtTick}</div>`
+      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${over ? '<span class="over">⚠</span>' : ''}</div>${tgtTxt}</div>`;
     tlPane.appendChild(r);
   });
   body.appendChild(tlPane);

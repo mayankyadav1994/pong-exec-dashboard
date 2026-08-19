@@ -211,6 +211,22 @@ class JiraClient:
             time.sleep(0.2)   # rate-limit between pages
         return issues
 
+    def all_worklogs(self, key: str) -> list[dict]:
+        """Every worklog for an issue (paginated) — used only when the inline
+        `worklog` field on a search result is truncated (>maxResults)."""
+        out: list[dict] = []
+        start_at = 0
+        while True:
+            data = self._request("GET", f"/rest/api/3/issue/{key}/worklog",
+                                  params={"startAt": start_at, "maxResults": 100})
+            vals = data.get("worklogs", []) or []
+            out.extend(vals)
+            start_at += len(vals)
+            if start_at >= (data.get("total") or len(out)) or not vals:
+                break
+            time.sleep(0.15)
+        return out
+
     def board_sprints(self, board_id: str) -> list[dict]:
         """Paginate GET /rest/agile/1.0/board/{id}/sprint (active,closed,future)."""
         out: list[dict] = []
@@ -310,6 +326,20 @@ def _secs_to_hours(v: Any) -> float:
         return float(v) / 3600.0
     except (TypeError, ValueError):
         return 0.0
+
+
+def _worklog_week_hours(entries: list) -> dict:
+    """{Monday-ISO -> hours} from worklog entries, keyed by each log's `started`
+    date snapped back to that week's Monday (#60)."""
+    out: dict = {}
+    for w in entries or []:
+        st = (w.get("started") or "")[:10]
+        dd = _parse_date(st)
+        if dd is None:
+            continue
+        monday = (dd - timedelta(days=dd.weekday())).isoformat()
+        out[monday] = out.get(monday, 0.0) + _secs_to_hours(w.get("timeSpentSeconds"))
+    return out
 
 
 def compute_delivered(fixversions: list[dict]) -> Optional[dict]:
@@ -476,6 +506,9 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                         "timeestimate",
                         # summary is needed to detect Review tickets by title (#59).
                         "summary",
+                        # worklog powers the per-lane weekly activity "pulse" (#60):
+                        # each entry's `started` date + timeSpentSeconds → hours/week.
+                        "worklog",
                         "duedate", "assignee", sprint_field]
         children = client.search_jql(f"parent = {ekey}", ISSUE_FIELDS + ["subtasks"])
         child_keys = [c.get("key") for c in children if c.get("key")]
@@ -493,10 +526,12 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             # Together with `spent` it defines the live scope per the formula
             # scope = spent + remaining — how much total work the ticket will
             # actually take, not what someone originally thought.
+            # weeks: Monday-ISO -> hours logged that week (from worklogs), for the
+            # activity "pulse" bar in the timeline tab (#60).
             return {"est": 0.0, "spent": 0.0, "remaining": 0.0,
                     "sprints": set(), "due": [],
                     "buckets": {"todo": 0, "wip": 0, "qa": 0, "hold": 0, "done": 0},
-                    "preprod": 0, "people": {}}
+                    "preprod": 0, "people": {}, "weeks": {}}
         aggs = {k: _new_agg() for k in DISCIPLINE_ORDER}
         aggs["_release"] = _new_agg()
         # Open bug signal — set by add_issue() when it encounters an open Bug
@@ -564,6 +599,20 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             who = ((fields.get("assignee") or {}).get("displayName") or "").strip()
             if who:
                 d["people"][who] = d["people"].get(who, 0.0) + issue_spent
+            # Weekly activity pulse (#60): fold this issue's worklogs into the
+            # discipline's per-week hours. If the inline worklog was truncated,
+            # page the full set so old weeks aren't missed.
+            wl = fields.get("worklog") or {}
+            entries = wl.get("worklogs") or []
+            if (wl.get("total") or 0) > (wl.get("maxResults") or len(entries)):
+                wkey = fields.get("_issue_key_for_unmapped")
+                if wkey:
+                    try:
+                        entries = client.all_worklogs(wkey)
+                    except Exception:
+                        pass
+            for mon, hrs in _worklog_week_hours(entries).items():
+                d["weeks"][mon] = d["weeks"].get(mon, 0.0) + hrs
             if include_est:
                 d["est"] += _secs_to_hours(fields.get("timeoriginalestimate"))
                 # Remaining Estimate — gated the same way so a parent Story
@@ -629,6 +678,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 "people": sorted(
                     ({"name": n, "hours": round(h, 2)} for n, h in d["people"].items()),
                     key=lambda p: (-p["hours"], p["name"].lower())),
+                # Weekly activity pulse (#60): Monday-ISO -> hours logged.
+                "weeks": {k: round(v, 2) for k, v in sorted(d["weeks"].items())},
             })
 
         est = round(sum(x["est"] for x in disciplines), 2)
