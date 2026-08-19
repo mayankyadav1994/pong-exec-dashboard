@@ -90,13 +90,22 @@ DISCIPLINE_BY_ISSUETYPE = {
     "design task": "design", "design subtask": "design",
     "design sub-task": "design", "gdd task": "design",
 }
-DISCIPLINE_ORDER = ["art", "design", "math", "dev", "sound", "qa"]
+# "review" is a synthetic lane (#59): it has no Jira issue type of its own — it is
+# assembled from tickets across the other disciplines whose title contains
+# "Review" (see add_issue). It sits between Sound and QA.
+DISCIPLINE_ORDER = ["art", "design", "math", "dev", "sound", "review", "qa"]
 DISCIPLINE_LABEL = {
     "art": "Creative / Art", "design": "Design (GDD)", "math": "Math",
-    "dev": "Development", "sound": "Sound", "qa": "QA",
+    "dev": "Development", "sound": "Sound", "review": "Review", "qa": "QA",
 }
 # Downstream pipeline order used to pick the "current" discipline (Step 3).
-STAGE_PIPELINE = ["design", "art", "math", "dev", "sound", "qa"]
+STAGE_PIPELINE = ["design", "art", "math", "dev", "sound", "review", "qa"]
+# Issue-type disciplines that a Review-titled ticket can be pulled OUT of into the
+# synthetic review lane (everything except the synthetic lane itself).
+REVIEWABLE_DISCIPLINES = {"art", "design", "math", "dev", "sound", "qa"}
+# Match "Review" as a whole word (case-insensitive) so "Preview"/"previewed" don't
+# get miscounted as review work. Catches "… - Review", "Review & Refinement", etc.
+REVIEW_RE = re.compile(r"\breview\b", re.I)
 
 # Release tickets are a status SIGNAL (testing/deploy), not a discipline lane
 # and not counted in discipline hours.
@@ -386,7 +395,7 @@ def derive_status(aggs: dict, epic_status: Optional[str]) -> str:
     # the on-the-ground rule: bugs filed = the game is being QA'd. Bugs are
     # still excluded from hour aggregation; this is just a status signal.
     has_open_bug = (aggs.get("_open_bugs") or 0) > 0
-    prod_wip = any(flags[k]["wip"] > 0 for k in ("art", "math", "dev", "sound"))
+    prod_wip = any(flags[k]["wip"] > 0 for k in ("art", "math", "dev", "sound", "review"))
     design_wip = flags["design"]["wip"] > 0
     any_preprod = any(flags[k]["preprod"] > 0 for k in DISCIPLINE_ORDER)
 
@@ -465,6 +474,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                         # the fetch list means every ticket's remaining reads as
                         # 0 regardless of what Jira actually holds.
                         "timeestimate",
+                        # summary is needed to detect Review tickets by title (#59).
+                        "summary",
                         "duedate", "assignee", sprint_field]
         children = client.search_jql(f"parent = {ekey}", ISSUE_FIELDS + ["subtasks"])
         child_keys = [c.get("key") for c in children if c.get("key")]
@@ -505,6 +516,14 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         def add_issue(fields, include_est):
             itype = ((fields.get("issuetype") or {}).get("name")) or ""
             cat = classify_child(itype)
+            # Review extraction (#59): a discipline ticket whose title contains
+            # "Review" is review work — route it to the synthetic `review` lane so
+            # its hours/sprints/people MOVE there instead of counting under its
+            # issue-type discipline (no double counting). Bugs/release/unmapped are
+            # left alone. "Code review" tickets live under Release epics, which are
+            # outside a game's subtree, so they never reach here.
+            if cat in REVIEWABLE_DISCIPLINES and REVIEW_RE.search(fields.get("summary") or ""):
+                cat = "review"
             status_l = ((fields.get("status") or {}).get("name") or "").strip().lower()
             bk = bucket(status_l)
             if cat == "exclude":

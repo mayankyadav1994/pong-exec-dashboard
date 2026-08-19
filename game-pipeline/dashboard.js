@@ -16,7 +16,7 @@
 "use strict";
 
 const BASE = 'https://ponggamestudios.atlassian.net/browse/';
-const LANE_ORDER = ['art', 'design', 'math', 'dev', 'sound', 'qa'];
+const LANE_ORDER = ['art', 'design', 'math', 'dev', 'sound', 'review', 'qa'];  // review before QA (#59)
 
 // --- Shared "Save as default for everyone" via GitHub (Decision #39) ---------
 const GH_OWNER = 'mayankyadav1994', GH_REPO = 'pong-exec-dashboard';
@@ -71,6 +71,7 @@ const DEFAULT_CONFIG = {
     { key: 'math',    label: 'Math',    color: '#bbf7d0' },
     { key: 'dev',     label: 'Dev',     color: '#93c5fd' },
     { key: 'sound',   label: 'Sound',   color: '#f5d0e0' },
+    { key: 'review',  label: 'Review',  color: '#ddd6fe' },
     { key: 'qa',      label: 'QA',      color: '#fcd34d' },
     { key: 'bugfix',  label: 'Bug Fix', color: '#fecaca' },
     { key: 'done',    label: 'Done',    color: '#86efac' },
@@ -322,7 +323,7 @@ function discSprints(disc) {
 }
 // Per-department people breakdown (#51). Names + logged hours come from the
 // build (discipline.people, assignee-attributed, sorted by hours desc).
-const DEPT_COLORS = { art: '#f59e0b', design: '#3b82f6', math: '#22c55e', dev: '#6366f1', sound: '#ec4899', qa: '#eab308' };
+const DEPT_COLORS = { art: '#f59e0b', design: '#3b82f6', math: '#22c55e', dev: '#6366f1', sound: '#ec4899', review: '#8b5cf6', qa: '#eab308' };
 function initialsOf(n) { return String(n || '').trim().split(/\s+/).slice(0, 2).map(w => w[0] || '').join('').toUpperCase(); }
 function fmtHrs(h) { return (Math.round(h * 10) / 10).toString(); }
 // Chip line for the HOURS tab — one avatar+name+hours chip per person; the
@@ -531,7 +532,7 @@ function buildFilterBar() {
     c.dataset.filterStatus = k; c.textContent = k === 'ALL' ? 'All' : k;
     statusGroup.appendChild(c);
   });
-  ['ALL', 'art', 'design', 'math', 'dev', 'sound', 'qa'].forEach(k => {
+  ['ALL', 'art', 'design', 'math', 'dev', 'sound', 'review', 'qa'].forEach(k => {
     const c = document.createElement('span');
     c.className = 'fb-chip discipline' + (k === curStage ? ' on' : '');
     c.dataset.filterStage = k; c.textContent = k === 'ALL' ? 'All' : stageLabel(k);
@@ -992,7 +993,7 @@ function renderHeatmap() {
   const disciplines = [
     { key: 'art', icon: '🎨', name: 'Art / Creative' }, { key: 'design', icon: '📐', name: 'Design' },
     { key: 'math', icon: '🧮', name: 'Math' }, { key: 'dev', icon: '💻', name: 'Development' },
-    { key: 'sound', icon: '🎵', name: 'Sound' }, { key: 'qa', icon: '🧪', name: 'QA' },
+    { key: 'sound', icon: '🎵', name: 'Sound' }, { key: 'review', icon: '🔎', name: 'Review' }, { key: 'qa', icon: '🧪', name: 'QA' },
   ];
   disciplines.forEach(d => {
     const cap = CONFIG.capacities[d.key] || 200;
