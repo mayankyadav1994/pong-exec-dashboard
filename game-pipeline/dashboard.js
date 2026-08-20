@@ -1005,7 +1005,7 @@ function renderDetail(g) {
   const todayLine = (TODAY >= CHART_START && TODAY <= CHART_END) ? `<div class="today-line-row" style="left:${pct(TODAY)}%"></div>` : '';
 
   // Month band header — carries the visible scrollbar for the pulse.
-  const mh = document.createElement('div'); mh.className = 'disc-row disc-month-head';
+  const mh = document.createElement('div'); mh.className = 'disc-row disc-month-head tl-lane';
   let mhTrack = '';
   chartMonths().forEach(m => { const l = pct(m); mhTrack += `<div class="dmh-div" style="left:${l}%"></div><div class="dmh-lab" style="left:${l}%">${monthLabel(m)}</div>`; });
   mh.innerHTML = `<div class="disc-label"></div><div class="disc-track tl-scroll"><div class="tl-in" style="width:${innerW}px">${mhTrack}</div></div><div class="disc-hrs"></div>`;
@@ -1034,7 +1034,7 @@ function renderDetail(g) {
   LANE_ORDER.forEach(dKey => {
     const disc = g.disciplines ? g.disciplines.find(d => d.key === dKey) : null;
     if (!disc) return;
-    const r = document.createElement('div'); r.className = 'disc-row';
+    const r = document.createElement('div'); r.className = 'disc-row tl-lane';
     const p = pulseOf(disc), done = disc.phase === 'done';
     const tgtTick = (disc.target_date && !done) ? `<div class="disc-target" style="left:${pct(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>` : '';
     // Remaining-work ghost (#63): for an unfinished lane with hours left, a dashed
@@ -1054,12 +1054,15 @@ function renderDetail(g) {
     const over = disc.spent > disc.scope && disc.scope > 0;
     // Completed signifier (#63): a green ✓ on the numbers when every ticket is closed.
     const hrsMark = done ? '<span class="disc-done" title="Completed — all tickets closed">✓</span>' : (over ? '<span class="over">⚠</span>' : '');
+    // Consolidated to ≤3 short lines so they don't overlap in the row (#66):
+    //   spent/scope ✓   |   "~Xh left · 🎯 date" (or "✓ done")   |   "◀ Nh earlier"
+    const sub = done
+      ? `<div class="disc-tgt done">done</div>`
+      : `<div class="disc-tgt">${rem > 0 ? `~${rem}h left` : ''}${(rem > 0 && disc.target_date) ? ' · ' : ''}${disc.target_date ? `🎯 ${fmtD(disc.target_date)}` : ''}</div>`;
     const earlierTxt = p.earlier > 0 ? `<div class="disc-earlier" title="Logged before the chart window">◀ ${p.earlier}h earlier</div>` : '';
-    const tgtTxt = done ? `<div class="disc-tgt done">✓ done</div>` : (disc.target_date ? `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>` : '');
-    const remTxt = (!done && rem > 0) ? `<div class="disc-rem">~${rem}h left</div>` : '';
     r.innerHTML = `<div class="disc-label" style="color:${laneCol(dKey)}">${dKey}</div>`
       + `<div class="disc-track tl-scroll tl-nobar">${inner}</div>`
-      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${hrsMark}</div>${remTxt}${earlierTxt}${tgtTxt}</div>`;
+      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${hrsMark}</div>${sub}${earlierTxt}</div>`;
     tlPane.appendChild(r);
     registerScroller(r.querySelector('.tl-scroll'));
   });
