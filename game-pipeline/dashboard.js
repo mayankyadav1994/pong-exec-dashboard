@@ -474,6 +474,7 @@ function buildSkeleton() {
       <button data-view="heatmap">Heatmap</button>
       <button data-view="list">List</button>
     </div>
+    <button class="fb-chip" id="exportBtn" title="Export the games table (respects current filters)">⬇ Export</button>
   </div>
   <div id="emptyState" class="empty-state" style="display:none">
     <h2>No data yet</h2>
@@ -547,6 +548,81 @@ function buildFilterBar() {
     chip.classList.add('on'); activeFilters.stage = chip.dataset.filterStage; renderRows();
   }));
   document.getElementById('fbSearch').addEventListener('input', e => { activeFilters.search = e.target.value; renderRows(); });
+  const eb = document.getElementById('exportBtn'); if (eb) eb.onclick = openExportModal;
+}
+
+// ============================================================
+//  CSV EXPORT (#62) — Default (all columns) or a custom column pick.
+//  Respects the current Status / Stage / search filters. Pure client-side.
+// ============================================================
+function filteredGames() {
+  return visibleGames().filter(g => {
+    if (activeFilters.status !== 'ALL' && g.workflow_status !== activeFilters.status) return false;
+    if (activeFilters.stage !== 'ALL' && g.current_stage !== activeFilters.stage) return false;
+    if (activeFilters.search && !g.name.toLowerCase().includes(activeFilters.search.toLowerCase())) return false;
+    return true;
+  });
+}
+function exportColumns() {
+  const disc = (g, k) => (g.disciplines || []).find(x => x.key === k) || null;
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const cols = [
+    { key: 'idx',       label: '#',            get: (g, i) => i + 1 },
+    { key: 'name',      label: 'Game',         get: g => g.name },
+    { key: 'jira',      label: 'Jira',         get: g => g.jira || '' },
+    { key: 'status',    label: 'Status',       get: g => g.workflow_status || '' },
+    { key: 'stage',     label: 'Stage',        get: g => stageLabel(g.current_stage) },
+    { key: 'lead',      label: 'Lead Dev',     get: g => g.dev_name || '' },
+    { key: 'priority',  label: 'Priority',     get: g => g.priority || '' },
+    { key: 'fv',        label: 'Fix Version',  get: g => (g.fixVersions || []).map(v => v.name).join('; ') },
+    { key: 'target',    label: 'Target',       get: g => g.target_date || '' },
+    { key: 'spent',     label: 'Spent (h)',    get: g => Math.round(g.spent) },
+    { key: 'scope',     label: 'Scope (h)',    get: g => Math.round(g.scope != null ? g.scope : (g.spent + (g.remaining || 0))) },
+    { key: 'remaining', label: 'Remaining (h)',get: g => Math.round(g.remaining || 0) },
+    { key: 'pctdone',   label: '% Done',       get: g => { const sc = g.scope || (g.spent + (g.remaining || 0)); return sc > 0 ? Math.round(g.spent / sc * 100) : 0; } },
+  ];
+  LANE_ORDER.forEach(k => {
+    cols.push({ key: k + '_spent', label: `${cap(k)} spent (h)`, get: g => { const d = disc(g, k); return d ? Math.round(d.spent) : 0; } });
+    cols.push({ key: k + '_scope', label: `${cap(k)} scope (h)`, get: g => { const d = disc(g, k); return d ? Math.round(d.scope) : 0; } });
+  });
+  return cols;
+}
+function csvCell(v) { v = v == null ? '' : String(v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function downloadCSV(name, text) {
+  const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });   // BOM so Excel reads UTF-8
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+function runExport(colKeys) {
+  const all = exportColumns();
+  const cols = colKeys && colKeys.length ? all.filter(c => colKeys.includes(c.key)) : all;
+  const games = filteredGames();
+  const head = cols.map(c => csvCell(c.label)).join(',');
+  const body = games.map((g, i) => cols.map(c => csvCell(c.get(g, i))).join(',')).join('\r\n');
+  const stamp = (REFRESHED || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+  downloadCSV(`game-pipeline-${PROJECT.key}-${stamp}.csv`, head + '\r\n' + body);
+  showToast(`Exported ${games.length} game${games.length === 1 ? '' : 's'} to CSV`);
+}
+function openExportModal() {
+  const n = filteredGames().length;
+  const checks = exportColumns().map(c =>
+    `<label class="exp-col"><input type="checkbox" data-col="${c.key}" checked> ${c.label}</label>`).join('');
+  openModal(`<h3>⬇ Export games</h3>
+    <p class="gp-modal-note">Exports the <b>${n}</b> game${n === 1 ? '' : 's'} currently shown — your Status / Stage / search filters apply. CSV opens in Excel &amp; Google Sheets.</p>
+    <div class="gp-modal-foot"><button class="gp-foot-btn primary" id="expDefault">Default — all columns</button><button class="gp-foot-btn" id="expChoose">Choose columns…</button><button class="gp-foot-btn" id="expCancel">Cancel</button></div>
+    <div id="expCustom" style="display:none;margin-top:14px">
+      <div class="exp-cols">${checks}</div>
+      <div class="gp-modal-foot"><button class="gp-foot-btn" id="expNone">Clear all</button><button class="gp-foot-btn primary" id="expGo">Export selected</button></div>
+    </div>`);
+  document.getElementById('expCancel').onclick = closeModal;
+  document.getElementById('expDefault').onclick = () => { runExport(null); closeModal(); };
+  document.getElementById('expChoose').onclick = () => { document.getElementById('expCustom').style.display = 'block'; };
+  document.getElementById('expNone').onclick = () => document.querySelectorAll('#expCustom input[data-col]').forEach(c => { c.checked = false; });
+  document.getElementById('expGo').onclick = () => {
+    const keys = [...document.querySelectorAll('#expCustom input[data-col]:checked')].map(c => c.dataset.col);
+    if (!keys.length) { showToast('Pick at least one column'); return; }
+    runExport(keys); closeModal();
+  };
 }
 
 // ============================================================
@@ -996,12 +1072,7 @@ function renderDetail(g) {
 function renderRows() {
   const rowsEl = document.getElementById('rows');
   rowsEl.innerHTML = '';
-  const filtered = visibleGames().filter(g => {
-    if (activeFilters.status !== 'ALL' && g.workflow_status !== activeFilters.status) return false;
-    if (activeFilters.stage !== 'ALL' && g.current_stage !== activeFilters.stage) return false;
-    if (activeFilters.search && !g.name.toLowerCase().includes(activeFilters.search.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = filteredGames();
   filtered.forEach(g => rowsEl.appendChild(renderRow(g, RAW_GAMES.indexOf(g))));
   if (filtered.length === 0) rowsEl.innerHTML = '<div style="text-align:center;padding:30px;color:var(--sub);font-size:12px;font-style:italic">No games match your filters.</div>';
 }
