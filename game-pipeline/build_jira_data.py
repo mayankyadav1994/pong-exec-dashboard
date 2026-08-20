@@ -748,7 +748,11 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         print(f"   {OK} dropped {dropped} game(s) delivered >{DELIVERED_GRACE_DAYS}d ago")
     games = kept_games
 
-    # 6. SPRINTS — board query (preferred) merged with issue-derived metadata
+    # 6. SPRINTS — board query (preferred) merged with issue-derived metadata.
+    # board_sprint_ids = this project's OWN board sprints; used to keep other
+    # teams' sprints (e.g. "CSS Sprint 7", "V2 Sprint 5") that an IG ticket may be
+    # assigned to OFF the IG axis (#64).
+    board_sprint_ids: set[int] = set()
     if board_id:
         try:
             for s in client.board_sprints(board_id):
@@ -756,6 +760,7 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
                 if start is None:
                     continue
                 sid = int(s["id"])
+                board_sprint_ids.add(sid)
                 sprint_meta[sid] = {
                     "start": start,
                     "end": _parse_date(s.get("endDate")),
@@ -767,7 +772,7 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     else:
         print(f"   {WARN} no board id ({cfg['board_env']}); using issue-derived sprint dates only")
 
-    sprints, kept_ids = build_sprint_list(sprint_meta)
+    sprints, kept_ids = build_sprint_list(sprint_meta, board_sprint_ids, f"{jira_project} Sprint")
 
     # Keep only discipline sprint ids that resolved to a dated sprint.
     # (current_stage / workflow_status are ticket-derived, independent of sprints.)
@@ -789,13 +794,21 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     return {"games": games, "sprints": sprints}
 
 
-def build_sprint_list(sprint_meta: dict[int, dict]) -> tuple[list[dict], set]:
+def build_sprint_list(sprint_meta: dict[int, dict], board_ids: set = None,
+                      name_prefix: str = "") -> tuple[list[dict], set]:
     """Build the SPRINTS list using the boards' real sprint names + dates.
 
-    Every sprint with a start date is kept (closed history + active + future),
-    chronological. Date-less sprints (e.g. "Refined Backlog") are dropped — they
-    can't be placed on a time axis. Label = the board's own sprint name.
+    Every dated sprint is kept (closed history + active + future), chronological;
+    date-less sprints (e.g. "Refined Backlog") are dropped. Label = the board's
+    own sprint name.
+
+    Axis hygiene (#64): when a project board is known, keep only sprints that are
+    on THIS board (`board_ids`) or whose name matches this project's prefix (e.g.
+    "IG Sprint"). This drops other teams' sprints that an issue happens to be
+    assigned to (e.g. "CSS Sprint 7", "V2 Sprint 5") so they don't pollute the axis.
     """
+    board_ids = board_ids or set()
+    px = (name_prefix or "").strip().lower()
     rows = []
     kept: set = set()
     for sid, meta in sprint_meta.items():
@@ -803,6 +816,9 @@ def build_sprint_list(sprint_meta: dict[int, dict]) -> tuple[list[dict], set]:
         if start is None:
             continue
         name = (meta.get("name") or "").strip() or f"Sprint {sid}"
+        # If we know the board, exclude foreign-board sprints.
+        if board_ids and sid not in board_ids and not (px and name.lower().startswith(px)):
+            continue
         end = meta.get("end") or (start + timedelta(days=SPRINT_DAYS - 1))
         rows.append({"id": sid, "label": name, "start": start, "end": end})
         kept.add(sid)
