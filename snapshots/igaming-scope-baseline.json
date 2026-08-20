@@ -185,6 +185,10 @@
     "date": "2026-07-30",
     "orig_hours_by_key": {}
   },
+  "ELG 4.52": {
+    "date": "2026-08-20",
+    "orig_hours_by_key": {}
+  },
   "ELG 4.60": {
     "date": "2026-08-06",
     "orig_hours_by_key": {
@@ -503,6 +507,12 @@
     "date": "2026-07-10",
     "orig_hours_by_key": {
       "IG-4759": 4.0
+    }
+  },
+  "New Features - iGaming": {
+    "date": "2026-08-20",
+    "orig_hours_by_key": {
+      "IG-6000": 4.0
     }
   },
   "New Games - iGaming": {
