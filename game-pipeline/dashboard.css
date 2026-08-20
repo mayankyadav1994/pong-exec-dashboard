@@ -294,6 +294,12 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .disc-done{color:#16a34a;font-weight:700}
 .disc-tgt.done{color:#16a34a}
 .disc-rem{font-size:9px;color:var(--sub)}
+/* Timeline-tab alignment (#66): match the main chart's frozen columns (axis-left
+   281px / axis-right 121px) so the pulse track starts at the SAME x as the chart
+   above — otherwise the shared-axis today line / months are shifted ~191px. */
+.tl-lane .disc-label{width:281px}
+.tl-lane .disc-hrs{width:121px;line-height:1.35}
+.disc-row.tl-lane:not(.disc-month-head){height:40px}
 /* Gantt view (#65): one consolidated bar + per-team milestone diamonds */
 .gantt-row .tl-inner{min-height:30px}
 .gantt-row .epic-track{min-height:36px}
