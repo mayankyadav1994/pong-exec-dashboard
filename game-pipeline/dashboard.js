@@ -884,70 +884,61 @@ function renderDetail(g) {
   body.appendChild(notesPane);
 
   const tlPane = document.createElement('div'); tlPane.style.display = 'none';
-  // Activity "pulse" (#60): each lane is a rail; rounded pills mark the weeks work
-  // was actually logged (from disc.weeks), so gaps = paused work. Per-department
-  // colour on both the pill and the department name. Local x-axis covers the real
-  // worklog history (which often predates the sprint plan) + targets + today.
+  // Activity "pulse" (#60/#61): each lane is a fixed-scale, horizontally-scrollable
+  // rail that shares the main chart's axis (pct/trackPxWidth) and scrolls in SYNC
+  // with the burndown above (tl-scroll), so months + today line up and long spans
+  // scroll instead of squishing. Rounded pills mark the weeks work was logged (gaps
+  // = paused); per-department colour on pill AND name; work logged before the chart
+  // window is summed into a "◀ earlier" note (option A). Targets hidden on done lanes.
   const MSWK = 7 * 864e5;
-  const tlDates = [TODAY];
-  (g.disciplines || []).forEach(d => {
-    Object.keys(d.weeks || {}).forEach(k => tlDates.push(asDate(k)));
-    discSprints(d).forEach(s => { tlDates.push(asDate(s.start)); tlDates.push(sprintEnd(s)); });
-    if (d.target_date) tlDates.push(asDate(d.target_date));
-  });
-  const ts = tlDates.map(x => +x);
-  let tlStart = new Date(Math.min(...ts)), tlEnd = new Date(Math.max(...ts));
-  tlStart = new Date(tlStart.getFullYear(), tlStart.getMonth(), 1);              // pad to month bounds
-  tlEnd = new Date(tlEnd.getFullYear(), tlEnd.getMonth() + 1, 1);
-  const tlSpan = (tlEnd - tlStart) || 1;
-  const pctL = x => Math.max(0, Math.min(100, ((+(x instanceof Date ? x : asDate(x)) - tlStart) / tlSpan) * 100));
   const laneCol = k => DEPT_COLORS[k] || 'var(--muted)';
+  const innerW = trackPxWidth();
+  const sprLines = (ALL_SPRINTS || SPRINT_LIST).map(s => `<div class="sp-line${s.projected ? ' proj' : ''}" style="left:${pct(s.start)}%"></div>`).join('');
+  const todayLine = (TODAY >= CHART_START && TODAY <= CHART_END) ? `<div class="today-line-row" style="left:${pct(TODAY)}%"></div>` : '';
 
-  // Month band header.
+  // Month band header — carries the visible scrollbar for the pulse.
   const mh = document.createElement('div'); mh.className = 'disc-row disc-month-head';
   let mhTrack = '';
-  for (let m = new Date(tlStart); m <= tlEnd; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) {
-    const l = pctL(m);
-    mhTrack += `<div class="dmh-div" style="left:${l}%"></div><div class="dmh-lab" style="left:${l}%">${monthLabel(m)}</div>`;
-  }
-  mh.innerHTML = `<div class="disc-label"></div><div class="disc-track dmh-track">${mhTrack}</div><div class="disc-hrs"></div>`;
+  chartMonths().forEach(m => { const l = pct(m); mhTrack += `<div class="dmh-div" style="left:${l}%"></div><div class="dmh-lab" style="left:${l}%">${monthLabel(m)}</div>`; });
+  mh.innerHTML = `<div class="disc-label"></div><div class="disc-track tl-scroll"><div class="tl-in" style="width:${innerW}px">${mhTrack}</div></div><div class="disc-hrs"></div>`;
   tlPane.appendChild(mh);
+  registerScroller(mh.querySelector('.tl-scroll'));
 
-  // Merge consecutive active weeks into runs → rounded pills.
-  const pulsePills = (disc) => {
+  // Pills for weeks inside the chart window; hours before it are summed as "earlier".
+  const pulseOf = (disc) => {
     const weeks = disc.weeks || {}, keys = Object.keys(weeks).sort();
-    if (!keys.length) return '';
-    const col = laneCol(disc.key), runs = [];
-    let runA = keys[0], prev = keys[0];
-    for (let i = 1; i < keys.length; i++) {
-      if (Math.round((asDate(keys[i]) - asDate(prev)) / 864e5) === 7) prev = keys[i];
-      else { runs.push([runA, prev]); runA = keys[i]; prev = keys[i]; }
+    let earlier = 0; const ir = [];
+    keys.forEach(k => { if (asDate(k) < CHART_START) earlier += weeks[k]; else ir.push(k); });
+    const col = laneCol(disc.key); let html = '';
+    if (ir.length) {
+      const runs = []; let a = ir[0], p = ir[0];
+      for (let i = 1; i < ir.length; i++) { if (Math.round((asDate(ir[i]) - asDate(p)) / 864e5) === 7) p = ir[i]; else { runs.push([a, p]); a = ir[i]; p = ir[i]; } }
+      runs.push([a, p]);
+      html = runs.map(([x1, x2]) => {
+        const l = pct(x1), end = new Date(+asDate(x2) + MSWK), w = Math.max(pct(end) - l, 0.6);
+        const hrs = ir.filter(k => k >= x1 && k <= x2).reduce((s, k) => s + weeks[k], 0);
+        return `<div class="tl-pill" style="left:${l}%;width:${w}%;background:${col}" data-tip="<b>${disc.key.toUpperCase()}</b><div class='t-sub'>${fmtD(x1)} → ${fmtD(end)} · ${Math.round(hrs)}h logged</div>"></div>`;
+      }).join('');
     }
-    runs.push([runA, prev]);
-    return runs.map(([a, b]) => {
-      const l = pctL(a), end = new Date(+asDate(b) + MSWK), w = Math.max(pctL(end) - l, 0.8);
-      const hrs = keys.filter(k => k >= a && k <= b).reduce((s, k) => s + weeks[k], 0);
-      return `<div class="tl-pill" style="left:${l}%;width:${w}%;background:${col}" data-tip="<b>${disc.key.toUpperCase()}</b><div class='t-sub'>${fmtD(a)} → ${fmtD(end)} · ${Math.round(hrs)}h logged</div>"></div>`;
-    }).join('');
+    return { html, earlier: Math.round(earlier), any: keys.length > 0 };
   };
 
-  const todayL = (TODAY >= tlStart && TODAY <= tlEnd) ? `<div class="tl-today" style="left:${pctL(TODAY)}%"></div>` : '';
   LANE_ORDER.forEach(dKey => {
     const disc = g.disciplines ? g.disciplines.find(d => d.key === dKey) : null;
     if (!disc) return;
     const r = document.createElement('div'); r.className = 'disc-row';
-    const pills = pulsePills(disc);
-    let tgtTick = '', tgtTxt = '';
-    if (disc.target_date) {
-      tgtTick = `<div class="disc-target" style="left:${pctL(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>`;
-      tgtTxt = `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>`;
-    }
-    const empty = pills ? '' : `<span class="tl-empty">no work logged yet</span>`;
+    const p = pulseOf(disc), done = disc.phase === 'done';
+    const tgtTick = (disc.target_date && !done) ? `<div class="disc-target" style="left:${pct(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>` : '';
+    const empty = p.any ? '' : `<span class="tl-empty">no work logged yet</span>`;
+    const inner = `<div class="tl-in tl-lane-in" style="width:${innerW}px"><div class="tl-rail"></div>${sprLines}${todayLine}${p.html}${empty}${tgtTick}</div>`;
     const over = disc.spent > disc.scope && disc.scope > 0;
+    const earlierTxt = p.earlier > 0 ? `<div class="disc-earlier" title="Logged before the chart window">◀ ${p.earlier}h earlier</div>` : '';
+    const tgtTxt = (disc.target_date && !done) ? `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>` : '';
     r.innerHTML = `<div class="disc-label" style="color:${laneCol(dKey)}">${dKey}</div>`
-      + `<div class="disc-track tl-track">${todayL}${pills}${empty}${tgtTick}</div>`
-      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${over ? '<span class="over">⚠</span>' : ''}</div>${tgtTxt}</div>`;
+      + `<div class="disc-track tl-scroll tl-nobar">${inner}</div>`
+      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${over ? '<span class="over">⚠</span>' : ''}</div>${earlierTxt}${tgtTxt}</div>`;
     tlPane.appendChild(r);
+    registerScroller(r.querySelector('.tl-scroll'));
   });
   body.appendChild(tlPane);
 
@@ -995,6 +986,9 @@ function renderDetail(g) {
     tlPane.style.display = t.dataset.tab === 'timeline' ? 'block' : 'none';
     msPane.style.display = t.dataset.tab === 'milestones' ? 'block' : 'none';
     hrsPane.style.display = t.dataset.tab === 'hours' ? 'block' : 'none';
+    // The pulse tracks can't take a scroll position while hidden; on reveal, snap
+    // them to the shared scroll offset so they line up with the chart above (#61).
+    if (t.dataset.tab === 'timeline') requestAnimationFrame(() => tlPane.querySelectorAll('.tl-scroll').forEach(o => { o.scrollLeft = tlScrollLeft; }));
   }));
   return panel;
 }
