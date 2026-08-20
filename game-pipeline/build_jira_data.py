@@ -794,6 +794,12 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     return {"games": games, "sprints": sprints}
 
 
+# A sprint named like "IG Sprint 11" / "CSS Sprint 7" / "V2 Sprint 5" is OWNED by
+# the leading team token. Used to keep other teams' sprints off a project's axis
+# even when they live on the same shared board. (#64)
+SPRINT_OWNER_RE = re.compile(r"^([A-Za-z0-9]+)\s+Sprint\b", re.I)
+
+
 def build_sprint_list(sprint_meta: dict[int, dict], board_ids: set = None,
                       name_prefix: str = "") -> tuple[list[dict], set]:
     """Build the SPRINTS list using the boards' real sprint names + dates.
@@ -802,13 +808,16 @@ def build_sprint_list(sprint_meta: dict[int, dict], board_ids: set = None,
     date-less sprints (e.g. "Refined Backlog") are dropped. Label = the board's
     own sprint name.
 
-    Axis hygiene (#64): when a project board is known, keep only sprints that are
-    on THIS board (`board_ids`) or whose name matches this project's prefix (e.g.
-    "IG Sprint"). This drops other teams' sprints that an issue happens to be
-    assigned to (e.g. "CSS Sprint 7", "V2 Sprint 5") so they don't pollute the axis.
+    Axis hygiene (#64): teams SHARE boards — "CSS Sprint 7" and "V2 Sprint 5" are
+    created on the IG board (250), so board membership is NOT proof of ownership.
+    A sprint whose name is "<TEAM> Sprint N" is owned by <TEAM>; drop it when
+    <TEAM> isn't this project, regardless of which board carries it. Sprints with
+    a non-team name (e.g. a one-off "Hotfix") are kept when on our board or when
+    they match this project's prefix.
     """
     board_ids = board_ids or set()
-    px = (name_prefix or "").strip().lower()
+    px = (name_prefix or "").strip().lower()            # e.g. "ig sprint"
+    own_token = px.split(" ", 1)[0] if px else ""       # e.g. "ig"
     rows = []
     kept: set = set()
     for sid, meta in sprint_meta.items():
@@ -816,8 +825,14 @@ def build_sprint_list(sprint_meta: dict[int, dict], board_ids: set = None,
         if start is None:
             continue
         name = (meta.get("name") or "").strip() or f"Sprint {sid}"
-        # If we know the board, exclude foreign-board sprints.
-        if board_ids and sid not in board_ids and not (px and name.lower().startswith(px)):
+        low = name.lower()
+        # Foreign-team sprint sitting on our shared board → off the axis.
+        m = SPRINT_OWNER_RE.match(name)
+        if own_token and m and m.group(1).lower() != own_token:
+            continue
+        # Keep our own-prefixed sprints + any on-board sprint that isn't a foreign
+        # team's (falls through above), else drop non-board foreign issue sprints.
+        if board_ids and sid not in board_ids and not (px and low.startswith(px)):
             continue
         end = meta.get("end") or (start + timedelta(days=SPRINT_DAYS - 1))
         rows.append({"id": sid, "label": name, "start": start, "end": end})
