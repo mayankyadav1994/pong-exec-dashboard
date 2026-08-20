@@ -1005,14 +1005,29 @@ function renderDetail(g) {
     const r = document.createElement('div'); r.className = 'disc-row';
     const p = pulseOf(disc), done = disc.phase === 'done';
     const tgtTick = (disc.target_date && !done) ? `<div class="disc-target" style="left:${pct(disc.target_date)}%" data-tip="<b>🎯 ${dKey.toUpperCase()} target</b><div class='t-sub'>${fmtD(disc.target_date)}</div>"></div>` : '';
+    // Remaining-work ghost (#63): for an unfinished lane with hours left, a dashed
+    // segment projects the leftover (scope − spent) from the last activity (or today)
+    // to the team's due date — "~Xh left". Done lanes get none.
+    const rem = Math.round((disc.scope || 0) - (disc.spent || 0));
+    let ghost = '';
+    if (!done && rem > 0 && disc.target_date) {
+      const wk = Object.keys(disc.weeks || {}).sort();
+      const lastEnd = wk.length ? new Date(+asDate(wk[wk.length - 1]) + MSWK) : TODAY;
+      const gStart = lastEnd > TODAY ? lastEnd : TODAY;
+      const l = pct(gStart), rr = pct(disc.target_date);
+      if (rr > l) ghost = `<div class="tl-ghost" style="left:${l}%;width:${Math.max(rr - l, 0.6)}%;--gc:${laneCol(dKey)}" data-tip="<b>~${rem}h remaining</b><div class='t-sub'>${dKey.toUpperCase()} · to ${fmtD(disc.target_date)}</div>"></div>`;
+    }
     const empty = p.any ? '' : `<span class="tl-empty">no work logged yet</span>`;
-    const inner = `<div class="tl-in tl-lane-in" style="width:${innerW}px"><div class="tl-rail"></div>${sprLines}${todayLine}${p.html}${empty}${tgtTick}</div>`;
+    const inner = `<div class="tl-in tl-lane-in" style="width:${innerW}px"><div class="tl-rail"></div>${sprLines}${todayLine}${ghost}${p.html}${empty}${tgtTick}</div>`;
     const over = disc.spent > disc.scope && disc.scope > 0;
+    // Completed signifier (#63): a green ✓ on the numbers when every ticket is closed.
+    const hrsMark = done ? '<span class="disc-done" title="Completed — all tickets closed">✓</span>' : (over ? '<span class="over">⚠</span>' : '');
     const earlierTxt = p.earlier > 0 ? `<div class="disc-earlier" title="Logged before the chart window">◀ ${p.earlier}h earlier</div>` : '';
-    const tgtTxt = (disc.target_date && !done) ? `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>` : '';
+    const tgtTxt = done ? `<div class="disc-tgt done">✓ done</div>` : (disc.target_date ? `<div class="disc-tgt">🎯 ${fmtD(disc.target_date)}</div>` : '');
+    const remTxt = (!done && rem > 0) ? `<div class="disc-rem">~${rem}h left</div>` : '';
     r.innerHTML = `<div class="disc-label" style="color:${laneCol(dKey)}">${dKey}</div>`
       + `<div class="disc-track tl-scroll tl-nobar">${inner}</div>`
-      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${over ? '<span class="over">⚠</span>' : ''}</div>${earlierTxt}${tgtTxt}</div>`;
+      + `<div class="disc-hrs"><div>${Math.round(disc.spent)} / ${Math.round(disc.scope)}h ${hrsMark}</div>${remTxt}${earlierTxt}${tgtTxt}</div>`;
     tlPane.appendChild(r);
     registerScroller(r.querySelector('.tl-scroll'));
   });
@@ -1044,10 +1059,13 @@ function renderDetail(g) {
     const remaining = (d.remaining != null) ? d.remaining : Math.max(0, d.est - d.spent);
     const ratio = scope > 0 ? d.spent / scope : 0;
     const pctNum = Math.min(100, Math.round(ratio * 100));
+    const done = d.phase === 'done';
     const overOrig = d.est > 0 && d.spent > d.est;
     const overWarn = overOrig ? `<span class="over" title="Spent ${Math.round(d.spent - d.est)}h more than the original ${Math.round(d.est)}h estimate">⚠</span>` : '';
-    const remChip = remaining > 0 ? ` · ${Math.round(remaining)}h left` : '';
-    const row = `<div class="disc-row"><div class="disc-label">${d.key}</div><div class="disc-track"><div class="disc-bar" style="left:0;width:${pctNum}%;background:${overOrig ? '#dc2626' : '#2563eb'};color:#fff">${pctNum}%</div></div><div class="disc-hrs" title="Scope = spent + Jira Remaining Estimate. Original est: ${Math.round(d.est)}h">${Math.round(d.spent)} / ${Math.round(scope)}h${remChip} ${overWarn}</div></div>`;
+    const remChip = (!done && remaining > 0) ? ` · ${Math.round(remaining)}h left` : '';
+    // Completed signifier (#63): green ✓ when all tickets are closed.
+    const mark = done ? '<span class="disc-done" title="Completed — all tickets closed">✓</span>' : overWarn;
+    const row = `<div class="disc-row"><div class="disc-label">${d.key}</div><div class="disc-track"><div class="disc-bar" style="left:0;width:${pctNum}%;background:${done ? '#16a34a' : (overOrig ? '#dc2626' : '#2563eb')};color:#fff">${pctNum}%</div></div><div class="disc-hrs" title="Scope = spent + Jira Remaining Estimate. Original est: ${Math.round(d.est)}h">${Math.round(d.spent)} / ${Math.round(scope)}h${remChip} ${mark}</div></div>`;
     return `<div class="disc-block">${row}${peopleChips(d)}</div>`;
   }).join('');
   hrsPane.innerHTML = hoursRows || '<div style="font-size:11px;color:var(--sub);font-style:italic;padding:10px">No hours data.</div>';
