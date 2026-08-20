@@ -470,7 +470,8 @@ function buildSkeleton() {
     <input class="fb-search" id="fbSearch" placeholder="🔍 Search games…">
     <button class="fb-chip fc-toggle" id="fcToggle" title="Project a hypothetical timeline from remaining hours ÷ velocity">🔮 Forecast</button>
     <div class="view-toggle" id="viewToggle">
-      <button class="on" data-view="roadmap">Roadmap</button>
+      <button class="on" data-view="gantt">Gantt</button>
+      <button data-view="roadmap">Roadmap</button>
       <button data-view="heatmap">Heatmap</button>
       <button data-view="list">List</button>
     </div>
@@ -791,6 +792,37 @@ function renderRow(g, idx) {
   if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; tl.dataset.tip = `<b>📍 Today</b><div class="t-sub">${fmtD(TODAY)}</div>`; trackInner.appendChild(tl); }
   const proj = (showForecast && g._proj) ? g._proj : null;
   let laneTop = 8;
+  if (currentView === 'gantt') {
+    // Concise Gantt (#65): ONE consolidated bar per game + a milestone diamond per
+    // team (filled = done ✓, hollow = open). Detail lives in the TIMELINE tab.
+    row.classList.add('gantt-row');
+    const starts = [], ends = [];
+    LANE_ORDER.forEach(k => { const d = g.disciplines ? g.disciplines.find(x => x.key === k) : null; discSprints(d).forEach(s => { starts.push(+new Date(s.start)); ends.push(+sprintEnd(s)); }); });
+    const barStart = starts.length ? new Date(Math.min(...starts)) : CHART_START;
+    const cands = []; if (ends.length) cands.push(Math.max(...ends));
+    if (proj && proj.ship) cands.push(+new Date(proj.ship.start));
+    if (g.target_date) cands.push(+asDate(g.target_date));
+    const barEnd = cands.length ? new Date(Math.max(...cands)) : barStart;
+    const gl = pct(barStart), gw = Math.max(pct(barEnd) - gl, 0.8);
+    const gsc = (g.scope != null) ? g.scope : g.est;
+    const fillPct = gsc > 0 ? Math.min(100, Math.round(g.spent / gsc * 100)) : 0;
+    const bar = document.createElement('div'); bar.className = 'gantt-bar';
+    bar.style.left = gl + '%'; bar.style.width = gw + '%'; bar.style.setProperty('--rc', gameColor(g));
+    bar.innerHTML = `<div class="gantt-fill" style="width:${fillPct}%"></div>`;
+    bar.dataset.tip = `<b>${g.name}</b><div class="t-sub">${fmtD(barStart)} → ${fmtD(barEnd)} · ${fillPct}% done</div>`;
+    trackInner.appendChild(bar);
+    LANE_ORDER.forEach(k => {
+      const d = g.disciplines ? g.disciplines.find(x => x.key === k) : null; if (!d) return;
+      const sps = discSprints(d);
+      const md = d.target_date ? asDate(d.target_date) : (sps.length ? sprintEnd(sps[sps.length - 1]) : null);
+      if (!md) return;
+      const doneD = d.phase === 'done';
+      const ms = document.createElement('div'); ms.className = 'gantt-ms' + (doneD ? ' done' : '');
+      ms.style.left = pct(md) + '%'; ms.style.setProperty('--mc', DEPT_COLORS[k] || 'var(--muted)');
+      ms.dataset.tip = `<b>${k.toUpperCase()}${doneD ? ' ✓ done' : ''}</b><div class="t-sub">${Math.round(d.spent || 0)} / ${Math.round(d.scope || 0)}h · due ${fmtD(md)}</div>`;
+      trackInner.appendChild(ms);
+    });
+  } else
   LANE_ORDER.forEach(dKey => {
     const disc = g.disciplines ? g.disciplines.find(d => d.key === dKey) : null;
     const sprs = discSprints(disc);
@@ -826,7 +858,7 @@ function renderRow(g, idx) {
     tl2.dataset.tip = `<b>🎯 Target completion</b><div class="t-sub">${fmtD(g.target_date)}</div>${dl ? `<div class="t-chip ${dl.cls}">${dl.txt} vs estimate</div>` : ''}`;
     trackInner.appendChild(tl2);
   }
-  if (laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; trackInner.appendChild(n); }
+  if (currentView !== 'gantt' && laneTop === 8) { const n = document.createElement('div'); n.style.cssText = 'font-size:9px;color:var(--sub);font-style:italic;padding-top:6px'; n.textContent = 'No scheduled sprints yet'; trackInner.appendChild(n); }
   registerScroller(track);
 
   const hrs = document.createElement('div'); hrs.className = 'epic-hrs';
@@ -1795,11 +1827,14 @@ function wireControls() {
   document.querySelectorAll('#viewToggle button').forEach(btn => btn.addEventListener('click', () => {
     document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('on'));
     btn.classList.add('on'); currentView = btn.dataset.view;
-    document.getElementById('roadmapView').style.display = currentView === 'roadmap' ? 'block' : 'none';
+    // Gantt + Roadmap share the timeline container (#65); renderRows() picks the
+    // row style (milestone bar vs stacked lanes) from currentView.
+    document.getElementById('roadmapView').style.display = (currentView === 'roadmap' || currentView === 'gantt') ? 'block' : 'none';
     document.getElementById('heatmapView').style.display = currentView === 'heatmap' ? 'block' : 'none';
     document.getElementById('listView').style.display = currentView === 'list' ? 'block' : 'none';
     if (currentView === 'heatmap') renderHeatmap();
-    if (currentView === 'list') renderList();
+    else if (currentView === 'list') renderList();
+    else renderRows();
   }));
 }
 
@@ -1879,7 +1914,7 @@ function mount(projectKey, container) {
   applyForecast();
 
   activeFilters = { status: 'ALL', stage: 'ALL', search: '' };
-  currentView = 'roadmap'; planMode = false; openPanel = null; dragSrcIdx = null;
+  currentView = 'gantt'; planMode = false; openPanel = null; dragSrcIdx = null;   // Gantt is the landing view (#65)
   drawerTab = 'games'; drawerOpenRows = new Set(); drawerDragIdx = null;
   document.body.classList.remove('plan-mode-on-body');
 
