@@ -1,48 +1,58 @@
 {
   "order": [
+    "Game: Nordic Paws",
     "Game: Steampunk Fortune",
     "Game: Neon Break",
-    "Game: Flaming Skulls [V]",
     "Game: Enchanted East [V]",
     "Game: Wildlife Safari Gold",
     "Game: Canada Eh Part Deux",
-    "Game: Nordic Paws",
     "Game: Firecracker Frenzy [V]",
+    "Game: Birthday Bash [V]",
+    "Game: Fortune of Z",
     "Game: Golden Bank Safe",
     "Game: Monster Cake Smash",
-    "Game: Fruit Splitter",
     "Game: Western Grand Express",
     "Game: Viking Blox",
-    "Game: Fortune of Z",
-    "Game: Birthday Bash [V]",
+    "Game: Fruit Splitter",
     "Game: Viking Blox 2",
     "Game: Fangs of Fortune",
+    "Game: Quick Wins Fortune [V]",
     "Game: Canada Eh",
     "Game: Northern Buffalo",
     "Game: Northern Buffalo Fortune [V]",
-    "Game: Viking’s Voyage of Fortune",
     "Game: Lantern's Rising- Vertical",
-    "Game: Quick Wins Fortune [V]",
     "Game: Pharaoh's Quest",
     "Game: Hollow Graves of Riches",
+    "Game: Grand Prosperity",
+    "Game: Jewels of Cleopatra",
     "Game: Tiger Hunt [V]",
-    "Game: Fall of Pompeii: Triple Link"
+    "Game: Mayan Madness",
+    "Game: Fall of Pompeii: Triple Link",
+    "Game: Steampunk Fortune 2"
   ],
   "status": {
+    "Game: Nordic Paws": "Signed off",
     "Game: Neon Break": "Not Started",
-    "Game: Flaming Skulls [V]": "In QA",
+    "Game: Enchanted East [V]": "In Review",
     "Game: Wildlife Safari Gold": "In Review",
-    "Game: Nordic Paws": "In Review",
+    "Game: Canada Eh Part Deux": "In Review",
     "Game: Firecracker Frenzy [V]": "In Review",
+    "Game: Birthday Bash [V]": "In Review",
     "Game: Fortune of Z": "In Review",
+    "Game: Golden Bank Safe": "On Hold",
+    "Game: Fangs of Fortune": "On Hold",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
     "Game: Lantern's Rising- Vertical": "In QA"
   },
   "stage": {
+    "Game: Nordic Paws": "qa",
     "Game: Steampunk Fortune": "math",
     "Game: Neon Break": "math",
     "Game: Wildlife Safari Gold": "math",
-    "Game: Canada Eh Part Deux": "math"
+    "Game: Canada Eh Part Deux": "dev",
+    "Game: Firecracker Frenzy [V]": "dev",
+    "Game: Fortune of Z": "dev",
+    "Game: Monster Cake Smash": "design"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -102,7 +112,8 @@
   "added": [
     "V2-22634",
     "V2-21483",
-    "V2-30536"
+    "V2-30536",
+    "V2-30826"
   ],
   "config": {
     "statuses": [
@@ -215,5 +226,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-19 16:05"
+  "updated_at": "2026-08-21 14:29"
 }
