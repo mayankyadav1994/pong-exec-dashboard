@@ -10,10 +10,15 @@
     "Game: Canada Eh Part Deux",
     "Game: Firecracker Frenzy [V]",
     "Game: Birthday Bash [V]",
+    "Game: Western Grand Express",
     "Game: Golden Bank Safe",
     "Game: Monster Cake Smash",
-    "Game: Western Grand Express",
     "Game: Viking Blox",
+    "Game: Fall of Pompeii: Triple Link",
+    "Game: Devil's Delight",
+    "Game: Sizzling Deluxe",
+    "Game: Hell's Outlaw",
+    "Game: Piggy's Kingdom",
     "Game: Fruit Splitter",
     "Game: Viking Blox 2",
     "Game: Fangs of Fortune",
@@ -27,8 +32,7 @@
     "Game: Grand Prosperity",
     "Game: Jewels of Cleopatra",
     "Game: Tiger Hunt [V]",
-    "Game: Mayan Madness",
-    "Game: Fall of Pompeii: Triple Link"
+    "Game: Mayan Madness"
   ],
   "status": {
     "Game: Nordic Paws": "Signed off",
@@ -38,6 +42,10 @@
     "Game: Canada Eh Part Deux": "In Review",
     "Game: Firecracker Frenzy [V]": "In Review",
     "Game: Birthday Bash [V]": "In Review",
+    "Game: Golden Bank Safe": "On Hold",
+    "Game: Devil's Delight": "In Progress",
+    "Game: Sizzling Deluxe": "In Progress",
+    "Game: Piggy's Kingdom": "In Progress",
     "Game: Fangs of Fortune": "On Hold",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
     "Game: Lantern's Rising- Vertical": "In QA"
@@ -113,7 +121,11 @@
     "V2-30826",
     "V2-22634",
     "V2-21483",
-    "V2-30536"
+    "V2-30536",
+    "V2-31019",
+    "V2-31057",
+    "V2-31091",
+    "V2-31165"
   ],
   "config": {
     "statuses": [
@@ -226,5 +238,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-21 14:36"
+  "updated_at": "2026-08-21 15:21"
 }
