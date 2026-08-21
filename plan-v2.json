@@ -1,6 +1,7 @@
 {
   "order": [
     "Game: Nordic Paws",
+    "Game: Steampunk Fortune 2",
     "Game: Steampunk Fortune",
     "Game: Neon Break",
     "Game: Enchanted East [V]",
@@ -27,8 +28,7 @@
     "Game: Jewels of Cleopatra",
     "Game: Tiger Hunt [V]",
     "Game: Mayan Madness",
-    "Game: Fall of Pompeii: Triple Link",
-    "Game: Steampunk Fortune 2"
+    "Game: Fall of Pompeii: Triple Link"
   ],
   "status": {
     "Game: Nordic Paws": "Signed off",
@@ -74,7 +74,8 @@
     "Game: Blade of Fortune",
     "Game: Lantern's Rising- Vertical",
     "Game: Pharaoh's Quest",
-    "Game: Hollow Graves of Riches"
+    "Game: Hollow Graves of Riches",
+    "Game: Steampunk Fortune"
   ],
   "notes": {
     "V2-22808": [
@@ -110,10 +111,10 @@
     ]
   },
   "added": [
+    "V2-30826",
     "V2-22634",
     "V2-21483",
-    "V2-30536",
-    "V2-30826"
+    "V2-30536"
   ],
   "config": {
     "statuses": [
@@ -226,5 +227,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-21 14:29"
+  "updated_at": "2026-08-21 14:30"
 }
