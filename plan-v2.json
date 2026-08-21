@@ -2,8 +2,8 @@
   "order": [
     "Game: Nordic Paws",
     "Game: Steampunk Fortune 2",
-    "Game: Steampunk Fortune",
     "Game: Neon Break",
+    "Game: Steampunk Fortune",
     "Game: Enchanted East [V]",
     "Game: Wildlife Safari Gold",
     "Game: Canada Eh Part Deux",
@@ -48,8 +48,8 @@
   "stage": {
     "Game: Nordic Paws": "qa",
     "Game: Steampunk Fortune 2": "math",
-    "Game: Steampunk Fortune": "math",
     "Game: Neon Break": "math",
+    "Game: Steampunk Fortune": "math",
     "Game: Wildlife Safari Gold": "math",
     "Game: Canada Eh Part Deux": "dev",
     "Game: Firecracker Frenzy [V]": "dev",
@@ -229,5 +229,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-21 14:30"
+  "updated_at": "2026-08-21 14:31"
 }
