@@ -152,6 +152,17 @@ function chartMonths() {
   while (m <= CHART_END) { out.push(new Date(m)); m = new Date(m.getFullYear(), m.getMonth() + 1, 1); }
   return out;
 }
+// Week-start (Monday) dates spanning the chart window, for the weekly calendar
+// ticks + gridlines (#67). Sprint starts are Mondays, so these align with them
+// and add the in-between weeks.
+function chartWeeks() {
+  const out = [];
+  const d = new Date(CHART_START);
+  const dow = d.getDay();                 // 0=Sun..6=Sat
+  d.setDate(d.getDate() + (dow === 1 ? 0 : (8 - dow) % 7));   // advance to first Monday
+  while (d <= CHART_END) { out.push(new Date(d)); d.setDate(d.getDate() + 7); }
+  return out;
+}
 // "Jun" or "Jan '27" (year shown only on January, for orientation).
 function monthLabel(m) {
   const base = m.toLocaleDateString('en-CA', { month: 'short' });
@@ -725,6 +736,13 @@ function renderAxis() {
     lab.className = 'ax-month'; lab.style.left = l + '%'; lab.textContent = monthLabel(m);
     track.appendChild(lab);
   });
+  // Weekly calendar ticks (#67): a small day-of-month marker at each week start,
+  // under the month band, so the axis reads as a calendar down to the week.
+  chartWeeks().forEach(w => {
+    const wk = document.createElement('div');
+    wk.className = 'ax-week'; wk.style.left = pct(w) + '%'; wk.textContent = w.getDate();
+    track.appendChild(wk);
+  });
   const stride = Math.max(1, Math.ceil(list.length / 40));
   list.forEach((s, i) => {
     if (i % stride !== 0) return;
@@ -792,6 +810,8 @@ function renderRow(g, idx) {
   const track = document.createElement('div'); track.className = 'epic-track tl-scroll';
   const trackInner = document.createElement('div'); trackInner.className = 'tl-inner'; trackInner.style.width = trackPxWidth() + 'px';
   track.appendChild(trackInner);
+  // Weekly gridlines (#67) — drawn first so the darker sprint lines sit on top.
+  chartWeeks().forEach(w => { const l = document.createElement('div'); l.className = 'wk-line'; l.style.left = pct(w) + '%'; trackInner.appendChild(l); });
   (ALL_SPRINTS || SPRINT_LIST).forEach(s => { const l = document.createElement('div'); l.className = 'sp-line' + (s.projected ? ' proj' : ''); l.style.left = pct(s.start) + '%'; trackInner.appendChild(l); });
   if (TODAY >= CHART_START && TODAY <= CHART_END) { const tl = document.createElement('div'); tl.className = 'today-line-row'; tl.style.left = pct(TODAY) + '%'; tl.dataset.tip = `<b>📍 Today</b><div class="t-sub">${fmtD(TODAY)}</div>`; trackInner.appendChild(tl); }
   const proj = (showForecast && g._proj) ? g._proj : null;
