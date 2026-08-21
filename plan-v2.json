@@ -1,7 +1,7 @@
 {
   "order": [
-    "Game: Nordic Paws",
     "Game: Steampunk Fortune 2",
+    "Game: Nordic Paws",
     "Game: Neon Break",
     "Game: Steampunk Fortune",
     "Game: Enchanted East [V]",
@@ -31,8 +31,8 @@
     "Game: Fall of Pompeii: Triple Link"
   ],
   "status": {
-    "Game: Nordic Paws": "Signed off",
     "Game: Steampunk Fortune 2": "Not Started",
+    "Game: Nordic Paws": "Signed off",
     "Game: Neon Break": "Not Started",
     "Game: Enchanted East [V]": "In Review",
     "Game: Wildlife Safari Gold": "In Review",
@@ -46,8 +46,8 @@
     "Game: Lantern's Rising- Vertical": "In QA"
   },
   "stage": {
-    "Game: Nordic Paws": "qa",
     "Game: Steampunk Fortune 2": "math",
+    "Game: Nordic Paws": "qa",
     "Game: Neon Break": "math",
     "Game: Steampunk Fortune": "math",
     "Game: Wildlife Safari Gold": "math",
@@ -229,5 +229,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-21 14:31"
+  "updated_at": "2026-08-21 14:32"
 }
