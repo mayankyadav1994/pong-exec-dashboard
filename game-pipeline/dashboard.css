@@ -502,3 +502,33 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .note-author{color:#7c3aed;font-weight:600}
 .note-body{font-size:12px;line-height:1.45;color:var(--text);white-space:pre-wrap;word-wrap:break-word}
 .note-empty{font-size:11px;color:var(--sub);font-style:italic;padding:14px 8px;text-align:center}
+
+/* HISTORY tab — completion-date moves + scope changes, with the "why" (#66) */
+.hist-badge{font-size:9px;font-weight:700;color:#b45309;background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.3);padding:1px 6px;border-radius:3px;cursor:pointer;white-space:nowrap;letter-spacing:.2px}
+.hist-badge:hover{background:rgba(217,119,6,.22);color:#92400e}
+.hist-pane{font-size:12px;color:var(--text)}
+.hist-summary{font-size:12px;color:var(--text);background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px}
+.hist-sub{font-size:10.5px;color:var(--sub);font-style:italic;font-weight:400;margin-top:3px;line-height:1.4}
+.hist-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px}
+.hist-row{border:1px solid var(--border);border-radius:5px;padding:7px 9px;margin-bottom:6px;background:var(--surface)}
+.hist-row.scope{background:var(--surf2)}
+.hist-line{display:flex;align-items:center;gap:10px;font-size:11.5px}
+.hist-date{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);min-width:78px}
+.hist-move{font-weight:600;color:var(--text)}
+.hist-delta{margin-left:auto;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:10px;white-space:nowrap}
+.hist-delta.h-late{color:#dc2626;background:rgba(220,38,38,.1)}
+.hist-delta.h-early{color:#16a34a;background:rgba(22,163,74,.1)}
+.hist-why{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);font-size:11px;line-height:1.4}
+.hist-why .why-src{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--sub);white-space:nowrap}
+.hist-why.producer .why-src{color:#7c3aed}
+.hist-why.note .why-src{color:#0891b2}
+.hist-why.auto .why-src{color:#b45309}
+.why-body{color:var(--text)}
+.why-none{color:var(--sub);font-style:italic}
+.why-auth{color:var(--sub);font-size:10px}
+.why-edit{border:none;background:transparent;cursor:pointer;font-size:11px;color:var(--sub);padding:1px 5px;border-radius:4px;margin-left:auto}
+.why-edit:hover{background:var(--surf2);color:#7c3aed}
+.why-editor{display:flex;gap:6px;margin-top:6px;align-items:center}
+.why-input{flex:1;border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:inherit;font-size:11.5px;background:var(--surface);color:var(--text);outline:none}
+.why-input:focus{border-color:#7c3aed}
+.hist-empty{font-size:11.5px;color:var(--muted);padding:16px 8px;text-align:center;line-height:1.5}

@@ -47,6 +47,8 @@ OK, WARN, ERR = "✓", "⚠", "✗"   # ✓ ⚠ ✗
 # --- Paths -------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent
 ARCHIVE_DIR = ROOT / "archive"
+HISTORY_DIR = ROOT / "history"     # compact daily target/scope snapshots for the HISTORY tab (#66)
+HISTORY_KEEP_DAYS = 180
 
 # --- Sprint anchor (Decision #27) --------------------------------------------
 SPRINT_ANCHOR = date(2026, 5, 11)   # S1
@@ -878,6 +880,108 @@ def archive_snapshot(proj_key: str, payload: dict, stamp: str) -> Path:
 
 
 # ============================================================================
+#  History — completion-date moves + scope growth (#66)
+#
+#  Each build writes one compact snapshot per day per project under
+#  history/<proj>/<YYYY-MM-DD>.json capturing every game's planned target date
+#  and total scope. compute_history_events() then diffs consecutive days into a
+#  change-event log baked onto each game (g["history"]) that the HISTORY tab
+#  renders. Mirrors the release-timeline snapshot pattern; git-committed so the
+#  log survives across CI runs. Forecast movement is added in phase 2.
+# ============================================================================
+def _hist_date(s: Any) -> Optional[date]:
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", str(s or ""))
+    return date(int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+
+
+def workday_delta(from_iso: str, to_iso: str) -> Optional[int]:
+    """Signed count of working days (Mon–Fri) from `from_iso` to `to_iso`.
+    Positive => `to` is later (a slip); negative => pulled earlier. Holidays are
+    not modelled (kept simple; the release timeline's holiday table can be ported
+    later if needed)."""
+    a, b = _hist_date(from_iso), _hist_date(to_iso)
+    if not a or not b:
+        return None
+    sign = 1 if b >= a else -1
+    lo, hi = (a, b) if b >= a else (b, a)
+    days, cur = 0, lo
+    while cur < hi:
+        cur += timedelta(days=1)
+        if cur.weekday() < 5:
+            days += 1
+    return sign * days
+
+
+def write_history_snapshot(proj_key: str, payload: dict, today: date) -> Path:
+    proj_dir = HISTORY_DIR / proj_key
+    proj_dir.mkdir(parents=True, exist_ok=True)
+    games = {}
+    for g in payload["games"]:
+        jira = g.get("jira")
+        if not jira:
+            continue
+        sc = round(g.get("scope") or 0)
+        # scope 0 == "no estimate yet" (unknown), stored as None so it never reads
+        # as real growth when the field first appears.
+        games[jira] = {"target": g.get("target_date") or None, "scope": sc or None}
+    dest = proj_dir / f"{today.isoformat()}.json"
+    dest.write_text(json.dumps({"date": today.isoformat(), "games": games}, ensure_ascii=False), encoding="utf-8")
+    cutoff = today - timedelta(days=HISTORY_KEEP_DAYS)
+    for f in proj_dir.glob("*.json"):
+        fd = _hist_date(f.stem)
+        if fd and fd < cutoff:
+            try:
+                f.unlink()
+            except OSError:
+                pass
+    return dest
+
+
+def load_history(proj_key: str) -> list[dict]:
+    proj_dir = HISTORY_DIR / proj_key
+    if not proj_dir.exists():
+        return []
+    snaps = []
+    for f in sorted(proj_dir.glob("*.json")):
+        try:
+            snaps.append(json.loads(f.read_text(encoding="utf-8")))
+        except (json.JSONDecodeError, OSError):
+            continue
+    snaps.sort(key=lambda s: s.get("date", ""))
+    return snaps
+
+
+def compute_history_events(proj_key: str, games: list[dict]) -> None:
+    """Diff consecutive daily snapshots into per-game change events; bake onto
+    each game as g["history"] = {"target": [...], "scope": [...]}.
+
+    target event: {date, from, to, days}  (days = signed working-day delta)
+    scope  event: {date, from, to, delta} (hours; only real growth/shrink)
+    The first-ever target assignment (null→date) is NOT a move. Scope deltas are
+    only emitted between two known (>0) values so the field's first appearance
+    doesn't read as a jump."""
+    series: dict[str, list] = {}
+    for snap in load_history(proj_key):
+        d = snap.get("date")
+        for jira, rec in (snap.get("games") or {}).items():
+            series.setdefault(jira, []).append((d, rec.get("target"), rec.get("scope")))
+    for g in games:
+        pts = series.get(g.get("jira"), [])
+        tgt_events, scope_events = [], []
+        prev_t = prev_s = None
+        for (d, t, s) in pts:
+            if prev_t and t and prev_t != t:
+                tgt_events.append({"date": d, "from": prev_t, "to": t, "days": workday_delta(prev_t, t)})
+            if prev_s and s and abs(s - prev_s) >= 1:
+                scope_events.append({"date": d, "from": round(prev_s), "to": round(s), "delta": round(s - prev_s)})
+            if t:
+                prev_t = t
+            if s:
+                prev_s = s
+        g["history"] = {"target": tgt_events, "scope": scope_events}
+
+
+# ============================================================================
 #  CLI
 # ============================================================================
 def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
@@ -970,9 +1074,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"{ERR} {proj_key}: build failed: {exc}")
             rc = 1
             continue
+        write_history_snapshot(proj_key, payload, today)     # persist today's point (#66)
+        compute_history_events(proj_key, payload["games"])    # bake the change-event log
         out = write_data_file(proj_key, payload, refreshed_at)
         snap = archive_snapshot(proj_key, payload, stamp)
-        print(f"   {OK} wrote {out.name}  ·  snapshot {snap.relative_to(ROOT)}")
+        n_moves = sum(len(g["history"]["target"]) for g in payload["games"])
+        n_scope = sum(len(g["history"]["scope"]) for g in payload["games"])
+        print(f"   {OK} wrote {out.name}  ·  snapshot {snap.relative_to(ROOT)}  ·  history {n_moves} date-move(s) / {n_scope} scope-change(s)")
         print_summary(proj_key, payload)
 
     print(f"{OK} Done." if rc == 0 else f"{WARN} Finished with errors.")

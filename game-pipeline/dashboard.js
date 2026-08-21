@@ -39,6 +39,9 @@ let SHARED_STAGE = {};
 // stay readable as the history of decisions / context for stakeholders.
 let SHARED_NOTES = {};
 let NOTES = {};
+let SHARED_REASONS = {};   // published date-move "why" reasons (#66)
+let REASONS = {};          // working copy = shared + this browser's overlay
+let openPanelTab = null;   // when set, the next opened detail panel activates this tab (badge → HISTORY)
 
 // --- Project metadata --------------------------------------------------------
 const PROJECT_META = {
@@ -783,6 +786,7 @@ function renderRow(g, idx) {
       <span class="epic-stage ${stageCls(g.current_stage)}">${stageLabel(g.current_stage)}</span>
       <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${statusMark}</span>
       ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
+      ${(g.history && g.history.target && g.history.target.length) ? `<span class="hist-badge" title="Completion date moved ${g.history.target.length}× — click for the history &amp; why">📅 ${g.history.target.length}×</span>` : ''}
     </div>${fvRow(g)}${sizeRow}`;
 
   const track = document.createElement('div'); track.className = 'epic-track tl-scroll';
@@ -890,6 +894,8 @@ function renderRow(g, idx) {
 
   row.addEventListener('click', e => {
     if (e.target.closest('.drag-handle') || e.target.closest('select') || e.target.closest('a')) return;
+    // A HISTORY badge click always opens the panel on the HISTORY tab (never toggles it shut).
+    if (e.target.closest('.hist-badge')) { openPanel = g.name; openPanelTab = 'history'; renderRows(); return; }
     openPanel = (openPanel === g.name) ? null : g.name; renderRows();
   });
 
@@ -935,7 +941,8 @@ function renderDetail(g) {
     `<div class="detail-tab active" data-tab="notes">📝 NOTES</div>` +
     `<div class="detail-tab" data-tab="timeline">TIMELINE</div>` +
     `<div class="detail-tab" data-tab="milestones">SPRINTS</div>` +
-    `<div class="detail-tab" data-tab="hours">HOURS</div>`;
+    `<div class="detail-tab" data-tab="hours">HOURS</div>` +
+    `<div class="detail-tab" data-tab="history">📅 HISTORY</div>`;
   panel.appendChild(tabs);
   const body = document.createElement('div'); body.className = 'detail-body';
 
@@ -990,6 +997,38 @@ function renderDetail(g) {
   });
   inputEl.addEventListener('click', e => e.stopPropagation());
   body.appendChild(notesPane);
+
+  // ── HISTORY pane (#66) ── completion-date moves + scope changes, each with a
+  // "why" (producer reason > linked note > inferred). ✎ edits persist via the
+  // shared-plan write-back like notes.
+  const histPane = document.createElement('div'); histPane.className = 'hist-pane'; histPane.style.display = 'none';
+  const renderHist = () => {
+    histPane.innerHTML = historyHtml(g);
+    histPane.querySelectorAll('.why-edit').forEach(btn => btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const moveDate = btn.dataset.move;
+      const cur = reasonFor(g.jira, moveDate);
+      const row = btn.closest('.hist-row');
+      if (row.querySelector('.why-editor')) return;
+      const editor = document.createElement('div'); editor.className = 'why-editor';
+      editor.innerHTML = `<input class="why-input" type="text" maxlength="240" placeholder="Why did the date move?" value="${cur ? esc(cur.text).replace(/"/g, '&quot;') : ''}"><button class="gsb-btn primary why-save">Save</button><button class="gsb-btn why-cancel">Cancel</button>`;
+      row.appendChild(editor);
+      const inp = editor.querySelector('.why-input'); inp.focus();
+      inp.addEventListener('click', e2 => e2.stopPropagation());
+      inp.addEventListener('keydown', e2 => {
+        e2.stopPropagation();
+        if (e2.key === 'Enter') editor.querySelector('.why-save').click();
+        if (e2.key === 'Escape') editor.querySelector('.why-cancel').click();
+      });
+      editor.querySelector('.why-save').addEventListener('click', e2 => {
+        e2.stopPropagation(); setMoveReason(g.jira, moveDate, inp.value); renderHist();
+        showToast('Reason saved — Save as default to publish');
+      });
+      editor.querySelector('.why-cancel').addEventListener('click', e2 => { e2.stopPropagation(); renderHist(); });
+    }));
+  };
+  renderHist();
+  body.appendChild(histPane);
 
   const tlPane = document.createElement('div'); tlPane.style.display = 'none';
   // Activity "pulse" (#60/#61): each lane is a fixed-scale, horizontally-scrollable
@@ -1115,10 +1154,18 @@ function renderDetail(g) {
     tlPane.style.display = t.dataset.tab === 'timeline' ? 'block' : 'none';
     msPane.style.display = t.dataset.tab === 'milestones' ? 'block' : 'none';
     hrsPane.style.display = t.dataset.tab === 'hours' ? 'block' : 'none';
+    histPane.style.display = t.dataset.tab === 'history' ? 'block' : 'none';
+    if (t.dataset.tab === 'history') renderHist();
     // The pulse tracks can't take a scroll position while hidden; on reveal, snap
     // them to the shared scroll offset so they line up with the chart above (#61).
     if (t.dataset.tab === 'timeline') requestAnimationFrame(() => tlPane.querySelectorAll('.tl-scroll').forEach(o => { o.scrollLeft = tlScrollLeft; }));
   }));
+  // A HISTORY-badge click asked to open straight to that tab (#66).
+  if (openPanelTab) {
+    const tb = tabs.querySelector(`.detail-tab[data-tab="${openPanelTab}"]`);
+    openPanelTab = null;
+    if (tb) tb.click();
+  }
   return panel;
 }
 
@@ -1397,7 +1444,7 @@ function renderDrawerSettings(body) {
 }
 
 function resetLocalEdits() {
-  ['order', 'status', 'sizes', 'hidden', 'config', 'added'].forEach(k => { try { localStorage.removeItem(LS + k); } catch (e) {} });
+  ['order', 'status', 'sizes', 'hidden', 'config', 'added', 'notes', 'reasons'].forEach(k => { try { localStorage.removeItem(LS + k); } catch (e) {} });
   showToast('↺ Local edits reset (shared defaults still apply)');
   mount(PROJECT.key, APP);   // rebuild from defaults
   drawerTab = 'games'; drawerOpenRows = new Set();
@@ -1514,6 +1561,96 @@ function deleteNote(game, id) {
   saveNotes();
   return true;
 }
+
+// ── Date-move "why" reasons (#66) ──────────────────────────────────────────
+// A producer can annotate WHY a completion date moved. Stored exactly like
+// notes: keyed jira -> { <moveDate>: {text, author, ts} }, staged in
+// localStorage, published into plan-<key>.json under `move_reasons`, and
+// union-merged (newest ts wins) so a stale tab never clobbers another's reason.
+function saveReasons() { try { localStorage.setItem(LS + 'reasons', JSON.stringify(REASONS || {})); } catch (e) {} }
+function loadReasonsOverlay() {
+  try {
+    const raw = localStorage.getItem(LS + 'reasons'); if (!raw) return;
+    const local = JSON.parse(raw); if (!local || typeof local !== 'object') return;
+    REASONS = REASONS || {};
+    Object.keys(local).forEach(k => { REASONS[k] = { ...(REASONS[k] || {}), ...local[k] }; });
+  } catch (e) {}
+}
+function reasonFor(jira, moveDate) { const m = REASONS && REASONS[jira]; return (m && m[moveDate]) || null; }
+function setMoveReason(jira, moveDate, text) {
+  text = String(text || '').trim();
+  REASONS = REASONS || {}; REASONS[jira] = REASONS[jira] || {};
+  if (!text) delete REASONS[jira][moveDate];
+  else REASONS[jira][moveDate] = { text, author: getGhUser() || 'anon', ts: new Date().toISOString() };
+  saveReasons();
+}
+function mergeReasons(a, b) {
+  const out = {};
+  new Set([...Object.keys(a || {}), ...Object.keys(b || {})]).forEach(jira => {
+    const am = (a || {})[jira] || {}, bm = (b || {})[jira] || {}, m = {};
+    new Set([...Object.keys(am), ...Object.keys(bm)]).forEach(d => {
+      const x = am[d], y = bm[d];
+      m[d] = !x ? y : !y ? x : (String(y.ts || '') > String(x.ts || '') ? y : x);
+    });
+    out[jira] = m;
+  });
+  return out;
+}
+// Correlate a date-move to the nearest existing note within a window around when
+// the move was detected (notes are often logged just before/after a re-plan).
+function noteNearDate(g, moveDate) {
+  const D = asDate(moveDate); if (!D) return null;
+  const lo = +D - 30 * 864e5, hi = +D + 7 * 864e5;
+  let best = null, bestDist = Infinity;
+  notesFor(g).filter(n => !n.deleted && n.ts).forEach(n => {
+    const t = +new Date(n.ts); if (t < lo || t > hi) return;
+    const dist = Math.abs(t - +D);
+    if (dist < bestDist) { bestDist = dist; best = n; }
+  });
+  return best;
+}
+// Resolve the "why" for a target move. Precedence (#66):
+// producer pencil reason > correlated note > auto-derived (scope) > none.
+function whyForMove(g, ev) {
+  const r = reasonFor(g.jira, ev.date);
+  if (r && r.text) return { kind: 'producer', text: r.text, author: r.author };
+  const n = noteNearDate(g, ev.date);
+  if (n && n.body) return { kind: 'note', text: n.body, author: n.author, ts: n.ts };
+  const sc = ((g.history && g.history.scope) || []).find(
+    s => s.delta > 0 && Math.abs(+asDate(s.date) - +asDate(ev.date)) <= 12 * 864e5);
+  if (sc) return { kind: 'auto', text: `+${sc.delta}h scope added around this time` };
+  return { kind: 'none', text: '' };
+}
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Build the HISTORY tab body for a game (date-move log + scope-change log).
+function historyHtml(g) {
+  const tEvents = ((g.history && g.history.target) || []).slice().reverse();  // newest first
+  const sEvents = ((g.history && g.history.scope) || []).slice().reverse();
+  if (!tEvents.length && !sEvents.length)
+    return `<div class="hist-empty">No completion-date moves or scope changes recorded yet.<div class="hist-sub">History builds from the daily snapshots — this game's target date and scope have held steady across every tracked day.</div></div>`;
+  let html = `<div class="hist-summary">📅 <b>Completion date moved ${tEvents.length}×</b>${sEvents.length ? ` · scope changed ${sEvents.length}×` : ''}<div class="hist-sub">Auto-detected by diffing daily snapshots. The “why” pulls from linked notes &amp; scope; ✎ to set a producer reason.</div></div>`;
+  if (tEvents.length) {
+    html += `<div class="hist-section">🎯 Planned target date</div>`;
+    html += tEvents.map(ev => {
+      const d = ev.days;
+      const cls = d == null ? '' : d > 0 ? 'h-late' : 'h-early';
+      const dtxt = d == null ? '' : d > 0 ? `▲ slipped +${d} wd` : d < 0 ? `▼ pulled in ${-d} wd` : 'no shift';
+      const why = whyForMove(g, ev);
+      const srcLabel = { producer: '✎ producer', note: '📝 linked note', auto: '~ inferred', none: '' }[why.kind] || '';
+      const bodyHtml = why.text ? esc(why.text) : `<span class="why-none">no reason recorded</span>`;
+      const auth = why.author ? ` <span class="why-auth">— ${esc(why.author)}</span>` : '';
+      const pencil = getGhEditor() ? `<button class="why-edit" data-move="${esc(ev.date)}" title="Set / edit the reason">✎</button>` : '';
+      return `<div class="hist-row"><div class="hist-line"><span class="hist-date">${esc(ev.date)}</span><span class="hist-move">${fmtD(ev.from)} → ${fmtD(ev.to)}</span><span class="hist-delta ${cls}">${dtxt}</span></div>` +
+        `<div class="hist-why ${why.kind}">${srcLabel ? `<span class="why-src">${srcLabel}</span> ` : ''}<span class="why-body">${bodyHtml}</span>${auth}${pencil}</div></div>`;
+    }).join('');
+  }
+  if (sEvents.length) {
+    html += `<div class="hist-section">📈 Scope</div>`;
+    html += sEvents.map(ev =>
+      `<div class="hist-row scope"><div class="hist-line"><span class="hist-date">${esc(ev.date)}</span><span class="hist-move">${ev.from}h → ${ev.to}h</span><span class="hist-delta ${ev.delta > 0 ? 'h-late' : 'h-early'}">${ev.delta > 0 ? '+' : ''}${ev.delta}h</span></div></div>`).join('');
+  }
+  return html;
+}
 function renderShareBanner() {
   const el = document.getElementById('gpShareBanner');
   if (!el) return;
@@ -1617,7 +1754,7 @@ function hasLocalEdits() {
   if (planMode) return true;
   const some = o => o && Object.keys(o).length > 0;
   if (some(USER_STATUS) || some(USER_STAGE) || some(USER_SIZES) || (USER_ORDER && USER_ORDER.length)) return true;
-  try { if (localStorage.getItem(LS + 'notes') || localStorage.getItem(LS + 'hidden') != null) return true; } catch (e) {}
+  try { if (localStorage.getItem(LS + 'notes') || localStorage.getItem(LS + 'reasons') || localStorage.getItem(LS + 'hidden') != null) return true; } catch (e) {}
   return false;
 }
 // Soft auto-refresh for viewers (#54): when a tab regains focus (throttled), pull
@@ -1691,8 +1828,11 @@ function buildPlanPayload() {
   // appended via addNote() shows up here.
   const notes = {};
   Object.keys(NOTES || {}).forEach(k => { const arr = NOTES[k] || []; if (arr.length) notes[k] = arr; });
+  // Date-move "why" reasons — strip empty per-game maps so the JSON stays clean (#66).
+  const move_reasons = {};
+  Object.keys(REASONS || {}).forEach(k => { const m = REASONS[k] || {}; if (Object.keys(m).length) move_reasons[k] = m; });
   return {
-    order: RAW_GAMES.map(g => g.name), status, stage, sizes, hidden: [...HIDDEN], notes,
+    order: RAW_GAMES.map(g => g.name), status, stage, sizes, hidden: [...HIDDEN], notes, move_reasons,
     // Games on the board that aren't default roster — by the explicit added-set
     // OR a non-roster flag, so `added` can't drift out of sync with `order` (#47/#52).
     added: (function () {
@@ -1733,6 +1873,10 @@ async function publishPlan(force) {
     new Set([...Object.keys(remote.notes), ...Object.keys(payload.notes || {})])
       .forEach(k => { merged[k] = mergeNoteLists(remote.notes[k], (payload.notes || {})[k]); });
     payload.notes = merged;
+  }
+  // Same never-lose rule for date-move reasons: union with main, newest ts wins (#66).
+  if (remote && remote.move_reasons) {
+    payload.move_reasons = mergeReasons(remote.move_reasons, payload.move_reasons || {});
   }
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
   const body = { message: `plan(${PROJECT.key}): save as default by ${getGhUser() || 'editor'}`, content, branch: 'main' };
@@ -1881,6 +2025,12 @@ function mount(projectKey, container) {
   loadNotesOverlay();   // local unpublished notes win for this browser
   migrateNotesToJira(); // fold legacy name-keyed notes onto stable jira keys (#53)
   saveNotes();          // persist the merged, jira-keyed set so a stale local overlay self-heals (#55)
+
+  // Date-move "why" reasons — same shared-baseline + local-overlay model (#66).
+  SHARED_REASONS = SHARED.move_reasons || {};
+  REASONS = JSON.parse(JSON.stringify(SHARED_REASONS));
+  loadReasonsOverlay();
+  saveReasons();
 
   CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   if (SHARED.config) CONFIG = { ...CONFIG, ...SHARED.config };
