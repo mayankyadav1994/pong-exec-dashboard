@@ -807,7 +807,7 @@ function renderRow(g, idx) {
     const gsc = (g.scope != null) ? g.scope : g.est;
     const fillPct = gsc > 0 ? Math.min(100, Math.round(g.spent / gsc * 100)) : 0;
     const bar = document.createElement('div'); bar.className = 'gantt-bar';
-    bar.style.left = gl + '%'; bar.style.width = gw + '%'; bar.style.setProperty('--rc', gameColor(g));
+    bar.style.left = gl + '%'; bar.style.width = gw + '%';   // beige fill via --gantt-fill (stage-agnostic)
     bar.innerHTML = `<div class="gantt-fill" style="width:${fillPct}%"></div>`;
     bar.dataset.tip = `<b>${g.name}</b><div class="t-sub">${fmtD(barStart)} → ${fmtD(barEnd)} · ${fillPct}% done</div>`;
     trackInner.appendChild(bar);
