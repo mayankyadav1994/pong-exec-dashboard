@@ -32,6 +32,7 @@
   ],
   "status": {
     "Game: Nordic Paws": "Signed off",
+    "Game: Steampunk Fortune 2": "Not Started",
     "Game: Neon Break": "Not Started",
     "Game: Enchanted East [V]": "In Review",
     "Game: Wildlife Safari Gold": "In Review",
@@ -46,6 +47,7 @@
   },
   "stage": {
     "Game: Nordic Paws": "qa",
+    "Game: Steampunk Fortune 2": "math",
     "Game: Steampunk Fortune": "math",
     "Game: Neon Break": "math",
     "Game: Wildlife Safari Gold": "math",
