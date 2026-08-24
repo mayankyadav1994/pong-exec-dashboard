@@ -16,8 +16,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2026-09-09",
-      "totalEstH": 523,
-      "spentH": 344
+      "totalEstH": 536,
+      "spentH": 345
     },
     "ELG Website": {
       "devEnd": "2026-08-24",
@@ -53,7 +53,7 @@
       "pilotEnd": null,
       "finalEnd": "2028-07-26",
       "totalEstH": 10093,
-      "spentH": 3930
+      "spentH": 3952
     },
     "ELG 4.60": {
       "devEnd": "2026-08-24",
@@ -71,7 +71,7 @@
       "pilotEnd": null,
       "finalEnd": "2028-07-26",
       "totalEstH": 1047,
-      "spentH": 510
+      "spentH": 511
     },
     "PFH Games 2.40": {
       "devEnd": "2026-09-24",
@@ -155,11 +155,11 @@
       "spentH": 1643
     },
     "iGaming - R&D": {
-      "devEnd": "2028-07-18",
-      "qaEnd": "2028-08-01",
+      "devEnd": "2026-08-24",
+      "qaEnd": "2026-09-07",
       "lab1End": null,
       "pilotEnd": null,
-      "finalEnd": "2028-08-01",
+      "finalEnd": "2026-09-07",
       "totalEstH": 50,
       "spentH": 40
     }
