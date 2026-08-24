@@ -19,8 +19,8 @@
   --stg-bugfix:#fecaca;
   --stg-qa:#fcd34d;
   --stg-done:#86efac;
-  /* neutral beige for ALL Gantt bars (stage-agnostic; #65) */
-  --gantt-fill:#cbb994;
+  /* Gantt bar fill — blue, stage-agnostic (#65; blue per #68 for print legibility) */
+  --gantt-fill:#2563eb;
 }
 body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);padding:24px 32px 60px;min-width:1280px}
 
@@ -536,3 +536,68 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .why-input{flex:1;border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-family:inherit;font-size:11.5px;background:var(--surface);color:var(--text);outline:none}
 .why-input:focus{border-color:#7c3aed}
 .hist-empty{font-size:11.5px;color:var(--muted);padding:16px 8px;text-align:center;line-height:1.5}
+
+/* ============================================================
+   PRINT (#68) — on screen the design leans on light fills and greys;
+   on paper the browser also drops backgrounds, so it all washes out.
+   In print we force ink: white ground, black text, BLUE Gantt bars,
+   BOLD milestones, visible gridlines, and interactive chrome hidden.
+   Screen appearance is unchanged — everything here is print-scoped.
+   ============================================================ */
+@media print {
+  /* Backgrounds/fills are dropped by default in print — force them to render
+     so bars, chips and the %-labels-on-colour stay readable. */
+  *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+
+  /* White ground, black ink. Greys (--muted/--sub) become black; faint borders
+     become a printable dark grey. One token flip blackens most text at once. */
+  :root{
+    --bg:#fff; --surface:#fff; --surf2:#fff; --surf3:#eceff4;
+    --text:#000; --muted:#000; --sub:#000;
+    --border:#4a5262; --border2:#4a5262;
+  }
+  body{ min-width:0 !important; padding:0 !important; color:#000; }
+
+  /* (1) Gantt bars are blue on screen; on paper make them fully solid. */
+  .gantt-fill{ opacity:1 !important; }
+  .gantt-bar{ box-shadow:inset 0 0 0 1px #4a5262 !important; }
+
+  /* (2) Numbers black — the muted/sub hour + label text was grey. */
+  .kpi-v,.kpi-l,.epic-hrs-v,.epic-hrs-l,.disc-hrs,.hist-date,.ax-week,.sp-chip,.sp-chip small,.epic-tag{ color:#000 !important; }
+
+  /* (2) Milestones in bold colour — thicker saturated ring; done stays filled,
+     open keeps a white centre so the done/open distinction survives. */
+  .gantt-ms{ border-width:2.5px !important; }
+  .gantt-ms:not(.done){ background:#fff !important; }
+
+  /* Gridlines were near-invisible alpha — give them real ink, week < sprint. */
+  .wk-line{ background:#c4c9d4 !important; }
+  .sp-line{ background:#8791a3 !important; }
+  .sp-line.proj{ background:#b9a6e8 !important; }
+  .ax-month-div{ border-left-color:#4a5262 !important; }
+
+  /* Key markers keep their strong colour. */
+  .today-line-row{ background:#dc2626 !important; }
+  .target-line{ border-left-color:#0891b2 !important; }
+  .ship-line{ border-left-color:#6d28d9 !important; }
+  .disc-track{ background:#eceff4 !important; }
+
+  /* (item 3) Faint status/stage/size/deadline/version chips -> black text + dark
+     border so labels always read; their light tints still print via color-adjust. */
+  .epic-stage,.epic-status,.fv-chip,.dl-chip,.status-drift,
+  .sz-XS,.sz-S,.sz-M,.sz-L,.sz-XL,.sz-NA{ color:#000 !important; border-color:#4a5262 !important; }
+  .hist-delta.h-late{ color:#b91c1c !important; }
+  .hist-delta.h-early{ color:#15803d !important; }
+  .hm-load-1{ background:#cfe8d4 !important; }
+  .hm-load-2{ background:#f3d59f !important; }
+
+  /* Hide interactive chrome that shouldn't print. */
+  .gp-subtabs,.hdr-actions,.view-toggle,.fb-chip,.btn,.drag-handle,.chev,
+  #filterBar,.gp-drawer,.gp-drawer-close,.gp-tip,.gsb-btn,.note-editor,
+  .why-edit,.gp-share-banner,.gp-modal-overlay,
+  input,select,textarea{ display:none !important; }
+
+  /* Landscape gives the timeline the most width; keep rows intact across pages. */
+  @page{ size:landscape; margin:12mm; }
+  .epic-row,.fv-item,.detail{ break-inside:avoid; }
+}
