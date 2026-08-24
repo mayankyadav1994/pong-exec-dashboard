@@ -17,7 +17,7 @@
       "pilotEnd": "2026-11-20",
       "finalEnd": "2026-12-18",
       "totalEstH": 790,
-      "spentH": 489
+      "spentH": 491
     },
     "V2 PT 14.00": {
       "devEnd": "2026-10-05",
@@ -34,7 +34,7 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 74,
+      "totalEstH": 73,
       "spentH": 0
     },
     "New Games": {
@@ -44,7 +44,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 19764,
-      "spentH": 10349
+      "spentH": 10367
     },
     "V2 C2 Backlog": {
       "devEnd": "2031-05-06",
@@ -116,7 +116,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 5,
-      "spentH": 2
+      "spentH": 6
     },
     "V2 SW 16.10": {
       "devEnd": "2031-07-04",
@@ -126,6 +126,15 @@
       "finalEnd": null,
       "totalEstH": 52,
       "spentH": 2
+    },
+    "G2E Show Prep 2026": {
+      "devEnd": "2031-07-04",
+      "qaEnd": "2031-07-18",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 0,
+      "spentH": 0
     }
   }
 }
