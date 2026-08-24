@@ -684,6 +684,20 @@ function registerScroller(el) {
   });
   requestAnimationFrame(() => { el.scrollLeft = tlScrollLeft; });
 }
+// On landing, scroll the synced tracks so TODAY sits mid-viewport (#69) — the
+// pipeline is "now"-centric, so don't make people scroll to find today. Runs
+// once per mount (after layout); user scrolling afterwards is preserved.
+function centerToday() {
+  if (!(TODAY >= CHART_START && TODAY <= CHART_END)) return;
+  requestAnimationFrame(() => {
+    const sc = document.getElementById('axisTrack') || document.querySelector('.tl-scroll');
+    if (!sc || !sc.clientWidth) return;
+    const todayPx = pct(TODAY) / 100 * trackPxWidth();
+    const target = Math.max(0, Math.min(todayPx - sc.clientWidth / 2, sc.scrollWidth - sc.clientWidth));
+    tlScrollLeft = target;
+    document.querySelectorAll('.tl-scroll').forEach(o => { o.scrollLeft = target; });
+  });
+}
 
 // ============================================================
 //  MARKER TOOLTIP — one floating card for every timeline marker (#43)
@@ -2117,6 +2131,7 @@ function mount(projectKey, container) {
   }
   document.getElementById('hdrCount').textContent = visibleGames().length;
   buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows(); renderShareBanner(); renderPromoteBanner();
+  centerToday();   // land with today centred (#69)
 }
 
 // ============================================================

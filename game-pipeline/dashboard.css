@@ -582,6 +582,12 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
   .ship-line{ border-left-color:#6d28d9 !important; }
   .disc-track{ background:#eceff4 !important; }
 
+  /* No track scrollbars on paper: the tracks scroll on screen, but the 8px
+     thumb uses --border2 (darkened above) and prints as a heavy bar under each
+     row. Clip instead (landscape already accepts overflow). (#68) */
+  .tl-scroll{ overflow:hidden !important; scrollbar-width:none !important; }
+  .tl-scroll::-webkit-scrollbar{ display:none !important; height:0 !important; }
+
   /* (item 3) Faint status/stage/size/deadline/version chips -> black text + dark
      border so labels always read; their light tints still print via color-adjust. */
   .epic-stage,.epic-status,.fv-chip,.dl-chip,.status-drift,
