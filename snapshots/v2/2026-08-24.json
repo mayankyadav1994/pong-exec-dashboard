@@ -16,7 +16,7 @@
       "lab1End": "2026-11-06",
       "pilotEnd": "2026-11-20",
       "finalEnd": "2026-12-18",
-      "totalEstH": 790,
+      "totalEstH": 794,
       "spentH": 491
     },
     "V2 PT 14.00": {
@@ -29,8 +29,8 @@
       "spentH": 601
     },
     "V2 C2 5.10": {
-      "devEnd": "2026-09-08",
-      "qaEnd": "2026-09-22",
+      "devEnd": "2026-09-29",
+      "qaEnd": "2026-10-13",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -133,7 +133,7 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 0,
+      "totalEstH": 4,
       "spentH": 0
     }
   }
