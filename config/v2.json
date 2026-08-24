@@ -1,9 +1,5 @@
 {
   "fv_order": [
-    "V2 PT 13.30",
-    "V2 HHR 3.00",
-    "V2 HHR 3.10",
-    "V2 P2P 15.30",
     "V2 SW 16.00",
     "V2 P2P 16.00",
     "V2 PT 14.00",
@@ -13,7 +9,11 @@
     "V2 P2P Backlog",
     "V2 PT Backlog",
     "V2 SW Backlog",
-    "V2 HHR 3.20"
+    "V2 HHR 3.20",
+    "V2 Georgia Show Release - 2026",
+    "V2 C2 5.20",
+    "V2 PT 13.40",
+    "V2 SW 16.10"
   ],
   "fv_meta": {
     "V2 SW 15.00": {
@@ -80,6 +80,7 @@
   "hidden_fvs": [
     "New Games",
     "V2 C2 Backlog",
+    "V2 Georgia Show Release - 2026",
     "V2 P2P Backlog",
     "V2 PT Backlog",
     "V2 SW Backlog"
@@ -88,7 +89,7 @@
     "2026-05-18"
   ],
   "_meta": {
-    "published_at": "2026-07-14T15:14:17.036Z",
+    "published_at": "2026-08-24T17:49:58.392Z",
     "published_by": "mayankyadav1994"
   }
 }
