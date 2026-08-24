@@ -111,6 +111,26 @@
         "author": "mayankyadav1994",
         "body": "no name change - Confirmed"
       }
+    ],
+    "IG-3234": [
+      {
+        "ts": "2026-08-24T15:36:37.025Z",
+        "author": "mayankyadav1994",
+        "body": "Assets been delivered on Frida - Ben is on it"
+      }
+    ],
+    "IG-3304": [
+      {
+        "ts": "2026-08-24T16:23:37.188Z",
+        "author": "mayankyadav1994",
+        "body": "Assets have been delivered to Bin"
+      },
+      {
+        "ts": "2026-08-24T15:37:20.333Z",
+        "author": "mayankyadav1994",
+        "body": "Assets been Delivered to Ben is on it",
+        "deleted": true
+      }
     ]
   },
   "move_reasons": {},
@@ -235,5 +255,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-24 15:01"
+  "updated_at": "2026-08-24 16:23"
 }
