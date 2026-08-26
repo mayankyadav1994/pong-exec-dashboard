@@ -48,6 +48,7 @@ jobs:
           cp game-pipeline/dashboard.css .
           cp game-pipeline/dashboard-data-v2.js .
           cp game-pipeline/dashboard-data-ig.js .
+          cp game-pipeline/dashboard-data-igf.js .
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'Refresh game pipeline data'

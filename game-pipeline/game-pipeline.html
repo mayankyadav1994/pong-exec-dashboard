@@ -12,12 +12,13 @@
      Intentionally NOT linked into the exec/release-timeline dashboard nav. -->
 <div class="gp-pagehead">
   <h1>🎮 Game Pipeline 2026</h1>
-  <p>Pong Game Studios · game-epic lifecycle roadmap · V2 + iGaming</p>
+  <p>Pong Game Studios · game-epic lifecycle roadmap · V2 + iGaming + Features</p>
 </div>
 
 <div class="gp-subtabs" id="gpSubtabs">
   <button class="gp-subtab active" data-project="v2"><span class="gp-dot"></span>V2</button>
   <button class="gp-subtab" data-project="ig"><span class="gp-dot"></span>iGaming</button>
+  <button class="gp-subtab" data-project="igf"><span class="gp-dot"></span>iGaming Features</button>
 </div>
 
 <div id="gp-app"></div>
@@ -25,7 +26,8 @@
 <!-- Both data files load: each publishes window.GP_DATA[<key>], no collision -->
 <script src="dashboard-data-v2.js"></script>
 <script src="dashboard-data-ig.js"></script>
-<script src="dashboard.js?v=74"></script>
+<script src="dashboard-data-igf.js"></script>
+<script src="dashboard.js?v=75"></script>
 <script>
 (function () {
   function start() {

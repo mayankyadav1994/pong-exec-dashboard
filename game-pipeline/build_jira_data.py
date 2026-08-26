@@ -70,6 +70,16 @@ PROJECTS: dict[str, dict[str, Any]] = {
         "name_prefix": "Gen2 Game:",     # (#4)
         "out": ROOT / "dashboard-data-ig.js",
     },
+    # iGaming Features (#70): same IG project/board, but the candidate pool is the
+    # NON-game, NON-release epics. Board starts empty — curated via add-by-search.
+    "igf": {
+        "key": "IG",
+        "sprint_field": "customfield_10103",
+        "board_env": "JIRA_BOARD_ID_IG",
+        "mode": "features",
+        "exclude_prefixes": ("Gen2 Game", "Gen2 - Game", "Release"),
+        "out": ROOT / "dashboard-data-igf.js",
+    },
 }
 
 # A delivered game drops off the board this many days after its release (#3).
@@ -483,11 +493,22 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     # candidates) OR it's an ACTIVE (non-Done) prefixed game without a fixVersion
     # (add-game candidate). Drop non-prefixed no-fixVersion epics and closed
     # no-fixVersion games — they'd be pure noise / history.
+    mode = cfg.get("mode")
+    excl = cfg.get("exclude_prefixes") or ()
+    def _is_excluded(e: dict) -> bool:
+        n = _epic_name(e)
+        return any(n.startswith(p) for p in excl)
     before = len(epics)
-    epics = [e for e in epics
-             if _has_fv(e) or (prefix and _epic_name(e).startswith(prefix) and not _is_done(e))]
-    n_board = sum(1 for e in epics if _has_fv(e) and (not prefix or _epic_name(e).startswith(prefix)))
-    print(f"   {OK} kept {len(epics)}/{before} epic(s): ~{n_board} board (prefixed + fixVersion), rest are add-game candidates")
+    if mode == "features":
+        # Features (#70) = non-game, non-release IG epics; keep active ones (or with
+        # a fixVersion). ALL are add-by-search candidates — the board starts empty.
+        epics = [e for e in epics if not _is_excluded(e) and (_has_fv(e) or not _is_done(e))]
+        print(f"   {OK} kept {len(epics)}/{before} feature-candidate epic(s) (excludes games + releases; board starts empty)")
+    else:
+        epics = [e for e in epics
+                 if _has_fv(e) or (prefix and _epic_name(e).startswith(prefix) and not _is_done(e))]
+        n_board = sum(1 for e in epics if _has_fv(e) and (not prefix or _epic_name(e).startswith(prefix)))
+        print(f"   {OK} kept {len(epics)}/{before} epic(s): ~{n_board} board (prefixed + fixVersion), rest are add-game candidates")
     if not epics:
         print(f"   {WARN} no epics found - writing empty placeholder")
 
@@ -705,7 +726,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         gname = ef.get("customfield_10014") or ef.get("summary") or ekey
         # Board roster = prefixed game WITH a fixVersion. Prefixed games lacking a
         # fixVersion are add-game candidates, not on the board by default (#50).
-        in_roster = bool(prefix) and str(gname).startswith(prefix) and bool(fvs)
+        # Features board starts empty — every feature is an add-by-search candidate (#70).
+        in_roster = False if mode == "features" else (bool(prefix) and str(gname).startswith(prefix) and bool(fvs))
         games.append({
             "name": gname,
             "jira": ekey,
@@ -989,8 +1011,8 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         description="Build dashboard-data-{project}.js from Jira for the Game Pipeline dashboard.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--project", choices=["v2", "ig", "both"], default="both",
-                   help="Which project(s) to build (default: both).")
+    p.add_argument("--project", choices=["v2", "ig", "igf", "both"], default="both",
+                   help="Which project(s) to build (default: both = v2 + ig + igf).")
     p.add_argument("--today", metavar="YYYY-MM-DD", default=None,
                    help="Snapshot date for current_stage derivation (default: system date).")
     p.add_argument("--verbose", action="store_true", help="Verbose per-epic + skip logging.")
@@ -1052,7 +1074,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             pass
     args = parse_args(argv)
     today = resolve_today(args.today)
-    targets = ["v2", "ig"] if args.project == "both" else [args.project]
+    targets = ["v2", "ig", "igf"] if args.project == "both" else [args.project]
 
     base, email, token = require_env()
     client = JiraClient(base, email, token, verbose=args.verbose)

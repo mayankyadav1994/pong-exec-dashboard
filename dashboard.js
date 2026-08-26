@@ -51,6 +51,9 @@ const PROJECT_META = {
   ig: { key: 'ig', title: 'iGaming Game Pipeline',
         subtitle: 'Pong Game Studios · iGaming game-epic lifecycle dashboard',
         jira_project: 'IG', ls_prefix: 'gp_ig_' },
+  igf: { key: 'igf', title: 'iGaming Features',
+        subtitle: 'Pong Game Studios · iGaming feature pipeline · add features from the Edit ▸ search',
+        jira_project: 'IG', ls_prefix: 'gp_igf_' },
 };
 
 const DEFAULT_CONFIG = {
@@ -492,9 +495,13 @@ function buildSkeleton() {
     <button class="fb-chip" id="exportBtn" title="Export the games table (respects current filters)">⬇ Export</button>
   </div>
   <div id="emptyState" class="empty-state" style="display:none">
-    <h2>No data yet</h2>
-    <p>No games to show for ${PROJECT.jira_project}. Run the Jira builder:<br>
-    <code>python build_jira_data.py --project ${PROJECT.key}</code><br>then reload.</p>
+    ${PROJECT.key === 'igf'
+      ? `<h2>No features on the board yet</h2>
+         <p>Open <b>✎ Edit Plan</b> and use the <b>search box</b> to add iGaming features to this board.<br>
+         <span style="color:var(--sub)">Sign in first to save the board for everyone.</span></p>`
+      : `<h2>No data yet</h2>
+         <p>No games to show for ${PROJECT.jira_project}. Run the Jira builder:<br>
+         <code>python build_jira_data.py --project ${PROJECT.key}</code><br>then reload.</p>`}
   </div>
   <div id="roadmapView"><div class="axis" id="axis"></div><div id="rows"></div></div>
   <div id="heatmapView" style="display:none">
