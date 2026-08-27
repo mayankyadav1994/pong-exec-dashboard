@@ -485,7 +485,15 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .gp-promote-banner .apb-list li b{color:var(--text);font-weight:600;font-family:inherit}
 .gp-promote-banner .ap-from{color:#b91c1c;font-weight:600}
 .gp-promote-banner .ap-to{color:#15803d;font-weight:600}
-.gp-promote-banner .apb-actions{display:flex;gap:8px;align-items:center}
+.gp-promote-banner .apb-list li.apb-row{display:flex;align-items:center;gap:6px}
+.gp-promote-banner .apb-acc,.gp-promote-banner .apb-rej{flex-shrink:0;width:19px;height:19px;border-radius:4px;border:1px solid;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:inherit;padding:0}
+.gp-promote-banner .apb-acc{color:#15803d;border-color:rgba(22,163,74,.5);background:rgba(22,163,74,.10)}
+.gp-promote-banner .apb-acc:hover{background:#16a34a;color:#fff}
+.gp-promote-banner .apb-rej{color:#b91c1c;border-color:rgba(220,38,38,.5);background:rgba(220,38,38,.08)}
+.gp-promote-banner .apb-rej:hover{background:#dc2626;color:#fff}
+.gp-promote-banner .apb-txt{min-width:0}
+.gp-promote-banner .apb-note{font-size:10.5px;color:var(--sub);font-style:italic}
+.gp-promote-banner .apb-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
 /* Notes pane in detail panel — append-only history of stakeholder context. */
 .notes-pane{display:block;font-size:12px;color:var(--text)}

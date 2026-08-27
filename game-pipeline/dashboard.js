@@ -1730,64 +1730,71 @@ function renderShareBanner() {
 //   • Keep manual   → re-pins the overrides locally so they survive the auto
 //                     promotion (writes to USER_STATUS); editor can later
 //                     Save-as-default to push them back to shared.
+let PENDING_RELEASES = new Set();   // games ✓-released this session, awaiting publish (#71)
+let PROMOTE_RESOLVED = new Set();   // games the editor has ✓/✗-resolved this session (hide their row)
 function renderPromoteBanner() {
   const el = document.getElementById('gpPromoteBanner');
   if (!el) return;
-  // Managing shared overrides is an editor-only action (#58). A normal viewer
-  // already sees the auto-promoted (daily-Jira) state — the stale override is
-  // dropped for display in resolveGameStatus/Stage — so they need no banner and
-  // must not get "Save to plan" (sign-in prompt) or "Keep manual overrides"
-  // (which would pin stale overrides into their own browser).
+  // Editor-only (#58/#71): a normal viewer already sees the auto-promoted
+  // (daily-Jira) state — stale overrides are dropped for display in
+  // resolveGameStatus/Stage — so they get NO banner at all, just the dashboard.
   if (!getGhEditor()) { el.style.display = 'none'; return; }
-  // Two independent kinds of drift — shared status override that Jira has
-  // moved past, and shared stage override in the same shape. Group them into
-  // one banner so the editor sees everything to reconcile in one pass.
-  const promoted = RAW_GAMES.filter(g => g._auto_promoted_from || g._auto_stage_promoted_from);
-  if (!promoted.length) { el.style.display = 'none'; return; }
-  const rows = promoted.map(g => {
+  const drifted = RAW_GAMES.filter(g => g._auto_promoted_from || g._auto_stage_promoted_from);
+  const shown = drifted.filter(g => !PROMOTE_RESOLVED.has(g.jira));
+  if (!shown.length && !PENDING_RELEASES.size) { el.style.display = 'none'; return; }
+  // Per-item review (#71): a ✓ (release → accept Jira) or ✗ (keep the override)
+  // in front of each line, instead of the old bulk Save/Keep buttons.
+  const rows = shown.map(g => {
     const parts = [];
     if (g._auto_promoted_from) parts.push(`status <span class="ap-from">${g._auto_promoted_from}</span> → <span class="ap-to">${g._auto_status}</span>`);
     if (g._auto_stage_promoted_from) parts.push(`stage <span class="ap-from">${stageLabel(g._auto_stage_promoted_from)}</span> → <span class="ap-to">${stageLabel(g._auto_stage)}</span>`);
-    return `<li><b>${g.name}</b> — ${parts.join(' · ')}</li>`;
+    return `<li class="apb-row">`
+      + `<button class="apb-acc" data-jira="${g.jira}" title="Release — accept Jira and drop the saved override">✓</button>`
+      + `<button class="apb-rej" data-jira="${g.jira}" title="Keep — re-pin your manual override">✗</button>`
+      + `<span class="apb-txt"><b>${g.name}</b> — ${parts.join(' · ')}</span></li>`;
   }).join('');
-  el.innerHTML = `<div class="apb-head">📢 ${promoted.length} game${promoted.length > 1 ? 's' : ''} auto-released from shared overrides — Jira has progressed past them.</div>`
-    + `<ul class="apb-list">${rows}</ul>`
-    + `<div class="apb-actions">`
-    + `  <button class="gsb-btn primary" id="apbSave">Save to plan</button>`
-    + `  <button class="gsb-btn" id="apbKeep">Keep manual overrides</button>`
-    + `</div>`;
+  const pend = PENDING_RELEASES.size;
+  el.innerHTML = `<div class="apb-head">📢 ${shown.length ? shown.length + ' game' + (shown.length !== 1 ? 's' : '') + ' moved on in Jira past a saved override — ✓ release or ✗ keep each' : 'All reviewed'}.</div>`
+    + (rows ? `<ul class="apb-list">${rows}</ul>` : '')
+    + (pend ? `<div class="apb-actions"><button class="gsb-btn primary" id="apbSave">💾 Save ${pend} release${pend !== 1 ? 's' : ''} to plan</button><span class="apb-note">Publishes the cleared overrides for everyone · keeps stay on your browser until you Save as default.</span></div>` : '');
   el.style.display = 'block';
-  document.getElementById('apbSave').onclick = async () => {
+  el.querySelectorAll('.apb-acc').forEach(b => b.onclick = () => {
+    const g = RAW_GAMES.find(x => x.jira === b.dataset.jira); if (!g) return;
+    // Release → follow Jira: drop any local override so the game matches auto
+    // (buildPlanPayload then omits it, clearing the stale shared entry on save).
+    delete USER_STATUS[g.name]; delete USER_STAGE[g.name];
+    g.workflow_status = g._auto_status; g._status_source = 'auto';
+    g.current_stage = g._auto_stage; g._stage_source = 'auto';
+    PENDING_RELEASES.add(g.jira); PROMOTE_RESOLVED.add(g.jira);
+    saveStatus(); saveStage(); renderPromoteBanner(); renderRows();
+  });
+  el.querySelectorAll('.apb-rej').forEach(b => b.onclick = () => {
+    const g = RAW_GAMES.find(x => x.jira === b.dataset.jira); if (!g) return;
+    // Keep → re-pin the manual override locally (yours only until Save as default).
+    if (g._auto_promoted_from) { USER_STATUS[g.name] = g._auto_promoted_from; g.workflow_status = g._auto_promoted_from; g._status_source = 'local'; }
+    if (g._auto_stage_promoted_from) { USER_STAGE[g.name] = g._auto_stage_promoted_from; g.current_stage = g._auto_stage_promoted_from; g._stage_source = 'local'; }
+    PENDING_RELEASES.delete(g.jira); PROMOTE_RESOLVED.add(g.jira);
+    saveStatus(); saveStage(); renderPromoteBanner(); renderRows();
+  });
+  const sb = document.getElementById('apbSave');
+  if (sb) sb.onclick = async () => {
     if (!getPat()) { openSignInModal(); return; }
+    sb.disabled = true; sb.textContent = 'Saving…';
     try {
-      // Remove the stale entries permanently — publishPlan reads current values
-      // off RAW_GAMES; auto-promoted games now match _auto_* so their entries
-      // naturally fall out of the published status/stage maps (buildPlanPayload).
       await publishPlan();
-      showToast(`✓ Cleared ${promoted.length} stale override${promoted.length > 1 ? 's' : ''}`);
-      // Refresh caches locally so the banner doesn't reappear on next render.
+      const n = PENDING_RELEASES.size; PENDING_RELEASES.clear();
+      showToast(`✓ Released ${n} override${n !== 1 ? 's' : ''} to the shared plan`);
       SHARED_STATUS = (SHARED_CACHE[PROJECT.key] || {}).status || {};
       SHARED_STAGE  = (SHARED_CACHE[PROJECT.key] || {}).stage  || {};
       RAW_GAMES.forEach(g => { resolveGameStatus(g); resolveGameStage(g); });
       renderPromoteBanner(); renderRows();
-    } catch (e) { if (e && e.stale) { openStaleModal(e); return; } showToast('Save failed: ' + e.message); }
-  };
-  document.getElementById('apbKeep').onclick = () => {
-    // Repin each drifted override as a local edit so the editor keeps their
-    // call visible to themselves; not shared with others until they Save.
-    promoted.forEach(g => {
-      if (g._auto_promoted_from) {
-        USER_STATUS[g.name] = g._auto_promoted_from;
-        g.workflow_status = g._auto_promoted_from; g._status_source = 'local'; g._auto_promoted_from = null;
-      }
-      if (g._auto_stage_promoted_from) {
-        USER_STAGE[g.name] = g._auto_stage_promoted_from;
-        g.current_stage = g._auto_stage_promoted_from; g._stage_source = 'local'; g._auto_stage_promoted_from = null;
-      }
-    });
-    saveStatus(); saveStage();
-    el.style.display = 'none';
-    renderRows();
+    } catch (e) {
+      sb.disabled = false; sb.textContent = '💾 Save releases to plan';
+      // The old bug was a silent no-op when the shared plan was stale — now we
+      // surface it with a reconcile path instead of leaving the banner stuck.
+      if (e && e.stale) { openStaleModal(e); return; }
+      showToast('Save failed: ' + e.message);
+    }
   };
 }
 
