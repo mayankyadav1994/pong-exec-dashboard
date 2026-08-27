@@ -1,6 +1,13 @@
 {
   "order": [
-    "3rd Party Game Support (TaDa fish and others)"
+    "3rd Party Game Support (TaDa fish and others)",
+    "Switching Guest to Registered",
+    "Dynamic Terms and Conditions",
+    "Gen2 - Login Screen",
+    "External Progressive Display (controller)",
+    "Quick Play on Quick connect POS",
+    "Attract Screen [Screen saver or Webpage]",
+    "Daily Wheel - Daily Progressive Promotion"
   ],
   "status": {},
   "stage": {},
@@ -9,7 +16,14 @@
   "notes": {},
   "move_reasons": {},
   "added": [
-    "IG-4592"
+    "IG-4592",
+    "IG-4649",
+    "IG-4498",
+    "IG-2798",
+    "IG-6931",
+    "IG-5092",
+    "IG-2797",
+    "IG-7465"
   ],
   "config": {
     "statuses": [
@@ -131,5 +145,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-27 15:01"
+  "updated_at": "2026-08-27 16:55"
 }
