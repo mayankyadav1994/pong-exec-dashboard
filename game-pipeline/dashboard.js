@@ -449,10 +449,20 @@ function resolveGameStage(g) {
 function addGameToRoster(jira) {
   if (RAW_GAMES.some(g => g.jira === jira)) return;
   const g = ALL_GAMES.find(x => x.jira === jira); if (!g) return;
+  const wasEmpty = RAW_GAMES.length === 0;   // e.g. the Features board starts empty (#70)
   if (!USER_ADDED.includes(jira)) USER_ADDED.push(jira);
   saveAdded(); resolveGameStatus(g); resolveGameStage(g); RAW_GAMES.push(g); saveOrder();
+  if (wasEmpty) {
+    // Board just came alive — mount()'s empty branch had shown the empty state,
+    // hidden the chart, and skipped buildFilterBar/renderAxis. Reveal + build it.
+    document.getElementById('emptyState').style.display = 'none';
+    const fb = document.getElementById('filterBar'); if (fb) fb.style.display = '';
+    document.getElementById('roadmapView').style.display = (currentView === 'roadmap' || currentView === 'gantt') ? 'block' : 'none';
+    buildFilterBar();
+  }
   applyForecast(); renderAxis(); renderRows(); renderKPI(); renderDrawer();
   const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
+  if (wasEmpty) requestAnimationFrame(centerToday);
   showToast('✓ Added ' + g.name);
 }
 function removeGameFromRoster(jira) {
@@ -462,6 +472,11 @@ function removeGameFromRoster(jira) {
   if (g && !stillRoster) RAW_GAMES = RAW_GAMES.filter(x => x.jira !== jira);
   saveOrder(); applyForecast(); renderAxis(); renderRows(); renderKPI(); renderDrawer();
   const hdr = document.getElementById('hdrCount'); if (hdr) hdr.textContent = visibleGames().length;
+  if (!RAW_GAMES.length) {   // last item removed — restore the empty state (#70)
+    document.getElementById('emptyState').style.display = 'block';
+    document.getElementById('roadmapView').style.display = 'none';
+    const fb = document.getElementById('filterBar'); if (fb) fb.style.display = 'none';
+  }
 }
 
 // ============================================================
