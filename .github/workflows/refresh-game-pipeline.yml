@@ -25,6 +25,14 @@ on:
       - 'game-pipeline/dashboard.css'
       - 'game-pipeline/game-pipeline.html'
       - 'game-pipeline/build_jira_data.py'
+
+# Serialize against the other dashboard refreshes — the v2/iGaming timeline
+# workflows use this same group — so their commits to main can't land mid-build
+# and reject this job's push (#72).
+concurrency:
+  group: refresh-dashboards
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,6 +40,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # full history so the rebase-safe push below can rebase
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: pip install -r game-pipeline/requirements.txt
@@ -49,6 +58,18 @@ jobs:
           cp game-pipeline/dashboard-data-v2.js .
           cp game-pipeline/dashboard-data-ig.js .
           cp game-pipeline/dashboard-data-igf.js .
-      - uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'Refresh game pipeline data'
+      - name: Commit & push refreshed data (rebase-safe)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "No changes to commit."; exit 0; fi
+          git commit -m "Refresh game pipeline data"
+          # The ~5-min Jira build can be lapped by other pushes to main; rebase and
+          # retry instead of dying on a non-fast-forward push (the reported bug). (#72)
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then echo "Pushed."; exit 0; fi
+            echo "Push rejected (main moved) — fetch + rebase, attempt $i/5"
+            git fetch origin main && git rebase origin/main || { git rebase --abort || true; }
+          done
+          echo "::error::push failed after 5 rebase attempts"; exit 1
