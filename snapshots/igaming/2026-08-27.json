@@ -52,8 +52,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2028-04-25",
-      "totalEstH": 9986,
-      "spentH": 4054
+      "totalEstH": 10002,
+      "spentH": 4071
     },
     "ELG 4.60": {
       "devEnd": "2026-08-27",
@@ -70,7 +70,7 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2028-04-25",
-      "totalEstH": 1119,
+      "totalEstH": 1120,
       "spentH": 575
     },
     "PFH Games 2.40": {
@@ -92,13 +92,13 @@
       "spentH": 74
     },
     "PFH Games 2.30": {
-      "devEnd": "2028-04-11",
-      "qaEnd": "2028-04-25",
+      "devEnd": "2026-08-27",
+      "qaEnd": "2026-09-10",
       "lab1End": null,
       "pilotEnd": null,
-      "finalEnd": "2028-04-25",
-      "totalEstH": 3010,
-      "spentH": 2677
+      "finalEnd": "2026-09-10",
+      "totalEstH": 10,
+      "spentH": 10
     },
     "ELG 5.00": {
       "devEnd": "2028-04-11",
@@ -142,17 +142,17 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2028-04-26",
-      "totalEstH": 304,
-      "spentH": 250
+      "totalEstH": 208,
+      "spentH": 195
     },
     "PFH Games 5.00": {
-      "devEnd": "2026-08-27",
-      "qaEnd": "2026-09-10",
+      "devEnd": "2028-04-12",
+      "qaEnd": "2028-04-26",
       "lab1End": null,
       "pilotEnd": null,
-      "finalEnd": "2026-09-10",
-      "totalEstH": 0,
-      "spentH": 0
+      "finalEnd": "2028-04-26",
+      "totalEstH": 3098,
+      "spentH": 2722
     },
     "PFH Games Backlog": {
       "devEnd": "2028-04-12",
