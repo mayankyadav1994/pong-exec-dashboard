@@ -1,14 +1,14 @@
 {
   "order": [
     "Game: Nordic Paws",
+    "Game: Fortune of Z",
+    "Game: Wildlife Safari Gold",
+    "Game: Enchanted East [V]",
+    "Game: Firecracker Frenzy [V]",
     "Game: Steampunk Fortune 2",
     "Game: Neon Break",
     "Game: Steampunk Fortune",
-    "Game: Enchanted East [V]",
-    "Game: Fortune of Z",
-    "Game: Wildlife Safari Gold",
     "Game: Canada Eh Part Deux",
-    "Game: Firecracker Frenzy [V]",
     "Game: Birthday Bash [V]",
     "Game: Western Grand Express",
     "Game: Golden Bank Safe",
@@ -32,17 +32,20 @@
     "Game: Grand Prosperity",
     "Game: Jewels of Cleopatra",
     "Game: Tiger Hunt [V]",
-    "Game: Mayan Madness"
+    "Game: Sword of Z Nudge",
+    "Game: Blade of Fortune",
+    "Game: Flaming Skulls [V]"
   ],
   "status": {
     "Game: Nordic Paws": "Signed off",
-    "Game: Enchanted East [V]": "In Review",
     "Game: Fortune of Z": "In Review",
     "Game: Wildlife Safari Gold": "In Review",
-    "Game: Canada Eh Part Deux": "In Review",
+    "Game: Enchanted East [V]": "In Review",
     "Game: Firecracker Frenzy [V]": "In Review",
+    "Game: Canada Eh Part Deux": "Signed off",
     "Game: Birthday Bash [V]": "In Review",
     "Game: Golden Bank Safe": "On Hold",
+    "Game: Monster Cake Smash": "On Hold",
     "Game: Devil's Delight": "In Progress",
     "Game: Sizzling Deluxe": "In Progress",
     "Game: Piggy's Kingdom": "In Progress",
@@ -52,14 +55,15 @@
   },
   "stage": {
     "Game: Nordic Paws": "qa",
+    "Game: Fortune of Z": "dev",
+    "Game: Wildlife Safari Gold": "math",
+    "Game: Firecracker Frenzy [V]": "dev",
     "Game: Steampunk Fortune 2": "math",
     "Game: Neon Break": "math",
     "Game: Steampunk Fortune": "math",
-    "Game: Fortune of Z": "dev",
-    "Game: Wildlife Safari Gold": "math",
     "Game: Canada Eh Part Deux": "dev",
-    "Game: Firecracker Frenzy [V]": "dev",
-    "Game: Monster Cake Smash": "design"
+    "Game: Monster Cake Smash": "design",
+    "Game: Viking Blox": "dev"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -117,10 +121,11 @@
       }
     ]
   },
+  "move_reasons": {},
   "added": [
-    "V2-30826",
-    "V2-22634",
     "V2-21483",
+    "V2-22634",
+    "V2-30826",
     "V2-30536",
     "V2-31019",
     "V2-31057",
@@ -238,5 +243,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-21 16:53"
+  "updated_at": "2026-08-31 15:42"
 }
