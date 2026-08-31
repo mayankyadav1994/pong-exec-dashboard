@@ -4,18 +4,17 @@
     "Gen2 Game: Lantern's Rising [V]",
     "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Fruit Splitter",
+    "Gen2 Game: Firecracker Frenzy",
     "Gen2 Game: Haunted Harvest",
+    "Gen2 Game: 3 Chilli Riches",
+    "Gen2 Game: Strike Forge Boost",
     "Gen2 Game: Amaterasu Rising",
     "Gen2 Game: Pharaoh's Quest",
-    "Gen2 Game: Strike Forge Boost",
-    "Gen2 - Game: Quick Wins Diamond Wild",
-    "Gen2 Game: 3 Chilli Riches",
-    "Gen2 Game: Neon Break",
     "Gen2 Game: Nordic Paws",
-    "Gen2 Game: Firecracker Frenzy",
+    "Gen2 Game: Neon Break",
     "Gen2 Game: Birthday Bash [V]",
+    "Gen2 - Game: Quick Wins Diamond Wild",
     "Gen2 Game: Golden Fortune Grand",
-    "Gen2 Game: Plentiful Bounty",
     "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: Fiery 7s",
     "Gen2 Game: Great Sphinx",
@@ -25,26 +24,40 @@
     "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Chain Lock 7 Refueled",
     "Gen2 Game: Steampunk Fortune",
-    "Gen2 Game: Robin's Arrow - Thanksgiving Feast"
+    "Gen2 Game: Plentiful Bounty",
+    "Gen2 Game: Robin's Arrow - Thanksgiving Feast",
+    "Gen2 Game: Flaming Skulls [V]"
   ],
   "status": {
+    "Gen2 Game: Viking's Voyage of Fortune": "In Production",
+    "Gen2 Game: Lantern's Rising [V]": "In Production",
     "Gen2 Game: Blue Bird Bonus Extreme": "In Review",
     "Gen2 Game: Fruit Splitter": "In Review",
     "Gen2 Game: Haunted Harvest": "In Progress",
     "Gen2 Game: 3 Chilli Riches": "In Progress",
-    "Gen2 Game: Neon Break": "In Progress",
+    "Gen2 Game: Strike Forge Boost": "In Progress",
+    "Gen2 Game: Pharaoh's Quest": "In Review",
     "Gen2 Game: Nordic Paws": "In Progress",
-    "Gen2 Game: Firecracker Frenzy": "In Progress",
-    "Gen2 Game: Birthday Bash [V]": "In Progress"
+    "Gen2 Game: Neon Break": "In Progress",
+    "Gen2 Game: Birthday Bash [V]": "In Progress",
+    "Gen2 - Game: Quick Wins Diamond Wild": "On Hold",
+    "Gen2 Game: Golden Fortune Grand": "Not Started"
   },
   "stage": {
+    "Gen2 Game: Viking's Voyage of Fortune": "done",
+    "Gen2 Game: Lantern's Rising [V]": "done",
+    "Gen2 Game: Blue Bird Bonus Extreme": "dev",
     "Gen2 Game: Fruit Splitter": "dev",
     "Gen2 Game: Haunted Harvest": "art",
-    "Gen2 Game: Strike Forge Boost": "art",
     "Gen2 Game: 3 Chilli Riches": "art",
-    "Gen2 Game: Neon Break": "art",
+    "Gen2 Game: Strike Forge Boost": "dev",
+    "Gen2 Game: Amaterasu Rising": "dev",
+    "Gen2 Game: Pharaoh's Quest": "dev",
     "Gen2 Game: Nordic Paws": "art",
-    "Gen2 Game: Birthday Bash [V]": "art"
+    "Gen2 Game: Neon Break": "art",
+    "Gen2 Game: Birthday Bash [V]": "art",
+    "Gen2 Game: Golden Fortune Grand": "art",
+    "Gen2 Game: Plentiful Bounty": "art"
   },
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
@@ -125,12 +138,33 @@
         "body": "Assets been Delivered to Ben is on it",
         "deleted": true
       }
+    ],
+    "IG-2051": [
+      {
+        "ts": "2026-08-31T14:22:19.215Z",
+        "author": "mayankyadav1994",
+        "body": "Waiting on Review - 21st Aug - Pruthvi"
+      }
+    ],
+    "IG-3307": [
+      {
+        "ts": "2026-08-31T14:24:08.922Z",
+        "author": "mayankyadav1994",
+        "body": "Need to Optimized the Assets - 21st Aug - Pruthvi"
+      }
+    ],
+    "IG-1507": [
+      {
+        "ts": "2026-08-31T14:24:29.481Z",
+        "author": "mayankyadav1994",
+        "body": "Waiting on Review - 31st Aug - Pruthvi"
+      }
     ]
   },
   "move_reasons": {},
   "added": [
-    "IG-1513",
     "IG-5593",
+    "IG-1513",
     "IG-5761",
     "IG-5708"
   ],
@@ -249,5 +283,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-27 15:31"
+  "updated_at": "2026-08-31 16:28"
 }
