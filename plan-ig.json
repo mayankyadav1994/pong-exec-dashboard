@@ -32,9 +32,6 @@
     "Gen2 Game: Viking's Voyage of Fortune": "In Production",
     "Gen2 Game: Lantern's Rising [V]": "In Production",
     "Gen2 Game: Blue Bird Bonus Extreme": "In Review",
-    "Gen2 Game: Fruit Splitter": "In Review",
-    "Gen2 Game: Haunted Harvest": "In Progress",
-    "Gen2 Game: 3 Chilli Riches": "In Progress",
     "Gen2 Game: Strike Forge Boost": "In Progress",
     "Gen2 Game: Pharaoh's Quest": "In Review",
     "Gen2 Game: Nordic Paws": "In Progress",
@@ -46,14 +43,11 @@
     "Gen2 Game: Viking's Voyage of Fortune": "done",
     "Gen2 Game: Lantern's Rising [V]": "done",
     "Gen2 Game: Blue Bird Bonus Extreme": "dev",
-    "Gen2 Game: Fruit Splitter": "dev",
-    "Gen2 Game: Haunted Harvest": "art",
-    "Gen2 Game: 3 Chilli Riches": "art",
-    "Gen2 Game: Strike Forge Boost": "dev",
+    "Gen2 Game: Strike Forge Boost": "art",
     "Gen2 Game: Amaterasu Rising": "dev",
     "Gen2 Game: Pharaoh's Quest": "dev",
-    "Gen2 Game: Nordic Paws": "dev",
-    "Gen2 Game: Neon Break": "dev",
+    "Gen2 Game: Nordic Paws": "art",
+    "Gen2 Game: Neon Break": "art",
     "Gen2 Game: Birthday Bash [V]": "art",
     "Gen2 Game: Golden Fortune Grand": "art",
     "Gen2 Game: Plentiful Bounty": "art"
@@ -282,5 +276,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-08-31 16:28"
+  "updated_at": "2026-08-31 16:36"
 }
