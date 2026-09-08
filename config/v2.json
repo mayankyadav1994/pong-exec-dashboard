@@ -1,8 +1,8 @@
 {
   "fv_order": [
+    "G2E Show Prep 2026",
     "V2 C2 5.10",
     "V2 C2 5.20",
-    "G2E Show Prep 2026",
     "V2 SW 16.00",
     "V2 P2P 16.00",
     "V2 PT 14.00",
@@ -77,6 +77,9 @@
     },
     "V2 C2 5.20": {
       "sub": "C2 Game Port  - 4 games\n"
+    },
+    "G2E Show Prep 2026": {
+      "sub": "1 - Ohio\n2 - Nebraska\n3 - P2P [including New games]\n"
     }
   },
   "hidden_fvs": [
@@ -90,7 +93,7 @@
     "2026-05-18"
   ],
   "_meta": {
-    "published_at": "2026-09-08T18:31:58.224Z",
+    "published_at": "2026-09-08T18:41:09.191Z",
     "published_by": "mayankyadav1994"
   }
 }
