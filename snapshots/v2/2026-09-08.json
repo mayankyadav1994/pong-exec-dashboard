@@ -1,6 +1,15 @@
 {
   "date": "2026-09-08",
   "fvs": {
+    "G2E Show Prep 2026": {
+      "devEnd": "2026-09-14",
+      "qaEnd": "2026-09-28",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 107,
+      "spentH": 49
+    },
     "V2 C2 5.10": {
       "devEnd": "2026-09-08",
       "qaEnd": "2026-09-22",
@@ -18,15 +27,6 @@
       "finalEnd": null,
       "totalEstH": 174,
       "spentH": 26
-    },
-    "G2E Show Prep 2026": {
-      "devEnd": "2026-09-17",
-      "qaEnd": "2026-10-01",
-      "lab1End": null,
-      "pilotEnd": null,
-      "finalEnd": null,
-      "totalEstH": 107,
-      "spentH": 49
     },
     "V2 SW 16.00": {
       "devEnd": "2026-09-08",
