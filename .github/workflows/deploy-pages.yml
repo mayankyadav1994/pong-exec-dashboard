@@ -34,13 +34,19 @@ permissions:
   id-token: write
 
 # Serialize deploys. The morning bursts (5 refresh workflows, 3 of them at
-# 06:00 UTC) push several commits within minutes; cancel-in-progress collapses
-# them to a single deploy of the latest commit — which, on a linear main,
-# already contains every refresh — instead of a pile-up that collides. This is
-# what fixes the "Deployment failed, try again later." failures.
+# 06:00 UTC) push several commits within minutes.
+#
+# cancel-in-progress:true was CANCELLING a Deploy Pages run mid-flight, which
+# left the Pages-backend deployment it had already registered stuck "in
+# progress" — so the next run's deploy-pages step was rejected with
+# "Deployment request failed … due to in progress deployment. Please cancel X
+# first or wait" (two failure emails 2026-09-10). Use false, GitHub's
+# recommended Pages setting: let an in-progress deploy COMPLETE and collapse
+# only the PENDING queue to the latest commit (which, on a linear main, already
+# contains every refresh). Serialized, never cancelled mid-deploy.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
