@@ -764,7 +764,13 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     for g in games:
         dv = g.get("delivered")
         dd = _parse_date(dv["date"]) if (dv and dv.get("date")) else None
-        if dd and (today - dd).days > DELIVERED_GRACE_DAYS:
+        # A game can ship in an OLD release yet still be on a LATER release train
+        # (e.g. IG-1509 shipped in ELG 4.40 on 2026-07-17 but is still In QA for the
+        # unreleased Horse Play 2.00 / PFH Games 2.40). compute_delivered only sees
+        # the released fixVersion, so the grace-window drop would wrongly remove it.
+        # Keep any game that still has an UNRELEASED fixVersion pending. (#74)
+        has_pending = any(not fv.get("released") for fv in (g.get("fixVersions") or []))
+        if dd and (today - dd).days > DELIVERED_GRACE_DAYS and not has_pending:
             dropped += 1
             continue
         kept_games.append(g)
