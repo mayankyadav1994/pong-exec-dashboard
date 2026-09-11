@@ -181,6 +181,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .fv-row{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
 .fv-chip{font-size:9px;font-weight:600;padding:1px 7px;border-radius:10px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2);font-family:'IBM Plex Mono';white-space:nowrap}
 .fv-chip.delivered{color:#14532d;border-color:rgba(22,163,74,.45);background:rgba(22,163,74,.10)}
+/* Scheduled-next release trains on an already-delivered game (#75) */
+.fv-chip.next{color:#1e40af;border-color:rgba(37,99,235,.40);background:rgba(37,99,235,.10)}
+.fv-next-label{font-size:8px;font-weight:700;color:var(--muted);align-self:center;text-transform:uppercase;letter-spacing:.05em;opacity:.85;margin-left:2px}
 
 /* PLAN MODE - games show/hide list */
 .pc-games-count{font-weight:700;color:#b45309;font-style:normal;text-transform:none;margin-left:6px}

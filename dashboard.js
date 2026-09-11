@@ -367,7 +367,19 @@ function gameSizes(g) { return { ...(SHARED_SIZES[g.name] || {}), ...(USER_SIZES
 function hasAnySize(g) { const s = gameSizes(g); return ['art', 'math', 'dev', 'sound'].some(k => s[k]); }
 function fvRow(g) {
   if (g.delivered) {
-    return `<div class="fv-row"><span class="fv-chip delivered" title="Delivered in ${g.delivered.fv} on ${g.delivered.date}">✓ Delivered · ${g.delivered.fv} · ${fmtD(g.delivered.date)}</span></div>`;
+    // Delivered in one market, but a game can still be booked for LATER release
+    // trains (other markets) — any UNRELEASED fixVersion with its own target
+    // date. Show those as "Next" chips so a delivered row still flags what's
+    // scheduled next instead of reading as fully done. (#75)
+    const next = (g.fixVersions || [])
+      .filter(v => !v.released)
+      .sort((a, b) => (a.releaseDate || '9999').localeCompare(b.releaseDate || '9999'));
+    const nextChips = next.length
+      ? '<span class="fv-next-label">Next</span>' + next.map(v =>
+          `<span class="fv-chip next" title="Scheduled for ${v.name}${v.releaseDate ? ' · ' + v.releaseDate : ''}">${v.name}${v.releaseDate ? ' · ' + fmtD(v.releaseDate) : ''}</span>`
+        ).join('')
+      : '';
+    return `<div class="fv-row"><span class="fv-chip delivered" title="Delivered in ${g.delivered.fv} on ${g.delivered.date}">✓ Delivered · ${g.delivered.fv} · ${fmtD(g.delivered.date)}</span>${nextChips}</div>`;
   }
   const fvs = g.fixVersions || [];
   if (!fvs.length) return '';
