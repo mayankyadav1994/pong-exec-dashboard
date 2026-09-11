@@ -34,14 +34,15 @@
     "Gen2 Game: Lantern's Rising [V]": "In Production",
     "Gen2 Game: Pharaoh's Quest": "In Review",
     "Gen2 Game: Birthday Bash [V]": "In Progress",
-    "Gen2 - Game: Quick Wins Diamond Wild": "On Hold"
+    "Gen2 Game: 3 Chili Riches": "In Progress"
   },
   "stage": {
     "Gen2 Game: Amaterasu Rising": "dev",
     "Gen2 Game: Pharaoh's Quest": "dev",
     "Gen2 Game: Nordic Paws": "art",
     "Gen2 Game: Neon Break": "art",
-    "Gen2 Game: Birthday Bash [V]": "art"
+    "Gen2 Game: Birthday Bash [V]": "art",
+    "Gen2 Game: 3 Chili Riches": "art"
   },
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
@@ -265,5 +266,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-09-11 19:16"
+  "updated_at": "2026-09-11 20:02"
 }
