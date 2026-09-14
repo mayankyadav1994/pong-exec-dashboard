@@ -383,8 +383,10 @@ function fvRow(g) {
   }
   const fvs = g.fixVersions || [];
   if (!fvs.length) return '';
+  // Non-delivered game: show each target release train WITH its date (#75) — a
+  // bare version name (e.g. "ELG 5.10") isn't useful without knowing when it ships.
   return '<div class="fv-row">' + fvs.map(v =>
-    `<span class="fv-chip${v.released ? ' delivered' : ''}" title="${v.name}${v.released && v.releaseDate ? ' · released ' + v.releaseDate : ''}">${v.released ? '✓ ' : ''}${v.name}</span>`
+    `<span class="fv-chip${v.released ? ' delivered' : ''}" title="${v.name}${v.releaseDate ? (v.released ? ' · released ' : ' · scheduled ') + v.releaseDate : ''}">${v.released ? '✓ ' : ''}${v.name}${v.releaseDate ? ' · ' + fmtD(v.releaseDate) : ''}</span>`
   ).join('') + '</div>';
 }
 
