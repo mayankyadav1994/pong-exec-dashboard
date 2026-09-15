@@ -56,6 +56,10 @@ GAMES = {
     "IG-3689": ("Fortune Diamond 10X",          "Skin",    "ELG 4.20"),
 }
 
+# Blended hourly rate used to cost the hours. One knob -- change it here and
+# every figure on the page follows.
+HOURLY_RATE = 82.5
+
 # Release-level epics -- overhead, not attributable to any one game.
 RELEASE_EPICS = {
     "IG-5427": "ELG 4.20",

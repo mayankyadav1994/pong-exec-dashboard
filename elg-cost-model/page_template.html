@@ -133,7 +133,7 @@ select:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:2px so
 
 /* MATRIX */
 .mwrap{overflow-x:auto;margin-top:12px;padding-bottom:4px}
-table.matrix{border-collapse:separate;border-spacing:2px;font-size:11.5px;min-width:740px}
+table.matrix{border-collapse:separate;border-spacing:2px;font-size:11.5px;min-width:830px}
 table.matrix th{font-weight:600;color:var(--sub);font-size:10px;padding:3px 5px;text-align:center;vertical-align:bottom;
   letter-spacing:.3px;text-transform:uppercase}
 table.matrix th.rowh{text-align:left;white-space:nowrap;font-size:12px;color:var(--text);padding-right:8px;
@@ -142,6 +142,10 @@ table.matrix th.rowh i{font-style:normal;color:var(--sub);font-family:'IBM Plex 
 table.matrix td{text-align:center;padding:6px 4px;border-radius:4px;min-width:54px;
   font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:11px;cursor:pointer}
 table.matrix td:hover{outline:2px solid var(--cool);outline-offset:-2px}
+/* totals are not heat cells — no fill, no drill-in cursor */
+table.matrix td.tot,table.matrix td.cost{background:transparent;color:var(--text);font-weight:600;cursor:default}
+table.matrix td.tot:hover,table.matrix td.cost:hover{outline:none}
+table.matrix td.cost{color:var(--muted);border-left:1px solid var(--border)}
 .ramp{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
 .ramp i{display:inline-block;width:24px;height:10px;border-radius:2px}
 
@@ -284,6 +288,7 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   var GAMES = RAW.meta.games, DEPTS = RAW.meta.depts, T = RAW.tickets;
   // row: 0 game 1 cat 2 key 3 type 4 dept 5 fv 6 elg 7 est 8 spent 9 summary 10 rule 11 pfh
   var JIRA = "https://ponggamestudios.atlassian.net/browse/";
+  var RATE = RAW.meta.rate;   // blended $/h, set in elg_cost_data.py RUN CONFIG
   var state = {game:"*", dept:"*", scope:"full"};
   var CAT_ORDER = ["Port","Skin","Branded","New"];
   var REL_OH = 29.79;
@@ -307,6 +312,8 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     });
   }
   function fmt(n,d){ d=d==null?1:d; return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  // whole dollars — cents are noise against hours logged to 2dp
+  function money(n){ return "$"+Math.round(n).toLocaleString("en-US"); }
   function rows(){
     return T.filter(function(t){
       if(!inScope(t)) return false;
@@ -408,7 +415,7 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     Object.keys(cell).forEach(function(k){ if(cell[k]>max) max=cell[k]; });
     var h='<table class="matrix"><thead><tr><th class="rowh">Game</th>';
     DEPTS.forEach(function(d){ h+='<th>'+esc(d).replace(" ","<br>")+'</th>'; });
-    h+='<th>Total</th></tr></thead><tbody>';
+    h+='<th>Total<br>Hours</th><th>$$</th></tr></thead><tbody>';
     GAMES.forEach(function(g){
       h+='<tr><th class="rowh">'+esc(g.name)+' <i>'+esc(g.cat)+'</i></th>';
       var tot=0;
@@ -420,7 +427,8 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
         h+='<td tabindex="0" data-g="'+esc(g.name)+'" data-d="'+esc(d)+'" style="background:'+bg+';color:'+fg+'" '
           +'title="'+esc(g.name)+' · '+esc(d)+' — '+fmt(v)+'h">'+(v>0?fmt(v,0):"·")+'</td>';
       });
-      h+='<td style="background:transparent;color:var(--text);font-weight:600">'+fmt(tot,0)+'</td></tr>';
+      h+='<td class="tot">'+fmt(tot,0)+'</td>'
+       + '<td class="cost" title="'+fmt(tot,2)+'h × $'+RATE+'/h">'+money(tot*RATE)+'</td></tr>';
     });
     return '<div class="mwrap">'+h+'</tbody></table></div>'
       + '<div class="ramp"><span>Hours</span><i style="background:var(--surf2)"></i>'

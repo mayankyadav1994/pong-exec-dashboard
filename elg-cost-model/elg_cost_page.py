@@ -22,7 +22,7 @@ import json
 import os
 import sys
 
-from elg_cost_data import GAMES, DEPT_ORDER, load, HERE, PFH_RE
+from elg_cost_data import GAMES, DEPT_ORDER, load, HERE, PFH_RE, HOURLY_RATE
 
 TEMPLATE_FILE = os.path.join(HERE, "page_template.html")
 
@@ -75,6 +75,7 @@ def meta():
         "games": [{"epic": e, "name": n, "cat": c, "rel": r}
                   for e, (n, c, r) in GAMES.items()],
         "depts": DEPT_ORDER,
+        "rate": HOURLY_RATE,
     }
 
 
