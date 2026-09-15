@@ -82,6 +82,11 @@ select:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:2px so
 }
 .seg button:hover,.btn:hover{background:var(--surf2);color:var(--text)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+/* Drilling into a cell replaces the matrix, so there has to be a way back that
+   is not Reset — Reset also clears the scope, which is rarely what you want. */
+.btn.back{font-size:11px;padding:4px 10px;color:var(--cool);border-color:var(--border2)}
+.btn.back:hover{background:var(--surf3);color:var(--cool)}
+.btn.back[hidden]{display:none}
 
 /* BARS */
 .bars{margin-top:12px;display:flex;flex-direction:column;gap:1px}
@@ -177,6 +182,7 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 
 <div class="card">
   <div class="card-hd">
+    <button type="button" class="btn back" id="btnBack" hidden>← All games</button>
     <h2 id="selTitle">All games · all departments</h2>
     <span class="pill" id="selPill">Full game</span>
   </div>
@@ -248,6 +254,14 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   function fmt(n,d){ d=d==null?1:d; return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
   // whole dollars — cents are noise against hours logged to 2dp
   function money(n){ return "$"+Math.round(n).toLocaleString("en-US"); }
+  // the control row is sticky, so scroll the target clear of it
+  function scrollTo(sel){
+    var el=document.querySelector(sel); if(!el) return;
+    var ctl=document.querySelector(".controls");
+    var off=(ctl? ctl.getBoundingClientRect().height : 0) + 12;
+    var y=el.getBoundingClientRect().top + window.pageYOffset - off;
+    window.scrollTo({top:Math.max(y,0), behavior:"smooth"});
+  }
   function rows(){
     return T.filter(function(t){
       if(!inScope(t)) return false;
@@ -344,6 +358,8 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     var dname = state.dept==="*" ? "all departments" : state.dept;
     document.getElementById("selTitle").textContent = gname+" · "+dname;
     document.getElementById("selPill").textContent = SCOPE[state.scope].label;
+    // only offer "back" when there is somewhere to go back to
+    document.getElementById("btnBack").hidden = (state.game==="*" && state.dept==="*");
     drawTiles(rs);
 
     var note="", bd="";
@@ -388,7 +404,9 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
         document.getElementById("selGame").value=state.game;
         document.getElementById("selDept").value=state.dept;
         render();
-        document.querySelector(".controls").scrollIntoView({behavior:"smooth",block:"start"});
+        // land on the detail itself, not the top of the page; the sticky
+        // control row stays visible above it either way
+        scrollTo("#selTitle");
       }
       td.addEventListener("click",drill);
       td.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); drill(); } });
@@ -497,6 +515,13 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     });
     document.getElementById("btnReset").addEventListener("click",function(){
       state={game:"*",dept:"*",scope:"full"}; sg.value="*"; sd.value="*"; setScope("full");
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+    // back clears the game/department drill-down but KEEPS the chosen scope
+    document.getElementById("btnBack").addEventListener("click",function(){
+      state.game="*"; state.dept="*"; sg.value="*"; sd.value="*";
+      render();
+      window.scrollTo({top:0,behavior:"smooth"});
     });
   }
   function setScope(s){
