@@ -134,13 +134,6 @@ table.matrix td.cost{color:var(--muted);border-left:1px solid var(--border)}
 .conf{display:inline-block;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.3px;
   text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--surf3);color:var(--muted)}
 
-/* GAPS */
-ul.gaps{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:1px;background:var(--border);
-  border:1px solid var(--border);border-radius:8px;overflow:hidden}
-ul.gaps li{background:var(--surface);padding:10px 13px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
-.g-t{font-size:12.5px;font-weight:500}
-.g-d{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.4}
-.g-v{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;text-align:right;white-space:nowrap}
 
 footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color:var(--sub);font-size:11px}
 
@@ -193,14 +186,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   <div class="card-hd"><h2>Average cost per game, by category</h2></div>
   <p class="note">Full-game scope plus release overhead. Only Port rests on enough games to average.</p>
   <div class="cards" id="catCards"></div>
-</div>
-
-<div class="card">
-  <div class="eyebrow">Data hygiene</div>
-  <div class="card-hd"><h2>What's distorting these numbers</h2></div>
-  <ul class="gaps" id="gapList"></ul>
-  <p class="note" style="margin-top:10px">IG epics <i>do</i> carry fix versions — 7 of 8 are tagged. Only Flaming
-    Skulls (IG&#8209;1506) has none, so any games-per-release count built on epic fix versions undercounts ELG&nbsp;4.30.</p>
 </div>
 
 <footer>
@@ -426,34 +411,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     }).join("");
   }
 
-  /* ---------- hygiene ---------- */
-  function drawGaps(){
-    var estNoLog=T.filter(function(t){return t[7]>0&&t[8]===0;});
-    var nonElg  =T.filter(function(t){return t[5]&&!t[6];});
-    var noFv    =T.filter(function(t){return !t[5];});
-    var logNoEst=T.filter(function(t){return t[8]>0&&t[7]===0;});
-    var totAct=sum(T,8), elgAct=sum(T.filter(function(t){return t[6];}),8);
-    var gapPct=((totAct-elgAct)/totAct*100).toFixed(1);
-    var items=[
-      {t:"Estimated, nothing ever logged",
-       d:estNoLog.length+" tickets carrying "+fmt(sum(estNoLog,7),0)+"h of estimate with zero time against them — why the bands were never validated",
-       v:fmt(sum(estNoLog,7),0)+" h"},
-      {t:"Non-ELG fix version under an ELG game epic",
-       d:nonElg.length+" tickets tagged PFH, Horse Play or “New Games – iGaming”. With the untagged below, ELG-only scope misses "+gapPct+"% of spend",
-       v:fmt(sum(nonElg,8),1)+" h"},
-      {t:"No fix version at all",
-       d:noFv.length+" tickets that cannot be attributed to any release",
-       v:fmt(sum(noFv,8),1)+" h"},
-      {t:"Time logged with no estimate",
-       d:logNoEst.length+" tickets — invisible to any capacity forecast",
-       v:fmt(sum(logNoEst,8),1)+" h"}
-    ];
-    document.getElementById("gapList").innerHTML = items.map(function(i){
-      return '<li><div><div class="g-t">'+esc(i.t)+'</div><div class="g-d">'+esc(i.d)+'</div></div>'
-           + '<div class="g-v">'+esc(i.v)+'</div></li>';
-    }).join("");
-  }
-
   /* ---------- wiring ---------- */
   function initSelects(){
     var sg=document.getElementById("selGame");
@@ -493,6 +450,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     render();
   }
 
-  initSelects(); drawCards(); drawGaps(); render();
+  initSelects(); drawCards(); render();
 })();
 </script>
