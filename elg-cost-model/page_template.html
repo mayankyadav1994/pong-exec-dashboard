@@ -1,353 +1,280 @@
 <title>ELG Game Cost Model</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ============================================================
+   ELG Game Cost Model — styled to match the Game Pipeline
+   dashboard (game-pipeline/dashboard.css): same tokens, same
+   IBM Plex pairing, same compact scale and flat bordered cards.
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  color-scheme: light;
-  --ground:#E8ECE7; --surface:#FBFCFA; --surface-2:#F1F4F0; --edge:#D2D9D1;
-  --ink:#14201E; --ink-2:#4A5754; --ink-3:#77827E;
-  --brass:#9A6F28; --brass-soft:#EFE3CC;
-  --cool:#2A6F9E; --warm:#A8452A; --mid:#8A8F8C;
-  --s1:#F3E8D2; --s2:#E2CBA0; --s3:#C9A868; --s4:#A8802F; --s5:#7A5A18;
-  --on-ramp-lo:#14201E; --on-ramp-hi:#FBF7EE;
-  --shadow:0 1px 2px rgba(20,32,30,.06), 0 4px 14px rgba(20,32,30,.05);
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --ink:#1a2035;
+  /* diverging pair for estimate polarity — validated on this surface */
+  --cool:#2563eb;   /* over-estimated  */
+  --warm:#dc2626;   /* under-estimated */
+  --mid:#8a94ad;    /* about right     */
+  /* sequential ramp for hours magnitude — one hue, light to dark */
+  --s1:#eaf0fd;--s2:#c7d9f9;--s3:#93b4f2;--s4:#5b8ae8;--s5:#2563eb;
+  --on-lo:#1a2035;--on-hi:#ffffff;
+  --good:#16a34a;
 }
-@media (prefers-color-scheme: dark){
+@media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    color-scheme: dark;
-    --ground:#101817; --surface:#182322; --surface-2:#1E2A29; --edge:#2C3A38;
-    --ink:#E6EDE9; --ink-2:#A6B4B0; --ink-3:#7A8783;
-    --brass:#D3A55A; --brass-soft:#33291A;
-    --cool:#4E93C4; --warm:#C55B3A; --mid:#8A8F8C;
-    --s1:#22241D; --s2:#3A3524; --s3:#5C4C2B; --s4:#8A6E35; --s5:#D3A55A;
-    --on-ramp-lo:#E6EDE9; --on-ramp-hi:#14110A;
-    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+    --bg:#11151f;--surface:#171c28;--surf2:#1d2330;--surf3:#242b3a;
+    --border:#2b3346;--border2:#3a4459;--muted:#9aa6c0;--text:#e6eaf3;--sub:#7a86a0;
+    --ink:#e6eaf3;
+    --cool:#5b8ae8;--warm:#ef5350;--mid:#7a86a0;
+    --s1:#1b2434;--s2:#22314b;--s3:#2c4570;--s4:#37609f;--s5:#5b8ae8;
+    --on-lo:#e6eaf3;--on-hi:#0d1017;
+    --good:#4ade80;
   }
 }
 :root[data-theme="dark"]{
-  color-scheme: dark;
-  --ground:#101817; --surface:#182322; --surface-2:#1E2A29; --edge:#2C3A38;
-  --ink:#E6EDE9; --ink-2:#A6B4B0; --ink-3:#7A8783;
-  --brass:#D3A55A; --brass-soft:#33291A;
-  --cool:#4E93C4; --warm:#C55B3A; --mid:#8A8F8C;
-  --s1:#22241D; --s2:#3A3524; --s3:#5C4C2B; --s4:#8A6E35; --s5:#D3A55A;
-  --on-ramp-lo:#E6EDE9; --on-ramp-hi:#14110A;
-  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+  --bg:#11151f;--surface:#171c28;--surf2:#1d2330;--surf3:#242b3a;
+  --border:#2b3346;--border2:#3a4459;--muted:#9aa6c0;--text:#e6eaf3;--sub:#7a86a0;
+  --ink:#e6eaf3;
+  --cool:#5b8ae8;--warm:#ef5350;--mid:#7a86a0;
+  --s1:#1b2434;--s2:#22314b;--s3:#2c4570;--s4:#37609f;--s5:#5b8ae8;
+  --on-lo:#e6eaf3;--on-hi:#0d1017;
+  --good:#4ade80;
 }
-*{box-sizing:border-box}
 body{
-  margin:0; background:var(--ground); color:var(--ink);
-  font-family:Archivo,"Segoe UI",system-ui,sans-serif; font-size:15px; line-height:1.55;
-  -webkit-font-smoothing:antialiased;
+  font-family:'IBM Plex Sans',system-ui,sans-serif; background:var(--bg); color:var(--text);
+  padding:22px 28px 56px; font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased;
 }
-.wrap{max-width:1180px; margin:0 auto; padding-inline:20px; padding-block:0 72px}
-h1,h2,h3{font-family:Fraunces,Georgia,serif; font-variation-settings:"SOFT" 0,"WONK" 1; text-wrap:balance; margin:0}
-.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
-.num{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
-.eyebrow{
-  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
-  text-transform:uppercase; color:var(--ink-3); margin:0 0 8px
-}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
 
-/* ---------- header ---------- */
-header{border-bottom:1px solid var(--edge); background:var(--surface); margin-bottom:28px}
-.head-in{max-width:1180px; margin:0 auto; padding:26px 20px 22px}
-h1{font-size:clamp(28px,4.4vw,42px); font-weight:600; letter-spacing:-.015em; line-height:1.08}
-.sub{color:var(--ink-2); max-width:64ch; margin:10px 0 0; font-size:15.5px}
-.strip{display:flex; flex-wrap:wrap; gap:10px 30px; margin-top:20px; padding-top:18px; border-top:1px solid var(--edge)}
-.stat .k{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
-.stat .v{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:20px; font-weight:600; letter-spacing:-.01em}
-.stat .v small{font-size:12px; font-weight:400; color:var(--ink-3); letter-spacing:0}
+/* HEADER */
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px}
+.pagehead h1{font-size:22px;font-weight:600;letter-spacing:-.3px}
+.pagehead p{font-size:12px;color:var(--muted);margin-top:4px}
+.meta{font-size:11px;color:var(--sub);display:flex;align-items:center;gap:6px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex-shrink:0}
 
-/* ---------- generic panel ---------- */
-section{margin-top:34px}
-.panel{background:var(--surface); border:1px solid var(--edge); border-radius:10px; box-shadow:var(--shadow)}
-.panel-hd{padding:18px 20px 0}
-.panel-bd{padding:18px 20px 20px}
-h2{font-size:21px; font-weight:600; letter-spacing:-.01em}
-h3{font-size:16px; font-weight:600}
-.lede{color:var(--ink-2); margin:8px 0 0; max-width:72ch; font-size:14.5px}
+/* KPI STRIP */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;
+  border-left:3px solid var(--rc,var(--border2))}
+.kpi-v{font-size:22px;font-weight:600;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;line-height:1.1;letter-spacing:-.4px}
+.kpi-v small{font-size:11px;font-weight:400;color:var(--sub);letter-spacing:0}
+.kpi-l{font-size:10px;color:var(--sub);letter-spacing:.4px;margin-top:3px;font-weight:700;text-transform:uppercase}
+.kpi-d{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}
 
-/* ---------- finding / dot plot ---------- */
-.finding{border-left:3px solid var(--brass)}
-.dots{margin-top:18px}
-/* axis shares the row grid so ticks line up with the dots exactly */
-.axis{display:grid; grid-template-columns:232px 1fr 84px; gap:12px; align-items:end; margin:0 0 2px}
-.ticks{position:relative; height:17px}
-.ticks span{position:absolute; transform:translateX(-50%); font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-3)}
-.ticks span.on{color:var(--ink-2); font-weight:600}
-.plotarea{border-top:1px solid var(--edge)}
-.ref{position:absolute; top:-3px; bottom:-3px; width:1px; background:var(--ink-3); opacity:.5}
-.drow{display:grid; grid-template-columns:232px 1fr 84px; align-items:center; gap:12px; padding:5px 0; border-bottom:1px solid var(--edge)}
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.card-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+h2{font-size:15px;font-weight:600;letter-spacing:-.15px}
+.eyebrow{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
+.note{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:3px}
+.pill{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;
+  background:var(--surf3);color:var(--muted)}
+
+/* SELECTION STAT LINE — deliberately not a second KPI strip: at rest it would
+   repeat the header numbers as five more cards. */
+.statline{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:10px;padding:9px 12px;
+  background:var(--surf2);border:1px solid var(--border);border-radius:7px}
+.statline div{display:flex;align-items:baseline;gap:6px}
+.statline .l{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;text-transform:uppercase}
+.statline .v{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
+.statline .v small{font-size:10px;font-weight:400;color:var(--sub)}
+
+/* DOT PLOT */
+.dots{margin-top:12px}
+.axis{display:grid;grid-template-columns:210px 1fr 62px;gap:10px;align-items:end;margin-bottom:2px}
+.ticks{position:relative;height:15px}
+.ticks span{position:absolute;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--sub)}
+.ticks span.on{color:var(--muted);font-weight:600}
+.plot{border-top:1px solid var(--border)}
+.drow{display:grid;grid-template-columns:210px 1fr 62px;gap:10px;align-items:center;padding:3px 0;border-bottom:1px solid var(--surf2)}
 .drow:last-child{border-bottom:0}
-.dname{font-size:13.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.dname i{font-style:normal; color:var(--ink-3); font-size:10.5px; font-family:"IBM Plex Mono",monospace}
-.dtrack{position:relative; height:22px}
-.dbar{position:absolute; top:50%; transform:translateY(-50%); height:3px; border-radius:2px; opacity:.5}
-.ddot{position:absolute; top:50%; width:13px; height:13px; border-radius:50%; transform:translate(-50%,-50%); box-shadow:0 0 0 2px var(--surface)}
-.dval{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:13px; text-align:right; font-weight:600}
-.legend{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:14px; font-size:12.5px; color:var(--ink-2)}
-.legend b{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:-1px}
+.dname{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dname i{font-style:normal;color:var(--sub);font-size:10px;font-family:'IBM Plex Mono',monospace}
+.dtrack{position:relative;height:18px}
+.ref{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--border2)}
+.dbar{position:absolute;top:50%;transform:translateY(-50%);height:2px;border-radius:1px;opacity:.55}
+.ddot{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--surface)}
+.dval{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:12px;text-align:right;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:11px;color:var(--muted)}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 
-/* ---------- controls ---------- */
-.controls{position:sticky; top:0; z-index:20; background:var(--ground); padding:12px 0 12px; border-bottom:1px solid var(--edge)}
-.ctl-in{display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end}
-.field{display:flex; flex-direction:column; gap:5px; min-width:0}
-.field label{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+/* CONTROLS */
+.controls{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;margin-bottom:12px;border-bottom:1px solid var(--border)}
+.ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;text-transform:uppercase}
 select{
-  font-family:Archivo,sans-serif; font-size:14px; color:var(--ink);
-  background:var(--surface); border:1px solid var(--edge); border-radius:7px;
-  padding:9px 32px 9px 11px; min-width:210px; max-width:100%;
-  appearance:none; cursor:pointer;
-  background-image:linear-gradient(45deg,transparent 50%,var(--ink-2) 50%),linear-gradient(135deg,var(--ink-2) 50%,transparent 50%);
-  background-position:calc(100% - 17px) calc(50% + 2px),calc(100% - 12px) calc(50% + 2px);
-  background-size:5px 5px,5px 5px; background-repeat:no-repeat;
+  font-family:inherit;font-size:12px;font-weight:500;color:var(--text);background:var(--surface);
+  border:1px solid var(--border);border-radius:7px;padding:7px 28px 7px 10px;min-width:200px;max-width:100%;
+  appearance:none;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 15px) calc(50% + 1px),calc(100% - 11px) calc(50% + 1px);
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
 }
-select:focus-visible, .seg button:focus-visible{outline:2px solid var(--brass); outline-offset:2px}
-.seg{display:inline-flex; border:1px solid var(--edge); border-radius:7px; overflow:hidden; background:var(--surface)}
-.seg button{
-  font-family:Archivo,sans-serif; font-size:13px; padding:9px 13px; border:0; cursor:pointer;
-  background:transparent; color:var(--ink-2); white-space:nowrap;
+select:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+.seg{display:inline-flex;gap:6px}
+.seg button,.btn{
+  font-family:inherit;font-size:12px;font-weight:600;padding:7px 14px;border:1px solid var(--border);
+  border-radius:7px;background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap;
 }
-.seg button + button{box-shadow:inset 1px 0 0 var(--edge)}
-.seg button:hover:not([aria-pressed="true"]){color:var(--ink)}
-.seg button[aria-pressed="true"]{background:var(--brass); color:var(--on-ramp-hi); font-weight:600}
-.reset{
-  font-family:Archivo,sans-serif; font-size:13px; background:transparent; color:var(--ink-2);
-  border:1px solid var(--edge); border-radius:7px; padding:9px 13px; cursor:pointer;
-}
-.reset:hover{color:var(--ink); border-color:var(--ink-3)}
+.seg button:hover,.btn:hover{background:var(--surf2);color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 
-/* ---------- selection summary ---------- */
-.selhd{display:flex; flex-wrap:wrap; align-items:baseline; gap:10px; margin-bottom:4px}
-.pill{
-  font-family:"IBM Plex Mono",monospace; font-size:11px; padding:3px 9px; border-radius:20px;
-  background:var(--brass-soft); color:var(--brass); border:1px solid transparent; font-weight:600;
-}
-.tiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:1px; background:var(--edge); border:1px solid var(--edge); border-radius:9px; overflow:hidden; margin-top:16px}
-.tile{background:var(--surface); padding:13px 15px}
-.tile .k{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3)}
-.tile .v{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:21px; font-weight:600; margin-top:3px; letter-spacing:-.01em}
-.tile .n{font-size:11.5px; color:var(--ink-3); margin-top:1px}
+/* BARS */
+.bars{margin-top:12px;display:flex;flex-direction:column;gap:1px}
+.brow{display:grid;grid-template-columns:108px 1fr 108px;align-items:center;gap:10px;padding:2px 0}
+.blab{font-size:12px;text-align:right;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btrack{position:relative;height:16px;background:var(--surf2);border-radius:3px;overflow:hidden}
+.bfill{height:100%;border-radius:3px;background:var(--s5);min-width:2px}
+.bmeta{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:11.5px;color:var(--muted)}
+.bmeta b{color:var(--text);font-weight:600}
 
-/* ---------- bars ---------- */
-.bars{margin-top:20px; display:flex; flex-direction:column; gap:2px}
-.brow{display:grid; grid-template-columns:118px 1fr 118px; align-items:center; gap:12px; padding:3px 0}
-.blab{font-size:13.5px; text-align:right; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
-.btrack{position:relative; height:19px; background:var(--surface-2); border-radius:3px; overflow:hidden}
-.bfill{height:100%; border-radius:3px 2px 2px 3px; background:var(--brass); min-width:2px}
-.bmeta{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:12.5px; color:var(--ink-2)}
-.bmeta b{color:var(--ink); font-weight:600}
+/* MATRIX */
+.mwrap{overflow-x:auto;margin-top:12px;padding-bottom:4px}
+table.matrix{border-collapse:separate;border-spacing:2px;font-size:11.5px;min-width:740px}
+table.matrix th{font-weight:600;color:var(--sub);font-size:10px;padding:3px 5px;text-align:center;vertical-align:bottom;
+  letter-spacing:.3px;text-transform:uppercase}
+table.matrix th.rowh{text-align:left;white-space:nowrap;font-size:12px;color:var(--text);padding-right:8px;
+  font-weight:500;text-transform:none;letter-spacing:0}
+table.matrix th.rowh i{font-style:normal;color:var(--sub);font-family:'IBM Plex Mono',monospace;font-size:10px}
+table.matrix td{text-align:center;padding:6px 4px;border-radius:4px;min-width:54px;
+  font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:11px;cursor:pointer}
+table.matrix td:hover{outline:2px solid var(--cool);outline-offset:-2px}
+.ramp{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.ramp i{display:inline-block;width:24px;height:10px;border-radius:2px}
 
-/* ---------- matrix ---------- */
-.mwrap{overflow-x:auto; margin-top:20px; padding-bottom:4px}
-table.matrix{border-collapse:separate; border-spacing:2px; font-size:12.5px; min-width:760px}
-table.matrix th{font-weight:500; color:var(--ink-2); font-size:11.5px; padding:4px 6px; text-align:center; vertical-align:bottom}
-table.matrix th.rowh{text-align:left; white-space:nowrap; font-size:13px; color:var(--ink); padding-right:10px; font-weight:400}
-table.matrix th.rowh i{font-style:normal; color:var(--ink-3); font-family:"IBM Plex Mono",monospace; font-size:10.5px}
-table.matrix td{
-  text-align:center; padding:7px 4px; border-radius:4px; min-width:58px;
-  font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:12px; cursor:pointer;
-}
-table.matrix td:hover{outline:2px solid var(--brass); outline-offset:-2px}
-.ramp{display:flex; align-items:center; gap:7px; margin-top:14px; font-size:12px; color:var(--ink-2); flex-wrap:wrap}
-.ramp i{display:inline-block; width:26px; height:11px; border-radius:2px}
-
-/* ---------- table ---------- */
-.tblwrap{overflow-x:auto; margin-top:20px}
-table.tickets{border-collapse:collapse; width:100%; font-size:13px; min-width:780px}
-table.tickets th{
-  text-align:left; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.09em;
-  text-transform:uppercase; color:var(--ink-3); font-weight:500; padding:8px 10px;
-  border-bottom:1px solid var(--edge); white-space:nowrap; position:sticky; top:0; background:var(--surface);
-}
-table.tickets td{padding:8px 10px; border-bottom:1px solid var(--edge); vertical-align:top}
-table.tickets tr:last-child td{border-bottom:0}
-table.tickets tbody tr:hover{background:var(--surface-2)}
-table.tickets td:nth-child(2),table.tickets td:nth-child(3){white-space:nowrap}
-td.r{text-align:right; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
-a.key{font-family:"IBM Plex Mono",monospace; color:var(--brass); text-decoration:none; font-size:12.5px; white-space:nowrap; font-weight:500}
+/* TICKET TABLE */
+.tblwrap{overflow-x:auto;margin-top:12px}
+table.tk{border-collapse:collapse;width:100%;font-size:11.5px;min-width:760px}
+table.tk th{text-align:left;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--sub);
+  font-weight:700;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;
+  position:sticky;top:0;background:var(--surface)}
+table.tk td{padding:6px 8px;border-bottom:1px solid var(--surf2);vertical-align:top}
+table.tk tbody tr:hover{background:var(--surf2)}
+table.tk td:nth-child(2),table.tk td:nth-child(3){white-space:nowrap}
+td.r{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+a.key{font-family:'IBM Plex Mono',monospace;color:var(--cool);text-decoration:none;font-size:11px;font-weight:500;white-space:nowrap}
 a.key:hover{text-decoration:underline}
-.sm{font-size:12.5px; color:var(--ink-2)}
-.tag{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-3); white-space:nowrap}
-.more{text-align:center; padding:12px; color:var(--ink-3); font-size:12.5px}
-.empty{padding:30px 6px; text-align:center; color:var(--ink-3)}
+.tag{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);white-space:nowrap}
+.more{text-align:center;padding:9px;color:var(--sub);font-size:11px}
+.empty{padding:22px 6px;text-align:center;color:var(--sub);font-size:12px}
 
-/* ---------- cards ---------- */
-.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px; margin-top:18px}
-.card{background:var(--surface); border:1px solid var(--edge); border-radius:9px; padding:15px 16px}
-.card.dim{opacity:.62}
-.card .cat{font-family:Fraunces,serif; font-size:17px; font-weight:600}
-.card .big{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:28px; font-weight:600; letter-spacing:-.02em; margin-top:6px}
-.card .big small{font-size:13px; color:var(--ink-3); font-weight:400}
-.card .brk{font-size:12px; color:var(--ink-2); margin-top:7px; line-height:1.5}
-.conf{display:inline-block; margin-top:9px; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; padding:2px 7px; border-radius:3px}
-.c-ok{background:var(--brass-soft); color:var(--brass)}
-.c-lo{background:color-mix(in srgb,var(--cool) 14%,transparent); color:var(--cool)}
-.c-no{background:var(--surface-2); color:var(--ink-3)}
+/* CATEGORY CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(195px,1fr));gap:10px;margin-top:12px}
+.cat{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;border-left:3px solid var(--rc,var(--border2))}
+.cat.dim{opacity:.6}
+.cat-n{font-size:13px;font-weight:600}
+.cat-v{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:24px;font-weight:600;letter-spacing:-.5px;margin-top:4px}
+.cat-v small{font-size:11px;color:var(--sub);font-weight:400}
+.cat-d{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4}
+.conf{display:inline-block;margin-top:7px;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.3px;
+  text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--surf3);color:var(--muted)}
 
-/* ---------- notes ---------- */
-.note{background:var(--surface-2); border:1px solid var(--edge); border-radius:9px; padding:15px 17px; margin-top:16px; font-size:13.5px; color:var(--ink-2)}
-.note b{color:var(--ink)}
-.note p{margin:0 0 9px} .note p:last-child{margin:0}
-ul.gaps{list-style:none; padding:0; margin:16px 0 0; display:flex; flex-direction:column; gap:1px; background:var(--edge); border:1px solid var(--edge); border-radius:9px; overflow:hidden}
-ul.gaps li{background:var(--surface); padding:12px 15px; display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center}
-ul.gaps .g-t{font-size:14px}
-ul.gaps .g-d{font-size:12.5px; color:var(--ink-3); margin-top:2px}
-ul.gaps .g-v{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; font-size:15px; font-weight:600; text-align:right; white-space:nowrap}
-footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); color:var(--ink-3); font-size:12.5px}
+/* GAPS */
+ul.gaps{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:8px;overflow:hidden}
+ul.gaps li{background:var(--surface);padding:10px 13px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.g-t{font-size:12.5px;font-weight:500}
+.g-d{font-size:11px;color:var(--sub);margin-top:2px;line-height:1.4}
+.g-v{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600;text-align:right;white-space:nowrap}
+
+footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color:var(--sub);font-size:11px}
+
 @media (max-width:640px){
-  .drow{grid-template-columns:1fr 64px; row-gap:2px}
-  .drow .dtrack{grid-column:1/-1; order:3}
-  .brow{grid-template-columns:96px 1fr; row-gap:2px}
-  .brow .bmeta{grid-column:1/-1; text-align:right}
-  select{min-width:0; width:100%}
+  body{padding:16px 16px 40px}
+  .axis,.drow{grid-template-columns:1fr 54px}
+  .drow .dtrack{grid-column:1/-1;order:3}
+  .axis .ticks{grid-column:1/-1}
+  .brow{grid-template-columns:92px 1fr}
+  .brow .bmeta{grid-column:1/-1;text-align:right}
   .field{width:100%}
+  select{width:100%;min-width:0}
   .seg{width:100%}
-  .seg button{flex:1; padding:9px 6px}
+  .seg button{flex:1;padding:7px 4px}
 }
-@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
-<header>
-  <div class="head-in">
-    <p class="eyebrow">Pong Game Studios &middot; iGaming PMO &middot; September 2026</p>
+<div class="pagehead">
+  <div>
     <h1>ELG Game Cost Model</h1>
-    <p class="sub">Eight games from the last five ELG game-bearing releases, traced to
-      980 tickets across eleven departments &mdash; so we can budget by category and
-      rebase the 2024 t-shirt bands on what delivery actually costs.</p>
-    <div class="strip">
-      <div class="stat"><div class="k">Games</div><div class="v">8</div></div>
-      <div class="stat"><div class="k">Tickets</div><div class="v" id="hTickets">&mdash;</div></div>
-      <div class="stat"><div class="k">Estimated</div><div class="v"><span id="hEst">&mdash;</span><small> h</small></div></div>
-      <div class="stat"><div class="k">Actual</div><div class="v"><span id="hAct">&mdash;</span><small> h</small></div></div>
-      <div class="stat"><div class="k">Actual &divide; Est</div><div class="v" id="hRatio">&mdash;</div></div>
-      <div class="stat"><div class="k">Releases</div><div class="v">4.20&ndash;4.70</div></div>
-    </div>
+    <p>Pong Game Studios · iGaming PMO · what ELG games actually cost, by department</p>
   </div>
-</header>
-
-<div class="wrap">
-
-  <!-- ============ FINDING ============ -->
-  <section>
-    <div class="panel finding">
-      <div class="panel-hd">
-        <p class="eyebrow">The headline</p>
-        <h2>The bands don't fail high &mdash; they fail to scale down</h2>
-        <p class="lede">Every game carries a per-ticket Original Estimate, so this needs no
-          assumption about what size anything "should" have been. Large Ports land close to
-          estimate. Small games come in at roughly half. A flat percentage cut would break
-          the large end that already works.</p>
-      </div>
-      <div class="panel-bd">
-        <div class="dots" id="dotplot"></div>
-        <div class="legend">
-          <span><b style="background:var(--cool)"></b>Over-estimated &mdash; came in under half</span>
-          <span><b style="background:color-mix(in srgb,var(--cool) 55%,var(--mid))"></b>Over-estimated</span>
-          <span><b style="background:var(--mid)"></b>About right (0.80&ndash;1.15)</span>
-          <span><b style="background:var(--warm)"></b>Under-estimated</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ CONTROLS ============ -->
-  <div class="controls">
-    <div class="ctl-in">
-      <div class="field">
-        <label for="selGame">Game</label>
-        <select id="selGame"></select>
-      </div>
-      <div class="field">
-        <label for="selDept">Department</label>
-        <select id="selDept"></select>
-      </div>
-      <div class="field">
-        <label for="segScope">Scope</label>
-        <div class="seg" id="segScope">
-          <button type="button" id="scopeFull" data-scope="full" aria-pressed="true">Full game</button>
-          <button type="button" id="scopeElg" data-scope="elg" aria-pressed="false">ELG only</button>
-          <button type="button" id="scopePfh" data-scope="pfh" aria-pressed="false">PFH only</button>
-        </div>
-      </div>
-      <div class="field">
-        <label for="btnReset">&nbsp;</label>
-        <button type="button" class="reset" id="btnReset">Reset</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ BREAKDOWN ============ -->
-  <section style="margin-top:20px">
-    <div class="panel">
-      <div class="panel-hd">
-        <div class="selhd">
-          <h2 id="selTitle">All games &middot; all departments</h2>
-          <span class="pill" id="selPill">Full game</span>
-        </div>
-        <p class="lede" id="selNote"></p>
-        <div class="tiles" id="tiles"></div>
-      </div>
-      <div class="panel-bd" id="breakdown"></div>
-    </div>
-  </section>
-
-  <!-- ============ TICKETS ============ -->
-  <section>
-    <div class="panel">
-      <div class="panel-hd">
-        <p class="eyebrow">Evidence</p>
-        <h2 id="tkTitle">Tickets</h2>
-        <p class="lede">Every row is a real Jira ticket. <b>Rule</b> shows which classification
-          rule placed it in its department &mdash; summary patterns are evaluated before issue
-          type, because type is unreliable here (Sound work typed <span class="mono">Dev Subtask</span>,
-          a 43h Review story typed <span class="mono">Story</span>).</p>
-      </div>
-      <div class="panel-bd" style="padding-top:0">
-        <div class="tblwrap"><table class="tickets" id="tkTable"></table></div>
-        <div class="more" id="tkMore"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ BUDGET ============ -->
-  <section>
-    <p class="eyebrow">Budget basis</p>
-    <h2>Average cost per game, by category</h2>
-    <p class="lede">Full-game scope plus 29.8h of release overhead per game. Read the
-      confidence marker: only Port rests on enough games to average.</p>
-    <div class="cards" id="catCards"></div>
-    <div class="note">
-      <p><b>No New game has shipped to ELG.</b> Everything ELG is built in V2 first and
-      ported, so that category has no delivery data and cannot be budgeted from this
-      sample at all &mdash; the 2024 legend is the only figure available for it.</p>
-      <p><b>Skin and Branded are single data points, not averages.</b> Two games and one
-      game respectively. Treat them as a starting hypothesis to widen as more ships.</p>
-    </div>
-  </section>
-
-  <!-- ============ GAPS ============ -->
-  <section>
-    <p class="eyebrow">Data hygiene</p>
-    <h2>What's distorting these numbers</h2>
-    <p class="lede">Found while tracing the tree. The first line is the one to act on.</p>
-    <ul class="gaps" id="gapList"></ul>
-    <div class="note">
-      <p><b>One correction to a standing rule.</b> IG epics <em>do</em> carry fix versions &mdash;
-      7 of these 8 are tagged. Only Flaming Skulls (IG&#8209;1506) has no ELG version on the
-      epic, which means any "games per release" count built on epic fix versions undercounts
-      ELG&nbsp;4.30 by at least one.</p>
-    </div>
-  </section>
-
-  <footer>
-    Generated from Jira by <span class="mono">game_cost_report.py</span> &middot;
-    hours are Time Spent in raw seconds, rounded at output &middot;
-    rollup walks epic &rarr; children &rarr; subtasks, never <span class="mono">aggregatetimespent</span>.
-  </footer>
+  <div class="meta"><span class="dot"></span><span id="metaLine">—</span></div>
 </div>
+
+<div class="kpi-strip" id="kpis"></div>
+
+<div class="card">
+  <div class="card-hd">
+    <h2>The bands don't fail high — they fail to scale down</h2>
+  </div>
+  <p class="note">Actual ÷ estimate per game. Large Ports land near 1.00; small games come in at roughly half.</p>
+  <div class="dots" id="dotplot"></div>
+  <div class="legend">
+    <span><b style="background:var(--cool)"></b>Over-estimated — under half</span>
+    <span><b style="background:color-mix(in srgb,var(--cool) 55%,var(--mid))"></b>Over-estimated</span>
+    <span><b style="background:var(--mid)"></b>About right (0.80–1.15)</span>
+    <span><b style="background:var(--warm)"></b>Under-estimated</span>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="ctl">
+    <div class="field"><label for="selGame">Game</label><select id="selGame"></select></div>
+    <div class="field"><label for="selDept">Department</label><select id="selDept"></select></div>
+    <div class="field">
+      <label for="segScope">Scope</label>
+      <div class="seg" id="segScope">
+        <button type="button" data-scope="full" aria-pressed="true">Full game</button>
+        <button type="button" data-scope="elg" aria-pressed="false">ELG only</button>
+        <button type="button" data-scope="pfh" aria-pressed="false">PFH only</button>
+      </div>
+    </div>
+    <div class="field"><label>&nbsp;</label><button type="button" class="btn" id="btnReset">Reset</button></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-hd">
+    <h2 id="selTitle">All games · all departments</h2>
+    <span class="pill" id="selPill">Full game</span>
+  </div>
+  <p class="note" id="selNote"></p>
+  <div class="statline" id="tiles"></div>
+  <div id="breakdown"></div>
+</div>
+
+<div class="card">
+  <div class="eyebrow">Evidence</div>
+  <div class="card-hd"><h2 id="tkTitle">Tickets</h2></div>
+  <p class="note"><b>Rule</b> shows which classification rule placed each ticket — summary patterns run before
+    issue type, because type is unreliable here.</p>
+  <div class="tblwrap"><table class="tk" id="tkTable"></table></div>
+  <div class="more" id="tkMore"></div>
+</div>
+
+<div class="card">
+  <div class="eyebrow">Budget basis</div>
+  <div class="card-hd"><h2>Average cost per game, by category</h2></div>
+  <p class="note">Full-game scope plus release overhead. Only Port rests on enough games to average.</p>
+  <div class="cards" id="catCards"></div>
+</div>
+
+<div class="card">
+  <div class="eyebrow">Data hygiene</div>
+  <div class="card-hd"><h2>What's distorting these numbers</h2></div>
+  <ul class="gaps" id="gapList"></ul>
+  <p class="note" style="margin-top:10px">IG epics <i>do</i> carry fix versions — 7 of 8 are tagged. Only Flaming
+    Skulls (IG&#8209;1506) has none, so any games-per-release count built on epic fix versions undercounts ELG&nbsp;4.30.</p>
+</div>
+
+<footer>
+  Built from Jira by <span class="mono">elg_cost_page.py</span> · hours are Time Spent in raw seconds, rounded at
+  output · rollup walks epic → children → subtasks, never <span class="mono">aggregatetimespent</span>.
+</footer>
 
 <script id="payload" type="application/json">__DATA__</script>
 <script>
@@ -355,27 +282,31 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
   "use strict";
   var RAW = JSON.parse(document.getElementById("payload").textContent);
   var GAMES = RAW.meta.games, DEPTS = RAW.meta.depts, T = RAW.tickets;
-  // ticket row: 0 game 1 cat 2 key 3 type 4 dept 5 fv 6 elg 7 est 8 spent 9 summary
+  // row: 0 game 1 cat 2 key 3 type 4 dept 5 fv 6 elg 7 est 8 spent 9 summary 10 rule 11 pfh
   var JIRA = "https://ponggamestudios.atlassian.net/browse/";
   var state = {game:"*", dept:"*", scope:"full"};
-
-  /* Scope filters on fix version. ELG and PFH overlap rather than partition:
-     a few tickets carry both tags and 83 carry neither, so "ELG only" plus
-     "PFH only" does not add up to "Full game" — by design, not a rounding bug. */
-  var SCOPE = {
-    full: {label:"Full game", test:function(){ return true; },
-           note:"Every ticket under the game epic, whatever its fix version."},
-    elg:  {label:"ELG only",  test:function(t){ return t[6]; },
-           note:"Only tickets carrying an ELG fix version."},
-    pfh:  {label:"PFH only",  test:function(t){ return t[11]; },
-           note:"Only tickets carrying a PFH fix version — build work on an ELG game "
-               +"booked to a PFH release. Ports only; no Skin or Branded game has any."}
-  };
-  function inScope(t){ return SCOPE[state.scope].test(t); }
-
   var CAT_ORDER = ["Port","Skin","Branded","New"];
   var REL_OH = 29.79;
 
+  /* Scope filters on fix version. ELG and PFH overlap rather than partition:
+     a few tickets carry both and many carry neither, so "ELG only" plus
+     "PFH only" does not add up to "Full game" — by design, not a rounding bug. */
+  var SCOPE = {
+    full:{label:"Full game", test:function(){ return true; }, note:""},
+    elg: {label:"ELG only",  test:function(t){ return t[6]; },
+          note:"Only tickets carrying an ELG fix version."},
+    pfh: {label:"PFH only",  test:function(t){ return t[11]; },
+          note:"Only tickets carrying a PFH fix version — build work on an ELG game booked to a PFH release. Ports only."}
+  };
+  function inScope(t){ return SCOPE[state.scope].test(t); }
+
+  function sum(a,i){ var s=0; for(var k=0;k<a.length;k++) s+=a[k][i]; return s; }
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function fmt(n,d){ d=d==null?1:d; return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
   function rows(){
     return T.filter(function(t){
       if(!inScope(t)) return false;
@@ -384,18 +315,8 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
       return true;
     });
   }
-  function sum(a,i){ var s=0; for(var k=0;k<a.length;k++) s+=a[k][i]; return s; }
-  // ticket summaries are free text from Jira — escape before it reaches innerHTML
-  function esc(s){
-    return String(s==null?"":s).replace(/[&<>"']/g, function(c){
-      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
-    });
-  }
-  function fmt(n,d){ d=d==null?1:d; return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
-
-  /* ---------- ratio colour: diverging around 1.0 ---------- */
   function ratioColor(r){
-    if(!r) return "var(--ink-3)";
+    if(!r) return "var(--sub)";
     if(r < 0.6)  return "var(--cool)";
     if(r < 0.80) return "color-mix(in srgb,var(--cool) 55%,var(--mid))";
     if(r <= 1.15) return "var(--mid)";
@@ -408,63 +329,73 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
     if(r <= 1.15) return "about right";
     return "under-estimated";
   }
-
-  /* ---------- 1. dot plot ---------- */
-  function drawDots(){
-    var LO=0.2, HI=1.2;
-    var pos = function(v){ return ((Math.min(Math.max(v,LO),HI)-LO)/(HI-LO))*100; };
-    var per = GAMES.map(function(g){
-      var rs = T.filter(function(t){ return t[0]===g.name; });
-      var e = sum(rs,7), a = sum(rs,8);
-      return {name:g.name, cat:g.cat, est:e, act:a, r: e? a/e : 0};
-    }).sort(function(x,y){ return x.r - y.r; });
-
-    var ticks=[0.2,0.4,0.6,0.8,1.0,1.2];
-    // the axis uses the same 3-column grid as each row, so ticks and the
-    // reference line share the dots' coordinate space
-    var h = '<div class="axis"><div></div><div class="ticks">'
-      + ticks.map(function(t){
-          var on = t===1;
-          return '<span class="'+(on?"on":"")+'" style="left:'+pos(t)+'%">'
-               + (on? "1.00 on estimate" : t.toFixed(1)) + '</span>';
-        }).join("")
-      + '</div><div></div></div>';
-    h += '<div class="plotarea">';
-    per.forEach(function(p){
-      var c = ratioColor(p.r);
-      var left = Math.min(pos(p.r), pos(1)), w = Math.abs(pos(1)-pos(p.r));
-      h += '<div class="drow" title="'+esc(p.name)+' — estimated '+fmt(p.est)+'h, actual '+fmt(p.act)+'h ('+ratioWord(p.r)+')">'
-        +  '<div class="dname">'+esc(p.name)+' <i>'+esc(p.cat)+'</i></div>'
-        +  '<div class="dtrack">'
-        +    '<div class="ref" style="left:'+pos(1)+'%"></div>'
-        +    '<div class="dbar" style="left:'+left+'%;width:'+w+'%;background:'+c+'"></div>'
-        +    '<div class="ddot" style="left:'+pos(p.r)+'%;background:'+c+'"></div>'
-        +  '</div>'
-        +  '<div class="dval" style="color:'+c+'">'+p.r.toFixed(2)+'</div>'
-        +  '</div>';
-    });
-    h += '</div>';
-    document.getElementById("dotplot").innerHTML = h;
+  function kpi(label, value, desc, colour){
+    return '<div class="kpi"'+(colour?' style="--rc:'+colour+'"':'')+'>'
+      + '<div class="kpi-v">'+value+'</div>'
+      + '<div class="kpi-l">'+esc(label)+'</div>'
+      + (desc?'<div class="kpi-d">'+esc(desc)+'</div>':'')
+      + '</div>';
   }
 
-  /* ---------- 2. tiles ---------- */
+  /* ---------- header ---------- */
+  function drawHeader(){
+    var est=sum(T,7), act=sum(T,8), r=act/est;
+    document.getElementById("metaLine").textContent =
+      GAMES.length + " games · " + T.length + " tickets · releases 4.20–4.70";
+    document.getElementById("kpis").innerHTML =
+        kpi("Games", GAMES.length, "Port 5 · Skin 2 · Branded 1", "var(--s4)")
+      + kpi("Tickets", T.length.toLocaleString("en-US"), "epic → children → subtasks", "var(--s3)")
+      + kpi("Estimated", fmt(est,0)+'<small> h</small>', "sum of Original Estimate", "var(--s2)")
+      + kpi("Actual", fmt(act,0)+'<small> h</small>', "sum of Time Spent", "var(--s5)")
+      + kpi("Actual ÷ Est", '<span style="color:'+ratioColor(r)+'">'+r.toFixed(2)+'</span>',
+            ratioWord(r)+" overall", ratioColor(r))
+      + kpi("Departments", DEPTS.length, "4 priced in 2024, 4 never priced", "var(--mid)");
+  }
+
+  /* ---------- dot plot ---------- */
+  function drawDots(){
+    var LO=0.2, HI=1.2, pos=function(v){ return ((Math.min(Math.max(v,LO),HI)-LO)/(HI-LO))*100; };
+    var per = GAMES.map(function(g){
+      var rs=T.filter(function(t){ return t[0]===g.name; });
+      var e=sum(rs,7), a=sum(rs,8);
+      return {name:g.name, cat:g.cat, est:e, act:a, r: e? a/e : 0};
+    }).sort(function(x,y){ return x.r-y.r; });
+
+    var h='<div class="axis"><div></div><div class="ticks">'
+      + [0.2,0.4,0.6,0.8,1.0,1.2].map(function(t){
+          var on=t===1;
+          return '<span class="'+(on?"on":"")+'" style="left:'+pos(t)+'%">'+(on?"1.00":t.toFixed(1))+'</span>';
+        }).join("")
+      + '</div><div></div></div><div class="plot">';
+    per.forEach(function(p){
+      var c=ratioColor(p.r), left=Math.min(pos(p.r),pos(1)), w=Math.abs(pos(1)-pos(p.r));
+      h+='<div class="drow" title="'+esc(p.name)+' — estimated '+fmt(p.est)+'h, actual '+fmt(p.act)+'h ('+ratioWord(p.r)+')">'
+       + '<div class="dname">'+esc(p.name)+' <i>'+esc(p.cat)+'</i></div>'
+       + '<div class="dtrack"><div class="ref" style="left:'+pos(1)+'%"></div>'
+       +   '<div class="dbar" style="left:'+left+'%;width:'+w+'%;background:'+c+'"></div>'
+       +   '<div class="ddot" style="left:'+pos(p.r)+'%;background:'+c+'"></div></div>'
+       + '<div class="dval" style="color:'+c+'">'+p.r.toFixed(2)+'</div></div>';
+    });
+    document.getElementById("dotplot").innerHTML = h+'</div>';
+  }
+
+  /* ---------- tiles ---------- */
   function drawTiles(rs){
     var est=sum(rs,7), act=sum(rs,8), r= est? act/est : 0;
-    var t = [
-      {k:"Tickets", v:String(rs.length), n:""},
-      {k:"Estimated", v:fmt(est), n:"hours"},
-      {k:"Actual", v:fmt(act), n:"hours"},
-      {k:"Actual / Est", v: est? r.toFixed(2):"—", n: ratioWord(r), c: ratioColor(r)},
-      {k:"Logged", v: String(rs.filter(function(x){return x[8]>0;}).length), n:"tickets with time"}
-    ];
-    document.getElementById("tiles").innerHTML = t.map(function(x){
-      return '<div class="tile"><div class="k">'+x.k+'</div>'
-        + '<div class="v"'+(x.c?' style="color:'+x.c+'"':'')+'>'+x.v+'</div>'
-        + '<div class="n">'+(x.n||"&nbsp;")+'</div></div>';
-    }).join("");
+    var logged=rs.filter(function(x){return x[8]>0;}).length;
+    function s(l,v,colour){
+      return '<div><span class="l">'+esc(l)+'</span>'
+           + '<span class="v"'+(colour?' style="color:'+colour+'"':'')+'>'+v+'</span></div>';
+    }
+    document.getElementById("tiles").innerHTML =
+        s("Tickets", rs.length.toLocaleString("en-US"))
+      + s("Estimated", fmt(est,0)+'<small> h</small>')
+      + s("Actual", fmt(act,0)+'<small> h</small>')
+      + s("Actual ÷ Est", est? r.toFixed(2) : "—", est? ratioColor(r) : null)
+      + s("Logged", logged+'<small> of '+rs.length+'</small>');
   }
 
-  /* ---------- 3. matrix (both = all) ---------- */
+  /* ---------- matrix ---------- */
   var RAMP=["var(--s1)","var(--s2)","var(--s3)","var(--s4)","var(--s5)"];
   function step(v,max){
     if(v<=0) return -1;
@@ -473,13 +404,10 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
   }
   function drawMatrix(){
     var cell={}, max=0;
-    T.forEach(function(t){
-      if(!inScope(t)) return;
-      var k=t[0]+"|"+t[4]; cell[k]=(cell[k]||0)+t[8];
-    });
+    T.forEach(function(t){ if(!inScope(t)) return; var k=t[0]+"|"+t[4]; cell[k]=(cell[k]||0)+t[8]; });
     Object.keys(cell).forEach(function(k){ if(cell[k]>max) max=cell[k]; });
     var h='<table class="matrix"><thead><tr><th class="rowh">Game</th>';
-    DEPTS.forEach(function(d){ h+='<th>'+d.replace(" ","<br>")+'</th>'; });
+    DEPTS.forEach(function(d){ h+='<th>'+esc(d).replace(" ","<br>")+'</th>'; });
     h+='<th>Total</th></tr></thead><tbody>';
     GAMES.forEach(function(g){
       h+='<tr><th class="rowh">'+esc(g.name)+' <i>'+esc(g.cat)+'</i></th>';
@@ -487,231 +415,159 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
       DEPTS.forEach(function(d){
         var v=cell[g.name+"|"+d]||0; tot+=v;
         var s=step(v,max);
-        var bg = s<0 ? "var(--surface-2)" : RAMP[s];
-        var fg = s<0 ? "var(--ink-3)" : (s>=3 ? "var(--on-ramp-hi)" : "var(--on-ramp-lo)");
+        var bg=s<0?"var(--surf2)":RAMP[s];
+        var fg=s<0?"var(--sub)":(s>=3?"var(--on-hi)":"var(--on-lo)");
         h+='<td tabindex="0" data-g="'+esc(g.name)+'" data-d="'+esc(d)+'" style="background:'+bg+';color:'+fg+'" '
           +'title="'+esc(g.name)+' · '+esc(d)+' — '+fmt(v)+'h">'+(v>0?fmt(v,0):"·")+'</td>';
       });
-      h+='<td style="background:transparent;color:var(--ink);font-weight:600">'+fmt(tot,0)+'</td></tr>';
+      h+='<td style="background:transparent;color:var(--text);font-weight:600">'+fmt(tot,0)+'</td></tr>';
     });
-    h+='</tbody></table>';
-    return '<div class="mwrap">'+h+'</div>'
-      + '<div class="ramp"><span>Hours</span><i style="background:var(--surface-2)"></i>'
+    return '<div class="mwrap">'+h+'</tbody></table></div>'
+      + '<div class="ramp"><span>Hours</span><i style="background:var(--surf2)"></i>'
       + RAMP.map(function(c){return '<i style="background:'+c+'"></i>';}).join("")
-      + '<span>0 &rarr; '+fmt(max,0)+'h &middot; click any cell to drill in</span></div>';
+      + '<span>0 → '+fmt(max,0)+'h · click a cell to drill in</span></div>';
   }
 
-  /* ---------- 4. bar list ---------- */
-  function drawBars(items, label){
+  /* ---------- bars ---------- */
+  function drawBars(items,label){
     var max=0; items.forEach(function(i){ if(i.act>max) max=i.act; });
     if(max<=0) return '<p class="empty">No time logged for this selection.</p>';
-    var h='<p class="eyebrow" style="margin-bottom:10px">'+label+'</p><div class="bars">';
+    var h='<div class="eyebrow" style="margin-top:14px">'+esc(label)+'</div><div class="bars">';
     items.forEach(function(i){
-      var r = i.est? i.act/i.est : 0;
+      var r=i.est? i.act/i.est : 0;
       h+='<div class="brow" title="'+esc(i.name)+' — '+fmt(i.act)+'h actual vs '+fmt(i.est)+'h estimated">'
-        + '<div class="blab">'+esc(i.name)+'</div>'
-        + '<div class="btrack"><div class="bfill" style="width:'+Math.max((i.act/max)*100,0.6)+'%"></div></div>'
-        + '<div class="bmeta"><b>'+fmt(i.act)+'h</b> <span style="color:'+ratioColor(r)+'">'
-        +   (r? "×"+r.toFixed(2) : "no est")+'</span></div>'
-        + '</div>';
+       + '<div class="blab">'+esc(i.name)+'</div>'
+       + '<div class="btrack"><div class="bfill" style="width:'+Math.max((i.act/max)*100,0.6)+'%"></div></div>'
+       + '<div class="bmeta"><b>'+fmt(i.act)+'h</b> <span style="color:'+ratioColor(r)+'">'
+       +   (r? "×"+r.toFixed(2):"no est")+'</span></div></div>';
     });
     return h+'</div>';
   }
 
   /* ---------- render ---------- */
   function render(){
-    var rs = rows();
+    var rs=rows();
     var gname = state.game==="*" ? "All games" : state.game;
     var dname = state.dept==="*" ? "all departments" : state.dept;
-    document.getElementById("selTitle").textContent = gname + " · " + dname;
+    document.getElementById("selTitle").textContent = gname+" · "+dname;
     document.getElementById("selPill").textContent = SCOPE[state.scope].label;
     drawTiles(rs);
 
     var note="", bd="";
     if(state.game==="*" && state.dept==="*"){
-      note = "Hours by game and department. Darker means more hours; the scale is relative to the busiest cell.";
-      bd = drawMatrix();
+      note="Hours by game and department. Darker means more hours.";
+      bd=drawMatrix();
     } else if(state.game!=="*" && state.dept==="*"){
-      var g = GAMES.filter(function(x){return x.name===state.game;})[0];
-      note = g.cat + " · " + g.rel + " · epic " + g.epic + ". Where this game's hours went.";
-      var items = DEPTS.map(function(d){
-        var sub = rs.filter(function(t){return t[4]===d;});
+      var g=GAMES.filter(function(x){return x.name===state.game;})[0];
+      note=g.cat+" · "+g.rel+" · epic "+g.epic+".";
+      var items=DEPTS.map(function(d){
+        var sub=rs.filter(function(t){return t[4]===d;});
         return {name:d, act:sum(sub,8), est:sum(sub,7)};
-      }).filter(function(i){ return i.act>0 || i.est>0; })
-        .sort(function(a,b){ return b.act-a.act; });
-      bd = drawBars(items, "Hours by department");
+      }).filter(function(i){return i.act>0||i.est>0;}).sort(function(a,b){return b.act-a.act;});
+      bd=drawBars(items,"Hours by department");
     } else if(state.game==="*" && state.dept!=="*"){
-      note = "How " + state.dept + " effort is distributed across the eight games.";
-      var items2 = GAMES.map(function(g2){
-        var sub = rs.filter(function(t){return t[0]===g2.name;});
+      note="How "+state.dept+" effort spreads across the eight games.";
+      var it2=GAMES.map(function(g2){
+        var sub=rs.filter(function(t){return t[0]===g2.name;});
         return {name:g2.name, act:sum(sub,8), est:sum(sub,7)};
-      }).filter(function(i){ return i.act>0 || i.est>0; })
-        .sort(function(a,b){ return b.act-a.act; });
-      bd = items2.length ? drawBars(items2, state.dept + " hours by game")
-                         : '<p class="empty">No '+state.dept+' work on any game in this scope.</p>';
+      }).filter(function(i){return i.act>0||i.est>0;}).sort(function(a,b){return b.act-a.act;});
+      bd = it2.length? drawBars(it2, state.dept+" hours by game")
+                     : '<p class="empty">No '+esc(state.dept)+' work in this scope.</p>';
     } else {
-      note = "Every " + state.dept + " ticket on " + state.game + ".";
+      note="Every "+state.dept+" ticket on "+state.game+".";
       var byType={};
-      rs.forEach(function(t){ byType[t[3]] = byType[t[3]] || {name:t[3],act:0,est:0};
-        byType[t[3]].act+=t[8]; byType[t[3]].est+=t[7]; });
-      var arr = Object.keys(byType).map(function(k){return byType[k];})
-        .sort(function(a,b){return b.act-a.act;});
-      bd = arr.length ? drawBars(arr, "Hours by issue type")
-                      : '<p class="empty">No tickets match this combination.</p>';
+      rs.forEach(function(t){
+        byType[t[3]]=byType[t[3]]||{name:t[3],act:0,est:0};
+        byType[t[3]].act+=t[8]; byType[t[3]].est+=t[7];
+      });
+      var arr=Object.keys(byType).map(function(k){return byType[k];}).sort(function(a,b){return b.act-a.act;});
+      bd = arr.length? drawBars(arr,"Hours by issue type")
+                     : '<p class="empty">No tickets match this combination.</p>';
     }
-    if(state.scope !== "full") note += "  " + SCOPE[state.scope].note;
+    if(SCOPE[state.scope].note) note += "  " + SCOPE[state.scope].note;
     if(!rs.length) note += "  Nothing matches — try a different scope.";
     document.getElementById("selNote").textContent = note;
     document.getElementById("breakdown").innerHTML = bd;
 
-    // matrix cells drill in — mouse and keyboard
     Array.prototype.forEach.call(document.querySelectorAll("td[data-g]"), function(td){
       function drill(){
-        state.game = td.getAttribute("data-g");
-        state.dept = td.getAttribute("data-d");
-        document.getElementById("selGame").value = state.game;
-        document.getElementById("selDept").value = state.dept;
+        state.game=td.getAttribute("data-g"); state.dept=td.getAttribute("data-d");
+        document.getElementById("selGame").value=state.game;
+        document.getElementById("selDept").value=state.dept;
         render();
-        document.querySelector(".controls").scrollIntoView({behavior:"smooth", block:"start"});
+        document.querySelector(".controls").scrollIntoView({behavior:"smooth",block:"start"});
       }
-      td.addEventListener("click", drill);
-      td.addEventListener("keydown", function(e){
-        if(e.key==="Enter" || e.key===" "){ e.preventDefault(); drill(); }
-      });
+      td.addEventListener("click",drill);
+      td.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); drill(); } });
     });
-
     drawTickets(rs);
   }
 
   /* ---------- tickets ---------- */
-  var LIMIT = 60;
+  var LIMIT=60;
   function drawTickets(rs){
-    var sorted = rs.slice().sort(function(a,b){ return b[8]-a[8]; });
-    var shown = sorted.slice(0, LIMIT);
-    document.getElementById("tkTitle").textContent =
-      "Tickets — " + rs.length + (rs.length===1?" row":" rows");
+    var sorted=rs.slice().sort(function(a,b){ return b[8]-a[8]; });
+    var shown=sorted.slice(0,LIMIT);
+    document.getElementById("tkTitle").textContent = "Tickets — "+rs.length+(rs.length===1?" row":" rows");
     var h='<thead><tr><th>Ticket</th><th>Game</th><th>Dept</th><th>Type</th><th>Rule</th>'
       + '<th style="text-align:right">Est</th><th style="text-align:right">Spent</th>'
       + '<th>Fix version</th><th>Summary</th></tr></thead><tbody>';
-    if(!shown.length){
-      h+='<tr><td colspan="9" class="empty">Nothing matches this combination.</td></tr>';
-    }
+    if(!shown.length) h+='<tr><td colspan="9" class="empty">Nothing matches this combination.</td></tr>';
     shown.forEach(function(t){
-      h+='<tr>'
-        + '<td><a class="key" href="'+JIRA+encodeURIComponent(t[2])+'" target="_blank" rel="noopener">'+esc(t[2])+'</a></td>'
-        + '<td class="sm">'+esc(t[0])+'</td>'
-        + '<td class="sm">'+esc(t[4])+'</td>'
-        + '<td class="tag">'+esc(t[3])+'</td>'
-        + '<td class="tag">'+esc(t[10]||"")+'</td>'
-        + '<td class="r">'+(t[7]?fmt(t[7],2):"—")+'</td>'
-        + '<td class="r"><b>'+(t[8]?fmt(t[8],2):"—")+'</b></td>'
-        + '<td class="tag">'+esc(t[5]||"(none)")+'</td>'
-        + '<td class="sm">'+esc(t[9])+'</td>'
-        + '</tr>';
+      h+='<tr><td><a class="key" href="'+JIRA+encodeURIComponent(t[2])+'" target="_blank" rel="noopener">'+esc(t[2])+'</a></td>'
+       + '<td>'+esc(t[0])+'</td><td>'+esc(t[4])+'</td>'
+       + '<td class="tag">'+esc(t[3])+'</td><td class="tag">'+esc(t[10]||"")+'</td>'
+       + '<td class="r">'+(t[7]?fmt(t[7],2):"—")+'</td>'
+       + '<td class="r"><b>'+(t[8]?fmt(t[8],2):"—")+'</b></td>'
+       + '<td class="tag">'+esc(t[5]||"(none)")+'</td>'
+       + '<td>'+esc(t[9])+'</td></tr>';
     });
-    h+='</tbody>';
-    document.getElementById("tkTable").innerHTML = h;
-    var more = sorted.length - shown.length;
+    document.getElementById("tkTable").innerHTML = h+'</tbody>';
+    var more=sorted.length-shown.length;
     document.getElementById("tkMore").textContent = more>0
-      ? "Showing the " + LIMIT + " largest by hours — " + more + " more in this selection. Narrow the filters to see them."
-      : "";
+      ? "Showing the "+LIMIT+" largest by hours — "+more+" more in this selection." : "";
   }
 
   /* ---------- category cards ---------- */
   function drawCards(){
-    var out = CAT_ORDER.map(function(cat){
-      var gs = GAMES.filter(function(g){return g.cat===cat;});
-      var n = gs.length;
-      var per = gs.map(function(g){
-        var rs=T.filter(function(t){return t[0]===g.name;});
-        return sum(rs,8);
-      });
-      var avg = n? per.reduce(function(a,b){return a+b;},0)/n : 0;
-      var byd = {};
+    var RC={Port:"var(--s5)",Skin:"var(--s4)",Branded:"var(--s3)",New:"var(--border2)"};
+    document.getElementById("catCards").innerHTML = CAT_ORDER.map(function(cat){
+      var gs=GAMES.filter(function(g){return g.cat===cat;}), n=gs.length;
+      var per=gs.map(function(g){ return sum(T.filter(function(t){return t[0]===g.name;}),8); });
+      var avg=n? per.reduce(function(a,b){return a+b;},0)/n : 0;
+      var byd={};
       DEPTS.forEach(function(d){
-        var v = T.filter(function(t){return t[1]===cat && t[4]===d;})
-                 .reduce(function(a,b){return a+b[8];},0);
-        if(n) byd[d]=v/n;
+        if(!n) return;
+        byd[d]=T.filter(function(t){return t[1]===cat&&t[4]===d;}).reduce(function(a,b){return a+b[8];},0)/n;
       });
-      var top = Object.keys(byd).map(function(k){return [k,byd[k]];})
-        .sort(function(a,b){return b[1]-a[1];}).slice(0,3)
-        .filter(function(x){return x[1]>0;});
-      var conf = n===0 ? ["c-no","no data"] : n===1 ? ["c-lo","n=1 · indicative"]
-                : n<3 ? ["c-lo","n="+n+" · low"] : ["c-ok","n="+n+" · moderate"];
-      return '<div class="card'+(n?"":" dim")+'">'
-        + '<div class="cat">'+cat+'</div>'
-        + '<div class="big">'+(n? fmt(avg+REL_OH,0):"—")+'<small> h</small></div>'
-        + '<div class="brk">'+(n
-            ? fmt(avg,0)+'h build + '+REL_OH+'h release overhead'
-              + (top.length? '<br>Heaviest: '+top.map(function(x){return x[0]+' '+fmt(x[1],0)+'h';}).join(' · ') : '')
+      var top=Object.keys(byd).map(function(k){return [k,byd[k]];})
+        .sort(function(a,b){return b[1]-a[1];}).slice(0,3).filter(function(x){return x[1]>0;});
+      var conf = n===0?"no data" : n===1?"n=1 · indicative" : n<3?("n="+n+" · low") : ("n="+n+" · moderate");
+      return '<div class="cat'+(n?"":" dim")+'" style="--rc:'+RC[cat]+'">'
+        + '<div class="cat-n">'+cat+'</div>'
+        + '<div class="cat-v">'+(n? fmt(avg+REL_OH,0):"—")+'<small> h</small></div>'
+        + '<div class="cat-d">'+(n
+            ? fmt(avg,0)+'h build + '+REL_OH+'h release'
+              + (top.length? '<br>'+top.map(function(x){return esc(x[0])+' '+fmt(x[1],0)+'h';}).join(' · '):'')
             : 'No New game has shipped to ELG')+'</div>'
-        + '<span class="conf '+conf[0]+'">'+conf[1]+'</span>'
-        + '</div>';
+        + '<span class="conf">'+conf+'</span></div>';
     }).join("");
-    document.getElementById("catCards").innerHTML = out;
   }
 
-  /* ---------- wire up ---------- */
-  function initSelects(){
-    var sg = document.getElementById("selGame");
-    sg.innerHTML = '<option value="*">All games</option>' + CAT_ORDER.map(function(c){
-      var gs = GAMES.filter(function(g){return g.cat===c;});
-      if(!gs.length) return "";
-      return '<optgroup label="'+esc(c)+'">' + gs.map(function(g){
-        return '<option value="'+esc(g.name)+'">'+esc(g.name)+'</option>'; }).join("") + '</optgroup>';
-    }).join("");
-    var sd = document.getElementById("selDept");
-    sd.innerHTML = '<option value="*">All departments</option>' + DEPTS.map(function(d){
-      var tot = T.reduce(function(a,b){ return a + (b[4]===d? b[8]:0); },0);
-      return '<option value="'+d+'">'+d+(tot>0? " — "+fmt(tot,0)+"h" : " — no time")+'</option>';
-    }).join("");
-    sg.addEventListener("change", function(){ state.game=sg.value; render(); });
-    sd.addEventListener("change", function(){ state.dept=sd.value; render(); });
-
-    Array.prototype.forEach.call(document.querySelectorAll("#segScope button"), function(b){
-      b.addEventListener("click", function(){ setScope(b.getAttribute("data-scope")); });
-    });
-    document.getElementById("btnReset").addEventListener("click", function(){
-      state={game:"*",dept:"*",scope:"full"};
-      sg.value="*"; sd.value="*"; setScope("full");
-    });
-  }
-  function setScope(s){
-    state.scope = SCOPE[s] ? s : "full";
-    Array.prototype.forEach.call(document.querySelectorAll("#segScope button"), function(b){
-      b.setAttribute("aria-pressed", b.getAttribute("data-scope") === state.scope);
-    });
-    render();
-  }
-
-  // classification rule lives at index 10 — append from meta if present
-  T.forEach(function(t){ if(t.length<11) t.push(""); });
-
-  /* ---------- header + hygiene figures, computed not hardcoded ---------- */
-  function drawHeader(){
-    var est=sum(T,7), act=sum(T,8);
-    document.getElementById("hTickets").textContent = T.length.toLocaleString("en-US");
-    document.getElementById("hEst").textContent = fmt(est,0);
-    document.getElementById("hAct").textContent = fmt(act,0);
-    var rt=document.getElementById("hRatio");
-    rt.textContent = (act/est).toFixed(2);
-    rt.style.color = ratioColor(act/est);
-  }
+  /* ---------- hygiene ---------- */
   function drawGaps(){
-    var estNoLog=T.filter(function(t){return t[7]>0 && t[8]===0;});
-    var nonElg  =T.filter(function(t){return t[5] && !t[6];});
+    var estNoLog=T.filter(function(t){return t[7]>0&&t[8]===0;});
+    var nonElg  =T.filter(function(t){return t[5]&&!t[6];});
     var noFv    =T.filter(function(t){return !t[5];});
-    var logNoEst=T.filter(function(t){return t[8]>0 && t[7]===0;});
-    var totAct  =sum(T,8), elgAct=sum(T.filter(function(t){return t[6];}),8);
-    var gapPct  =((totAct-elgAct)/totAct*100).toFixed(1);
+    var logNoEst=T.filter(function(t){return t[8]>0&&t[7]===0;});
+    var totAct=sum(T,8), elgAct=sum(T.filter(function(t){return t[6];}),8);
+    var gapPct=((totAct-elgAct)/totAct*100).toFixed(1);
     var items=[
       {t:"Estimated, nothing ever logged",
-       d:estNoLog.length+" tickets carrying "+fmt(sum(estNoLog,7),0)+"h of estimate with zero time "
-        +"against them — this is why the bands were never validated: there was nothing to compare to",
+       d:estNoLog.length+" tickets carrying "+fmt(sum(estNoLog,7),0)+"h of estimate with zero time against them — why the bands were never validated",
        v:fmt(sum(estNoLog,7),0)+" h"},
       {t:"Non-ELG fix version under an ELG game epic",
-       d:nonElg.length+" tickets tagged PFH, Horse Play or “New Games – iGaming”. With the "
-        +noFv.length+" untagged tickets below, ELG-only scope misses "+gapPct+"% of spend. Hygiene, not a costing result",
+       d:nonElg.length+" tickets tagged PFH, Horse Play or “New Games – iGaming”. With the untagged below, ELG-only scope misses "+gapPct+"% of spend",
        v:fmt(sum(nonElg,8),1)+" h"},
       {t:"No fix version at all",
        d:noFv.length+" tickets that cannot be attributed to any release",
@@ -726,11 +582,38 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
     }).join("");
   }
 
-  initSelects();
-  drawHeader();
-  drawGaps();
-  drawDots();
-  drawCards();
-  render();
+  /* ---------- wiring ---------- */
+  function initSelects(){
+    var sg=document.getElementById("selGame");
+    sg.innerHTML='<option value="*">All games</option>'+CAT_ORDER.map(function(c){
+      var gs=GAMES.filter(function(g){return g.cat===c;});
+      if(!gs.length) return "";
+      return '<optgroup label="'+esc(c)+'">'+gs.map(function(g){
+        return '<option value="'+esc(g.name)+'">'+esc(g.name)+'</option>';
+      }).join("")+'</optgroup>';
+    }).join("");
+    var sd=document.getElementById("selDept");
+    sd.innerHTML='<option value="*">All departments</option>'+DEPTS.map(function(d){
+      var tot=T.reduce(function(a,b){ return a+(b[4]===d? b[8]:0); },0);
+      return '<option value="'+esc(d)+'">'+esc(d)+(tot>0? " — "+fmt(tot,0)+"h":" — no time")+'</option>';
+    }).join("");
+    sg.addEventListener("change",function(){ state.game=sg.value; render(); });
+    sd.addEventListener("change",function(){ state.dept=sd.value; render(); });
+    Array.prototype.forEach.call(document.querySelectorAll("#segScope button"),function(b){
+      b.addEventListener("click",function(){ setScope(b.getAttribute("data-scope")); });
+    });
+    document.getElementById("btnReset").addEventListener("click",function(){
+      state={game:"*",dept:"*",scope:"full"}; sg.value="*"; sd.value="*"; setScope("full");
+    });
+  }
+  function setScope(s){
+    state.scope = SCOPE[s] ? s : "full";
+    Array.prototype.forEach.call(document.querySelectorAll("#segScope button"),function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-scope")===state.scope);
+    });
+    render();
+  }
+
+  initSelects(); drawHeader(); drawDots(); drawCards(); drawGaps(); render();
 })();
 </script>
