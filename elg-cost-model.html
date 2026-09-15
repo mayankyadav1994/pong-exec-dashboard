@@ -44,7 +44,7 @@ body{
 .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
 
 /* CARD */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:14px}
 .card-hd{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:2px}
 h2{font-size:15px;font-weight:600;letter-spacing:-.15px}
 .eyebrow{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;text-transform:uppercase;margin-bottom:5px}
@@ -98,37 +98,23 @@ select:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:2px so
 .bmeta b{color:var(--text);font-weight:600}
 
 /* MATRIX */
-.mwrap{overflow-x:auto;margin-top:12px;padding-bottom:4px}
-table.matrix{border-collapse:separate;border-spacing:2px;font-size:11.5px;min-width:830px}
-table.matrix th{font-weight:600;color:var(--sub);font-size:10px;padding:3px 5px;text-align:center;vertical-align:bottom;
+.mwrap{overflow-x:auto;margin-top:16px;padding-bottom:4px}
+table.matrix{border-collapse:separate;border-spacing:3px;font-size:13px;min-width:900px;width:100%}
+table.matrix th{font-weight:600;color:var(--sub);font-size:11px;padding:5px 6px;text-align:center;vertical-align:bottom;
   letter-spacing:.3px;text-transform:uppercase}
-table.matrix th.rowh{text-align:left;white-space:nowrap;font-size:12px;color:var(--text);padding-right:8px;
+table.matrix th.rowh{text-align:left;white-space:nowrap;font-size:13.5px;color:var(--text);padding-right:8px;
   font-weight:500;text-transform:none;letter-spacing:0}
-table.matrix th.rowh i{font-style:normal;color:var(--sub);font-family:'IBM Plex Mono',monospace;font-size:10px}
-table.matrix td{text-align:center;padding:6px 4px;border-radius:4px;min-width:54px;
-  font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:11px;cursor:pointer}
+table.matrix th.rowh i{font-style:normal;color:var(--sub);font-family:'IBM Plex Mono',monospace;font-size:11px}
+table.matrix td{text-align:center;padding:10px 6px;border-radius:5px;min-width:62px;
+  font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:12.5px;cursor:pointer}
 table.matrix td:hover{outline:2px solid var(--cool);outline-offset:-2px}
 /* totals are not heat cells — no fill, no drill-in cursor */
 table.matrix td.tot,table.matrix td.cost{background:transparent;color:var(--text);font-weight:600;cursor:default}
 table.matrix td.tot:hover,table.matrix td.cost:hover{outline:none}
 table.matrix td.cost{color:var(--muted);border-left:1px solid var(--border)}
-.ramp{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.ramp{display:flex;align-items:center;gap:7px;margin-top:14px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
 .ramp i{display:inline-block;width:24px;height:10px;border-radius:2px}
 
-/* TICKET TABLE */
-.tblwrap{overflow-x:auto;margin-top:12px}
-table.tk{border-collapse:collapse;width:100%;font-size:11.5px;min-width:760px}
-table.tk th{text-align:left;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--sub);
-  font-weight:700;padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;
-  position:sticky;top:0;background:var(--surface)}
-table.tk td{padding:6px 8px;border-bottom:1px solid var(--surf2);vertical-align:top}
-table.tk tbody tr:hover{background:var(--surf2)}
-table.tk td:nth-child(2),table.tk td:nth-child(3){white-space:nowrap}
-td.r{text-align:right;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
-a.key{font-family:'IBM Plex Mono',monospace;color:var(--cool);text-decoration:none;font-size:11px;font-weight:500;white-space:nowrap}
-a.key:hover{text-decoration:underline}
-.tag{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);white-space:nowrap}
-.more{text-align:center;padding:9px;color:var(--sub);font-size:11px}
 .empty{padding:22px 6px;text-align:center;color:var(--sub);font-size:12px}
 
 /* CATEGORY CARDS */
@@ -192,15 +178,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 </div>
 
 <div class="card">
-  <div class="eyebrow">Evidence</div>
-  <div class="card-hd"><h2 id="tkTitle">Tickets</h2></div>
-  <p class="note"><b>Rule</b> shows which classification rule placed each ticket — summary patterns run before
-    issue type, because type is unreliable here.</p>
-  <div class="tblwrap"><table class="tk" id="tkTable"></table></div>
-  <div class="more" id="tkMore"></div>
-</div>
-
-<div class="card">
   <div class="eyebrow">Budget basis</div>
   <div class="card-hd"><h2>Average cost per game, by category</h2></div>
   <p class="note">Full-game scope plus release overhead. Only Port rests on enough games to average.</p>
@@ -227,7 +204,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   var RAW = JSON.parse(document.getElementById("payload").textContent);
   var GAMES = RAW.meta.games, DEPTS = RAW.meta.depts, T = RAW.tickets;
   // row: 0 game 1 cat 2 key 3 type 4 dept 5 fv 6 elg 7 est 8 spent 9 summary 10 rule 11 pfh
-  var JIRA = "https://ponggamestudios.atlassian.net/browse/";
   var RATE = RAW.meta.rate;   // blended $/h, set in elg_cost_data.py RUN CONFIG
   var state = {game:"*", dept:"*", scope:"full"};
   var CAT_ORDER = ["Port","Skin","Branded","New"];
@@ -411,32 +387,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
       td.addEventListener("click",drill);
       td.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); drill(); } });
     });
-    drawTickets(rs);
-  }
-
-  /* ---------- tickets ---------- */
-  var LIMIT=60;
-  function drawTickets(rs){
-    var sorted=rs.slice().sort(function(a,b){ return b[8]-a[8]; });
-    var shown=sorted.slice(0,LIMIT);
-    document.getElementById("tkTitle").textContent = "Tickets — "+rs.length+(rs.length===1?" row":" rows");
-    var h='<thead><tr><th>Ticket</th><th>Game</th><th>Dept</th><th>Type</th><th>Rule</th>'
-      + '<th style="text-align:right">Est</th><th style="text-align:right">Spent</th>'
-      + '<th>Fix version</th><th>Summary</th></tr></thead><tbody>';
-    if(!shown.length) h+='<tr><td colspan="9" class="empty">Nothing matches this combination.</td></tr>';
-    shown.forEach(function(t){
-      h+='<tr><td><a class="key" href="'+JIRA+encodeURIComponent(t[2])+'" target="_blank" rel="noopener">'+esc(t[2])+'</a></td>'
-       + '<td>'+esc(t[0])+'</td><td>'+esc(t[4])+'</td>'
-       + '<td class="tag">'+esc(t[3])+'</td><td class="tag">'+esc(t[10]||"")+'</td>'
-       + '<td class="r">'+(t[7]?fmt(t[7],2):"—")+'</td>'
-       + '<td class="r"><b>'+(t[8]?fmt(t[8],2):"—")+'</b></td>'
-       + '<td class="tag">'+esc(t[5]||"(none)")+'</td>'
-       + '<td>'+esc(t[9])+'</td></tr>';
-    });
-    document.getElementById("tkTable").innerHTML = h+'</tbody>';
-    var more=sorted.length-shown.length;
-    document.getElementById("tkMore").textContent = more>0
-      ? "Showing the "+LIMIT+" largest by hours — "+more+" more in this selection." : "";
   }
 
   /* ---------- category cards ---------- */
