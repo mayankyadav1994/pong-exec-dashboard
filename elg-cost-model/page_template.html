@@ -61,8 +61,14 @@ h2{font-size:15px;font-weight:600;letter-spacing:-.15px}
 .statline .v{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
 .statline .v small{font-size:10px;font-weight:400;color:var(--sub)}
 
-/* CONTROLS — first thing on the page, so no top padding above it */
-.controls{position:sticky;top:0;z-index:20;background:var(--bg);padding:0 0 10px;margin-bottom:12px;border-bottom:1px solid var(--border)}
+/* TITLE — one line, deliberately not the header block that was removed.
+   It exists to name the space these games come from. */
+.pagetitle{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.pagetitle h1{font-size:20px;font-weight:600;letter-spacing:-.3px}
+.pagetitle span{font-size:11.5px;color:var(--muted)}
+
+/* CONTROLS */
+.controls{position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0 10px;margin-bottom:12px;border-bottom:1px solid var(--border)}
 .ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;text-transform:uppercase}
@@ -149,6 +155,11 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+
+<div class="pagetitle">
+  <h1>iGaming</h1>
+  <span>ELG game cost model · project IG</span>
+</div>
 
 <div class="controls">
   <div class="ctl">
