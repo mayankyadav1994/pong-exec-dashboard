@@ -107,9 +107,11 @@ select{
 select:focus-visible, .seg button:focus-visible{outline:2px solid var(--brass); outline-offset:2px}
 .seg{display:inline-flex; border:1px solid var(--edge); border-radius:7px; overflow:hidden; background:var(--surface)}
 .seg button{
-  font-family:Archivo,sans-serif; font-size:13px; padding:9px 14px; border:0; cursor:pointer;
+  font-family:Archivo,sans-serif; font-size:13px; padding:9px 13px; border:0; cursor:pointer;
   background:transparent; color:var(--ink-2); white-space:nowrap;
 }
+.seg button + button{box-shadow:inset 1px 0 0 var(--edge)}
+.seg button:hover:not([aria-pressed="true"]){color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--brass); color:var(--on-ramp-hi); font-weight:600}
 .reset{
   font-family:Archivo,sans-serif; font-size:13px; background:transparent; color:var(--ink-2);
@@ -202,6 +204,8 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
   .brow .bmeta{grid-column:1/-1; text-align:right}
   select{min-width:0; width:100%}
   .field{width:100%}
+  .seg{width:100%}
+  .seg button{flex:1; padding:9px 6px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 </style>
@@ -263,8 +267,9 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
       <div class="field">
         <label for="segScope">Scope</label>
         <div class="seg" id="segScope">
-          <button type="button" id="scopeFull" aria-pressed="true">Full game</button>
-          <button type="button" id="scopeElg" aria-pressed="false">ELG only</button>
+          <button type="button" id="scopeFull" data-scope="full" aria-pressed="true">Full game</button>
+          <button type="button" id="scopeElg" data-scope="elg" aria-pressed="false">ELG only</button>
+          <button type="button" id="scopePfh" data-scope="pfh" aria-pressed="false">PFH only</button>
         </div>
       </div>
       <div class="field">
@@ -354,12 +359,26 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
   var JIRA = "https://ponggamestudios.atlassian.net/browse/";
   var state = {game:"*", dept:"*", scope:"full"};
 
+  /* Scope filters on fix version. ELG and PFH overlap rather than partition:
+     a few tickets carry both tags and 83 carry neither, so "ELG only" plus
+     "PFH only" does not add up to "Full game" — by design, not a rounding bug. */
+  var SCOPE = {
+    full: {label:"Full game", test:function(){ return true; },
+           note:"Every ticket under the game epic, whatever its fix version."},
+    elg:  {label:"ELG only",  test:function(t){ return t[6]; },
+           note:"Only tickets carrying an ELG fix version."},
+    pfh:  {label:"PFH only",  test:function(t){ return t[11]; },
+           note:"Only tickets carrying a PFH fix version — build work on an ELG game "
+               +"booked to a PFH release. Ports only; no Skin or Branded game has any."}
+  };
+  function inScope(t){ return SCOPE[state.scope].test(t); }
+
   var CAT_ORDER = ["Port","Skin","Branded","New"];
   var REL_OH = 29.79;
 
   function rows(){
     return T.filter(function(t){
-      if(state.scope==="elg" && !t[6]) return false;
+      if(!inScope(t)) return false;
       if(state.game!=="*" && t[0]!==state.game) return false;
       if(state.dept!=="*" && t[4]!==state.dept) return false;
       return true;
@@ -455,7 +474,7 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
   function drawMatrix(){
     var cell={}, max=0;
     T.forEach(function(t){
-      if(state.scope==="elg" && !t[6]) return;
+      if(!inScope(t)) return;
       var k=t[0]+"|"+t[4]; cell[k]=(cell[k]||0)+t[8];
     });
     Object.keys(cell).forEach(function(k){ if(cell[k]>max) max=cell[k]; });
@@ -505,7 +524,7 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
     var gname = state.game==="*" ? "All games" : state.game;
     var dname = state.dept==="*" ? "all departments" : state.dept;
     document.getElementById("selTitle").textContent = gname + " · " + dname;
-    document.getElementById("selPill").textContent = state.scope==="elg" ? "ELG only" : "Full game";
+    document.getElementById("selPill").textContent = SCOPE[state.scope].label;
     drawTiles(rs);
 
     var note="", bd="";
@@ -540,6 +559,8 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
       bd = arr.length ? drawBars(arr, "Hours by issue type")
                       : '<p class="empty">No tickets match this combination.</p>';
     }
+    if(state.scope !== "full") note += "  " + SCOPE[state.scope].note;
+    if(!rs.length) note += "  Nothing matches — try a different scope.";
     document.getElementById("selNote").textContent = note;
     document.getElementById("breakdown").innerHTML = bd;
 
@@ -647,17 +668,19 @@ footer{margin-top:40px; padding-top:18px; border-top:1px solid var(--edge); colo
     sg.addEventListener("change", function(){ state.game=sg.value; render(); });
     sd.addEventListener("change", function(){ state.dept=sd.value; render(); });
 
-    document.getElementById("scopeFull").addEventListener("click", function(){ setScope("full"); });
-    document.getElementById("scopeElg").addEventListener("click", function(){ setScope("elg"); });
+    Array.prototype.forEach.call(document.querySelectorAll("#segScope button"), function(b){
+      b.addEventListener("click", function(){ setScope(b.getAttribute("data-scope")); });
+    });
     document.getElementById("btnReset").addEventListener("click", function(){
       state={game:"*",dept:"*",scope:"full"};
       sg.value="*"; sd.value="*"; setScope("full");
     });
   }
   function setScope(s){
-    state.scope=s;
-    document.getElementById("scopeFull").setAttribute("aria-pressed", s==="full");
-    document.getElementById("scopeElg").setAttribute("aria-pressed", s==="elg");
+    state.scope = SCOPE[s] ? s : "full";
+    Array.prototype.forEach.call(document.querySelectorAll("#segScope button"), function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-scope") === state.scope);
+    });
     render();
   }
 

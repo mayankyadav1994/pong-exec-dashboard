@@ -77,6 +77,10 @@ DEPT_ORDER = ["Concept", "Creative", "Math", "Sound", "Game Engine", "Server",
               "Dev", "Review", "QA", "Bugs", "Release"]
 SIZES = ["XS", "S", "M", "L", "XL"]
 ELG_RE = re.compile(r"^ELG\b", re.I)
+# Some build work on an ELG game is tagged to a PFH release instead. The two
+# are not mutually exclusive -- a handful of tickets carry both -- so these
+# scopes overlap rather than partition, and neither covers every ticket.
+PFH_RE = re.compile(r"^PFH\b", re.I)
 
 FIELDS = ["summary", "issuetype", "parent", "fixVersions", "status",
           "timeoriginalestimate", "timespent", "timeestimate"]

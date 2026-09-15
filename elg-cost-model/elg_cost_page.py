@@ -22,7 +22,7 @@ import json
 import os
 import sys
 
-from elg_cost_data import GAMES, DEPT_ORDER, load, HERE
+from elg_cost_data import GAMES, DEPT_ORDER, load, HERE, PFH_RE
 
 TEMPLATE_FILE = os.path.join(HERE, "page_template.html")
 
@@ -44,6 +44,11 @@ def payload(rows):
 
         0 game   1 category  2 key    3 type   4 department  5 fix versions
         6 elg    7 est h     8 spent h         9 summary    10 matched rule
+       11 pfh
+
+    `elg` and `pfh` are independent flags, not a two-state field: a ticket can
+    carry both (a few do) or neither (83 do). The page's scope picker treats
+    them as overlapping filters for that reason.
     """
     out = []
     for d in rows:
@@ -60,6 +65,7 @@ def payload(rows):
             round(d["ts_s"] / 3600, 2),
             (d["summary"] or "")[:118],
             d["rule"],
+            1 if any(PFH_RE.match(v) for v in d["fv"]) else 0,
         ])
     return out
 
