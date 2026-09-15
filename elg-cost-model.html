@@ -18,7 +18,6 @@
   /* sequential ramp for hours magnitude — one hue, light to dark */
   --s1:#eaf0fd;--s2:#c7d9f9;--s3:#93b4f2;--s4:#5b8ae8;--s5:#2563eb;
   --on-lo:#1a2035;--on-hi:#ffffff;
-  --good:#16a34a;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
@@ -28,7 +27,6 @@
     --cool:#5b8ae8;--warm:#ef5350;--mid:#7a86a0;
     --s1:#1b2434;--s2:#22314b;--s3:#2c4570;--s4:#37609f;--s5:#5b8ae8;
     --on-lo:#e6eaf3;--on-hi:#0d1017;
-    --good:#4ade80;
   }
 }
 :root[data-theme="dark"]{
@@ -38,30 +36,12 @@
   --cool:#5b8ae8;--warm:#ef5350;--mid:#7a86a0;
   --s1:#1b2434;--s2:#22314b;--s3:#2c4570;--s4:#37609f;--s5:#5b8ae8;
   --on-lo:#e6eaf3;--on-hi:#0d1017;
-  --good:#4ade80;
 }
 body{
   font-family:'IBM Plex Sans',system-ui,sans-serif; background:var(--bg); color:var(--text);
   padding:22px 28px 56px; font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased;
 }
 .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
-
-/* HEADER */
-.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
-  border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px}
-.pagehead h1{font-size:22px;font-weight:600;letter-spacing:-.3px}
-.pagehead p{font-size:12px;color:var(--muted);margin-top:4px}
-.meta{font-size:11px;color:var(--sub);display:flex;align-items:center;gap:6px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex-shrink:0}
-
-/* KPI STRIP */
-.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;
-  border-left:3px solid var(--rc,var(--border2))}
-.kpi-v{font-size:22px;font-weight:600;font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;line-height:1.1;letter-spacing:-.4px}
-.kpi-v small{font-size:11px;font-weight:400;color:var(--sub);letter-spacing:0}
-.kpi-l{font-size:10px;color:var(--sub);letter-spacing:.4px;margin-top:3px;font-weight:700;text-transform:uppercase}
-.kpi-d{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35}
 
 /* CARD */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:14px}
@@ -72,8 +52,8 @@ h2{font-size:15px;font-weight:600;letter-spacing:-.15px}
 .pill{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:500;padding:2px 8px;border-radius:20px;
   background:var(--surf3);color:var(--muted)}
 
-/* SELECTION STAT LINE — deliberately not a second KPI strip: at rest it would
-   repeat the header numbers as five more cards. */
+/* SELECTION STAT LINE — one row rather than a strip of KPI cards, so the
+   matrix stays the first substantial thing on the page. */
 .statline{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:10px;padding:9px 12px;
   background:var(--surf2);border:1px solid var(--border);border-radius:7px}
 .statline div{display:flex;align-items:baseline;gap:6px}
@@ -81,27 +61,8 @@ h2{font-size:15px;font-weight:600;letter-spacing:-.15px}
 .statline .v{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:14px;font-weight:600}
 .statline .v small{font-size:10px;font-weight:400;color:var(--sub)}
 
-/* DOT PLOT */
-.dots{margin-top:12px}
-.axis{display:grid;grid-template-columns:210px 1fr 62px;gap:10px;align-items:end;margin-bottom:2px}
-.ticks{position:relative;height:15px}
-.ticks span{position:absolute;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--sub)}
-.ticks span.on{color:var(--muted);font-weight:600}
-.plot{border-top:1px solid var(--border)}
-.drow{display:grid;grid-template-columns:210px 1fr 62px;gap:10px;align-items:center;padding:3px 0;border-bottom:1px solid var(--surf2)}
-.drow:last-child{border-bottom:0}
-.dname{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dname i{font-style:normal;color:var(--sub);font-size:10px;font-family:'IBM Plex Mono',monospace}
-.dtrack{position:relative;height:18px}
-.ref{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--border2)}
-.dbar{position:absolute;top:50%;transform:translateY(-50%);height:2px;border-radius:1px;opacity:.55}
-.ddot{position:absolute;top:50%;width:11px;height:11px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--surface)}
-.dval{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:12px;text-align:right;font-weight:600}
-.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:11px;color:var(--muted)}
-.legend b{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-
-/* CONTROLS */
-.controls{position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;margin-bottom:12px;border-bottom:1px solid var(--border)}
+/* CONTROLS — first thing on the page, so no top padding above it */
+.controls{position:sticky;top:0;z-index:20;background:var(--bg);padding:0 0 10px;margin-bottom:12px;border-bottom:1px solid var(--border)}
 .ctl{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .field{display:flex;flex-direction:column;gap:4px;min-width:0}
 .field label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;text-transform:uppercase}
@@ -188,9 +149,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 
 @media (max-width:640px){
   body{padding:16px 16px 40px}
-  .axis,.drow{grid-template-columns:1fr 54px}
-  .drow .dtrack{grid-column:1/-1;order:3}
-  .axis .ticks{grid-column:1/-1}
   .brow{grid-template-columns:92px 1fr}
   .brow .bmeta{grid-column:1/-1;text-align:right}
   .field{width:100%}
@@ -200,30 +158,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
-
-<div class="pagehead">
-  <div>
-    <h1>ELG Game Cost Model</h1>
-    <p>Pong Game Studios · iGaming PMO · what ELG games actually cost, by department</p>
-  </div>
-  <div class="meta"><span class="dot"></span><span id="metaLine">—</span></div>
-</div>
-
-<div class="kpi-strip" id="kpis"></div>
-
-<div class="card">
-  <div class="card-hd">
-    <h2>The bands don't fail high — they fail to scale down</h2>
-  </div>
-  <p class="note">Actual ÷ estimate per game. Large Ports land near 1.00; small games come in at roughly half.</p>
-  <div class="dots" id="dotplot"></div>
-  <div class="legend">
-    <span><b style="background:var(--cool)"></b>Over-estimated — under half</span>
-    <span><b style="background:color-mix(in srgb,var(--cool) 55%,var(--mid))"></b>Over-estimated</span>
-    <span><b style="background:var(--mid)"></b>About right (0.80–1.15)</span>
-    <span><b style="background:var(--warm)"></b>Under-estimated</span>
-  </div>
-</div>
 
 <div class="controls">
   <div class="ctl">
@@ -335,55 +269,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     if(r < 0.80) return "over-estimated";
     if(r <= 1.15) return "about right";
     return "under-estimated";
-  }
-  function kpi(label, value, desc, colour){
-    return '<div class="kpi"'+(colour?' style="--rc:'+colour+'"':'')+'>'
-      + '<div class="kpi-v">'+value+'</div>'
-      + '<div class="kpi-l">'+esc(label)+'</div>'
-      + (desc?'<div class="kpi-d">'+esc(desc)+'</div>':'')
-      + '</div>';
-  }
-
-  /* ---------- header ---------- */
-  function drawHeader(){
-    var est=sum(T,7), act=sum(T,8), r=act/est;
-    document.getElementById("metaLine").textContent =
-      GAMES.length + " games · " + T.length + " tickets · releases 4.20–4.70";
-    document.getElementById("kpis").innerHTML =
-        kpi("Games", GAMES.length, "Port 5 · Skin 2 · Branded 1", "var(--s4)")
-      + kpi("Tickets", T.length.toLocaleString("en-US"), "epic → children → subtasks", "var(--s3)")
-      + kpi("Estimated", fmt(est,0)+'<small> h</small>', "sum of Original Estimate", "var(--s2)")
-      + kpi("Actual", fmt(act,0)+'<small> h</small>', "sum of Time Spent", "var(--s5)")
-      + kpi("Actual ÷ Est", '<span style="color:'+ratioColor(r)+'">'+r.toFixed(2)+'</span>',
-            ratioWord(r)+" overall", ratioColor(r))
-      + kpi("Departments", DEPTS.length, "4 priced in 2024, 4 never priced", "var(--mid)");
-  }
-
-  /* ---------- dot plot ---------- */
-  function drawDots(){
-    var LO=0.2, HI=1.2, pos=function(v){ return ((Math.min(Math.max(v,LO),HI)-LO)/(HI-LO))*100; };
-    var per = GAMES.map(function(g){
-      var rs=T.filter(function(t){ return t[0]===g.name; });
-      var e=sum(rs,7), a=sum(rs,8);
-      return {name:g.name, cat:g.cat, est:e, act:a, r: e? a/e : 0};
-    }).sort(function(x,y){ return x.r-y.r; });
-
-    var h='<div class="axis"><div></div><div class="ticks">'
-      + [0.2,0.4,0.6,0.8,1.0,1.2].map(function(t){
-          var on=t===1;
-          return '<span class="'+(on?"on":"")+'" style="left:'+pos(t)+'%">'+(on?"1.00":t.toFixed(1))+'</span>';
-        }).join("")
-      + '</div><div></div></div><div class="plot">';
-    per.forEach(function(p){
-      var c=ratioColor(p.r), left=Math.min(pos(p.r),pos(1)), w=Math.abs(pos(1)-pos(p.r));
-      h+='<div class="drow" title="'+esc(p.name)+' — estimated '+fmt(p.est)+'h, actual '+fmt(p.act)+'h ('+ratioWord(p.r)+')">'
-       + '<div class="dname">'+esc(p.name)+' <i>'+esc(p.cat)+'</i></div>'
-       + '<div class="dtrack"><div class="ref" style="left:'+pos(1)+'%"></div>'
-       +   '<div class="dbar" style="left:'+left+'%;width:'+w+'%;background:'+c+'"></div>'
-       +   '<div class="ddot" style="left:'+pos(p.r)+'%;background:'+c+'"></div></div>'
-       + '<div class="dval" style="color:'+c+'">'+p.r.toFixed(2)+'</div></div>';
-    });
-    document.getElementById("dotplot").innerHTML = h+'</div>';
   }
 
   /* ---------- tiles ---------- */
@@ -622,6 +507,6 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     render();
   }
 
-  initSelects(); drawHeader(); drawDots(); drawCards(); drawGaps(); render();
+  initSelects(); drawCards(); drawGaps(); render();
 })();
 </script>
