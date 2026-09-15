@@ -1,0 +1,20 @@
+# Generated outputs -- rebuild with the scripts, don't version them.
+# NOTE: gitignore has no inline comments; a trailing "# ..." becomes part of
+# the pattern and silently matches nothing. Keep comments on their own line.
+
+# Jira cache, refreshed by elg_cost_data.py
+elg_cost_data.json
+
+# Workbook, rebuilt by elg_cost_spreadsheet.py
+*.xlsx
+
+# Never commit credentials. The scripts read JIRA_API_TOKEN from the
+# environment; nothing here should ever hold a token.
+config.env
+*.env
+.env
+
+__pycache__/
+*.pyc
+*.log
+logs/
