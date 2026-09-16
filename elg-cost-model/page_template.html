@@ -296,6 +296,16 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 
   /* ---------- matrix ---------- */
   var RAMP=["var(--s1)","var(--s2)","var(--s3)","var(--s4)","var(--s5)"];
+  /* Small values have to stay visible. Whole hours keep the grid scannable,
+     but a 0.25h release share rounded to "0" read as nothing at all, which is
+     worse than a slightly busier cell. Under 1h shows 2dp, under 10h shows
+     1dp only when there is a fraction to show. */
+  function cellNum(v){
+    if(v<=0) return "·";
+    if(v<1)  return fmt(v,2);
+    if(v<10 && Math.round(v)!==v) return fmt(v,1);
+    return fmt(v,0);
+  }
   function step(v,max){
     if(v<=0) return -1;
     var f=v/max;
@@ -325,7 +335,7 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
         var bg=s<0?"var(--surf2)":RAMP[s];
         var fg=s<0?"var(--sub)":(s>=3?"var(--on-hi)":"var(--on-lo)");
         h+='<td tabindex="0" data-g="'+esc(g.name)+'" data-d="'+esc(d)+'" style="background:'+bg+';color:'+fg+'" '
-          +'title="'+esc(g.name)+' · '+esc(d)+' — '+fmt(v)+'h">'+(v>0?fmt(v,0):"·")+'</td>';
+          +'title="'+esc(g.name)+' · '+esc(d)+' — '+fmt(v)+'h">'+cellNum(v)+'</td>';
       });
       h+='<td class="tot">'+fmt(tot,0)+'</td>'
        + '<td class="cost" title="'+fmt(tot,2)+'h × $'+RATE+'/h">'+money(tot*RATE)+'</td></tr>';
@@ -437,7 +447,7 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
         + '<div class="cat-n">'+cat+'</div>'
         + '<div class="cat-v">'+(n? fmt(avg+ohper,0):"—")+'<small> h</small></div>'
         + '<div class="cat-d">'+(n
-            ? fmt(avg,0)+'h build + '+fmt(ohper,0)+'h release'
+            ? fmt(avg,0)+'h build + '+(ohper>0&&ohper<1? fmt(ohper,2):fmt(ohper,0))+'h release'
               + (top.length? '<br>'+top.map(function(x){return esc(x[0])+' '+fmt(x[1],0)+'h';}).join(' · '):'')
             : 'No New game has shipped to ELG')+'</div>'
         + '<span class="conf">'+conf+'</span></div>';
