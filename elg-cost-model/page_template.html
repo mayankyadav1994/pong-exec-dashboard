@@ -135,6 +135,29 @@ table.matrix td.cost{color:var(--muted);border-left:1px solid var(--border)}
   text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--surf3);color:var(--muted)}
 
 
+/* TICKET LIST -- the drill-down's evidence */
+.tixwrap{overflow-x:auto;margin-top:10px}
+table.tix{width:100%;border-collapse:collapse;font-size:12px;min-width:560px}
+table.tix th{text-align:left;font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.4px;
+  text-transform:uppercase;padding:0 10px 6px 0;border-bottom:1px solid var(--border);white-space:nowrap}
+table.tix td{padding:7px 10px 7px 0;border-bottom:1px solid var(--border);vertical-align:top}
+table.tix tr:last-child td{border-bottom:none}
+table.tix tr:hover td{background:var(--surf2)}
+table.tix td.k{white-space:nowrap;width:1%}
+table.tix td.s{color:var(--text);line-height:1.45;min-width:220px}
+table.tix td.n{text-align:right;white-space:nowrap;width:1%;color:var(--text);
+  font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+table.tix td.n.zero{color:var(--sub)}
+table.tix th.n{text-align:right}
+table.tix td.ty{font-size:10.5px;color:var(--sub);white-space:nowrap}
+
+/* links out to Jira */
+a.jira{color:var(--cool);text-decoration:none;font-weight:600;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px}
+a.jira:hover{text-decoration:underline}
+a.epic{color:inherit;text-decoration:none;border-bottom:1px dotted var(--border2)}
+a.epic:hover{color:var(--cool);border-bottom-color:var(--cool)}
+
 footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color:var(--sub);font-size:11px}
 
 @media (max-width:640px){
@@ -229,6 +252,20 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   function inScope(t){ return SCOPE[state.scope].test(t); }
 
   function sum(a,i){ var s=0; for(var k=0;k<a.length;k++) s+=a[k][i]; return s; }
+
+  /* Links back to Jira. A figure you cannot trace is a figure you cannot
+     trust, so every ticket key and game name on the page is clickable. */
+  var JIRA = String(RAW.meta.jira||"").replace(/\/+$/,"");
+  function jiraHref(key){ return JIRA+"/browse/"+encodeURIComponent(key); }
+  function jiraLink(key){
+    return '<a class="jira" href="'+jiraHref(key)+'" target="_blank" rel="noopener">'+esc(key)+'</a>';
+  }
+  function gameByName(n){ return GAMES.filter(function(x){return x.name===n;})[0]; }
+  function epicLink(g, label){
+    if(!g) return esc(label||"");
+    return '<a class="epic" href="'+jiraHref(g.epic)+'" target="_blank" rel="noopener" title="'
+         + esc(g.name)+' — epic '+esc(g.epic)+'">'+esc(label||g.name)+'</a>';
+  }
   function esc(s){
     return String(s==null?"":s).replace(/[&<>"']/g,function(c){
       return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
@@ -329,7 +366,7 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     DEPTS.forEach(function(d){ h+='<th>'+esc(d).replace(" ","<br>")+'</th>'; });
     h+='<th>Total<br>Hours</th><th>$$</th></tr></thead><tbody>';
     GAMES.forEach(function(g){
-      h+='<tr><th class="rowh">'+esc(g.name)+' <i>'+esc(g.cat)+'</i></th>';
+      h+='<tr><th class="rowh">'+epicLink(g)+' <i>'+esc(g.cat)+'</i></th>';
       var tot=0;
       DEPTS.forEach(function(d){
         var v=cell[g.name+"|"+d]||0; tot+=v;
@@ -364,6 +401,32 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     return h+'</div>';
   }
 
+  /* ---------- ticket list ---------- */
+  /* Shown at the deepest drill-down, where the set is small enough to read.
+     Sorted by hours so the cell's largest contributors are at the top; the
+     bars above say how much, this says what. */
+  function drawTickets(rs){
+    if(!rs.length) return "";
+    var ts=rs.slice().sort(function(a,b){
+      return (b[8]-a[8]) || (b[7]-a[7]) || String(a[2]).localeCompare(String(b[2]));
+    });
+    var h='<div class="eyebrow" style="margin-top:18px">'+ts.length+' ticket'
+        + (ts.length===1?"":"s")+' · click a key to open it in Jira</div>'
+        + '<div class="tixwrap"><table class="tix"><thead><tr>'
+        + '<th>Key</th><th>Type</th><th>Summary</th>'
+        + '<th class="n">Est</th><th class="n">Spent</th><th>Fix versions</th>'
+        + '</tr></thead><tbody>';
+    ts.forEach(function(t){
+      h+='<tr><td class="k">'+jiraLink(t[2])+'</td>'
+       +  '<td class="ty">'+esc(t[3])+'</td>'
+       +  '<td class="s">'+esc(t[9])+'</td>'
+       +  '<td class="n'+(t[7]?"":" zero")+'">'+(t[7]?fmt(t[7],2):"—")+'</td>'
+       +  '<td class="n'+(t[8]?"":" zero")+'">'+(t[8]?fmt(t[8],2):"—")+'</td>'
+       +  '<td class="ty">'+esc(t[5]||"—")+'</td></tr>';
+    });
+    return h+'</tbody></table></div>';
+  }
+
   /* ---------- render ---------- */
   function render(){
     var rs=rows();
@@ -375,20 +438,23 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     document.getElementById("btnBack").hidden = (state.game==="*" && state.dept==="*");
     drawTiles(rs);
 
-    var note="", bd="";
+    // noteHtml stays null unless a branch needs a link in the note; the
+    // plain-text path is kept so nothing has to be escaped twice.
+    var note="", noteHtml=null, bd="";
     if(state.game==="*" && state.dept==="*"){
       note="Hours by game and department. Darker means more hours.";
       bd=drawMatrix();
     } else if(state.game!=="*" && state.dept==="*"){
       var g=GAMES.filter(function(x){return x.name===state.game;})[0];
       note=g.cat+" · "+g.rel+" · epic "+g.epic+".";
+      noteHtml=esc(g.cat)+" · "+esc(g.rel)+" · epic "+jiraLink(g.epic)+".";
       var items=DEPTS.map(function(d){
         var sub=rs.filter(function(t){return t[4]===d;});
         return {name:d, act:sum(sub,8), est:sum(sub,7)};
       }).filter(function(i){return i.act>0||i.est>0;}).sort(function(a,b){return b.act-a.act;});
       bd=drawBars(items,"Hours by department");
     } else if(state.game==="*" && state.dept!=="*"){
-      note="How "+state.dept+" effort spreads across the eight games.";
+      note="How "+state.dept+" effort spreads across the "+GAMES.length+" games.";
       var it2=GAMES.map(function(g2){
         var sub=rs.filter(function(t){return t[0]===g2.name;});
         return {name:g2.name, act:sum(sub,8), est:sum(sub,7)};
@@ -397,6 +463,8 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
                      : '<p class="empty">No '+esc(state.dept)+' work in this scope.</p>';
     } else {
       note="Every "+state.dept+" ticket on "+state.game+".";
+      noteHtml="Every "+esc(state.dept)+" ticket on "
+             + epicLink(gameByName(state.game))+".";
       var byType={};
       rs.forEach(function(t){
         byType[t[3]]=byType[t[3]]||{name:t[3],act:0,est:0};
@@ -405,10 +473,18 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
       var arr=Object.keys(byType).map(function(k){return byType[k];}).sort(function(a,b){return b.act-a.act;});
       bd = arr.length? drawBars(arr,"Hours by issue type")
                      : '<p class="empty">No tickets match this combination.</p>';
+      bd += drawTickets(rs);
     }
-    if(SCOPE[state.scope].note) note += "  " + SCOPE[state.scope].note;
-    if(!rs.length) note += "  Nothing matches — try a different scope.";
-    document.getElementById("selNote").textContent = note;
+    if(SCOPE[state.scope].note){
+      note += "  " + SCOPE[state.scope].note;
+      if(noteHtml!==null) noteHtml += "  " + esc(SCOPE[state.scope].note);
+    }
+    if(!rs.length){
+      note += "  Nothing matches — try a different scope.";
+      if(noteHtml!==null) noteHtml += "  Nothing matches — try a different scope.";
+    }
+    var noteEl=document.getElementById("selNote");
+    if(noteHtml!==null) noteEl.innerHTML=noteHtml; else noteEl.textContent=note;
     document.getElementById("breakdown").innerHTML = bd;
 
     Array.prototype.forEach.call(document.querySelectorAll("td[data-g]"), function(td){
