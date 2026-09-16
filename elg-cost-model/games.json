@@ -1,0 +1,20 @@
+{
+  "hourly_rate": 82.5,
+  "games": {
+    "IG-1506": { "name": "Flaming Skulls",               "cat": "Port",    "rel": "ELG 4.30" },
+    "IG-1509": { "name": "Northern Buffalo Fortune [V]", "cat": "Port",    "rel": "ELG 4.40" },
+    "IG-1508": { "name": "Lost Totem",                   "cat": "Port",    "rel": "ELG 4.50" },
+    "IG-3234": { "name": "Viking's Voyage of Fortune",   "cat": "Port",    "rel": "ELG 4.70" },
+    "IG-3304": { "name": "Lantern's Rising [V]",         "cat": "Port",    "rel": "ELG 4.70" },
+    "IG-4555": { "name": "Luck Party Blue Bird Bonanza", "cat": "Branded", "rel": "ELG 4.50" },
+    "IG-3657": { "name": "American Wins",                "cat": "Skin",    "rel": "ELG 4.20" },
+    "IG-3689": { "name": "Fortune Diamond 10X",          "cat": "Skin",    "rel": "ELG 4.20" }
+  },
+  "release_epics": {
+    "IG-5427": "ELG 4.20",
+    "IG-5442": "ELG 4.30",
+    "IG-5445": "ELG 4.40",
+    "IG-6153": "ELG 4.50",
+    "IG-6925": "ELG 4.70"
+  }
+}

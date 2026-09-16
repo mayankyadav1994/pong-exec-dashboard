@@ -184,7 +184,8 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
 <div class="card">
   <div class="eyebrow">Budget basis</div>
   <div class="card-hd"><h2>Average cost per game, by category</h2></div>
-  <p class="note">Full-game scope plus release overhead. Only Port rests on enough games to average.</p>
+  <p class="note">Full-game scope plus each game's share of its release epic, split evenly
+     across the games this model tracks in that release. Only Port rests on enough games to average.</p>
   <div class="cards" id="catCards"></div>
 </div>
 
@@ -203,7 +204,15 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   var RATE = RAW.meta.rate;   // blended $/h, set in elg_cost_data.py RUN CONFIG
   var state = {game:"*", dept:"*", scope:"full"};
   var CAT_ORDER = ["Port","Skin","Branded","New"];
-  var REL_OH = 29.79;
+  /* Release overhead: each game's share of its release epic, computed in
+     elg_cost_data.release_overhead() and keyed by game name. It replaces a
+     hardcoded 29.79 flat constant -- the real shares run 0.25h to 76.42h,
+     so the flat figure was wrong for every game. Not ticket-derived, so it
+     only applies in Full-game scope; ELG/PFH filter tickets by fix version
+     and release overhead carries no such version. */
+  var REL_OH = RAW.meta.relOh || {};
+  var REL_TOTAL = RAW.meta.relTotal || 0;
+  function relOh(name){ return state.scope==="full" ? (REL_OH[name]||0) : 0; }
 
   /* Scope filters on fix version. ELG and PFH overlap rather than partition:
      a few tickets carry both and many carry neither, so "ELG only" plus
@@ -211,9 +220,9 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   var SCOPE = {
     full:{label:"Full game", test:function(){ return true; }, note:""},
     elg: {label:"ELG only",  test:function(t){ return t[6]; },
-          note:"Only tickets carrying an ELG fix version."},
+          note:"Only tickets carrying an ELG fix version. Release overhead is excluded — it carries no ELG version."},
     pfh: {label:"PFH only",  test:function(t){ return t[11]; },
-          note:"Only tickets carrying a PFH fix version — build work on an ELG game booked to a PFH release. Ports only."}
+          note:"Only tickets carrying a PFH fix version — build work on an ELG game booked to a PFH release. Ports only. Release overhead excluded."}
   };
   function inScope(t){ return SCOPE[state.scope].test(t); }
 
@@ -258,6 +267,14 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   }
 
   /* ---------- tiles ---------- */
+  /* Overhead attributable to whatever is selected. A department drill-down
+     only carries it when that department IS Release. */
+  function ohForSelection(){
+    if(state.scope!=="full") return 0;
+    if(state.dept!=="*" && state.dept!=="Release") return 0;
+    if(state.game!=="*") return REL_OH[state.game]||0;
+    return REL_TOTAL;
+  }
   function drawTiles(rs){
     var est=sum(rs,7), act=sum(rs,8), r= est? act/est : 0;
     var logged=rs.filter(function(x){return x[8]>0;}).length;
@@ -265,11 +282,15 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
       return '<div><span class="l">'+esc(l)+'</span>'
            + '<span class="v"'+(colour?' style="color:'+colour+'"':'')+'>'+v+'</span></div>';
     }
+    // Shown separately rather than added into Actual: Actual is the sum of
+    // the tickets in view, and release overhead is not one of them.
+    var oh = ohForSelection();
     document.getElementById("tiles").innerHTML =
         s("Tickets", rs.length.toLocaleString("en-US"))
       + s("Estimated", fmt(est,0)+'<small> h</small>')
       + s("Actual", fmt(act,0)+'<small> h</small>')
       + s("Actual ÷ Est", est? r.toFixed(2) : "—", est? ratioColor(r) : null)
+      + (oh>0 ? s("Release OH", fmt(oh,0)+'<small> h</small>') : "")
       + s("Logged", logged+'<small> of '+rs.length+'</small>');
   }
 
@@ -283,6 +304,14 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   function drawMatrix(){
     var cell={}, max=0;
     T.forEach(function(t){ if(!inScope(t)) return; var k=t[0]+"|"+t[4]; cell[k]=(cell[k]||0)+t[8]; });
+    // Release work lives under separate release epics, never under a game
+    // epic, so no ticket ever classifies as Release and the column read "·"
+    // for every game. Fold each game's share in here, before max, so the
+    // colour ramp and the row totals both see it.
+    GAMES.forEach(function(g){
+      var v=relOh(g.name);
+      if(v>0){ var k=g.name+"|Release"; cell[k]=(cell[k]||0)+v; }
+    });
     Object.keys(cell).forEach(function(k){ if(cell[k]>max) max=cell[k]; });
     var h='<table class="matrix"><thead><tr><th class="rowh">Game</th>';
     DEPTS.forEach(function(d){ h+='<th>'+esc(d).replace(" ","<br>")+'</th>'; });
@@ -392,6 +421,10 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
       var gs=GAMES.filter(function(g){return g.cat===cat;}), n=gs.length;
       var per=gs.map(function(g){ return sum(T.filter(function(t){return t[0]===g.name;}),8); });
       var avg=n? per.reduce(function(a,b){return a+b;},0)/n : 0;
+      // average the category's ACTUAL shares -- a Port that shipped in ELG
+      // 4.40 carries 76h of release overhead, one in 4.50 carries 0.25h
+      var ohper=n? gs.map(function(g){return REL_OH[g.name]||0;})
+                     .reduce(function(a,b){return a+b;},0)/n : 0;
       var byd={};
       DEPTS.forEach(function(d){
         if(!n) return;
@@ -402,9 +435,9 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
       var conf = n===0?"no data" : n===1?"n=1 · indicative" : n<3?("n="+n+" · low") : ("n="+n+" · moderate");
       return '<div class="cat'+(n?"":" dim")+'" style="--rc:'+RC[cat]+'">'
         + '<div class="cat-n">'+cat+'</div>'
-        + '<div class="cat-v">'+(n? fmt(avg+REL_OH,0):"—")+'<small> h</small></div>'
+        + '<div class="cat-v">'+(n? fmt(avg+ohper,0):"—")+'<small> h</small></div>'
         + '<div class="cat-d">'+(n
-            ? fmt(avg,0)+'h build + '+REL_OH+'h release'
+            ? fmt(avg,0)+'h build + '+fmt(ohper,0)+'h release'
               + (top.length? '<br>'+top.map(function(x){return esc(x[0])+' '+fmt(x[1],0)+'h';}).join(' · '):'')
             : 'No New game has shipped to ELG')+'</div>'
         + '<span class="conf">'+conf+'</span></div>';

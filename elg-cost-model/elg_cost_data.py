@@ -21,6 +21,8 @@ import re
 import sys
 import time
 import json
+import argparse
+import io
 import statistics as st
 from collections import defaultdict, Counter
 
@@ -42,32 +44,48 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE_FILE = os.path.join(HERE, "elg_cost_data.json")
 
 # ===========================================================================
-#  RUN CONFIG
+#  RUN CONFIG -- games.json
 # ===========================================================================
-# epic -> (display name, category, ELG release)
-GAMES = {
-    "IG-1506": ("Flaming Skulls",               "Port",    "ELG 4.30"),
-    "IG-1509": ("Northern Buffalo Fortune [V]", "Port",    "ELG 4.40"),
-    "IG-1508": ("Lost Totem",                   "Port",    "ELG 4.50"),
-    "IG-3234": ("Viking's Voyage of Fortune",   "Port",    "ELG 4.70"),
-    "IG-3304": ("Lantern's Rising [V]",         "Port",    "ELG 4.70"),
-    "IG-4555": ("Luck Party Blue Bird Bonanza", "Branded", "ELG 4.50"),
-    "IG-3657": ("American Wins",                "Skin",    "ELG 4.20"),
-    "IG-3689": ("Fortune Diamond 10X",          "Skin",    "ELG 4.20"),
-}
+# The model's inputs live in games.json beside this file, not in the source,
+# so a game can be added without editing Python:
+#
+#     python elg_cost_data.py --find buffalo          search Jira for epics
+#     python elg_cost_data.py --add IG-7781 --cat Port
+#     python elg_cost_data.py --list
+#
+# Shape:
+#   {"hourly_rate": 82.5,
+#    "games":         {"IG-1506": {"name": ..., "cat": ..., "rel": ...}, ...},
+#    "release_epics": {"IG-5427": "ELG 4.20", ...}}
+CONFIG_FILE = os.path.join(HERE, "games.json")
 
-# Blended hourly rate used to cost the hours. One knob -- change it here and
-# every figure on the page follows.
-HOURLY_RATE = 82.5
+
+def load_config(path=CONFIG_FILE):
+    if not os.path.exists(path):
+        sys.exit(f"No {path} -- the game list lives there.")
+    with io.open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def save_config(cfg, path=CONFIG_FILE):
+    """Written with indent=2 so the file stays reviewable in a diff."""
+    with io.open(path, "w", encoding="utf-8") as fh:
+        json.dump(cfg, fh, indent=2, ensure_ascii=False)
+        fh.write("\n")
+
+
+CONFIG = load_config()
+
+# epic -> (display name, category, ELG release). The tuple shape is kept
+# because elg_cost_spreadsheet.py unpacks `for e, (n, c, r) in GAMES.items()`.
+GAMES = {k: (v["name"], v["cat"], v["rel"]) for k, v in CONFIG["games"].items()}
+
+# Blended hourly rate used to cost the hours. One knob -- change it in
+# games.json and every figure on the page follows.
+HOURLY_RATE = CONFIG.get("hourly_rate", 82.5)
 
 # Release-level epics -- overhead, not attributable to any one game.
-RELEASE_EPICS = {
-    "IG-5427": "ELG 4.20",
-    "IG-5442": "ELG 4.30",
-    "IG-5445": "ELG 4.40",
-    "IG-6153": "ELG 4.50",
-    "IG-6925": "ELG 4.70",
-}
+RELEASE_EPICS = CONFIG.get("release_epics", {})
 # ===========================================================================
 
 JIRA_BASE = "https://ponggamestudios.atlassian.net"
@@ -97,7 +115,11 @@ FIELDS = ["summary", "issuetype", "parent", "fixVersions", "status",
 # ===========================================================================
 RULES = [
     # -- reliable issue types ------------------------------------------------
-    ("Bugs",        "type", {"Bug", "Live Issue", "Enhancement"}),
+    # Enhancement is deliberately NOT here: it is scoped feature work, not a
+    # defect, and lumping it in overstated the Bugs column. With the type
+    # dropped it falls through to the text rules and the Dev fallback, so an
+    # Enhancement named "[Server] ..." now lands on Server rather than Bugs.
+    ("Bugs",        "type", {"Bug", "Live Issue"}),
     ("QA",          "type", {"QA Task", "QA Subtask"}),
     ("Release",     "type", {"Release", "Release Subtask"}),
     # -- review must win before the department it reviews --------------------
@@ -417,6 +439,42 @@ def build(rows):
     return agg
 
 
+def release_overhead(rel, games=None):
+    """
+    Release-epic hours, shared out per game.
+
+    Release work does not sit under a game epic -- it lives under the five
+    RELEASE_EPICS -- so it cannot simply be summed per game. Each release's
+    hours are divided evenly across the games in THIS MODEL that shipped in
+    that release.
+
+    Caveat: if a release also shipped games the model does not track, their
+    share lands on the tracked ones and per-game overhead reads high. The
+    `counts` map from collect() was meant to correct for exactly that, but it
+    keys on the game epic carrying an ELG fixVersion and several do not
+    (Flaming Skulls carries none), so it returns 0 for ELG 4.30 and would
+    divide by zero. Model membership is the honest denominator we actually
+    have, and the page states the assumption.
+
+    -> (per_epic {epic: hours}, per_release {version: hours})
+    """
+    games = GAMES if games is None else games
+    per_release = defaultdict(float)
+    for d in rel:
+        per_release[d.get("release")] += d["ts_s"] / 3600.0
+
+    members = defaultdict(list)
+    for epic, (_n, _c, ver) in games.items():
+        members[ver].append(epic)
+
+    per_epic = {}
+    for ver, epics in members.items():
+        share = per_release.get(ver, 0.0) / len(epics)
+        for e in epics:
+            per_epic[e] = round(share, 2)
+    return per_epic, {k: round(v, 2) for k, v in per_release.items()}
+
+
 # ===========================================================================
 #  CACHE
 # ===========================================================================
@@ -435,15 +493,138 @@ def load(path=CACHE_FILE):
     return d["rows"], d["rel"], d["counts"], build(d["rows"])
 
 
-def main():
-    if not API_TOKEN:
-        sys.exit(r"JIRA_API_TOKEN not set (checked process env and HKCU\Environment).")
+# ===========================================================================
+#  EPIC PICKER -- managing games.json without editing Python
+# ===========================================================================
+def derive(issue):
+    """-> (display name, ELG release, all fix versions) read off the epic."""
+    f = issue["fields"]
+    name = re.sub(r"^\s*Gen2 Game\s*:\s*", "", f.get("summary") or "").strip()
+    vers = [v["name"] for v in (f.get("fixVersions") or [])]
+    return name, next((v for v in vers if ELG_RE.match(v)), ""), vers
+
+
+def cmd_find(term):
+    """Search IG epics by summary so you can find the key to --add."""
+    safe = term.replace('"', "")
+    hits = search('project = IG AND issuetype = Epic AND summary ~ "%s" '
+                  "ORDER BY created DESC" % safe,
+                  ["summary", "fixVersions"], page_cap=3)
+    if not hits:
+        print('No IG epic matches "%s".' % term)
+        return
+    print('%d epic(s) matching "%s":\n' % (len(hits), term))
+    for i in hits:
+        name, rel, vers = derive(i)
+        mark = "   [already in model]" if i["key"] in GAMES else ""
+        print("  %-9s %-46s %-12s%s" % (i["key"], name[:44],
+                                        rel or "(no ELG ver)", mark))
+        if not rel and vers:
+            print("            fix versions: %s" % ", ".join(vers))
+    print("\nAdd one with:  python elg_cost_data.py --add <KEY> --cat <%s>"
+          % "|".join(CATEGORIES))
+
+
+def cmd_add(key, cat, name=None, rel=None):
+    if cat not in CATEGORIES:
+        sys.exit("--cat must be one of: %s" % ", ".join(CATEGORIES))
+    cfg = load_config()
+    if key in cfg["games"]:
+        sys.exit('%s is already in the model as "%s".' % (key, cfg["games"][key]["name"]))
+
+    got = search("project = IG AND key = %s" % key,
+                 ["summary", "fixVersions", "issuetype"])
+    if not got:
+        sys.exit("%s not found in Jira, or the token cannot see it." % key)
+    issue = got[0]
+    kind = issue["fields"]["issuetype"]["name"]
+    if kind != "Epic":
+        sys.exit("%s is a %s, not an Epic. Only game epics belong here." % (key, kind))
+
+    dname, drel, vers = derive(issue)
+    name, rel = name or dname, rel or drel
+    if not rel:
+        sys.exit('%s carries no ELG fix version (has: %s).\n'
+                 'Pass it explicitly, e.g. --rel "ELG 4.80".'
+                 % (key, ", ".join(vers) or "none"))
+
+    cfg["games"][key] = {"name": name, "cat": cat, "rel": rel}
+    save_config(cfg)
+    print("Added %s  %s  [%s]  %s" % (key, name, cat, rel))
+    if rel not in cfg.get("release_epics", {}).values():
+        print('  NOTE: no release epic in games.json maps to "%s", so this game '
+              "gets 0h\n        release overhead. Add one under "
+              '"release_epics" if that release has one.' % rel)
+    print("\nNow re-run:  python elg_cost_data.py     (pulls the new epic)")
+    print("       then:  python elg_cost_page.py")
+
+
+def cmd_remove(key):
+    cfg = load_config()
+    if key not in cfg["games"]:
+        sys.exit("%s is not in the model." % key)
+    gone = cfg["games"].pop(key)
+    save_config(cfg)
+    print("Removed %s (%s). Re-run the pull and rebuild." % (key, gone["name"]))
+
+
+def cmd_list():
+    cfg = load_config()
+    print("%d games in the model (games.json, rate $%s/h):\n"
+          % (len(cfg["games"]), cfg.get("hourly_rate", HOURLY_RATE)))
+    for k, v in sorted(cfg["games"].items(),
+                       key=lambda kv: (kv[1]["cat"], kv[1]["name"])):
+        print("  %-9s %-42s %-8s %s" % (k, v["name"][:40], v["cat"], v["rel"]))
+    print("\n%d release epics:" % len(cfg.get("release_epics", {})))
+    for k, v in sorted(cfg.get("release_epics", {}).items(), key=lambda kv: kv[1]):
+        print("  %-9s %s" % (k, v))
+
+
+def pull():
+    """The default action: walk Jira and refresh the cache."""
     rows, rel, counts = collect()
     save(rows, rel, counts)
     agg = build(rows)
     tot = sum(agg.get((e, d, "FULL"), [0, 0, 0])[1] for e in GAMES for d in DEPT_ORDER)
-    print(f"  {h(tot):,.2f}h across {len(GAMES)} games\n")
+    _per_epic, per_rel = release_overhead(rel)
+    print("  %s h across %d games" % (format(h(tot), ",.2f"), len(GAMES)))
+    print("  %s h release overhead across %d releases\n"
+          % (format(sum(per_rel.values()), ",.2f"), len(per_rel)))
     print("Now run:  python elg_cost_spreadsheet.py   and/or   python elg_cost_page.py")
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Pull the ELG cost model from Jira, or manage the game list.",
+        epilog="With no flags: walks Jira and rewrites the cache (~2 min).")
+    ap.add_argument("--find", metavar="TEXT", help="search IG epics by summary")
+    ap.add_argument("--add", metavar="KEY", help="add a game epic to games.json")
+    ap.add_argument("--cat", metavar="CATEGORY",
+                    help="category for --add: %s" % ", ".join(CATEGORIES))
+    ap.add_argument("--name", metavar="TEXT",
+                    help="override the display name derived from the summary")
+    ap.add_argument("--rel", metavar="VERSION",
+                    help='override the ELG release, e.g. "ELG 4.80"')
+    ap.add_argument("--remove", metavar="KEY", help="drop a game from games.json")
+    ap.add_argument("--list", action="store_true", help="show the current model")
+    a = ap.parse_args()
+
+    # offline commands first -- these never need a token
+    if a.list:
+        return cmd_list()
+    if a.remove:
+        return cmd_remove(a.remove)
+
+    if not API_TOKEN:
+        sys.exit(r"JIRA_API_TOKEN not set (checked process env and HKCU\Environment).")
+    if a.find:
+        return cmd_find(a.find)
+    if a.add:
+        if not a.cat:
+            sys.exit("--add needs --cat (%s) -- category cannot be read off "
+                     "the epic." % ", ".join(CATEGORIES))
+        return cmd_add(a.add, a.cat, a.name, a.rel)
+    pull()
 
 
 if __name__ == "__main__":
