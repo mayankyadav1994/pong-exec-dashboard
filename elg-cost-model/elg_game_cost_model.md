@@ -104,7 +104,7 @@ Notes on deliberate calls:
 ## Corrections to previously held rules
 
 - **IG epics DO carry fix versions.** The standing rule "epics carry no fix version" is false: 7 of these 8 epics are tagged. Only Flaming Skulls (IG-1506) has no ELG version on the epic. Still test ELG membership at story/subtask level, but any "games per release" count built on epic fixVersion undercounts.
-- **PFH leakage is smaller than assumed.** ELG-only scope captures 3,961h of 4,356h; the gap is 395h (9.1%), confined to the three oldest Ports. The single largest item is QA tagged `New Games - iGaming`, not PFH.
+- **PFH leakage is smaller than assumed.** ELG-only scope captures 3,956h of 4,356h; the gap is 400h (9.2%), confined to the three oldest Ports. The single largest item is QA tagged `New Games - iGaming`, not PFH.
 
 ## Data hygiene
 

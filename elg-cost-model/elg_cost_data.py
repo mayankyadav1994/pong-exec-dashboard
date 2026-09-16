@@ -99,10 +99,17 @@ DEPT_ORDER = ["Concept", "Creative", "Math", "Sound", "Game Engine", "Server",
               "Dev", "Review", "QA", "Bugs", "Release"]
 SIZES = ["XS", "S", "M", "L", "XL"]
 ELG_RE = re.compile(r"^ELG\b", re.I)
-# Some build work on an ELG game is tagged to a PFH release instead. The two
-# are not mutually exclusive -- a handful of tickets carry both -- so these
-# scopes overlap rather than partition, and neither covers every ticket.
-PFH_RE = re.compile(r"^PFH\b", re.I)
+# Some build work on an ELG game is tagged to a PFH release instead, and some
+# is only identifiable from the summary -- "PFH Configs", "PFH Pools",
+# "Adjust splash page ... for PFH" -- where the ticket carries no fix version
+# at all. A ticket counts as PFH if EITHER says so.
+#
+# PFH also WINS over ELG. Four tickets carry both an ELG and a PFH fix version
+# and they belong in the PFH figure, not in the ELG build figure, so the ELG
+# scope is (elg AND NOT pfh). The two still do not partition -- plenty of
+# tickets carry neither -- so the scopes sum to less than Full game.
+PFH_RE = re.compile(r"^PFH\b", re.I)          # fix version, anchored at the start
+PFH_TITLE_RE = re.compile(r"\bPFH\b", re.I)   # summary, anywhere in the text
 
 FIELDS = ["summary", "issuetype", "parent", "fixVersions", "status",
           "timeoriginalestimate", "timespent", "timeestimate"]
@@ -342,6 +349,9 @@ def flatten(issue):
         "status": (f.get("status") or {}).get("name", ""),
         "fv": fvs,
         "elg": any(ELG_RE.match(v) for v in fvs),
+        # by fix version OR by summary -- see PFH_TITLE_RE above
+        "pfh": (any(PFH_RE.match(v) for v in fvs)
+                or bool(PFH_TITLE_RE.search(f.get("summary") or ""))),
         "dept": dept,
         "rule": rule,
         "oe_s": f.get("timeoriginalestimate") or 0,
@@ -431,7 +441,9 @@ def build(rows):
     """(epic, dept, scope) -> [orig_s, spent_s, remaining_s]"""
     agg = defaultdict(lambda: [0, 0, 0])
     for d in rows:
-        for scope in ["FULL"] + (["ELG"] if d["elg"] else []):
+        # PFH is carved out of ELG: a PFH-flagged ticket counts in FULL and in
+        # PFH, never in the ELG build figure, even carrying both fix versions.
+        for scope in ["FULL"] + (["ELG"] if d["elg"] and not d.get("pfh") else []):
             a = agg[(d["epic"], d["dept"], scope)]
             a[0] += d["oe_s"]
             a[1] += d["ts_s"]

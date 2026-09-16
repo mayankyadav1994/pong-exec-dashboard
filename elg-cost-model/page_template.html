@@ -214,15 +214,17 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
   var REL_TOTAL = RAW.meta.relTotal || 0;
   function relOh(name){ return state.scope==="full" ? (REL_OH[name]||0) : 0; }
 
-  /* Scope filters on fix version. ELG and PFH overlap rather than partition:
-     a few tickets carry both and many carry neither, so "ELG only" plus
-     "PFH only" does not add up to "Full game" — by design, not a rounding bug. */
+  /* Scope. PFH is carved out of ELG: a ticket flagged PFH — a PFH fix version,
+     or PFH anywhere in its summary — counts in Full game and PFH only, never
+     in ELG only, even when it carries both fix versions. The two still do not
+     partition, since plenty of tickets carry neither, so "ELG only" plus
+     "PFH only" is less than "Full game" — by design, not a rounding bug. */
   var SCOPE = {
     full:{label:"Full game", test:function(){ return true; }, note:""},
-    elg: {label:"ELG only",  test:function(t){ return t[6]; },
-          note:"Only tickets carrying an ELG fix version. Release overhead is excluded — it carries no ELG version."},
+    elg: {label:"ELG only",  test:function(t){ return t[6] && !t[11]; },
+          note:"Tickets carrying an ELG fix version, excluding anything flagged PFH. Release overhead is excluded — it carries no ELG version."},
     pfh: {label:"PFH only",  test:function(t){ return t[11]; },
-          note:"Only tickets carrying a PFH fix version — build work on an ELG game booked to a PFH release. Ports only. Release overhead excluded."}
+          note:"Tickets flagged PFH — a PFH fix version, or PFH in the summary. Build work on an ELG game booked to a PFH release. Release overhead excluded."}
   };
   function inScope(t){ return SCOPE[state.scope].test(t); }
 
