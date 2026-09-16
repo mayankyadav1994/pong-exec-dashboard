@@ -140,23 +140,63 @@ neither      75 tickets     277.53h
 
 ## 4. How a ticket gets a department
 
-There is no department field in Jira. `classify()` walks `RULES` top to bottom
-and **the first match wins**, so order is load-bearing.
+There is no department field in Jira. `classify()` walks `RULES` top to bottom and
+**the first match wins**, so order is load-bearing. Four tiers:
 
-- **Bugs** — issue type only: `Bug`, `Live Issue`. It sits first, so a ticket
-  typed Bug counts as Bugs whatever its summary says. `Enhancement` is
-  deliberately *not* in that set — it is scoped feature work, not a defect, and
-  including it overstated Bugs by 25 tickets / 21h.
-- **Review** sits above the departments it reviews, or review work would be
-  absorbed by Creative, Math and Dev.
-- **Server** is inferred from the summary and is **the softest number on the
-  page**. Only the `[Server]` bracket tag is authoritative (15 of 89 tickets);
-  the older keyword patterns — `config`, `pools`, `deploy on/to` — catch any
-  summary that mentions them, whoever actually did the work. Server sits above
-  Game Engine on purpose, so *"deployment on New Game Engine"* reads as releasing
-  onto the platform rather than building it.
-- **Release** never matches a game ticket at all — see §5.
-- Anything unmatched falls back to **Dev**.
+**1. Issue types that *are* a department.** `Bug` and `Live Issue` → Bugs,
+`QA Task/Subtask` → QA, `Release*` → Release, `Enhancement` → Enhancement,
+`CR` → CR. These sit first and beat everything, so a ticket typed Bug counts as
+Bugs whatever its summary says.
+
+**2. Review and Concept text rules.** These must beat the department they
+describe, or *"Review - Math"* lands in Math instead of Review and *"Design Doc"*
+lands in Math instead of Concept. 8 Math tickets (43.50h) are routed to Review
+this way, deliberately — it matches how the 2024 legend prices R&R rows.
+
+**3. Explicit `[bracket]` tags.** `[Server]`, `[GE]`, `[Math]`, `[FE]` — the
+current naming convention, authoritative. A Math Task named `[Server] ...` is
+Server.
+
+**4. Issue types that *name* a department.** `Math Task/Subtask`,
+`Sound Task/Subtask`, `Creative`/`Design Task/Subtask`. **Jira wins over the
+loose keyword rules below it.**
+
+Then the older keyword rules, then a fallback to **Dev**.
+
+### Why tier 4 sits above the keywords
+
+It used to sit below them, and that was a real misclassification. A **Math Task**
+called *"Gen2 Game: Lost Totem - PFH pools"* was landing in **Server**, because
+the keyword rule for `pools` fired before anything looked at the issue type. 34
+Math tickets — **108h** — were filed that way, including all of Lost Totem's PFH
+math work.
+
+The 2024 legend agrees with the fix: it prices **"Pools/Flares"** and **"Math
+Models/weighted outcomes"** under **Math**. The actuals were being classified
+against a rule that disagreed with the estimate they are compared to.
+
+### What tier 4 deliberately excludes
+
+`Story`, `Task`, `Dev Task` and `Dev Subtask` are **not** in tier 4. They name no
+department, so the keyword rules are what classify them — 126 tickets and
+1,309h of Dev-typed work routed to Game Engine, Review, Server and Sound by
+summary. That is the design working, not a bug.
+
+### Server is still the softest number
+
+Only the `[Server]` tag is authoritative. The older patterns — `config`, `pools`,
+`deploy on/to` — still catch any *generically typed* summary that mentions them,
+whoever did the work. Server sits above Game Engine on purpose, so *"deployment
+on New Game Engine"* reads as releasing onto the platform rather than building
+it.
+
+### Empty columns are intentional
+
+**CR** shows with no hours: the type exists on the instance (2 issues in IG, both
+under untracked epics) but none has landed on a modelled game. **Release** is
+always empty for a different reason — see §5. A column that disappears when empty
+reads as "no such work exists"; one that stays reads as "none yet", which is the
+truth.
 
 Every ticket records which rule decided it (the `rule` field), so any cell can be
 audited back to the pattern that produced it.
