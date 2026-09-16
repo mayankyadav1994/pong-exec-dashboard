@@ -7,6 +7,9 @@ rebased on real delivery instead of the 2024 estimates.
 Sample is 8 games from the last ELG game-bearing releases (4.20–4.70), traced
 through ~980 Jira tickets.
 
+> Full operating guide, including the scope rules and where every figure comes
+> from: [docs/ELG_COST_MODEL.md](../docs/ELG_COST_MODEL.md)
+
 ## Layout
 
 Three scripts, split so the slow part runs once and the fast parts rebuild

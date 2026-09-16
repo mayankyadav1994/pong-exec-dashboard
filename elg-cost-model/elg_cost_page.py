@@ -22,7 +22,7 @@ import json
 import os
 import sys
 
-from elg_cost_data import (GAMES, DEPT_ORDER, load, HERE, PFH_RE, HOURLY_RATE,
+from elg_cost_data import (GAMES, DEPT_ORDER, load, HERE, HOURLY_RATE,
                           release_overhead)
 
 TEMPLATE_FILE = os.path.join(HERE, "page_template.html")
@@ -47,9 +47,10 @@ def payload(rows):
         6 elg    7 est h     8 spent h         9 summary    10 matched rule
        11 pfh
 
-    `elg` and `pfh` are independent flags, not a two-state field: a ticket can
-    carry both (a few do) or neither (83 do). The page's scope picker treats
-    them as overlapping filters for that reason.
+    `elg` and `pfh` do not partition -- plenty of tickets carry neither -- but
+    they no longer overlap either: PFH wins, so the page's "ELG only" filter
+    tests `elg && !pfh`. The pfh flag is computed once in elg_cost_data.py
+    (fix version OR summary) and simply carried through here.
     """
     out = []
     for d in rows:
@@ -66,7 +67,7 @@ def payload(rows):
             round(d["ts_s"] / 3600, 2),
             (d["summary"] or "")[:118],
             d["rule"],
-            1 if any(PFH_RE.match(v) for v in d["fv"]) else 0,
+            1 if d.get("pfh") else 0,
         ])
     return out
 
