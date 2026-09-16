@@ -22,7 +22,8 @@ import json
 import os
 import sys
 
-from elg_cost_data import GAMES, DEPT_ORDER, load, HERE, PFH_RE, HOURLY_RATE
+from elg_cost_data import (GAMES, DEPT_ORDER, load, HERE, PFH_RE, HOURLY_RATE,
+                          release_overhead)
 
 TEMPLATE_FILE = os.path.join(HERE, "page_template.html")
 
@@ -70,23 +71,35 @@ def payload(rows):
     return out
 
 
-def meta():
+def meta(rel):
+    """
+    Everything the page needs that is not a ticket.
+
+    `relOh` is keyed by DISPLAY NAME, not epic key, because the page indexes
+    tickets by name (column 0) and never sees the epic. Release overhead is
+    not ticket-derived -- it is each game's share of its release epic -- so
+    the page folds it into the Release column rather than the ticket list.
+    """
+    per_epic, per_rel = release_overhead(rel)
     return {
         "games": [{"epic": e, "name": n, "cat": c, "rel": r}
                   for e, (n, c, r) in GAMES.items()],
         "depts": DEPT_ORDER,
         "rate": HOURLY_RATE,
+        "relOh": {GAMES[e][0]: hrs for e, hrs in per_epic.items() if e in GAMES},
+        "relTotal": round(sum(per_rel.values()), 2),
+        "relByVersion": per_rel,
     }
 
 
-def build(rows):
+def build(rows, rel):
     if not os.path.exists(TEMPLATE_FILE):
         sys.exit(f"No template at {TEMPLATE_FILE} -- cannot build the page.")
     html = io.open(TEMPLATE_FILE, encoding="utf-8").read()
     if PLACEHOLDER not in html:
         sys.exit(f"{TEMPLATE_FILE} has no {PLACEHOLDER} placeholder to inject into.")
 
-    data = json.dumps({"meta": meta(), "tickets": payload(rows)},
+    data = json.dumps({"meta": meta(rel), "tickets": payload(rows)},
                       separators=(",", ":"))
     # the payload sits inside <script type="application/json">; a literal
     # closing tag anywhere in the data would end that block early
@@ -99,11 +112,14 @@ def build(rows):
 
 
 def main():
-    rows, _rel, _counts, _agg = load()
-    n = build(rows)
+    rows, rel, _counts, _agg = load()
+    n = build(rows, rel)
     spent = sum(r["ts_s"] for r in rows) / 3600
+    _pe, pr = release_overhead(rel)
+    oh = sum(pr.values())
     print(f"Saved {OUTPUT_FILE}")
     print(f"  {len(rows)} tickets · {spent:,.2f}h · {n / 1024:,.0f} KB of embedded data")
+    print(f"  + {oh:,.2f}h release overhead from {len(rel)} release-epic tickets")
     print(f"  -> {os.path.abspath(OUTPUT_FILE)}")
     print("  Served by GitHub Pages at /elg-cost-model.html once pushed.")
     print("  Edit page_template.html and re-run to restyle.")

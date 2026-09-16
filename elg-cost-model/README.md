@@ -13,11 +13,42 @@ Three scripts, split so the slow part runs once and the fast parts rebuild
 instantly:
 
 ```
+games.json               the model's inputs: games, release epics, hourly rate
 elg_cost_data.py         Jira  -> elg_cost_data.json       ~2 min, hits the network
 elg_cost_spreadsheet.py  cache -> .xlsx + .md              instant, offline
 elg_cost_page.py         cache -> ../elg-cost-model.html   instant, offline
 page_template.html       the page's layout, copy and styling
 ```
+
+## Adding a game
+
+The game list lives in `games.json`, not in the Python, and `elg_cost_data.py`
+manages it for you. Nothing here needs a code edit:
+
+```
+python elg_cost_data.py --list                     what is in the model now
+python elg_cost_data.py --find buffalo             search IG epics by summary
+python elg_cost_data.py --add IG-7781 --cat Port   add one
+python elg_cost_data.py --remove IG-7781           drop one
+```
+
+`--add` reads the display name and the ELG release off the epic itself, so
+category is the only thing you have to supply -- nothing in Jira distinguishes
+a Port from a Skin. Override the derived values with `--name` / `--rel`; you
+will need `--rel` for an epic that carries no ELG fix version (Flaming Skulls
+is one -- it has only PFH and Horse Play versions).
+
+Adding a game only edits `games.json`. Re-run the pull and the page build to
+see it:
+
+```
+python elg_cost_data.py     # picks up the new epic
+python elg_cost_page.py
+```
+
+There is no `--add` for release epics; edit the `release_epics` block in
+`games.json` directly. A game whose release has no entry there simply gets
+0h of release overhead.
 
 **The built page goes to the repo root**, as `elg-cost-model.html`, matching
 every other dashboard here (`game-pipeline.html`, `team-board.html`). That is
@@ -32,10 +63,45 @@ That URL is **public**, like the rest of this Pages site.
 All paths are anchored to this folder, not your working directory, so the
 scripts work from anywhere.
 
-`elg_cost_data.py` owns everything shared: the game list, the release epics,
+`elg_cost_data.py` owns everything shared: it reads `games.json`, and holds
 the department classification rules, the 2024 t-shirt legend, and the Jira
 traversal. The other two import from it, so the rules can never drift between
 the spreadsheet and the page.
+
+## How a ticket gets a department
+
+There is no department field in Jira. `classify()` walks `RULES` top to bottom
+and the first match wins, so order is load-bearing:
+
+- **Bugs** is issue type only -- `Bug` and `Live Issue`. It sits first, so a
+  ticket typed Bug counts as Bugs whatever its summary says. `Enhancement` is
+  deliberately *not* in that set: it is scoped feature work rather than a
+  defect, and including it overstated Bugs by ~25 tickets.
+- **Server** is inferred from the summary, and is the softest number here.
+  Only the `[Server]` bracket tag is authoritative; the older keyword patterns
+  (`config`, `pools`, `deploy on/to`) catch any summary that mentions them,
+  whoever did the work. Server sits above Game Engine on purpose, so
+  "deployment on New Game Engine" reads as releasing onto the platform rather
+  than building it.
+- **Release** never matches a game ticket at all. Release work does not live
+  under a game epic -- see below.
+
+## Release overhead
+
+Release work sits under its own epics (`release_epics` in `games.json`), not
+under any game, so no game ticket ever classifies as Release. Those epics are
+pulled into a separate `rel` list and `release_overhead()` shares each
+release's hours evenly across the games **this model tracks** in that release.
+
+That denominator is an assumption worth knowing: if a release also shipped
+games the model does not track, their share lands on the tracked ones and
+per-game overhead reads high. The page states it under the category cards.
+
+The shares are not flat -- they run from 0.25h (ELG 4.50) to 76.42h
+(ELG 4.40). The page shows them in the Release column and as a separate
+"Release OH" tile, kept out of `Actual` because they are not tickets in view.
+Scope filters work on fix versions and release overhead carries none, so it
+only applies in Full-game scope.
 
 ## Running it
 
