@@ -247,6 +247,11 @@ Presentation:
   1dp. A 0.25h share rendering as `0` read as nothing at all.
 - **`Actual ÷ Est` below 1.0 means over-estimated**, not under-spent. Roughly 0.8
   across the model: the 2024 t-shirt bands were generous against real delivery.
+- **Every figure is traceable.** Click a matrix cell to drill into one game and
+  department; the deepest view lists each ticket with its summary, estimate,
+  spend and fix versions, and every key links to Jira. Game names in the matrix
+  link to their epic. If a number looks wrong, the tickets behind it are two
+  clicks away.
 - **The category averages are thin.** Port rests on 5 games, Skin on 2, Branded
   on 1, New on none. The page labels each with its n and a confidence word;
   treat Branded as indicative only.

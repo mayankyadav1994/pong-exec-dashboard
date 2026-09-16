@@ -23,7 +23,7 @@ import os
 import sys
 
 from elg_cost_data import (GAMES, DEPT_ORDER, load, HERE, HOURLY_RATE,
-                          release_overhead)
+                          release_overhead, JIRA_BASE)
 
 TEMPLATE_FILE = os.path.join(HERE, "page_template.html")
 
@@ -90,6 +90,9 @@ def meta(rel):
         "relOh": {GAMES[e][0]: hrs for e, hrs in per_epic.items() if e in GAMES},
         "relTotal": round(sum(per_rel.values()), 2),
         "relByVersion": per_rel,
+        # so ticket keys and game names on the page can link back to the
+        # source; a figure you cannot trace is a figure you cannot trust
+        "jira": JIRA_BASE,
     }
 
 
