@@ -95,8 +95,11 @@ AUTH = HTTPBasicAuth(JIRA_EMAIL, API_TOKEN)
 HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 
 CATEGORIES = ["Port", "Skin", "Branded", "New"]
+# Enhancement and CR are listed even when empty: they are real buckets of
+# work and a missing column reads as "no such work" rather than "none yet".
+# CR exists on the instance (2 in IG today, both under untracked epics).
 DEPT_ORDER = ["Concept", "Creative", "Math", "Sound", "Game Engine", "Server",
-              "Dev", "Review", "QA", "Bugs", "Release"]
+              "Dev", "Review", "QA", "Bugs", "Enhancement", "CR", "Release"]
 SIZES = ["XS", "S", "M", "L", "XL"]
 ELG_RE = re.compile(r"^ELG\b", re.I)
 # Some build work on an ELG game is tagged to a PFH release instead, and some
@@ -117,16 +120,35 @@ FIELDS = ["summary", "issuetype", "parent", "fixVersions", "status",
 # ===========================================================================
 #  DEPARTMENT RULES -- first match wins, top to bottom.
 #  kind "type" matches the issue type; kind "text" matches the summary.
-#  Text rules sit ABOVE the type fallbacks on purpose: issue type is wrong
-#  often enough to matter (see module docstring).
+#
+#  Four tiers, in this order:
+#    1. Issue types that ARE a department (Bug, QA, Release, Enhancement, CR).
+#    2. Review and Concept text rules -- these must beat the department they
+#       review, or "Review - Math" lands in Math instead of Review.
+#    3. Explicit [bracket] tags, the current naming convention -- authoritative.
+#    4. Issue types that NAME a department (Math/Sound/Creative/Design Task).
+#       -- then loose keyword rules, then the Dev fallback.
+#
+#  Tier 4 above the keywords is the fix for a real misclassification: a
+#  "Math Task" called "Gen2 Game: Lost Totem - PFH pools" was landing in
+#  Server because the summary says "pools". 34 Math tickets / 108h were
+#  filed that way. The 2024 LEGEND agrees with the fix -- it prices
+#  "Pools/Flares" and "Math Models/weighted outcomes" under Math.
+#
+#  Generic types (Story, Task, Dev Task, Dev Subtask) are deliberately NOT in
+#  tier 4: they name no department, so the keyword rules are what classify
+#  them. That routing -- Dev -> Game Engine / Review / Server, ~1,200h -- is
+#  the design working, not a bug.
 # ===========================================================================
 RULES = [
     # -- reliable issue types ------------------------------------------------
-    # Enhancement is deliberately NOT here: it is scoped feature work, not a
-    # defect, and lumping it in overstated the Bugs column. With the type
-    # dropped it falls through to the text rules and the Dev fallback, so an
-    # Enhancement named "[Server] ..." now lands on Server rather than Bugs.
+    # Enhancement is NOT a Bug -- it is scoped feature work, and lumping it in
+    # overstated the Bugs column. It now has its own column rather than
+    # dissolving into Dev, so the hours stay visible instead of being merged
+    # into the largest bucket on the page.
     ("Bugs",        "type", {"Bug", "Live Issue"}),
+    ("Enhancement", "type", {"Enhancement"}),
+    ("CR",          "type", {"CR"}),
     ("QA",          "type", {"QA Task", "QA Subtask"}),
     ("Release",     "type", {"Release", "Release Subtask"}),
     # -- review must win before the department it reviews --------------------
@@ -141,6 +163,16 @@ RULES = [
     ("Game Engine", "text", r"\[ge\]"),
     ("Math",        "text", r"\[math\]"),
     ("Dev",         "text", r"\[fe\]"),
+    # -- issue types that NAME a department: Jira wins over loose keywords ---
+    # These are explicit. A Math Task is math work even when its summary
+    # mentions pools or configs -- see the tier note at the top of this table.
+    # The [bracket] rules above still win, so "[Server] ..." on a Math Task is
+    # still Server; that tag is the newer, deliberate convention.
+    ("Math",        "type", {"Math Task", "Math Subtask"}),
+    ("Sound",       "type", {"Sound Task", "Sound Subtask"}),
+    ("Creative",    "type", {"Creative Task", "Creative Subtask",
+                             "Design Task", "Design Subtask", "Design Sub-Task"}),
+
     # -- older keyword naming ------------------------------------------------
     # Server sits above Game Engine deliberately: "deployment on New Game
     # Engine" and "Configs Deployment >> ... New Game Engine" are releasing
@@ -155,10 +187,9 @@ RULES = [
                             r"|wwise|soundtrack"),
     ("Math",        "text", r"\bmath\b|par sheet|\brtp\b"),
     # -- issue-type fallbacks ------------------------------------------------
-    ("Creative",    "type", {"Creative Task", "Creative Subtask",
-                             "Design Task", "Design Subtask", "Design Sub-Task"}),
-    ("Math",        "type", {"Math Task", "Math Subtask"}),
-    ("Sound",       "type", {"Sound Task", "Sound Subtask"}),
+    # Creative / Math / Sound used to sit here, below the keyword rules, which
+    # is what let "pools" and "configs" outrank an explicit Math Task. They
+    # now live in the tier above; only the generic types remain here.
     ("Dev",         "type", {"Dev Task", "Dev Subtask", "Story", "Task"}),
 ]
 
@@ -261,9 +292,7 @@ COMPOSITION_NOTE = {
 
 # Departments the 2024 legend never priced -- derived, so it stays true if the
 # LEGEND table is ever extended. This is where the hidden cost lives.
-UNPRICED_2024 = [d for d in
-                 ["Concept", "Creative", "Math", "Sound", "Game Engine", "Server",
-                  "Dev", "Review", "QA", "Bugs", "Release"]
+UNPRICED_2024 = [d for d in DEPT_ORDER
                  if d not in {row[2] for row in LEGEND}]
 
 

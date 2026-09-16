@@ -47,16 +47,17 @@ Across all 8 games, full-game scope. `Actual/Est` below 0.80 means the departmen
 |---|---:|---:|---:|---|
 | Concept | 69 | 30 | 0.43 | OVER-estimated ~2x |
 | Creative | 657 | 528 | 0.80 | about right |
-| Math | 362 | 244 | 0.67 | over-estimated |
-| Sound | 322 | 139 | 0.43 | OVER-estimated ~2x |
+| Math | 558 | 352 | 0.63 | over-estimated |
+| Sound | 320 | 138 | 0.43 | OVER-estimated ~2x |
 | Game Engine | 736 | 502 | 0.68 | over-estimated |
-| Server | 772 | 432 | 0.56 | OVER-estimated ~2x |
-| Dev | 982 | 847 | 0.86 | about right |
+| Server | 577 | 324 | 0.56 | OVER-estimated ~2x |
+| Dev | 966 | 828 | 0.86 | about right |
 | Review | 561 | 595 | 1.06 | about right |
 | QA | 539 | 554 | 1.03 | about right |
 | Bugs | 424 | 486 | 1.15 | about right |
+| Enhancement | 17 | 21 | 1.25 | UNDER-estimated |
 
-Departments the 2024 legend never priced at all: Concept, QA, Bugs, Release. That is where the hidden cost lives -- real spend no estimate ever accounted for.
+Departments the 2024 legend never priced at all: Concept, QA, Bugs, Enhancement, CR, Release. That is where the hidden cost lives -- real spend no estimate ever accounted for.
 
 ## How work maps to departments
 
@@ -65,22 +66,24 @@ Issue type alone is NOT reliable in project IG: Sound work is typed `Dev Subtask
 | # | Department | Match on | Pattern / issue types |
 |---:|---|---|---|
 | 1 | Bugs | type | `Bug`, `Live Issue` |
-| 2 | QA | type | `QA Subtask`, `QA Task` |
-| 3 | Release | type | `Release`, `Release Subtask` |
-| 4 | Review | text | `review\s*(&\|and)\s*refinement\|review\s*[-–]\s*(dev\|math\|art\|sound\|creative\|qa)\|code review\|game review\|art review\|review changes\|implement review\|[-–]\s*review\s*$` |
-| 5 | Concept | text | `design doc\|concept layout\|\bgdd\b\|game info package\|\bgip\b\|[-–]\s*concept\b` |
-| 6 | Server | text | `\[server\]` |
-| 7 | Game Engine | text | `\[ge\]` |
-| 8 | Math | text | `\[math\]` |
-| 9 | Dev | text | `\[fe\]` |
-| 10 | Server | text | `tickets?\s*(&\|and)\s*pools\|prizes,\s*tickets\|prepare and verify pools\|weighted outcome\|game config\|\bconfigs?\b\|\bpools?\b\|\bdeploy\w*\s+(on\|to)\b` |
-| 11 | Game Engine | text | `game engine\|simulation\|simulator` |
-| 12 | Sound | text | `\bsounds?\b\|\bsfx\b\|\baudio\b\|\bmusic\b\|wwise\|soundtrack` |
-| 13 | Math | text | `\bmath\b\|par sheet\|\brtp\b` |
+| 2 | Enhancement | type | `Enhancement` |
+| 3 | CR | type | `CR` |
+| 4 | QA | type | `QA Subtask`, `QA Task` |
+| 5 | Release | type | `Release`, `Release Subtask` |
+| 6 | Review | text | `review\s*(&\|and)\s*refinement\|review\s*[-–]\s*(dev\|math\|art\|sound\|creative\|qa)\|code review\|game review\|art review\|review changes\|implement review\|[-–]\s*review\s*$` |
+| 7 | Concept | text | `design doc\|concept layout\|\bgdd\b\|game info package\|\bgip\b\|[-–]\s*concept\b` |
+| 8 | Server | text | `\[server\]` |
+| 9 | Game Engine | text | `\[ge\]` |
+| 10 | Math | text | `\[math\]` |
+| 11 | Dev | text | `\[fe\]` |
+| 12 | Math | type | `Math Subtask`, `Math Task` |
+| 13 | Sound | type | `Sound Subtask`, `Sound Task` |
 | 14 | Creative | type | `Creative Subtask`, `Creative Task`, `Design Sub-Task`, `Design Subtask`, `Design Task` |
-| 15 | Math | type | `Math Subtask`, `Math Task` |
-| 16 | Sound | type | `Sound Subtask`, `Sound Task` |
-| 17 | Dev | type | `Dev Subtask`, `Dev Task`, `Story`, `Task` |
+| 15 | Server | text | `tickets?\s*(&\|and)\s*pools\|prizes,\s*tickets\|prepare and verify pools\|weighted outcome\|game config\|\bconfigs?\b\|\bpools?\b\|\bdeploy\w*\s+(on\|to)\b` |
+| 16 | Game Engine | text | `game engine\|simulation\|simulator` |
+| 17 | Sound | text | `\bsounds?\b\|\bsfx\b\|\baudio\b\|\bmusic\b\|wwise\|soundtrack` |
+| 18 | Math | text | `\bmath\b\|par sheet\|\brtp\b` |
+| 19 | Dev | type | `Dev Subtask`, `Dev Task`, `Story`, `Task` |
 
 Notes on deliberate calls:
 

@@ -74,20 +74,32 @@ the spreadsheet and the page.
 ## How a ticket gets a department
 
 There is no department field in Jira. `classify()` walks `RULES` top to bottom
-and the first match wins, so order is load-bearing:
+and the first match wins, so order is load-bearing. Four tiers:
 
-- **Bugs** is issue type only -- `Bug` and `Live Issue`. It sits first, so a
-  ticket typed Bug counts as Bugs whatever its summary says. `Enhancement` is
-  deliberately *not* in that set: it is scoped feature work rather than a
-  defect, and including it overstated Bugs by ~25 tickets.
-- **Server** is inferred from the summary, and is the softest number here.
-  Only the `[Server]` bracket tag is authoritative; the older keyword patterns
-  (`config`, `pools`, `deploy on/to`) catch any summary that mentions them,
-  whoever did the work. Server sits above Game Engine on purpose, so
-  "deployment on New Game Engine" reads as releasing onto the platform rather
-  than building it.
-- **Release** never matches a game ticket at all. Release work does not live
-  under a game epic -- see below.
+1. Issue types that ARE a department -- `Bug`/`Live Issue`, `QA*`, `Release*`,
+   `Enhancement`, `CR`. First, and they beat everything.
+2. Review and Concept text rules, so "Review - Math" is Review, not Math.
+3. Explicit `[Server]` / `[GE]` / `[Math]` / `[FE]` bracket tags.
+4. Issue types that NAME a department -- `Math`/`Sound`/`Creative`/`Design`
+   Task and Subtask. **These beat the loose keyword rules below them.**
+
+Then the older keyword rules, then a `Dev` fallback.
+
+Tier 4 above the keywords fixes a real misclassification: a Math Task called
+"Gen2 Game: Lost Totem - PFH pools" was landing in Server because the summary
+says "pools". 34 Math tickets / 108h were filed that way. The 2024 LEGEND
+agrees -- it prices "Pools/Flares" and "Math Models/weighted outcomes" as Math.
+
+Generic types (`Story`, `Task`, `Dev Task`, `Dev Subtask`) are deliberately NOT
+in tier 4 -- they name no department, so keywords are what classify them. That
+routing, ~1,300h of Dev-typed work, is the design working.
+
+**Server** remains the softest number: only the `[Server]` tag is
+authoritative. **Release** never matches a game ticket at all -- see below.
+**Enhancement** and **CR** have their own columns; CR is empty today because
+no CR ticket has landed on a modelled game yet.
+
+Full guide: [docs/ELG_COST_MODEL.md](../docs/ELG_COST_MODEL.md)
 
 ## Release overhead
 
