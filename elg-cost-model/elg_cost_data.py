@@ -29,18 +29,62 @@ from collections import defaultdict, Counter
 import requests
 from requests.auth import HTTPBasicAuth
 
-# Token lives in User-scope env; self-heal so no per-run bridging is needed.
-try:
-    import winreg as _winreg
-    if not os.environ.get("JIRA_API_TOKEN"):
-        with _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, "Environment") as _k:
-            os.environ["JIRA_API_TOKEN"] = _winreg.QueryValueEx(_k, "JIRA_API_TOKEN")[0]
-except (ImportError, OSError):
-    pass
-
 # Anchored to this file, not the working directory, so the cache is found
 # no matter where you run the scripts from.
 HERE = os.path.dirname(os.path.abspath(__file__))
+
+# ---------------------------------------------------------------------------
+# CREDENTIALS -- never in source. This repo is public.
+#
+# Both the email and the token are read from the environment. Three sources
+# are tried, first one wins, so one checkout works on a machine that keeps
+# them in a .env and on one that keeps them in Windows User-scope env:
+#
+#   1. the process environment      (set -a; . ~/.env; set +a)
+#   2. a .env beside this script, or in the user's home
+#   3. Windows User-scope env       (HKCU\Environment)
+# ---------------------------------------------------------------------------
+_CREDS = ("JIRA_EMAIL", "JIRA_API_TOKEN")
+
+
+def _load_env_file(names):
+    """Fill missing vars from a .env if one exists. KEY=VALUE, # for comments."""
+    for path in (os.path.join(HERE, ".env"),
+                 os.path.join(os.path.expanduser("~"), ".env")):
+        if not os.path.exists(path):
+            continue
+        try:
+            with io.open(path, encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line or line.startswith("#") or "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    if key in names and not os.environ.get(key):
+                        os.environ[key] = val.strip().strip('"').strip("'")
+        except OSError:
+            pass
+
+
+def _load_winreg(names):
+    """Fill missing vars from HKCU\\Environment (Windows User-scope)."""
+    try:
+        import winreg as _winreg
+        with _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, "Environment") as _k:
+            for name in names:
+                if os.environ.get(name):
+                    continue
+                try:
+                    os.environ[name] = _winreg.QueryValueEx(_k, name)[0]
+                except OSError:
+                    pass          # that one simply is not set
+    except (ImportError, OSError):
+        pass
+
+
+_load_env_file(_CREDS)
+_load_winreg(_CREDS)
 CACHE_FILE = os.path.join(HERE, "elg_cost_data.json")
 
 # ===========================================================================
@@ -89,7 +133,7 @@ RELEASE_EPICS = CONFIG.get("release_epics", {})
 # ===========================================================================
 
 JIRA_BASE = "https://ponggamestudios.atlassian.net"
-JIRA_EMAIL = "mayank.yadav@pongstudios.com"
+JIRA_EMAIL = os.environ.get("JIRA_EMAIL", "")
 API_TOKEN = os.environ.get("JIRA_API_TOKEN", "")
 AUTH = HTTPBasicAuth(JIRA_EMAIL, API_TOKEN)
 HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
@@ -656,8 +700,16 @@ def main():
     if a.remove:
         return cmd_remove(a.remove)
 
-    if not API_TOKEN:
-        sys.exit(r"JIRA_API_TOKEN not set (checked process env and HKCU\Environment).")
+    missing = [n for n in _CREDS if not os.environ.get(n)]
+    if missing:
+        sys.exit(
+            "Missing credential(s): %s\n"
+            "Looked in: the process environment, a .env beside this script or in\n"
+            "your home directory, and Windows User-scope env (HKCU\\Environment).\n"
+            "Set them with either:\n"
+            "  set -a; . ~/.env; set +a            (bash, .env holds KEY=VALUE)\n"
+            "  setx JIRA_EMAIL you@pongstudios.com (Windows, persists)"
+            % ", ".join(missing))
     if a.find:
         return cmd_find(a.find)
     if a.add:
