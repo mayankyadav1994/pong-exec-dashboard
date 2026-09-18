@@ -107,12 +107,12 @@ Notes on deliberate calls:
 ## Corrections to previously held rules
 
 - **IG epics DO carry fix versions.** The standing rule "epics carry no fix version" is false: 7 of these 8 epics are tagged. Only Flaming Skulls (IG-1506) has no ELG version on the epic. Still test ELG membership at story/subtask level, but any "games per release" count built on epic fixVersion undercounts.
-- **PFH leakage is smaller than assumed.** ELG-only scope captures 4,113h of 4,356h; the gap is 243h (5.6%), confined to the three oldest Ports. The single largest item is QA tagged `New Games - iGaming`, not PFH.
+- **PFH leakage is smaller than assumed.** ELG-only scope captures 4,225h of 4,356h; the gap is 131h (3.0%), confined to the three oldest Ports. The single largest item is QA tagged `New Games - iGaming`, not PFH.
 
 ## Data hygiene
 
 - **140 tickets carry 998h of estimate with zero time logged.** This is the single reason the bands were never validated: there was nothing to compare an actual against. Fix this first.
-- **113 tickets (238h)** sit under an ELG game epic but carry a non-ELG fix version (PFH, Horse Play, 'New Games - iGaming').
+- **106 tickets (126h)** sit under an ELG game epic but carry a non-ELG fix version (PFH, Horse Play, 'New Games - iGaming').
 - **1 tickets (0h)** carry no fix version at all and cannot be attributed to any release.
 - **12 tickets (39h)** have time logged against no estimate -- invisible to any capacity forecast.
 
