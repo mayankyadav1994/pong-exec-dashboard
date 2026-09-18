@@ -5,7 +5,7 @@ Delivery-cost knowledge for iGaming (project IG) ELG games at Pong Game Studios.
 ## Scope
 
 - **Sample**: 8 games from the last ELG game-bearing releases (ELG 4.20, ELG 4.30, ELG 4.40, ELG 4.50, ELG 4.70).
-- **Tickets traced**: 981, walking epic -> children -> subtasks.
+- **Tickets traced**: 983, walking epic -> children -> subtasks.
 - **Total estimated**: 5,424h. **Total actual**: 4,356h. **Actual / Estimate: 0.80**.
 - **Categories**: Port, Skin, Branded, New. No New game has ever shipped to ELG -- everything ELG is built in V2 first and ported.
 
@@ -107,13 +107,13 @@ Notes on deliberate calls:
 ## Corrections to previously held rules
 
 - **IG epics DO carry fix versions.** The standing rule "epics carry no fix version" is false: 7 of these 8 epics are tagged. Only Flaming Skulls (IG-1506) has no ELG version on the epic. Still test ELG membership at story/subtask level, but any "games per release" count built on epic fixVersion undercounts.
-- **PFH leakage is smaller than assumed.** ELG-only scope captures 3,956h of 4,356h; the gap is 400h (9.2%), confined to the three oldest Ports. The single largest item is QA tagged `New Games - iGaming`, not PFH.
+- **PFH leakage is smaller than assumed.** ELG-only scope captures 4,113h of 4,356h; the gap is 243h (5.6%), confined to the three oldest Ports. The single largest item is QA tagged `New Games - iGaming`, not PFH.
 
 ## Data hygiene
 
 - **140 tickets carry 998h of estimate with zero time logged.** This is the single reason the bands were never validated: there was nothing to compare an actual against. Fix this first.
-- **99 tickets (229h)** sit under an ELG game epic but carry a non-ELG fix version (PFH, Horse Play, 'New Games - iGaming').
-- **50 tickets (166h)** carry no fix version at all and cannot be attributed to any release.
+- **113 tickets (238h)** sit under an ELG game epic but carry a non-ELG fix version (PFH, Horse Play, 'New Games - iGaming').
+- **1 tickets (0h)** carry no fix version at all and cannot be attributed to any release.
 - **12 tickets (39h)** have time logged against no estimate -- invisible to any capacity forecast.
 
 ## What this model cannot tell you
