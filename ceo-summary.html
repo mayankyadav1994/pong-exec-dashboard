@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PGS — CEO Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Mirrors game-pipeline dashboard.css so the front door matches the pipeline. */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+    --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+    --attention:#dc2626;--review:#7c3aed;--play:#2563eb;--delivery:#0f766e;--ok:#16a34a;
+  }
+  body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);padding:24px 32px 60px}
+
+  .hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:18px;margin-bottom:20px;flex-wrap:wrap;gap:16px}
+  .hdr .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+  .hdr h1{font-size:23px;font-weight:700;letter-spacing:-.4px;margin-top:6px}
+  .hdr p{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .hdr p a{color:var(--play);font-weight:600;text-decoration:none}
+  .hdr .today{font-size:13px;color:var(--text);font-weight:600;margin-top:8px}
+  .refresh-meta{font-size:11px;color:var(--sub);margin-top:5px;display:flex;align-items:center;gap:6px}
+  .refresh-dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+  .views{display:flex;gap:7px;align-items:center}
+  .btn{font-size:11px;padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit;font-weight:600;letter-spacing:.03em}
+  .btn:hover{background:var(--surf2);color:var(--text)}
+  .btn.active{background:#1a2035;color:#fff;border-color:#1a2035}
+
+  .summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+  .sum{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:11px 15px;flex:1;min-width:180px}
+  .sum .ic{font-size:17px;line-height:1}
+  .sum .n{font-size:19px;font-weight:700}
+  .sum .lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;line-height:1.25}
+  .sum.attention{border-color:#f3c0c0;background:#fef4f4}
+  .sum.attention .n{color:var(--attention)}
+
+  .day{margin-top:22px}
+  .day.hide{display:none}
+  .day-h{display:flex;align-items:baseline;gap:10px;border-bottom:1px solid var(--border2);padding-bottom:7px;margin-bottom:2px}
+  .day-h .dow{font-size:13px;font-weight:700;letter-spacing:.02em}
+  .day-h .date{font-size:11.5px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+  .day-h.is-today .dow{color:var(--play)}
+  .day-h .todaytag{font-size:9.5px;font-weight:700;color:#fff;background:var(--play);border-radius:4px;padding:2px 7px;letter-spacing:.05em}
+
+  .row{display:grid;grid-template-columns:34px 1.35fr 1.9fr 175px;align-items:center;gap:8px;padding:11px 6px;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .row .ic{font-size:17px;text-align:center;line-height:1}
+  .row .game{font-weight:700;font-size:13.5px}
+  .row .game .chip{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:9px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2);margin-right:7px;vertical-align:1px}
+  .row .game .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
+  .row .game .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
+  .row .game .jira{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);font-weight:500;margin-left:7px}
+  .row .ms{font-size:12.5px;color:#3d465e}
+  .row .ms .late{color:var(--attention);font-weight:600}
+  .action{justify-self:end;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:6px 12px;border-radius:6px;white-space:nowrap;text-transform:uppercase}
+  .action.review{color:var(--review);background:#f3edff;border:1px solid #ddd0fb}
+  .action.play{color:var(--play);background:#eaf1fe;border:1px solid #cfe0fb}
+  .action.decision{color:var(--attention);background:#fdeeee;border:1px solid #f6cccc}
+  .action.none{color:var(--sub);background:transparent}
+  .row.attention{background:#fef7f7;margin:0 -6px;padding-left:12px;padding-right:12px;border-left:3px solid var(--attention)}
+
+  .empty{background:var(--surface);border:1px dashed var(--border2);border-radius:10px;padding:40px;text-align:center;color:var(--muted);font-size:13px;margin-top:20px}
+  .foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:10px}
+  .foot a{color:var(--play);text-decoration:none;font-weight:600}
+  .legend{display:flex;gap:15px;flex-wrap:wrap}
+  .legend span{display:flex;align-items:center;gap:5px}
+</style>
+</head>
+<body>
+  <header class="hdr">
+    <div>
+      <div class="eyebrow">Pong Game Studios · Games PMO</div>
+      <h1>PGS — CEO Summary</h1>
+      <p>CEO + Creative Director view · a front door to the <a href="game-pipeline.html">Game Pipeline</a> · V2 + iGaming</p>
+      <div class="today" id="todayLine">—</div>
+      <div class="refresh-meta"><span class="refresh-dot"></span><span id="refreshLine">loading…</span></div>
+    </div>
+    <div class="views">
+      <button class="btn" data-view="0">TODAY</button>
+      <button class="btn active" data-view="7">7 DAYS</button>
+      <button class="btn" data-view="30">30 DAYS</button>
+    </div>
+  </header>
+
+  <section class="summary" id="summary"></section>
+  <div id="calendar"></div>
+
+  <footer class="foot">
+    <div class="legend">
+      <span>🔴 Needs attention</span><span>🎨 Creative review</span><span>🎮 Ready to play</span>
+      <span>🏁 Delivery</span><span>✓ On track</span>
+    </div>
+    <a href="game-pipeline.html">Open full pipeline →</a>
+  </footer>
+
+<script src="dashboard-data-v2.js"></script>
+<script src="dashboard-data-ig.js"></script>
+<script>
+// ============================================================
+//  CEO Summary — fully automated milestone calendar (V2 + iGaming)
+//  Derives dated milestones from GP_DATA; see logic table in the PR.
+// ============================================================
+const BOARDS = [['v2','V2'], ['ig','iGaming']];
+const DAYMS = 86400000;
+
+// Stage → the exec-facing beat that stage represents. Only in-flight games
+// (not Signed Off / Delivered) emit a stage beat; the date is that discipline's
+// target_date (latest ticket due-date in Jira).
+const STAGE_BEAT = {
+  design: {icon:'🎨', text:'GDD & bonus flow due',   bucket:'review',  action:['review','Review & approve']},
+  art:    {icon:'🎨', text:'Creative / art due',     bucket:'review',  action:['review','Review & approve']},
+  math:   {icon:'✓',  text:'Math model due',         bucket:'ontrack', action:['none','—']},
+  dev:    {icon:'🎮', text:'First Playable due',      bucket:'play',    action:['play','Play & review']},
+  sound:  {icon:'✓',  text:'Sound integration due',  bucket:'ontrack', action:['none','—']},
+  review: {icon:'🎨', text:'Final creative review',   bucket:'review',  action:['review','Review & approve']},
+  qa:     {icon:'✓',  text:'QA sign-off due',        bucket:'ontrack', action:['none','—']},
+};
+const NO_BEAT_STATUS = new Set(['Signed Off','Delivered','On Hold','Not Started']);
+
+function midnight(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+function asDate(s){ const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1],+m[2]-1,+m[3]) : null; }
+function addDays(d,n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+function fmtDate(d){ return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtDOW(d){ return d.toLocaleDateString('en-US',{weekday:'long'}).toUpperCase(); }
+function stripName(n){ return String(n).replace(/^Gen2\s*-?\s*Game:\s*/i,'').replace(/^Game:\s*/i,''); }
+
+const TODAY = midnight(new Date());
+const HORIZON = addDays(TODAY, 30);
+
+function buildEvents(){
+  const evs = [];
+  for(const [key,label] of BOARDS){
+    const data = (window.GP_DATA||{})[key];
+    if(!data || !data.games) continue;
+    for(const g of data.games){
+      if(!g.in_roster) continue;
+      const base = { board:key, boardLabel:label, jira:g.jira, game:stripName(g.name) };
+
+      // 1) Deliveries (real fixVersion release dates) + overdue deliveries.
+      for(const fv of (g.fixVersions||[])){
+        if(fv.released || !fv.releaseDate) continue;
+        const d = asDate(fv.releaseDate); if(!d) continue;
+        if(d < TODAY){
+          evs.push({...base, when:TODAY, bucket:'attention', icon:'🔴',
+                    ms:`${fv.name} delivery overdue`, late:true, action:['decision','Decision required'], sort:0});
+        } else if(d <= HORIZON){
+          evs.push({...base, when:d, bucket:'delivery', icon:'🏁',
+                    ms:`${fv.name} — delivery`, action:['none','—'], sort:3});
+        }
+      }
+
+      // 2) Current-stage beat (creative review / ready to play / on track),
+      //    or an overdue flag if that stage's target date has already passed.
+      if(!NO_BEAT_STATUS.has(g.workflow_status) && STAGE_BEAT[g.current_stage]){
+        const beat = STAGE_BEAT[g.current_stage];
+        const disc = (g.disciplines||[]).find(d => d.key === g.current_stage);
+        const td = disc && disc.target_date ? asDate(disc.target_date) : null;
+        const pct = disc ? (disc.pct||0) : 0;
+        if(td && td < TODAY && pct < 1){
+          evs.push({...base, when:TODAY, bucket:'attention', icon:'🔴',
+                    ms:`${beat.text.replace(/ due$/,'')} overdue`, late:true,
+                    action:['decision','Decision required'], sort:0});
+        } else if(td && td>=TODAY && td<=HORIZON){
+          evs.push({...base, when:td, bucket:beat.bucket, icon:beat.icon,
+                    ms:beat.text, action:beat.action, sort:beat.icon==='🎨'?1:beat.icon==='🎮'?2:4});
+        }
+      }
+    }
+  }
+  return evs;
+}
+
+const BUCKETS = [
+  ['attention','🔴','Need attention'],
+  ['review','🎨','Creative reviews'],
+  ['play','🎮','Ready to play'],
+  ['delivery','🏁','Deliveries coming'],
+];
+
+let ALL_EVENTS = [];
+
+function render(view){
+  const maxDays = +view;
+  const inWin = ALL_EVENTS.filter(e => (e.when - TODAY)/DAYMS <= maxDays);
+
+  // summary counts
+  const counts = {};
+  inWin.forEach(e => counts[e.bucket] = (counts[e.bucket]||0)+1);
+  document.getElementById('summary').innerHTML = BUCKETS.map(([k,ic,lbl]) => {
+    const parts = lbl.split(' ');
+    return `<div class="sum ${k==='attention'?'attention':''}"><span class="ic">${ic}</span>`
+      + `<div><div class="n">${counts[k]||0}</div><div class="lbl">${parts[0]}<br>${parts.slice(1).join(' ')}</div></div></div>`;
+  }).join('');
+
+  // group by day
+  const byDay = new Map();
+  inWin.forEach(e => {
+    const k = +e.when;
+    if(!byDay.has(k)) byDay.set(k, []);
+    byDay.get(k).push(e);
+  });
+  const days = [...byDay.keys()].sort((a,b)=>a-b);
+
+  if(!days.length){
+    document.getElementById('calendar').innerHTML = `<div class="empty">No milestones in this window. Try <b>30 DAYS</b>.</div>`;
+    return;
+  }
+  document.getElementById('calendar').innerHTML = days.map(k => {
+    const d = new Date(k);
+    const isToday = k === +TODAY;
+    const isTomorrow = k === +addDays(TODAY,1);
+    const rows = byDay.get(k).sort((a,b)=> a.sort-b.sort || a.game.localeCompare(b.game)).map(e => {
+      const [acls,alabel] = e.action;
+      const arrow = acls==='none' ? '' : ' →';
+      return `<div class="row ${e.bucket==='attention'?'attention':''}">`
+        + `<div class="ic">${e.icon}</div>`
+        + `<div class="game"><span class="chip ${e.board}">${e.boardLabel}</span>${e.game}<span class="jira">${e.jira}</span></div>`
+        + `<div class="ms ${e.late?'':''}">${e.late?`<span class="late">${e.ms}</span>`:e.ms}</div>`
+        + `<div class="action ${acls}">${alabel}${arrow}</div>`
+        + `</div>`;
+    }).join('');
+    const dowLabel = isToday ? `TODAY — ${fmtDOW(d).slice(0,3)}` : isTomorrow ? `TOMORROW — ${fmtDOW(d).slice(0,3)}` : fmtDOW(d);
+    return `<section class="day"><div class="day-h ${isToday?'is-today':''}">`
+      + `<span class="dow">${dowLabel}</span><span class="date">${fmtDate(d)}</span>`
+      + `${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}</section>`;
+  }).join('');
+}
+
+function init(){
+  document.getElementById('todayLine').textContent =
+    TODAY.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const refreshed = BOARDS.map(([k])=> (window.GP_DATA?.[k]?.refreshed_at)).filter(Boolean).sort().pop();
+  document.getElementById('refreshLine').textContent = refreshed ? `Live data · refreshed ${refreshed}` : 'Live data';
+  ALL_EVENTS = buildEvents();
+  document.querySelectorAll('.btn[data-view]').forEach(b =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.btn[data-view]').forEach(x=>x.classList.toggle('active', x===b));
+      render(b.dataset.view);
+    }));
+  render('7');
+}
+init();
+</script>
+</body>
+</html>
