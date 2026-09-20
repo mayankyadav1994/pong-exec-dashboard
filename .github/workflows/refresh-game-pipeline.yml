@@ -24,6 +24,7 @@ on:
       - 'game-pipeline/dashboard.js'
       - 'game-pipeline/dashboard.css'
       - 'game-pipeline/game-pipeline.html'
+      - 'game-pipeline/ceo-summary.html'
       - 'game-pipeline/build_jira_data.py'
 
 # Serialize against the other dashboard refreshes — the v2/iGaming timeline
@@ -53,6 +54,7 @@ jobs:
           JIRA_BOARD_ID_IG: '250'   # iGaming board
       - run: |
           cp game-pipeline/game-pipeline.html .
+          cp game-pipeline/ceo-summary.html .
           cp game-pipeline/dashboard.js .
           cp game-pipeline/dashboard.css .
           cp game-pipeline/dashboard-data-v2.js .
