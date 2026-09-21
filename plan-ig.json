@@ -8,48 +8,52 @@
     "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Steampunk Fortune",
     "Gen2 Game: Fruit Splitter",
-    "Gen2 Game: Firecracker Frenzy",
     "Gen2 Game: Haunted Harvest",
+    "Gen2 Game: 3 Chili Riches",
     "Gen2 Game: Strike Forge Boost",
     "Gen2 Game: Amaterasu Rising",
+    "Gen2 Game: Robin's Arrow - Thanksgiving Feast",
+    "Gen2 Game: Firecracker Frenzy",
     "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Nordic Paws",
     "Gen2 Game: Neon Break",
-    "Gen2 Game: Birthday Bash [V]",
+    "Gen2 Game: Sizzling Deluxe",
     "Gen2 - Game: Quick Wins Diamond Wild",
     "Gen2 Game: Golden Fortune Grand",
-    "Gen2 Game: Moolah Moolah Moolah",
-    "Gen2 Game: Fiery 7s",
     "Gen2 Game: Great Sphinx",
-    "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Chain Lock 7 Refueled",
     "Gen2 Game: Plentiful Bounty",
-    "Gen2 Game: Robin's Arrow - Thanksgiving Feast",
-    "Gen2 Game: Flaming Skulls [V]",
-    "Gen2 Game: 3 Chili Riches",
-    "Gen2 Game: Sizzling Deluxe",
-    "Gen2 Game: Mayan Madness"
+    "Gen2 Game: Mayan Madness",
+    "Gen2 Game: Birthday Bash [V]",
+    "Gen2 Game: Moolah Moolah Moolah",
+    "Gen2 Game: Fiery 7s",
+    "Gen2 Game: Mandarin Madness",
+    "Gen2 Game: Kandy Land Keno - PFH",
+    "Gen2 Game: Flaming Skulls [V]"
   ],
   "status": {
-    "Gen2 Game: Viking's Voyage of Fortune": "In QA",
-    "Gen2 Game: Lantern's Rising [V]": "In QA",
-    "Gen2 Game: Steampunk Fortune": "In Review",
+    "Gen2 Game: Steampunk Fortune": "In QA",
+    "Gen2 Game: Fruit Splitter": "In Review",
+    "Gen2 Game: Strike Forge Boost": "In Progress",
     "Gen2 Game: Pharaoh's Quest": "In Review",
-    "Gen2 Game: Birthday Bash [V]": "In Progress",
-    "Gen2 Game: 3 Chili Riches": "In Progress"
+    "Gen2 Game: Neon Break": "In Progress",
+    "Gen2 - Game: Quick Wins Diamond Wild": "On Hold",
+    "Gen2 Game: Chain Lock 7 Refueled": "In Progress",
+    "Gen2 Game: Plentiful Bounty": "In Progress",
+    "Gen2 Game: Birthday Bash [V]": "In Progress"
   },
   "stage": {
-    "Gen2 Game: Viking's Voyage of Fortune": "qa",
-    "Gen2 Game: Lantern's Rising [V]": "qa",
-    "Gen2 Game: Steampunk Fortune": "dev",
+    "Gen2 Game: Steampunk Fortune": "qa",
+    "Gen2 Game: Fruit Splitter": "sound",
+    "Gen2 Game: Strike Forge Boost": "dev",
     "Gen2 Game: Pharaoh's Quest": "dev",
-    "Gen2 Game: Nordic Paws": "art",
-    "Gen2 Game: Neon Break": "art",
-    "Gen2 Game: Birthday Bash [V]": "art",
-    "Gen2 Game: 3 Chili Riches": "art"
+    "Gen2 Game: Nordic Paws": "dev",
+    "Gen2 Game: Neon Break": "dev",
+    "Gen2 Game: Chain Lock 7 Refueled": "art",
+    "Gen2 Game: Plentiful Bounty": "art",
+    "Gen2 Game: Birthday Bash [V]": "art"
   },
   "sizes": {
     "Gen2 - Game: Quick Wins Diamond Wild": {
@@ -151,10 +155,10 @@
   },
   "move_reasons": {},
   "added": [
+    "IG-5593",
     "IG-1513",
     "IG-5761",
-    "IG-5708",
-    "IG-5593"
+    "IG-5708"
   ],
   "config": {
     "statuses": [
@@ -271,5 +275,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-09-16 17:53"
+  "updated_at": "2026-09-21 15:29"
 }
