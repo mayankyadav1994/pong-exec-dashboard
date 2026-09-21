@@ -131,7 +131,7 @@
       <div class="whoami" id="whoami"></div>
     </div>
     <div class="top-actions">
-      <button class="btn edit" id="editBtn">＋ Manage list (PMO)</button>
+      <button class="btn edit" id="editBtn" hidden>＋ Manage list (PMO)</button>
       <div class="views">
         <button class="btn" data-view="0">TODAY</button>
         <button class="btn active" data-view="7">7 DAYS</button>
@@ -410,7 +410,9 @@ function openSignIn(){
 }
 function pmoEntry(){ isEditor()?openEdit():openSignIn(); }
 function renderWhoami(){
-  // "Manage list" is always visible; clicking it signs the PMO in if needed.
+  // The prominent Manage button only shows once signed in; the "PMO manage"
+  // text link below is the sign-in entry (so it isn't confusing for Fern).
+  document.getElementById('editBtn').hidden = !isEditor();
   const el=document.getElementById('whoami');
   el.innerHTML = isEditor()
     ? `PMO: <b>${esch(getUser()||'editor')}</b> · <a onclick="signOut()">sign out</a>`
