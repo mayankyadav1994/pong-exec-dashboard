@@ -1,7 +1,7 @@
 {
   "items": [],
   "approved": [],
-  "config": { "endpoint": "" },
+  "config": { "pmo_email": "simon.taylor@pongstudios.com, mayank.yadav@pongstudios.com, pruthvi.patel@pongstudios.com" },
   "updated_by": "init",
   "updated_at": "2026-09-21 00:00"
 }
