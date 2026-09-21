@@ -59,6 +59,7 @@
   .row .game .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
   .row .game .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
   .row .game .jira{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);font-weight:500;margin-left:7px}
+  .row .game .sent{font-size:10px;font-weight:700;color:var(--ok);margin-left:8px}
   .row .ms{font-size:12.5px;color:#3d465e}
   .row .ms .lnk{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--play);text-decoration:none;border:1px solid var(--border2);border-radius:6px;padding:2px 7px;margin-left:8px;background:var(--surf2);vertical-align:1px}
   .row .ms .lnk:hover{background:#eaf1fe;border-color:#cfe0fb}
@@ -70,15 +71,15 @@
   .action.decision{color:var(--attention);background:#fdeeee;border-color:#f6cccc}
   .rm{justify-self:end;border:none;background:none;color:var(--sub);cursor:pointer;font-size:15px;padding:0 4px}
   .rm:hover{color:var(--attention)}
+  .pmo-appr{border:1px solid #bfe9cf;background:#eafaf0;color:#15803d;border-radius:6px;font-size:11px;font-weight:700;padding:4px 9px;cursor:pointer;font-family:inherit}
+  .pmo-appr:hover{background:#d9f5e4}
 
   .empty{background:var(--surface);border:1px dashed var(--border2);border-radius:10px;padding:40px;text-align:center;color:var(--muted);font-size:13px;margin-top:20px}
   .empty b{color:var(--text)}
   .foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);flex-wrap:wrap;gap:10px}
-  .foot a{color:var(--play);text-decoration:none;font-weight:600}
   .legend{display:flex;gap:15px;flex-wrap:wrap}
   .legend span{display:flex;align-items:center;gap:5px}
 
-  /* drawer */
   .drw-ov{position:fixed;inset:0;background:rgba(15,20,40,.35);opacity:0;pointer-events:none;transition:.15s;z-index:40}
   .drw-ov.open{opacity:1;pointer-events:auto}
   .drw{position:fixed;top:0;right:0;height:100%;width:430px;max-width:94vw;background:var(--surface);border-left:1px solid var(--border);box-shadow:-10px 0 34px rgba(0,0,0,.13);transform:translateX(102%);transition:transform .18s;z-index:41;display:flex;flex-direction:column;padding:22px 22px 20px;overflow-y:auto}
@@ -88,7 +89,7 @@
   .drw h3{font-size:17px;font-weight:700;margin:5px 0 2px;padding-right:20px}
   .drw .d-sub{font-size:12px;color:var(--muted)}
   .drw label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 6px}
-  .drw input[type=text],.drw input[type=date],.drw input[type=password],.drw select,.drw textarea{width:100%;font-family:inherit;font-size:13px;color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;outline:none}
+  .drw input[type=text],.drw input[type=email],.drw input[type=date],.drw input[type=password],.drw select,.drw textarea{width:100%;font-family:inherit;font-size:13px;color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:9px 11px;outline:none}
   .drw textarea{min-height:70px;resize:vertical}
   .drw input:focus,.drw select:focus,.drw textarea:focus{border-color:var(--play)}
   .d-openrow{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
@@ -114,7 +115,6 @@
   .d-btn{font-size:12px;font-weight:700;padding:9px 16px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit}
   .d-btn:hover{background:var(--surf2)}
   .d-btn.primary{background:#1a2035;color:#fff;border-color:#1a2035}
-  .d-btn.primary:disabled{opacity:.5;cursor:not-allowed}
   .note-box{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:#3d465e;margin-top:8px}
   .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a2035;color:#fff;font-size:12.5px;font-weight:600;padding:11px 20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:.2s;z-index:50}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -157,15 +157,15 @@
 <script src="dashboard-data-ig.js"></script>
 <script>
 // ============================================================
-//  CEO Summary — PMO-curated review & approval queue (V2 + iGaming)
-//  * pending list + approved history live in ceo-review.json
-//  * links auto-fetched by the build → GP_DATA (review_url / play_url)
-//  * Fern signs in + approves via the approval endpoint (Part B)
+//  CEO Summary — PMO-curated review board (V2 + iGaming)
+//  Fern (no login): review → Approve opens an email to the PMO.
+//  PMO (team token): manage the list, and mark items approved (they clear
+//  off the board into the Approved history). Links auto-fetched → GP_DATA.
 // ============================================================
 const GH_OWNER='mayankyadav1994', GH_REPO='pong-exec-dashboard';
 const GH_API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
 const GH_PAT_KEY='gp_github_pat', GH_USER_KEY='gp_github_user';   // shared with pipeline (PMO)
-const FERN_TOK_KEY='pgs_ceo_fern_tok', FERN_USER_KEY='pgs_ceo_fern_user', ENDPOINT_KEY='pgs_ceo_endpoint';
+const SENT_KEY='pgs_ceo_sent';   // per-browser: which items this viewer has emailed
 const REVIEW_PATH='ceo-review.json';
 
 const ACTIONS = {
@@ -173,7 +173,7 @@ const ACTIONS = {
   review:   { icon:'🎨', label:'Review & approve',  cls:'review'   },
   play:     { icon:'🎮', label:'Play & review',      cls:'play'     },
 };
-let ITEMS = [], APPROVED = [], ALLGAMES = [], GAME_LINKS = {}, REVIEW_CONFIG = {}, VIEW='7', CUR=null;
+let ITEMS=[], APPROVED=[], ALLGAMES=[], GAME_LINKS={}, REVIEW_CONFIG={}, VIEW='7', CUR=null, PICKED=null, DRAG_FROM=null;
 
 const esch = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const esca = s => esch(s).replace(/"/g,'&quot;');
@@ -189,14 +189,9 @@ const TODAY = midnight(new Date());
 function getPat(){ try{return localStorage.getItem(GH_PAT_KEY)||'';}catch(e){return '';} }
 function getUser(){ try{return localStorage.getItem(GH_USER_KEY)||'';}catch(e){return '';} }
 function isEditor(){ return !!getPat(); }
-function getFernTok(){ try{return localStorage.getItem(FERN_TOK_KEY)||'';}catch(e){return '';} }
-function getFernUser(){ try{return localStorage.getItem(FERN_USER_KEY)||'';}catch(e){return '';} }
-function getEndpoint(){ try{ return (localStorage.getItem(ENDPOINT_KEY)||REVIEW_CONFIG.endpoint||'').trim(); }catch(e){ return (REVIEW_CONFIG.endpoint||'').trim(); } }
-function isLocalhost(){ return /^(localhost|127\.|\[?::1)/.test(location.hostname) || location.protocol==='file:'; }
-// Demo (simulate login+approve) is ONLY allowed on localhost — never on the live site.
-function isDemo(){ return !getEndpoint() && isLocalhost(); }
-// On the live site with no endpoint yet, approvals aren't enabled.
-function approvalsPending(){ return !getEndpoint() && !isLocalhost(); }
+function getSent(){ try{return new Set(JSON.parse(localStorage.getItem(SENT_KEY)||'[]'));}catch(e){return new Set();} }
+function markSent(jira){ try{ const s=getSent(); s.add(jira); localStorage.setItem(SENT_KEY, JSON.stringify([...s])); }catch(e){} }
+function pmoEmail(){ return (REVIEW_CONFIG.pmo_email||'').trim(); }
 
 async function ghFetch(url, opts){
   opts = opts||{};
@@ -209,21 +204,20 @@ async function ghFetch(url, opts){
 async function loadReview(){
   try{
     const r = await fetch(REVIEW_PATH+'?ts='+Date.now());
-    if(r.ok){ const j = await r.json(); ITEMS = j.items || []; APPROVED = j.approved || []; REVIEW_CONFIG = j.config || {}; }
+    if(r.ok){ const j = await r.json(); ITEMS=j.items||[]; APPROVED=j.approved||[]; REVIEW_CONFIG=j.config||{}; }
   }catch(e){ ITEMS=[]; APPROVED=[]; }
 }
 function loadAllGames(){
-  ALLGAMES = []; GAME_LINKS = {};
+  ALLGAMES=[]; GAME_LINKS={};
   for(const key of ['v2','ig']){
-    const d = (window.GP_DATA||{})[key]; if(!d||!d.games) continue;
-    const label = key==='v2'?'V2':'iGaming';
+    const d=(window.GP_DATA||{})[key]; if(!d||!d.games) continue;
+    const label=key==='v2'?'V2':'iGaming';
     for(const g of d.games){
       ALLGAMES.push({ jira:g.jira, game:stripName(g.name), board:key, boardLabel:label });
-      if(g.review_url || g.play_url) GAME_LINKS[g.jira] = { review:g.review_url||'', play:g.play_url||'' };
+      if(g.review_url||g.play_url) GAME_LINKS[g.jira]={ review:g.review_url||'', play:g.play_url||'' };
     }
   }
 }
-// Links come live from GP_DATA (auto-refreshed each build); fall back to the item.
 function itemLinks(it){ const g=GAME_LINKS[it.jira]||{}; return { review:(g.review||it.review||''), play:(g.play||it.play||'') }; }
 function linkChips(it){
   const L=itemLinks(it); let s='';
@@ -233,145 +227,93 @@ function linkChips(it){
 }
 
 function render(){
-  const maxDays = +VIEW;
+  const maxDays=+VIEW, sent=getSent();
   const inWin = ITEMS.filter(it=>{ const d=asDate(it.date); return d && (d-TODAY)/86400000 <= maxDays && (d-TODAY)/86400000 >= -3; });
-  const c = { decision:0, review:0, play:0 };
+  const c={ decision:0, review:0, play:0 };
   inWin.forEach(it=>{ if(c[it.action]!=null) c[it.action]++; });
   document.getElementById('summary').innerHTML =
-     sumCard('attention','🔴',c.decision,'Decisions')
-   + sumCard('','🎨',c.review,'Creative reviews')
-   + sumCard('','🎮',c.play,'Ready to play')
-   + sumCard('done','✓',APPROVED.length,'Approved');
+     sumCard('attention','🔴',c.decision,'Decisions')+sumCard('','🎨',c.review,'Creative reviews')
+   + sumCard('','🎮',c.play,'Ready to play')+sumCard('done','✓',APPROVED.length,'Approved');
 
-  const byDay = new Map();
+  const byDay=new Map();
   inWin.forEach(it=>{ const k=+asDate(it.date); (byDay.get(k)||byDay.set(k,[]).get(k)).push(it); });
   const days=[...byDay.keys()].sort((a,b)=>a-b);
   const cal=document.getElementById('calendar');
   if(!days.length){
-    cal.innerHTML = `<div class="empty"><b>No games on the review list for this window.</b><br>${isEditor()?'Use <b>Manage list</b> — or <b>Send to CEO review</b> from the pipeline.':'Nothing pending for you right now.'}</div>`;
+    cal.innerHTML=`<div class="empty"><b>No games on the review list for this window.</b><br>${isEditor()?'Use <b>Manage list</b> — or <b>Send to CEO review</b> from the pipeline.':'Nothing pending for you right now.'}</div>`;
     return;
   }
-  cal.innerHTML = days.map(k=>{
+  cal.innerHTML=days.map(k=>{
     const d=new Date(k), isToday=k===+TODAY, isTom=k===+addDays(TODAY,1);
-    const rows = byDay.get(k).map(it=>{
-      const a = ACTIONS[it.action] || ACTIONS.review;
-      const idx = ITEMS.indexOf(it);
-      const actionCell = `<div class="action ${a.cls}" data-idx="${idx}" role="button" tabindex="0">${a.label} →</div>`;
-      const editCell = isEditor() ? `<button class="rm" data-rm="${idx}" title="Remove from list">✕</button>` : '';
+    const rows=byDay.get(k).map(it=>{
+      const a=ACTIONS[it.action]||ACTIONS.review; const idx=ITEMS.indexOf(it);
+      const sentMark = sent.has(it.jira) ? `<span class="sent" title="You emailed the PMO — awaiting sign-off">✓ sent</span>` : '';
+      const actionCell=`<div class="action ${a.cls}" data-idx="${idx}" role="button" tabindex="0">${a.label} →</div>`;
+      const editCell=isEditor()?`<button class="pmo-appr" data-appr="${idx}" title="Mark approved (clears the board)">✓ approve</button>`:'';
       return `<div class="row ${it.action==='decision'?'attention':''}">`
         + `<div class="ic">${a.icon}</div>`
-        + `<div class="game"><span class="chip ${it.board}">${esch(it.boardLabel||it.board)}</span>${esch(it.game)}<span class="jira">${esch(it.jira)}</span></div>`
+        + `<div class="game"><span class="chip ${it.board}">${esch(it.boardLabel||it.board)}</span>${esch(it.game)}<span class="jira">${esch(it.jira)}</span>${sentMark}</div>`
         + `<div class="ms">${esch(it.milestone)}${linkChips(it)}</div>`
-        + (isEditor() ? actionCell + editCell : actionCell)
+        + (isEditor()? editCell : actionCell)
         + `</div>`;
     }).join('');
-    const dow = isToday?`TODAY — ${fmtDOW(d).slice(0,3)}`:isTom?`TOMORROW — ${fmtDOW(d).slice(0,3)}`:fmtDOW(d);
+    const dow=isToday?`TODAY — ${fmtDOW(d).slice(0,3)}`:isTom?`TOMORROW — ${fmtDOW(d).slice(0,3)}`:fmtDOW(d);
     return `<section class="day"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}</section>`;
   }).join('');
 }
 function sumCard(cls,ic,n,lbl){ const p=lbl.split(' '); return `<div class="sum ${cls}"><span class="ic">${ic}</span><div><div class="n">${n}</div><div class="lbl">${p[0]}<br>${p.slice(1).join(' ')}</div></div></div>`; }
 
-// --- drawer plumbing ---
 function openDrawer(html){ const d=document.getElementById('drw'); d.innerHTML=html; document.getElementById('drwOv').classList.add('open'); d.classList.add('open'); }
 function closeDrawer(){ document.getElementById('drwOv').classList.remove('open'); document.getElementById('drw').classList.remove('open'); }
-function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),3200); }
+function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),3400); }
 
-// --- Fern: review & approve ---
+// --- Fern: review → email the PMO (no login, no backend) ---
 function openApprove(idx){
-  CUR = idx;
-  const it = ITEMS[idx]; if(!it) return;
-  if(approvalsPending()){
-    const L=itemLinks(it);
-    openDrawer(`<button class="x" onclick="closeDrawer()">×</button>`
-      + `<div class="d-eyebrow">Review</div><h3>${esch(it.game)}</h3>`
-      + `<div class="d-sub"><b>${esch(it.boardLabel||it.board)}</b> · ${esch(it.jira)} · ${esch(it.milestone)}</div>`
-      + ((L.review||L.play)?`<div class="d-openrow">`+(L.review?`<a class="d-open" href="${esca(L.review)}" target="_blank" rel="noopener">📄 Open review page</a>`:'')+(L.play?`<a class="d-open" href="${esca(L.play)}" target="_blank" rel="noopener">▶ Open game to test</a>`:'')+`</div>`:'')
-      + `<div class="note-box">Sign-off by email is being set up — you can review the notes and play-test now; the <b>Approve</b> button turns on once the approval service is connected.</div>`
-      + `<div class="d-foot"><button class="d-btn" onclick="closeDrawer()">Close</button></div>`);
-    return;
-  }
-  if(!getFernTok()) return openFernLogin();
+  CUR=idx; const it=ITEMS[idx]; if(!it) return;
   const L=itemLinks(it);
-  const chan = isDemo() ? `<b>Demo</b> — no email is sent and nothing is saved (preview only).`
-                        : `Approving emails the PMO recipient list and clears this from the board.`;
   openDrawer(`<button class="x" onclick="closeDrawer()">×</button>`
-    + `<div class="d-eyebrow">Review &amp; approval</div><h3>${esch(it.game)}</h3>`
+    + `<div class="d-eyebrow">Review</div><h3>${esch(it.game)}</h3>`
     + `<div class="d-sub"><b>${esch(it.boardLabel||it.board)}</b> · <a href="https://ponggamestudios.atlassian.net/browse/${esca(it.jira)}" target="_blank" rel="noopener" style="color:var(--play);text-decoration:none">${esch(it.jira)} ↗</a> · ${esch(it.milestone)}</div>`
     + ((L.review||L.play)?`<div class="d-openrow">`+(L.review?`<a class="d-open" href="${esca(L.review)}" target="_blank" rel="noopener">📄 Open review page</a>`:'')+(L.play?`<a class="d-open" href="${esca(L.play)}" target="_blank" rel="noopener">▶ Open game to test</a>`:'')+`</div>`:'')
-    + `<label>Your note (optional)</label><textarea id="apprNote" placeholder="Add a note for the team…"></textarea>`
-    + `<div class="note-box">${chan}</div>`
-    + `<div class="d-foot"><span class="d-msg" id="dMsg">Signed in as <b>${esch(getFernUser())}</b></span><button class="d-btn" onclick="closeDrawer()">Cancel</button><button class="d-btn primary" id="apprBtn">Approve &amp; send</button></div>`);
-  document.getElementById('apprBtn').onclick = doApprove;
+    + `<label>Note (optional)</label><textarea id="apprNote" placeholder="Anything to pass to the PMO…"></textarea>`
+    + `<div class="note-box">Approving opens an email to the PMO${pmoEmail()?` (<b>${esch(pmoEmail())}</b>)`:''} — just hit <b>Send</b>. The PMO records the sign-off and clears it from the board.</div>`
+    + `<div class="d-foot"><span class="d-msg" id="dMsg"></span><button class="d-btn" onclick="closeDrawer()">Cancel</button><button class="d-btn primary" id="apprBtn">Approve → email PMO</button></div>`);
+  document.getElementById('apprBtn').onclick = ()=>emailApproval(idx);
 }
-async function doApprove(){
-  const it = ITEMS[CUR]; if(!it) return;
-  const note = document.getElementById('apprNote').value.trim();
-  const msg=document.getElementById('dMsg'), btn=document.getElementById('apprBtn'); msg.className='d-msg';
-  btn.disabled=true; msg.textContent='Sending…';
-  try{
-    if(isDemo()){
-      await new Promise(r=>setTimeout(r,450));
-    }else{
-      const r = await fetch(getEndpoint().replace(/\/$/,'')+'/approve', {method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({token:getFernTok(), jira:it.jira, game:it.game, milestone:it.milestone, note})});
-      if(r.status===401) throw new Error('Session expired — sign in again.');
-      if(!r.ok) throw new Error('Approve failed ('+r.status+')');
-    }
-    // remove-on-approve: move from the pending board into the approved history.
-    APPROVED.unshift(Object.assign({}, it, { approved_by:getFernUser(), approved_at:new Date().toISOString(), note }));
-    ITEMS.splice(CUR,1);
-    closeDrawer(); render();
-    toast(isDemo() ? 'Approved ✓ (demo — nothing saved)' : 'Approved & emailed ✓');
-  }catch(e){ btn.disabled=false; msg.className='d-msg err'; msg.textContent=String(e.message||e); }
-}
-
-function openFernLogin(){
-  const demoNote = isDemo()
-    ? `<div class="note-box" style="color:#92660c;background:#fffbeb;border-color:#fde68a">Demo mode (localhost) — sign-in is simulated. Use any name + password <b>demo</b>.</div>`
-    : '';
-  openDrawer(`<button class="x" onclick="closeDrawer()">×</button>`
-    + `<div class="d-eyebrow">Sign in</div><h3>Review &amp; approve</h3>`
-    + `<div class="d-sub">Sign in with the login your PMO set up for you.</div>` + demoNote
-    + `<label>Name</label><input type="text" id="fUser" autocomplete="username" placeholder="e.g. fern">`
-    + `<label>Password</label><input type="password" id="fPass" autocomplete="current-password">`
-    + `<div class="d-foot"><span class="d-msg" id="dMsg"></span><button class="d-btn" onclick="closeDrawer()">Cancel</button><button class="d-btn primary" id="fBtn">Sign in</button></div>`);
-  document.getElementById('fBtn').onclick = fernLogin;
-  document.getElementById('fPass').addEventListener('keydown', e=>{ if(e.key==='Enter') fernLogin(); });
-}
-async function fernLogin(){
-  const user=document.getElementById('fUser').value.trim(), pass=document.getElementById('fPass').value;
+function emailApproval(idx){
+  const it=ITEMS[idx]; if(!it) return;
+  const note=document.getElementById('apprNote').value.trim();
   const msg=document.getElementById('dMsg'); msg.className='d-msg';
-  if(!user||!pass){ msg.textContent='Enter your name and password.'; return; }
-  msg.textContent='Signing in…';
-  try{
-    let tok;
-    if(isDemo()){ if(pass!=='demo') throw new Error('Demo password is "demo".'); tok='demo-'+Date.now(); }
-    else{
-      const r = await fetch(getEndpoint().replace(/\/$/,'')+'/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user,pass})});
-      if(!r.ok) throw new Error(r.status===401?'Wrong name or password.':('Login failed ('+r.status+')'));
-      const j = await r.json(); tok = j.token; if(!tok) throw new Error('No token returned by endpoint.');
-    }
-    try{ localStorage.setItem(FERN_TOK_KEY,tok); localStorage.setItem(FERN_USER_KEY,user); }catch(e){}
-    renderWhoami();
-    if(CUR!=null && ITEMS[CUR]) openApprove(CUR); else { closeDrawer(); toast('Signed in as '+user); }
-  }catch(e){ msg.className='d-msg err'; msg.textContent=String(e.message||e); }
+  if(!pmoEmail()){ msg.className='d-msg err'; msg.textContent='No PMO email set yet — ask your PMO to add it in Manage.'; return; }
+  const L=itemLinks(it);
+  const subject=`Approved: ${it.game} (${it.jira}) — ${it.milestone}`;
+  const bodyLines=[`I've reviewed and approve:`,``,`Game: ${it.game} [${it.boardLabel||it.board}]  ${it.jira}`,`Milestone: ${it.milestone}`];
+  if(L.review) bodyLines.push(`Review page: ${L.review}`);
+  if(L.play)   bodyLines.push(`Play/test: ${L.play}`);
+  if(note)     bodyLines.push(``,`Note: ${note}`);
+  bodyLines.push(``,`— Sent from the PGS CEO Summary`);
+  const href=`mailto:${encodeURIComponent(pmoEmail())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+  window.location.href = href;                 // opens the viewer's mail client
+  markSent(it.jira); closeDrawer(); render();
+  toast('Email opened — hit Send to notify the PMO');
 }
-function signOutFern(){ try{ localStorage.removeItem(FERN_TOK_KEY); localStorage.removeItem(FERN_USER_KEY); }catch(e){} renderWhoami(); }
 
-// --- PMO: manage list (add / edit / reorder / remove) + approval tracking ---
-let PICKED=null, DRAG_FROM=null;
+// --- PMO: manage list (add / reorder / remove / mark-approved) + tracking ---
 function openEdit(){
   if(!isEditor()) return openSignIn();
   const list = ITEMS.map((it,i)=>`<div class="cur-item" draggable="true" data-i="${i}">`
       + `<span class="grip" title="Drag to reorder">⠿</span>`
       + `<span class="g">${esch(it.game)} <span class="d">${esch(it.jira)} · ${esch(it.date)} · ${esch(it.action)}</span></span>`
+      + `<button class="pmo-appr" data-appr="${i}" title="Mark approved">✓</button>`
       + `<button class="rm" data-rm="${i}">✕</button></div>`).join('')
     || '<div class="d-sub" style="margin-top:6px">No games yet — add one below, or use “Send to CEO review” in the pipeline.</div>';
   const approved = APPROVED.length
-    ? APPROVED.map((a,i)=>`<div class="appr-item"><span class="g">✓ ${esch(a.game)} <span class="d" style="color:var(--sub)">${esch(a.jira)}</span></span><span class="m">${esch(a.approved_by||'')}${a.approved_at?(' · '+fmtWhen(a.approved_at)):''}</span><button class="rm" data-appr="${i}" title="Remove from history">✕</button></div>`).join('')
+    ? APPROVED.map((a,i)=>`<div class="appr-item"><span class="g">✓ ${esch(a.game)} <span class="d" style="color:var(--sub)">${esch(a.jira)}</span></span><span class="m">${esch(a.approved_by||'')}${a.approved_at?(' · '+fmtWhen(a.approved_at)):''}</span><button class="rm" data-apprm="${i}" title="Remove from history">✕</button></div>`).join('')
     : '<div class="d-sub" style="margin-top:6px">Nothing approved yet.</div>';
   openDrawer(`<button class="x" onclick="closeDrawer()">×</button>`
     + `<div class="d-eyebrow">PMO · manage review list</div><h3>Fern's review board</h3>`
+    + `<label>PMO notify email <span style="text-transform:none;font-weight:400;color:var(--sub)">(where Fern's approvals are sent)</span></label>`
+    + `<input type="email" id="fPmo" placeholder="pmo@pongstudios.com" value="${esca(REVIEW_CONFIG.pmo_email||'')}">`
     + `<label>Add a game</label><input type="text" id="srch" placeholder="Search name or IG-/V2- key…" autocomplete="off">`
     + `<div class="srch-res" id="srchRes" hidden></div>`
     + `<div id="addForm" hidden>`
@@ -387,30 +329,31 @@ function openEdit(){
 }
 function wireEdit(){
   const srch=document.getElementById('srch'), res=document.getElementById('srchRes'), form=document.getElementById('addForm');
+  document.getElementById('fPmo').onchange = e=>{ REVIEW_CONFIG.pmo_email = e.target.value.trim(); };
   srch.oninput = ()=>{
     const q=srch.value.trim().toLowerCase();
     if(!q){ res.hidden=true; return; }
     const have=new Set(ITEMS.map(i=>i.jira));
     const hits=ALLGAMES.filter(g=>!have.has(g.jira) && (g.game+' '+g.jira).toLowerCase().includes(q)).slice(0,12);
-    res.innerHTML = hits.map(g=>`<div class="r" data-jira="${esca(g.jira)}">${esch(g.game)}<span class="k">${esch(g.jira)} · ${g.boardLabel}</span></div>`).join('') || '<div class="r" style="color:var(--sub)">No matches</div>';
+    res.innerHTML=hits.map(g=>`<div class="r" data-jira="${esca(g.jira)}">${esch(g.game)}<span class="k">${esch(g.jira)} · ${g.boardLabel}</span></div>`).join('')||'<div class="r" style="color:var(--sub)">No matches</div>';
     res.hidden=false;
     res.querySelectorAll('.r[data-jira]').forEach(el=> el.onclick=()=>{
-      PICKED = ALLGAMES.find(g=>g.jira===el.dataset.jira);
-      srch.value = PICKED.game; res.hidden=true; form.hidden=false;
+      PICKED=ALLGAMES.find(g=>g.jira===el.dataset.jira);
+      srch.value=PICKED.game; res.hidden=true; form.hidden=false;
       const d=new Date(); document.getElementById('fDate').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     });
   };
-  document.getElementById('addBtn').onclick = ()=>{
+  document.getElementById('addBtn').onclick=()=>{
     if(!PICKED) return;
     const ms=document.getElementById('fMs').value.trim(), act=document.getElementById('fAct').value, date=document.getElementById('fDate').value;
     if(!ms||!date){ const m=document.getElementById('dMsg'); m.className='d-msg err'; m.textContent='Milestone and date required.'; return; }
     ITEMS.push({ jira:PICKED.jira, game:PICKED.game, board:PICKED.board, boardLabel:PICKED.boardLabel, milestone:ms, action:act, date });
     PICKED=null; render(); openEdit();
   };
-  document.getElementById('saveBtn').onclick = saveReview;
+  document.getElementById('saveBtn').onclick=saveReview;
   document.querySelectorAll('#curList .rm[data-rm]').forEach(b=> b.onclick=()=>{ ITEMS.splice(+b.dataset.rm,1); render(); openEdit(); });
-  document.querySelectorAll('.rm[data-appr]').forEach(b=> b.onclick=()=>{ APPROVED.splice(+b.dataset.appr,1); openEdit(); });
-  // drag-reorder the pending list
+  document.querySelectorAll('#curList .pmo-appr[data-appr]').forEach(b=> b.onclick=()=> markApproved(+b.dataset.appr, true));
+  document.querySelectorAll('.rm[data-apprm]').forEach(b=> b.onclick=()=>{ APPROVED.splice(+b.dataset.apprm,1); openEdit(); });
   document.querySelectorAll('#curList .cur-item').forEach(el=>{
     el.addEventListener('dragstart', ()=>{ DRAG_FROM=+el.dataset.i; });
     el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('drag-over'); });
@@ -420,24 +363,35 @@ function wireEdit(){
       const [m]=ITEMS.splice(DRAG_FROM,1); ITEMS.splice(to,0,m); DRAG_FROM=null; render(); openEdit(); });
   });
 }
+async function persistReview(){
+  const payload={ items:ITEMS, approved:APPROVED, config:{ pmo_email:(REVIEW_CONFIG.pmo_email||'') }, updated_by:getUser()||'editor', updated_at:new Date().toISOString().slice(0,16).replace('T',' ') };
+  let sha=null; try{ const g=await ghFetch(`${GH_API}/contents/${REVIEW_PATH}`); sha=g.sha; }catch(e){}
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
+  const body={ message:`ceo-review: update by ${payload.updated_by}`, content, branch:'main' };
+  if(sha) body.sha=sha;
+  await ghFetch(`${GH_API}/contents/${REVIEW_PATH}`, { method:'PUT', body:JSON.stringify(body) });
+}
+// PMO marks an item approved → it clears off the board into the Approved history.
+async function markApproved(idx, fromDrawer){
+  const it=ITEMS[idx]; if(!it) return;
+  APPROVED.unshift(Object.assign({}, it, { approved_by:getUser()||'PMO', approved_at:new Date().toISOString() }));
+  ITEMS.splice(idx,1); render();
+  if(fromDrawer){ openEdit(); return; }   // in the drawer, Save persists
+  try{ await persistReview(); toast('Approved ✓'); }catch(e){ toast('Approved locally — save failed: '+(e.message||e)); }
+}
 async function saveReview(){
   const msg=document.getElementById('dMsg'); msg.className='d-msg'; msg.textContent='Saving…';
-  const payload={ items:ITEMS, approved:APPROVED, config:{ endpoint:(REVIEW_CONFIG.endpoint||'') }, updated_by:getUser()||'editor', updated_at:new Date().toISOString().slice(0,16).replace('T',' ') };
-  try{
-    let sha=null; try{ const g=await ghFetch(`${GH_API}/contents/${REVIEW_PATH}`); sha=g.sha; }catch(e){}
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
-    const body={ message:`ceo-review: update by ${payload.updated_by}`, content, branch:'main' };
-    if(sha) body.sha=sha;
-    await ghFetch(`${GH_API}/contents/${REVIEW_PATH}`, { method:'PUT', body:JSON.stringify(body) });
-    closeDrawer(); render(); toast('Review list saved ✓');
-  }catch(e){ msg.className='d-msg err'; msg.textContent=String(e.message||e); }
+  const pmo=(document.getElementById('fPmo')?document.getElementById('fPmo').value.trim():REVIEW_CONFIG.pmo_email)||'';
+  REVIEW_CONFIG.pmo_email=pmo;
+  try{ await persistReview(); closeDrawer(); render(); toast('Review list saved ✓'); }
+  catch(e){ msg.className='d-msg err'; msg.textContent=String(e.message||e); }
 }
 
-// --- PMO sign-in (editor PAT, shared with pipeline) ---
+// --- PMO sign-in (editor token, shared with pipeline) ---
 function openSignIn(){
   openDrawer(`<button class="x" onclick="closeDrawer()">×</button>`
     + `<div class="d-eyebrow">PMO sign-in</div><h3>Sign in to manage the list</h3>`
-    + `<div class="d-sub">Paste your team token (fine-grained GitHub PAT, Contents: Read &amp; write). Stored on this browser only. Managing the list is a PMO action — Fern doesn't need this.</div>`
+    + `<div class="d-sub">Paste your team token (fine-grained GitHub PAT, Contents: Read &amp; write). Stored on this browser only. Fern doesn't need this — he only reviews &amp; approves.</div>`
     + `<label>Team token</label><textarea id="patIn" placeholder="github_pat_…" spellcheck="false"></textarea>`
     + `<div class="d-foot"><span class="d-msg" id="dMsg"></span><button class="d-btn" onclick="closeDrawer()">Cancel</button><button class="d-btn primary" id="patBtn">Verify</button></div>`);
   document.getElementById('patBtn').onclick = async ()=>{
@@ -457,13 +411,9 @@ function pmoEntry(){ isEditor()?openEdit():openSignIn(); }
 function renderWhoami(){
   document.getElementById('editBtn').hidden = !isEditor();
   const el=document.getElementById('whoami');
-  const fern=getFernUser();
-  const fernPart = fern ? `Signed in as <b>${esch(fern)}</b> · <a onclick="signOutFern()">sign out</a>`
-                        : `<a onclick="openFernLogin()">Sign in</a> to review &amp; approve`;
-  const pmoPart = isEditor() ? ` · PMO <b>${esch(getUser()||'editor')}</b> · <a onclick="signOut()">sign out PMO</a>`
-                             : ` · <a onclick="pmoEntry()">PMO manage</a>`;
-  const demoTag = isDemo() ? ` · <span style="color:#b45309">demo mode</span>` : '';
-  el.innerHTML = fernPart + pmoPart + demoTag;
+  el.innerHTML = isEditor()
+    ? `PMO: <b>${esch(getUser()||'editor')}</b> · <a onclick="signOut()">sign out</a>`
+    : `Creative Director view · <a onclick="pmoEntry()">PMO manage</a>`;
 }
 function signOut(){ try{ localStorage.removeItem(GH_PAT_KEY); localStorage.removeItem(GH_USER_KEY); }catch(e){} renderWhoami(); render(); }
 
@@ -476,8 +426,8 @@ async function init(){
   document.getElementById('editBtn').onclick = openEdit;
   document.getElementById('drwOv').addEventListener('click', closeDrawer);
   document.getElementById('calendar').addEventListener('click', e=>{
-    const rm=e.target.closest('.rm[data-rm]'); if(rm){ ITEMS.splice(+rm.dataset.rm,1); render(); return; }
-    const a=e.target.closest('.action[data-idx]'); if(a) openApprove(+a.dataset.idx);
+    const ap=e.target.closest('.pmo-appr[data-appr]'); if(ap){ markApproved(+ap.dataset.appr, false); return; }
+    const a=e.target.closest('.action[data-idx]'); if(a){ openApprove(+a.dataset.idx); }
   });
   render();
 }
