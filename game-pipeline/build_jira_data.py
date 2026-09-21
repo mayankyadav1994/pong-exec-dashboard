@@ -276,6 +276,57 @@ def _parse_date(value: Any) -> Optional[date]:
     return None
 
 
+# ── CEO Summary link fetch (#77) ─────────────────────────────────────────────
+# Each game's review page lives in the epic's "Confluence Link" field; the play/
+# QA lobby link lives ON that Confluence page (the "Edge Labs Test Lobby" cells).
+# The build resolves both so the CEO Summary can show them without manual entry.
+_PLAY_RE = re.compile(r"https?://dev\.edgelabs\.game/[^\s\"'<>)]+", re.I)
+
+
+def resolve_field_id(client: "JiraClient", name: str) -> Optional[str]:
+    """Custom field id for a field by display name (e.g. 'Confluence Link')."""
+    try:
+        fields = client._request("GET", "/rest/api/3/field")
+    except Exception as exc:
+        print(f"   {WARN} could not list Jira fields to resolve '{name}': {exc}")
+        return None
+    for f in (fields or []):
+        if str(f.get("name", "")).strip().lower() == name.strip().lower():
+            return f.get("id")
+    print(f"   {WARN} no Jira field named '{name}' — links will be blank")
+    return None
+
+
+def _page_id_from_url(url: Optional[str]) -> Optional[str]:
+    """Confluence page id from a page URL (/pages/<id>/… or ?pageId=<id>)."""
+    if not url:
+        return None
+    m = re.search(r"/pages/(\d+)", url) or re.search(r"[?&]pageId=(\d+)", url)
+    return m.group(1) if m else None
+
+
+def fetch_play_link(client: "JiraClient", confluence_url: Optional[str]) -> Optional[str]:
+    """Open the Confluence review page and return its dev/QA lobby link.
+    Picks the LAST match on the page (the most recent review row). Best-effort:
+    any failure returns None so the build never breaks over a missing link."""
+    pid = _page_id_from_url(confluence_url)
+    if not pid:
+        return None
+    try:
+        data = client._request("GET", f"/wiki/rest/api/content/{pid}",
+                               params={"expand": "body.storage"})
+        html = (((data.get("body") or {}).get("storage") or {}).get("value")) or ""
+    except Exception as exc:
+        client.log(f"{WARN} Confluence page {pid} fetch failed: {exc}")
+        return None
+    seen: list[str] = []
+    for h in _PLAY_RE.findall(html):
+        h = h.replace("&amp;", "&").rstrip(".,;")
+        if h not in seen:
+            seen.append(h)
+    return seen[-1] if seen else None
+
+
 def parse_sprint_field(value: Any) -> list[dict]:
     """Normalise a sprint custom-field value to [{id,name,start,end}, ...].
 
@@ -468,12 +519,15 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     print(f"{OK} Building {jira_project} (sprint field {sprint_field})")
 
     # 1. Epics — fetch ALL, then keep board-eligible + active candidates (#50).
+    # Resolve the "Confluence Link" field once so we can pull each game's review
+    # page (and, from it, the play/QA lobby link) for the CEO Summary (#77).
+    confluence_field = resolve_field_id(client, "Confluence Link")
+    epic_fields = ["summary", "status", "assignee", "priority", "fixVersions",
+                   "customfield_10014", "duedate"]
+    if confluence_field:
+        epic_fields.append(confluence_field)
     epic_jql = f"project = {jira_project} AND issuetype = Epic ORDER BY rank ASC"
-    epics = client.search_jql(
-        epic_jql,
-        ["summary", "status", "assignee", "priority", "fixVersions",
-         "customfield_10014", "duedate"],
-    )
+    epics = client.search_jql(epic_jql, epic_fields)
     print(f"   {OK} {len(epics)} epic(s) total")
 
     prefix = cfg.get("name_prefix")
@@ -724,6 +778,13 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             auto_status = derive_status(aggs, epic_status)
             stage = derive_stage(aggs)
         gname = ef.get("customfield_10014") or ef.get("summary") or ekey
+        # CEO Summary links (#77): review page from the "Confluence Link" field,
+        # play/QA link scraped from that page. Both best-effort → None on absence.
+        review_url = ef.get(confluence_field) if confluence_field else None
+        if isinstance(review_url, dict):        # some URL fields serialize as objects
+            review_url = review_url.get("url") or review_url.get("value")
+        review_url = review_url or None
+        play_url = fetch_play_link(client, review_url) if review_url else None
         # Board roster = prefixed game WITH a fixVersion. Prefixed games lacking a
         # fixVersion are add-game candidates, not on the board by default (#50).
         # Features board starts empty — every feature is an add-by-search candidate (#70).
@@ -753,6 +814,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             "workflow_status": auto_status,         # derived (Decision #32)
             "disciplines": disciplines,
             "current_stage": stage,                 # derived (Decision #32)
+            "review_url": review_url,               # CEO Summary: Confluence review page (#77)
+            "play_url": play_url,                   # CEO Summary: dev/QA lobby link (#77)
         })
         if verbose:
             tag = f" delivered {delivered['fv']}@{delivered['date']}" if delivered else ""
