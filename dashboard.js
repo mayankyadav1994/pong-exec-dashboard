@@ -855,7 +855,10 @@ function renderRow(g, idx) {
       <span class="epic-status ${statusCls(g.workflow_status)}">${g.workflow_status}${statusMark}</span>
       ${drift ? `<span class="status-drift" title="Jira-derived status is now '${g._auto_status}', but a manual override is in effect">auto: ${g._auto_status}</span>` : ''}
       ${(g.history && g.history.target && g.history.target.length) ? `<span class="hist-badge" title="Completion date moved ${g.history.target.length}× — click for the history &amp; why">📅 ${g.history.target.length}×</span>` : ''}
+      ${g.jira ? `<button class="epic-ceo-btn" data-jira="${g.jira}" title="Send this game to the CEO Summary review list">→ CEO review</button>` : ''}
     </div>${fvRow(g)}${sizeRow}`;
+  const _ceoBtn = label.querySelector('.epic-ceo-btn');
+  if (_ceoBtn) _ceoBtn.addEventListener('click', e => { e.stopPropagation(); sendToCeoReview(g); });
 
   const track = document.createElement('div'); track.className = 'epic-track tl-scroll';
   const trackInner = document.createElement('div'); trackInner.className = 'tl-inner'; trackInner.style.width = trackPxWidth() + 'px';
@@ -963,7 +966,7 @@ function renderRow(g, idx) {
   row.appendChild(leftWrap); row.appendChild(track); row.appendChild(rightWrap);
 
   row.addEventListener('click', e => {
-    if (e.target.closest('.drag-handle') || e.target.closest('select') || e.target.closest('a')) return;
+    if (e.target.closest('.drag-handle') || e.target.closest('select') || e.target.closest('a') || e.target.closest('.epic-ceo-btn')) return;
     // A HISTORY badge click always opens the panel on the HISTORY tab (never toggles it shut).
     if (e.target.closest('.hist-badge')) { openPanel = g.name; openPanelTab = 'history'; renderRows(); return; }
     openPanel = (openPanel === g.name) ? null : g.name; renderRows();
@@ -1961,6 +1964,54 @@ async function publishPlan(force) {
   await ghFetch(`${GH_API}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
   SHARED_CACHE[PROJECT.key] = payload;   // reflect immediately for this browser
   PLAN_VERSION[PROJECT.key] = planVersion(payload);   // our publish is the new baseline (#54)
+}
+
+// --- Send to CEO review (#78): push this game onto the CEO Summary review list.
+// Writes ceo-review.json via the same GitHub token used to save plans; the
+// review + play links ride along from GP_DATA (fetched by the build, #77). ---
+function _stripGame(n) { return String(n).replace(/^Gen2\s*-?\s*Game:\s*/i, '').replace(/^Game:\s*/i, ''); }
+function sendToCeoReview(g) {
+  if (!getPat()) return openSignInModal();   // curating Fern's list is a PMO (editor) action
+  const boardLabel = PROJECT.key === 'v2' ? 'V2' : PROJECT.key === 'ig' ? 'iGaming' : 'iGaming Features';
+  const d = new Date(); const dstr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  openModal(`<h3>Send to CEO review</h3>
+    <p class="gp-modal-note">Adds <b>${g.name}</b> to the <b>CEO Summary</b> review list for the Creative Director. The Confluence review page &amp; play/QA link attach automatically.</p>
+    <label class="pc-title" style="display:block;margin-bottom:4px">Milestone</label>
+    <input type="text" id="ceoMs" placeholder="e.g. Final character art" style="width:100%;margin-bottom:10px">
+    <label class="pc-title" style="display:block;margin-bottom:4px">What's needed</label>
+    <select id="ceoAct" style="width:100%;margin-bottom:10px"><option value="review">🎨 Review &amp; approve</option><option value="play">🎮 Play &amp; review</option><option value="decision">🔴 Decision required</option></select>
+    <label class="pc-title" style="display:block;margin-bottom:4px">Date</label>
+    <input type="date" id="ceoDate" value="${dstr}" style="width:100%">
+    <div class="gp-modal-msg" id="ceoMsg"></div>
+    <div class="gp-modal-foot"><button class="gp-foot-btn" id="ceoCancel">Cancel</button><button class="gp-foot-btn primary" id="ceoSend">Send to CEO review</button></div>`);
+  document.getElementById('ceoCancel').onclick = closeModal;
+  document.getElementById('ceoSend').onclick = async () => {
+    const ms = document.getElementById('ceoMs').value.trim();
+    const act = document.getElementById('ceoAct').value;
+    const date = document.getElementById('ceoDate').value;
+    const msg = document.getElementById('ceoMsg');
+    if (!ms || !date) { msg.textContent = 'Milestone and date are required.'; return; }
+    msg.textContent = 'Sending…';
+    try {
+      const path = 'ceo-review.json';
+      let sha = null, cur = { items: [], approved: [], config: { endpoint: '' } };
+      try {
+        const gg = await ghFetch(`${GH_API}/contents/${path}`);
+        sha = gg.sha;
+        cur = JSON.parse(decodeURIComponent(escape(atob((gg.content || '').replace(/\s/g, '')))));
+      } catch (e) { /* first entry: file may not exist yet */ }
+      cur.items = (cur.items || []).filter(x => x.jira !== g.jira);   // replace any existing entry for this game
+      cur.approved = cur.approved || [];
+      cur.config = cur.config || { endpoint: '' };
+      cur.items.push({ jira: g.jira, game: _stripGame(g.name), board: PROJECT.key, boardLabel, milestone: ms, action: act, date, review: g.review_url || '', play: g.play_url || '' });
+      cur.updated_by = getGhUser() || 'editor'; cur.updated_at = nowStamp();
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(cur, null, 2))));
+      const body = { message: `ceo-review: + ${g.jira} by ${cur.updated_by}`, content, branch: 'main' };
+      if (sha) body.sha = sha;
+      await ghFetch(`${GH_API}/contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
+      closeModal(); showToast(`Sent ${_stripGame(g.name)} to CEO review ✓`);
+    } catch (e) { msg.textContent = String(e.message || e); }
+  };
 }
 
 // --- modal helpers ---
