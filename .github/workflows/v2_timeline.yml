@@ -51,6 +51,11 @@ jobs:
           JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
           CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          # V2 Scrum board — sprint axis only (V2 issues are Kanban and carry
+          # no sprint field). Same board the game pipeline reads. If unset the
+          # script defaults to 316; if the board query fails it falls back to
+          # the S1 anchor cadence, so the axis renders either way.
+          JIRA_BOARD_ID_V2:     '316'
         run: python v2_timeline.py
 
       # Smoke-test the rendered HTML before commit: loads it via jsdom,

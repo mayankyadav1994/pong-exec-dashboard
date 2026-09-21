@@ -10,6 +10,7 @@ in docs/V2_TIMELINE_EDGE_CASES.md are intentionally not implemented yet.
 
 import json
 import math
+import os
 import re
 import sys
 from datetime import date, timedelta
@@ -17,7 +18,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from jira_client import jira_get, jira_jql
+from jira_client import agile_get, jira_get, jira_jql
 
 # Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
 # default cp1252 stdout encoding can't handle them. No-op on Linux CI.
@@ -82,7 +83,22 @@ DEFAULT_FV_CONFIG = [
      "indev_style": "color:#3b0764;border-color:rgba(124,58,237,.25);background:rgba(124,58,237,.07)"},
 ]
 DEFAULT_HIDDEN_FVS: list = []
-DEFAULT_HOLIDAYS = {"2026-05-18"}  # Victoria Day
+# Ontario statutory holidays covering the chart window (to CHART_END).
+# Live values come from config/v2.json; this is the fallback if that file is
+# missing. Boxing Day is observed Mon Dec 28 because Dec 26 falls on a Saturday.
+# NOTE: studio-wide Christmas shutdown days (if any) are NOT modelled — add
+# them to config/v2.json "holidays" if the studio closes between Dec 25 – Jan 1.
+DEFAULT_HOLIDAYS = {
+    "2026-05-18",  # Victoria Day
+    "2026-07-01",  # Canada Day
+    "2026-08-03",  # Civic Holiday
+    "2026-09-07",  # Labour Day
+    "2026-10-12",  # Thanksgiving
+    "2026-12-25",  # Christmas Day
+    "2026-12-28",  # Boxing Day (observed)
+    "2027-01-01",  # New Year's Day
+    "2027-02-15",  # Family Day
+}
 
 
 def load_config():
@@ -212,26 +228,110 @@ STATUS_STYLES = {
     "Scheduled":      "color:#7f1d1d;border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.09)",
 }
 
-# Source: docs/V2_RELEASE_TIMELINE_KNOWLEDGE.md §9 — chart now runs S1–S15
-# (May 11 → Dec 7) so Lab 2 endpoints for regulated releases fit on screen.
-SPRINTS = [
-    {"label": "S1",  "start": "2026-05-11"},
-    {"label": "S2",  "start": "2026-05-25"},
-    {"label": "S3",  "start": "2026-06-08"},
-    {"label": "S4",  "start": "2026-06-22"},
-    {"label": "S5",  "start": "2026-07-06"},
-    {"label": "S6",  "start": "2026-07-20"},
-    {"label": "S7",  "start": "2026-08-03"},
-    {"label": "S8",  "start": "2026-08-17"},
-    {"label": "S9",  "start": "2026-08-31"},
-    {"label": "S10", "start": "2026-09-14"},
-    {"label": "S11", "start": "2026-09-28"},
-    {"label": "S12", "start": "2026-10-12"},
-    {"label": "S13", "start": "2026-10-26"},
-    {"label": "S14", "start": "2026-11-09"},
-    {"label": "S15", "start": "2026-11-23"},
-    {"label": "",    "start": "2026-12-07"},
-]
+# Sprint axis. Source: docs/V2_RELEASE_TIMELINE_KNOWLEDGE.md §9.
+#
+# Real sprint dates come from the V2 Scrum board — the same board the game
+# pipeline reads (build_jira_data.py PROJECTS["v2"]["board_env"]), used for the
+# axis only: V2 issues are Kanban and carry no sprint field. Past the last
+# *scheduled* sprint we synthesise the 14-day cadence forward to CHART_END so
+# the axis never runs out. The previous hand-maintained list stopped at S15,
+# which left Dec 2026 → Mar 2027 with month labels but no sprint chips.
+SPRINT_ANCHOR = date(2026, 5, 11)   # S1 — same anchor as the game pipeline
+SPRINT_DAYS = 14
+V2_BOARD_ID = os.getenv("JIRA_BOARD_ID_V2", "316")
+CHART_END = date(2027, 3, 15)       # keep in sync with CHART_END in the template
+
+# Populated by build_sprints() at the top of main(); [] until then so importing
+# this module never fires a Jira call.
+SPRINTS = []
+
+
+def anchored_label(start):
+    """S{n} label anchored at S1 = SPRINT_ANCHOR. None for anything before S1."""
+    n = round((start - SPRINT_ANCHOR).days / SPRINT_DAYS) + 1
+    return f"S{n}" if n >= 1 else None
+
+
+def fetch_board_sprints():
+    """Scheduled V2 sprints from the board, oldest first.
+
+    The board is shared: it also carries IG sprints and dateless "Refined
+    Backlog" rows, and the API does not return sprints in date order. Future
+    V2 sprints exist but are unscheduled (no startDate) until someone dates
+    them, so they are skipped here and covered by the synthesised tail.
+    """
+    raw, start_at = [], 0
+    while True:
+        data = agile_get(f"/board/{V2_BOARD_ID}/sprint",
+                         {"state": "active,closed,future",
+                          "startAt": start_at, "maxResults": 50})
+        values = data.get("values") or []
+        raw.extend(values)
+        if data.get("isLast", True) or not values:
+            break
+        start_at += len(values)
+
+    out = []
+    for v in raw:
+        if not (v.get("name") or "").strip().lower().startswith("v2 sprint"):
+            continue
+        start, end = v.get("startDate"), v.get("endDate")
+        if not start or not end:
+            continue
+        out.append({"start": date.fromisoformat(start[:10]),
+                    "end":   date.fromisoformat(end[:10])})
+    out.sort(key=lambda x: x["start"])
+    return out
+
+
+def build_sprints():
+    """Sprint axis: real board dates where Jira has them, anchored cadence beyond.
+
+    Only the START date is taken from Jira. Jira's endDate is not a usable
+    boundary: five of the ten V2 sprints kept the default "start + 14d" (so
+    endDate equals the NEXT sprint's start — exclusive) while the other five
+    were closed early with 02:00-04:00Z stamps (inclusive-ish). Starts have no
+    such ambiguity and are all exactly 14 days apart, so each chip's end stays
+    derived as "next start - 1 day", which is contiguous and gap-free.
+
+    Entries are {label, start}. A final label-less sentinel is appended because
+    the template pairs SPRINTS[i] with SPRINTS[i+1] and drops the last entry.
+    """
+    try:
+        real = fetch_board_sprints()
+        print(f"  sprint axis: {len(real)} scheduled sprint(s) from board {V2_BOARD_ID}")
+    except Exception as exc:
+        real = []
+        print(f"  ⚠ sprint axis: board {V2_BOARD_ID} unavailable ({exc}) — "
+              f"falling back to the anchored cadence")
+
+    out = []
+    for sp in real:
+        label = anchored_label(sp["start"])
+        if label:
+            out.append({"label": label, "start": sp["start"].isoformat()})
+
+    nxt = (date.fromisoformat(out[-1]["start"]) + timedelta(days=SPRINT_DAYS)
+           if out else SPRINT_ANCHOR)
+    projected = 0
+    while nxt <= CHART_END:
+        out.append({"label": anchored_label(nxt), "start": nxt.isoformat()})
+        projected += 1
+        nxt += timedelta(days=SPRINT_DAYS)
+
+    out.append({"label": "", "start": nxt.isoformat()})   # sentinel
+
+    # A gap or overlap here would silently mis-place every chip after it.
+    starts = [date.fromisoformat(e["start"]) for e in out]
+    odd = [(out[i]["label"], (starts[i + 1] - starts[i]).days)
+           for i in range(len(starts) - 1) if (starts[i + 1] - starts[i]).days != SPRINT_DAYS]
+    if odd:
+        print(f"  ⚠ sprint axis: non-{SPRINT_DAYS}-day gaps after {odd}")
+    if out[0]["label"] != "S1":
+        print(f"  ⚠ sprint axis starts at {out[0]['label']}, expected S1")
+    print(f"    {len(out) - 1} chips: {len(real)} from Jira + {projected} projected "
+          f"→ last chip {out[-2]['label']} starting {out[-2]['start']}")
+    return out
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -924,6 +1024,12 @@ def build_fv(cfg):
 
 def main():
     print(f"▶ Building V2 timeline — {TODAY}")
+
+    # Sprint axis first: current_sprint_info() and the template render both
+    # read the module-level SPRINTS, which starts empty so that importing this
+    # module never fires a Jira call.
+    global SPRINTS
+    SPRINTS = build_sprints()
 
     # Refresh FV_CONFIG against Jira's live unreleased FV list. The config
     # provides priority order + metadata overrides (color, qaWeeks, lab
