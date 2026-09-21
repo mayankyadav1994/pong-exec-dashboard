@@ -280,7 +280,7 @@ def _parse_date(value: Any) -> Optional[date]:
 # Each game's review page lives in the epic's "Confluence Link" field; the play/
 # QA lobby link lives ON that Confluence page (the "Edge Labs Test Lobby" cells).
 # The build resolves both so the CEO Summary can show them without manual entry.
-_PLAY_RE = re.compile(r"https?://dev\.edgelabs\.game/[^\s\"'<>)]+", re.I)
+_PLAY_RE = re.compile(r"https?://[a-z0-9.-]*edgelabs\.game/[^\s\"'<>)\\]+", re.I)
 
 
 def resolve_field_id(client: "JiraClient", name: str) -> Optional[str]:
@@ -305,26 +305,52 @@ def _page_id_from_url(url: Optional[str]) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def fetch_play_link(client: "JiraClient", confluence_url: Optional[str]) -> Optional[str]:
-    """Open the Confluence review page and return its dev/QA lobby link.
-    Picks the LAST match on the page (the most recent review row). Best-effort:
-    any failure returns None so the build never breaks over a missing link."""
-    pid = _page_id_from_url(confluence_url)
-    if not pid:
-        return None
-    try:
-        data = client._request("GET", f"/wiki/rest/api/content/{pid}",
-                               params={"expand": "body.storage"})
-        html = (((data.get("body") or {}).get("storage") or {}).get("value")) or ""
-    except Exception as exc:
-        client.log(f"{WARN} Confluence page {pid} fetch failed: {exc}")
-        return None
+def _confluence_get(client: "JiraClient", conf_auth, path: str, params=None) -> dict:
+    """A Confluence GET on the same host, authed with the Confluence token."""
+    r = client.session.get(f"{client.base}{path}", auth=conf_auth, params=params, timeout=45)
+    r.raise_for_status()
+    return r.json() if r.content else {}
+
+
+def _last_lobby(html: str) -> Optional[str]:
     seen: list[str] = []
-    for h in _PLAY_RE.findall(html):
+    for h in _PLAY_RE.findall(html or ""):
         h = h.replace("&amp;", "&").rstrip(".,;")
         if h not in seen:
             seen.append(h)
     return seen[-1] if seen else None
+
+
+def fetch_review_links(client: "JiraClient", conf_auth, confluence_url: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    """From the epic's "Confluence Link" (a Design-Docs page), find its
+    "Review Notes" CHILD page — that's where the review table + dev/QA lobby
+    links live — and return (review_url, play_url):
+      * review_url = the Review Notes child page (falls back to the field value),
+      * play_url   = the most recent lobby link on that page (dev or qa).
+    Best-effort: any failure returns (confluence_url, None); never breaks build."""
+    pid = _page_id_from_url(confluence_url)
+    if not pid:
+        return (confluence_url, None)
+    try:
+        kids = _confluence_get(client, conf_auth,
+                               f"/wiki/rest/api/content/{pid}/child/page", {"limit": 50})
+    except Exception as exc:
+        client.log(f"{WARN} Confluence children {pid}: {exc}")
+        return (confluence_url, None)
+    child_id = next((k.get("id") for k in (kids.get("results") or [])
+                     if "review note" in str(k.get("title", "")).lower()), None)
+    if not child_id:
+        return (confluence_url, None)
+    try:
+        data = _confluence_get(client, conf_auth,
+                               f"/wiki/rest/api/content/{child_id}", {"expand": "body.storage"})
+    except Exception as exc:
+        client.log(f"{WARN} Confluence page {child_id}: {exc}")
+        return (confluence_url, None)
+    html = (((data.get("body") or {}).get("storage") or {}).get("value")) or ""
+    links = data.get("_links") or {}
+    review = (links.get("base", "") + links.get("webui", "")) if links.get("webui") else confluence_url
+    return (review or confluence_url, _last_lobby(html))
 
 
 def parse_sprint_field(value: Any) -> list[dict]:
@@ -522,6 +548,9 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
     # Resolve the "Confluence Link" field once so we can pull each game's review
     # page (and, from it, the play/QA lobby link) for the CEO Summary (#77).
     confluence_field = resolve_field_id(client, "Confluence Link")
+    # Confluence uses its own token when set (CONFLUENCE_API_TOKEN); falls back to
+    # the Jira token, which also works for Confluence on the same cloud site.
+    confluence_auth = (client.auth[0], os.environ.get("CONFLUENCE_API_TOKEN", "").strip() or client.auth[1])
     epic_fields = ["summary", "status", "assignee", "priority", "fixVersions",
                    "customfield_10014", "duedate"]
     if confluence_field:
@@ -778,13 +807,17 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             auto_status = derive_status(aggs, epic_status)
             stage = derive_stage(aggs)
         gname = ef.get("customfield_10014") or ef.get("summary") or ekey
-        # CEO Summary links (#77): review page from the "Confluence Link" field,
-        # play/QA link scraped from that page. Both best-effort → None on absence.
-        review_url = ef.get(confluence_field) if confluence_field else None
-        if isinstance(review_url, dict):        # some URL fields serialize as objects
-            review_url = review_url.get("url") or review_url.get("value")
-        review_url = review_url or None
-        play_url = fetch_play_link(client, review_url) if review_url else None
+        # CEO Summary links (#77): the epic's "Confluence Link" points to the game's
+        # Design-Docs page; its "Review Notes" child holds the review table + the
+        # dev/QA lobby link. Resolve both (best-effort → None on absence).
+        review_field = ef.get(confluence_field) if confluence_field else None
+        if isinstance(review_field, dict):      # some URL fields serialize as objects
+            review_field = review_field.get("url") or review_field.get("value")
+        review_field = review_field or None
+        if review_field:
+            review_url, play_url = fetch_review_links(client, confluence_auth, review_field)
+        else:
+            review_url, play_url = None, None
         # Board roster = prefixed game WITH a fixVersion. Prefixed games lacking a
         # fixVersion are add-game candidates, not on the board by default (#50).
         # Features board starts empty — every feature is an add-by-search candidate (#70).

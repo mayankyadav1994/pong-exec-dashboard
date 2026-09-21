@@ -49,6 +49,10 @@ jobs:
         env:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          # Optional: dedicated Confluence token for the CEO Summary link fetch
+          # (#77). If unset, the build falls back to JIRA_API_TOKEN, which also
+          # works for Confluence on the same cloud site.
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
           JIRA_BASE_URL: https://ponggamestudios.atlassian.net
           JIRA_BOARD_ID_V2: '316'   # V2 Scrum board (axis only; V2 issues are Kanban/no sprints)
           JIRA_BOARD_ID_IG: '250'   # iGaming board
