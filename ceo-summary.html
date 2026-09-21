@@ -131,7 +131,7 @@
       <div class="whoami" id="whoami"></div>
     </div>
     <div class="top-actions">
-      <button class="btn edit" id="editBtn" hidden>＋ Manage list (PMO)</button>
+      <button class="btn edit" id="editBtn">＋ Manage list (PMO)</button>
       <div class="views">
         <button class="btn" data-view="0">TODAY</button>
         <button class="btn active" data-view="7">7 DAYS</button>
@@ -276,7 +276,7 @@ function openApprove(idx){
     + `<div class="d-sub"><b>${esch(it.boardLabel||it.board)}</b> · <a href="https://ponggamestudios.atlassian.net/browse/${esca(it.jira)}" target="_blank" rel="noopener" style="color:var(--play);text-decoration:none">${esch(it.jira)} ↗</a> · ${esch(it.milestone)}</div>`
     + ((L.review||L.play)?`<div class="d-openrow">`+(L.review?`<a class="d-open" href="${esca(L.review)}" target="_blank" rel="noopener">📄 Open review page</a>`:'')+(L.play?`<a class="d-open" href="${esca(L.play)}" target="_blank" rel="noopener">▶ Open game to test</a>`:'')+`</div>`:'')
     + `<label>Note (optional)</label><textarea id="apprNote" placeholder="Anything to pass to the PMO…"></textarea>`
-    + `<div class="note-box">Approving opens an email to the PMO${pmoEmail()?` (<b>${esch(pmoEmail())}</b>)`:''} — just hit <b>Send</b>. The PMO records the sign-off and clears it from the board.</div>`
+    + `<div class="note-box">Approving opens an email to the <b>PMO</b> — just hit <b>Send</b>. The PMO records the sign-off and clears it from the board.</div>`
     + `<div class="d-foot"><span class="d-msg" id="dMsg"></span><button class="d-btn" onclick="closeDrawer()">Cancel</button><button class="d-btn primary" id="apprBtn">Approve → email PMO</button></div>`);
   document.getElementById('apprBtn').onclick = ()=>emailApproval(idx);
 }
@@ -284,7 +284,8 @@ function emailApproval(idx){
   const it=ITEMS[idx]; if(!it) return;
   const note=document.getElementById('apprNote').value.trim();
   const msg=document.getElementById('dMsg'); msg.className='d-msg';
-  if(!pmoEmail()){ msg.className='d-msg err'; msg.textContent='No PMO email set yet — ask your PMO to add it in Manage.'; return; }
+  const to = pmoEmail().split(',').map(s=>s.trim()).filter(Boolean);   // PMO may be several people
+  if(!to.length){ msg.className='d-msg err'; msg.textContent='No PMO email set yet — ask your PMO to add it in Manage.'; return; }
   const L=itemLinks(it);
   const subject=`Approved: ${it.game} (${it.jira}) — ${it.milestone}`;
   const bodyLines=[`I've reviewed and approve:`,``,`Game: ${it.game} [${it.boardLabel||it.board}]  ${it.jira}`,`Milestone: ${it.milestone}`];
@@ -292,7 +293,7 @@ function emailApproval(idx){
   if(L.play)   bodyLines.push(`Play/test: ${L.play}`);
   if(note)     bodyLines.push(``,`Note: ${note}`);
   bodyLines.push(``,`— Sent from the PGS CEO Summary`);
-  const href=`mailto:${encodeURIComponent(pmoEmail())}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+  const href=`mailto:${to.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
   window.location.href = href;                 // opens the viewer's mail client
   markSent(it.jira); closeDrawer(); render();
   toast('Email opened — hit Send to notify the PMO');
@@ -312,8 +313,8 @@ function openEdit(){
     : '<div class="d-sub" style="margin-top:6px">Nothing approved yet.</div>';
   openDrawer(`<button class="x" onclick="closeDrawer()">×</button>`
     + `<div class="d-eyebrow">PMO · manage review list</div><h3>Fern's review board</h3>`
-    + `<label>PMO notify email <span style="text-transform:none;font-weight:400;color:var(--sub)">(where Fern's approvals are sent)</span></label>`
-    + `<input type="email" id="fPmo" placeholder="pmo@pongstudios.com" value="${esca(REVIEW_CONFIG.pmo_email||'')}">`
+    + `<label>PMO notify emails <span style="text-transform:none;font-weight:400;color:var(--sub)">(comma-separated — Fern only sees “PMO”)</span></label>`
+    + `<input type="text" id="fPmo" placeholder="simon@…, mayank@…, pruthvi@…" value="${esca(REVIEW_CONFIG.pmo_email||'')}">`
     + `<label>Add a game</label><input type="text" id="srch" placeholder="Search name or IG-/V2- key…" autocomplete="off">`
     + `<div class="srch-res" id="srchRes" hidden></div>`
     + `<div id="addForm" hidden>`
@@ -409,7 +410,7 @@ function openSignIn(){
 }
 function pmoEntry(){ isEditor()?openEdit():openSignIn(); }
 function renderWhoami(){
-  document.getElementById('editBtn').hidden = !isEditor();
+  // "Manage list" is always visible; clicking it signs the PMO in if needed.
   const el=document.getElementById('whoami');
   el.innerHTML = isEditor()
     ? `PMO: <b>${esch(getUser()||'editor')}</b> · <a onclick="signOut()">sign out</a>`
@@ -423,7 +424,7 @@ async function init(){
   await loadReview();
   renderWhoami();
   document.querySelectorAll('.btn[data-view]').forEach(b=> b.onclick=()=>{ VIEW=b.dataset.view; document.querySelectorAll('.btn[data-view]').forEach(x=>x.classList.toggle('active',x===b)); render(); });
-  document.getElementById('editBtn').onclick = openEdit;
+  document.getElementById('editBtn').onclick = pmoEntry;   // sign in if needed, then manage
   document.getElementById('drwOv').addEventListener('click', closeDrawer);
   document.getElementById('calendar').addEventListener('click', e=>{
     const ap=e.target.closest('.pmo-appr[data-appr]'); if(ap){ markApproved(+ap.dataset.appr, false); return; }
