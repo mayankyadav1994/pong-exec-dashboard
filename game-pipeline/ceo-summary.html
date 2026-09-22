@@ -51,6 +51,29 @@
   .day-h.is-today .dow{color:var(--play)}
   .day-h .todaytag{font-size:9.5px;font-weight:700;color:#fff;background:var(--play);border-radius:4px;padding:2px 7px;letter-spacing:.05em}
 
+  /* 30-day calendar grid */
+  .calgrid-wrap{margin:6px 0 6px}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .caldow{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;text-align:center;letter-spacing:.05em;padding-bottom:2px}
+  .calcell{min-height:74px;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:5px 7px;font-size:11px;color:var(--muted)}
+  .calcell.out{background:transparent;border-color:transparent}
+  .calcell.past{opacity:.5}
+  .calcell.today{border-color:var(--play);box-shadow:inset 0 0 0 1px var(--play)}
+  .calcell.has{cursor:pointer}
+  .calcell.has:hover{background:var(--surf2)}
+  .calcell.sel{border-color:var(--play);background:#eef4ff;box-shadow:inset 0 0 0 2px var(--play)}
+  .calcell .cd{display:flex;justify-content:space-between;align-items:center;font-weight:600;color:var(--text)}
+  .calcell .cd .cn{font-size:10px;font-weight:700;background:var(--surf3);border-radius:8px;padding:0 6px}
+  .calcell .cpvs{margin-top:3px;display:flex;flex-direction:column;gap:2px}
+  .calcell .cpv{font-size:9px;font-weight:600;color:#3d465e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+  .calcell .cpv.more{color:var(--sub);font-weight:500}
+  .calcell .cpvd{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:var(--muted)}
+  .calcell .cpvd.decision{background:var(--attention)}
+  .calcell .cpvd.review{background:var(--review)}
+  .calcell .cpvd.play{background:var(--play)}
+  .calfilter{font-size:12px;color:var(--muted);margin:12px 0 2px;padding:8px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:8px}
+  .calfilter a{color:var(--play);cursor:pointer;font-weight:600;text-decoration:none}
+
   .row{display:grid;grid-template-columns:34px 1.35fr 1.9fr 190px;align-items:center;gap:8px;padding:11px 6px;border-bottom:1px solid var(--border)}
   .row:last-child{border-bottom:none}
   .row .ic{font-size:17px;text-align:center;line-height:1}
@@ -173,7 +196,7 @@ const ACTIONS = {
   review:   { icon:'🎨', label:'Review & approve',  cls:'review'   },
   play:     { icon:'🎮', label:'Play & review',      cls:'play'     },
 };
-let ITEMS=[], APPROVED=[], ALLGAMES=[], GAME_LINKS={}, REVIEW_CONFIG={}, VIEW='7', CUR=null, PICKED=null, DRAG_FROM=null;
+let ITEMS=[], APPROVED=[], ALLGAMES=[], GAME_LINKS={}, REVIEW_CONFIG={}, VIEW='7', CUR=null, PICKED=null, DRAG_FROM=null, SEL_DAY=null;
 
 const esch = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const esca = s => esch(s).replace(/"/g,'&quot;');
@@ -243,7 +266,8 @@ function render(){
     cal.innerHTML=`<div class="empty"><b>No games on the review list for this window.</b><br>${isEditor()?'Use <b>Manage list</b> — or <b>Send to CEO review</b> from the pipeline.':'Nothing pending for you right now.'}</div>`;
     return;
   }
-  cal.innerHTML=days.map(k=>{
+  const showKeys=(VIEW==='30'&&SEL_DAY!=null&&byDay.has(SEL_DAY))?[SEL_DAY]:days;
+  const daysHtml=showKeys.map(k=>{
     const d=new Date(k), isToday=k===+TODAY, isTom=k===+addDays(TODAY,1);
     const rows=byDay.get(k).map(it=>{
       const a=ACTIONS[it.action]||ACTIONS.review; const idx=ITEMS.indexOf(it);
@@ -258,8 +282,42 @@ function render(){
         + `</div>`;
     }).join('');
     const dow=isToday?`TODAY — ${fmtDOW(d).slice(0,3)}`:isTom?`TOMORROW — ${fmtDOW(d).slice(0,3)}`:fmtDOW(d);
-    return `<section class="day"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}</section>`;
+    return `<section class="day" id="day-${k}"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}</section>`;
   }).join('');
+  // 30-day view leads with a clickable month grid; clicking a date filters to it.
+  const filtered = VIEW==='30' && SEL_DAY!=null && byDay.has(SEL_DAY);
+  const filterBar = filtered
+    ? `<div class="calfilter">Showing <b>${fmtDOW(new Date(SEL_DAY)).slice(0,3)} ${fmtDate(new Date(SEL_DAY))}</b> only · <a onclick="clearSelDay()">show all ${days.length} days</a></div>`
+    : '';
+  cal.innerHTML = (VIEW==='30' ? renderCalGrid(byDay) : '') + filterBar + daysHtml;
+  if(VIEW==='30') requestAnimationFrame(wireCalGrid);
+}
+function clearSelDay(){ SEL_DAY=null; render(); }
+function renderCalGrid(byDay){
+  const start=addDays(TODAY,-TODAY.getDay());        // Sunday on/before today
+  const last=addDays(TODAY,30);
+  const end=addDays(last,6-last.getDay());           // Saturday on/after +30d
+  const dowHdr=['S','M','T','W','T','F','S'].map(x=>`<div class="caldow">${x}</div>`).join('');
+  let cells='';
+  for(let d=new Date(start); +d<=+end; d=addDays(d,1)){
+    const k=+midnight(d), items=byDay.get(k)||[], isToday=k===+TODAY, past=k<+TODAY, inWin=k>=+TODAY&&k<=+last, sel=k===SEL_DAY;
+    const pv=items.slice(0,2).map(i=>`<div class="cpv"><span class="cpvd ${(ACTIONS[i.action]||{}).cls||''}"></span>${esch(i.game)}</div>`).join('')
+            + (items.length>2?`<div class="cpv more">+${items.length-2} more</div>`:'');
+    const cls='calcell'+(isToday?' today':'')+(past?' past':'')+(items.length?' has':'')+(sel?' sel':'')+(!inWin&&!items.length?' out':'');
+    cells+=`<div class="${cls}" ${items.length?`data-day="${k}"`:''}>`
+      + `<div class="cd">${d.getDate()}${items.length?`<span class="cn">${items.length}</span>`:''}</div>`
+      + (items.length?`<div class="cpvs">${pv}</div>`:'')
+      + `</div>`;
+  }
+  return `<div class="calgrid-wrap"><div class="calgrid">${dowHdr}${cells}</div></div>`;
+}
+function wireCalGrid(){
+  document.querySelectorAll('.calcell.has[data-day]').forEach(c=> c.onclick=()=>{
+    const k=+c.dataset.day;
+    SEL_DAY = (SEL_DAY===k ? null : k);   // click to filter to that date; click again to clear
+    render();
+    if(SEL_DAY!=null){ const el=document.getElementById('day-'+k); if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  });
 }
 function sumCard(cls,ic,n,lbl){ const p=lbl.split(' '); return `<div class="sum ${cls}"><span class="ic">${ic}</span><div><div class="n">${n}</div><div class="lbl">${p[0]}<br>${p.slice(1).join(' ')}</div></div></div>`; }
 
