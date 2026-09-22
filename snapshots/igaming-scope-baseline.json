@@ -475,6 +475,10 @@
       "IG-921": 5.0
     }
   },
+  "ELG 5.20": {
+    "date": "2026-09-22",
+    "orig_hours_by_key": {}
+  },
   "ELG Feature Backlog": {
     "date": "2026-07-10",
     "orig_hours_by_key": {
