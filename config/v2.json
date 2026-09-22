@@ -1,9 +1,9 @@
 {
   "fv_order": [
     "G2E Show Prep 2026",
-    "V2 C2 5.10",
-    "V2 C2 5.20",
     "V2 SW 16.00",
+    "V2 C2 5.20",
+    "V2 SW 16.10",
     "V2 P2P 16.00",
     "V2 PT 14.00",
     "New Games",
@@ -12,7 +12,7 @@
     "V2 PT Backlog",
     "V2 SW Backlog",
     "V2 HHR 3.20",
-    "V2 SW 16.10"
+    "Dev Test"
   ],
   "fv_meta": {
     "V2 SW 15.00": {
@@ -83,8 +83,10 @@
     }
   },
   "hidden_fvs": [
+    "Dev Test",
     "New Games",
     "V2 C2 Backlog",
+    "V2 HHR 3.20",
     "V2 P2P Backlog",
     "V2 PT Backlog",
     "V2 SW Backlog"
@@ -101,7 +103,7 @@
     "2027-02-15"
   ],
   "_meta": {
-    "published_at": "2026-09-08T18:41:09.191Z",
+    "published_at": "2026-09-22T14:57:29.926Z",
     "published_by": "mayankyadav1994"
   }
 }
