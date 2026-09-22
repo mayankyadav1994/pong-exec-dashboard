@@ -103,6 +103,21 @@
   .legend{display:flex;gap:15px;flex-wrap:wrap}
   .legend span{display:flex;align-items:center;gap:5px}
 
+  /* Updates feed (auto, informational) */
+  .upd-h{font-size:15px;font-weight:700;margin:30px 0 8px;padding-top:16px;border-top:1px solid var(--border)}
+  .upd-sub{font-size:12px;font-weight:400;color:var(--muted)}
+  .upd-row{display:grid;grid-template-columns:26px 60px 1.15fr 1.5fr;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--border);font-size:12.5px}
+  .upd-row:last-child{border-bottom:none}
+  .upd-ic{font-size:15px;text-align:center;line-height:1}
+  .upd-when{font-size:10.5px;color:var(--sub);font-family:'IBM Plex Mono',monospace}
+  .upd-game{font-weight:700}
+  .upd-game .chip{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:9px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2);margin-right:7px;vertical-align:1px}
+  .upd-game .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
+  .upd-game .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
+  .upd-game .chip.igf{color:#92660c;border-color:#f3d99b;background:#fdf6e8}
+  .upd-game .jira{font-family:'IBM Plex Mono',monospace;font-size:9.5px;color:var(--sub);font-weight:500;margin-left:6px}
+  .upd-text{color:#3d465e}
+
   .drw-ov{position:fixed;inset:0;background:rgba(15,20,40,.35);opacity:0;pointer-events:none;transition:.15s;z-index:40}
   .drw-ov.open{opacity:1;pointer-events:auto}
   .drw{position:fixed;top:0;right:0;height:100%;width:430px;max-width:94vw;background:var(--surface);border-left:1px solid var(--border);box-shadow:-10px 0 34px rgba(0,0,0,.13);transform:translateX(102%);transition:transform .18s;z-index:41;display:flex;flex-direction:column;padding:22px 22px 20px;overflow-y:auto}
@@ -166,6 +181,11 @@
   <section class="summary" id="summary"></section>
   <div id="calendar"></div>
 
+  <section id="updates-sec" hidden>
+    <div class="upd-h">Updates <span class="upd-sub">— progress across games &amp; features (auto, no action needed)</span></div>
+    <div id="updates"></div>
+  </section>
+
   <footer class="foot">
     <div class="legend">
       <span>🔴 Decision</span><span>🎨 Creative review</span><span>🎮 Ready to play</span><span>✓ Approved</span>
@@ -178,6 +198,7 @@
 
 <script src="dashboard-data-v2.js"></script>
 <script src="dashboard-data-ig.js"></script>
+<script src="dashboard-data-igf.js"></script>
 <script>
 // ============================================================
 //  CEO Summary — PMO-curated review board (V2 + iGaming)
@@ -197,6 +218,8 @@ const ACTIONS = {
   play:     { icon:'🎮', label:'Play & review',      cls:'play'     },
 };
 let ITEMS=[], APPROVED=[], ALLGAMES=[], GAME_LINKS={}, REVIEW_CONFIG={}, VIEW='7', CUR=null, PICKED=null, DRAG_FROM=null, SEL_DAY=null;
+let GAMES_ALL=[], IGF_ADDED=new Set();   // full records across v2+ig+igf, + curated feature set — for the Updates feed
+const STAGE_LABEL={design:'Design',art:'Art',math:'Math',dev:'Dev',sound:'Sound',review:'Review',qa:'QA',done:'Done',concept:'Concept'};
 
 const esch = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const esca = s => esch(s).replace(/"/g,'&quot;');
@@ -230,16 +253,55 @@ async function loadReview(){
     if(r.ok){ const j = await r.json(); ITEMS=j.items||[]; APPROVED=j.approved||[]; REVIEW_CONFIG=j.config||{}; }
   }catch(e){ ITEMS=[]; APPROVED=[]; }
 }
+function boardLabelOf(key){ return key==='v2'?'V2':key==='igf'?'iGaming Features':'iGaming'; }
 function loadAllGames(){
-  ALLGAMES=[]; GAME_LINKS={};
-  for(const key of ['v2','ig']){
+  ALLGAMES=[]; GAME_LINKS={}; GAMES_ALL=[];
+  for(const key of ['v2','ig','igf']){
     const d=(window.GP_DATA||{})[key]; if(!d||!d.games) continue;
-    const label=key==='v2'?'V2':'iGaming';
+    const label=boardLabelOf(key);
     for(const g of d.games){
-      ALLGAMES.push({ jira:g.jira, game:stripName(g.name), board:key, boardLabel:label });
+      const rec=Object.assign({}, g, { game:stripName(g.name), board:key, boardLabel:label });
+      GAMES_ALL.push(rec);
+      ALLGAMES.push({ jira:g.jira, game:rec.game, board:key, boardLabel:label });
       if(g.review_url||g.play_url) GAME_LINKS[g.jira]={ review:g.review_url||'', play:g.play_url||'' };
     }
   }
+}
+async function loadPlanIgf(){
+  try{ const r=await fetch('plan-igf.json?ts='+Date.now()); if(r.ok){ const j=await r.json(); IGF_ADDED=new Set(j.added||[]); } }catch(e){}
+}
+const isoDay = d => d.toISOString().slice(0,10);
+// Auto "updates" for a game/feature — no action, purely informational (#79).
+function updateEntries(g){
+  const out=[]; const h=g.history||{};
+  (h.stage||[]).forEach(e=> out.push({date:e.date, ic:'🔀', text:`Moved ${STAGE_LABEL[e.from]||e.from} → ${STAGE_LABEL[e.to]||e.to}`}));
+  (h.scope||[]).forEach(e=>{ if(Math.abs(e.delta)>=4) out.push({date:e.date, ic:(e.delta>0?'📈':'📉'), text:`Scope ${e.delta>0?'+':'−'}${Math.abs(e.delta)}h`}); });
+  (h.target||[]).forEach(e=>{ const d=asDate(e.to); out.push({date:e.date, ic:(e.days>0?'⏳':'⚡'), text:`${e.days>0?('Target slipped '+e.days+'d'):('Target pulled in '+Math.abs(e.days)+'d')}${d?(' → '+fmtDate(d)):''}`}); });
+  const done = g.workflow_status==='Signed Off'||g.workflow_status==='Delivered';
+  (g.fixVersions||[]).forEach(v=>{
+    if(v.released||!v.releaseDate) return;
+    const d=asDate(v.releaseDate); if(!d) return;
+    if(d<TODAY && !done) out.push({date:isoDay(TODAY), ic:'🔴', text:`Late — ${v.name} was due ${fmtDate(d)}`});
+    else if(d>=TODAY) out.push({date:v.releaseDate, ic:'🏁', text:`On ${v.name} → production ${fmtDate(d)}`});
+  });
+  return out;
+}
+function renderUpdates(){
+  const sec=document.getElementById('updates-sec'), box=document.getElementById('updates');
+  const cutoff=+addDays(TODAY,-21);
+  const inUniverse = g => (g.board!=='igf' ? g.in_roster!==false : IGF_ADDED.has(g.jira));
+  const feed=[];
+  GAMES_ALL.filter(inUniverse).forEach(g=>{
+    updateEntries(g).forEach(e=>{ const dk=+asDate(e.date); if(dk>=cutoff || dk>=+TODAY) feed.push(Object.assign({}, e, {dk, game:g.game, board:g.board, boardLabel:g.boardLabel, jira:g.jira})); });
+  });
+  feed.sort((a,b)=> b.dk-a.dk);
+  const rows=feed.slice(0,50);
+  if(!rows.length){ sec.hidden=true; return; }
+  sec.hidden=false;
+  box.innerHTML = rows.map(e=>`<div class="upd-row"><span class="upd-ic">${e.ic}</span>`
+    + `<span class="upd-when">${fmtDate(new Date(e.dk))}</span>`
+    + `<span class="upd-game"><span class="chip ${e.board}">${esch(e.boardLabel)}</span>${esch(e.game)} <span class="jira">${esch(e.jira)}</span></span>`
+    + `<span class="upd-text">${esch(e.text)}</span></div>`).join('');
 }
 function itemLinks(it){ const g=GAME_LINKS[it.jira]||{}; return { review:(g.review||it.review||''), play:(g.play||it.play||'') }; }
 function linkChips(it){
@@ -482,6 +544,7 @@ async function init(){
   document.getElementById('todayLine').textContent = TODAY.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   loadAllGames();
   await loadReview();
+  await loadPlanIgf();
   renderWhoami();
   document.querySelectorAll('.btn[data-view]').forEach(b=> b.onclick=()=>{ VIEW=b.dataset.view; document.querySelectorAll('.btn[data-view]').forEach(x=>x.classList.toggle('active',x===b)); render(); });
   document.getElementById('editBtn').onclick = pmoEntry;   // sign in if needed, then manage
@@ -491,6 +554,7 @@ async function init(){
     const a=e.target.closest('.action[data-idx]'); if(a){ openApprove(+a.dataset.idx); }
   });
   render();
+  renderUpdates();
 }
 init();
 </script>
