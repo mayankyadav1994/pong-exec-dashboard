@@ -1047,7 +1047,8 @@ def write_history_snapshot(proj_key: str, payload: dict, today: date) -> Path:
         sc = round(g.get("scope") or 0)
         # scope 0 == "no estimate yet" (unknown), stored as None so it never reads
         # as real growth when the field first appears.
-        games[jira] = {"target": g.get("target_date") or None, "scope": sc or None}
+        games[jira] = {"target": g.get("target_date") or None, "scope": sc or None,
+                       "stage": g.get("current_stage") or None}   # (#79) for stage-move updates
     dest = proj_dir / f"{today.isoformat()}.json"
     dest.write_text(json.dumps({"date": today.isoformat(), "games": games}, ensure_ascii=False), encoding="utf-8")
     cutoff = today - timedelta(days=HISTORY_KEEP_DAYS)
@@ -1088,21 +1089,27 @@ def compute_history_events(proj_key: str, games: list[dict]) -> None:
     for snap in load_history(proj_key):
         d = snap.get("date")
         for jira, rec in (snap.get("games") or {}).items():
-            series.setdefault(jira, []).append((d, rec.get("target"), rec.get("scope")))
+            series.setdefault(jira, []).append((d, rec.get("target"), rec.get("scope"), rec.get("stage")))
     for g in games:
         pts = series.get(g.get("jira"), [])
-        tgt_events, scope_events = [], []
-        prev_t = prev_s = None
-        for (d, t, s) in pts:
+        tgt_events, scope_events, stage_events = [], [], []
+        prev_t = prev_s = prev_g = None
+        for (d, t, s, st) in pts:
             if prev_t and t and prev_t != t:
                 tgt_events.append({"date": d, "from": prev_t, "to": t, "days": workday_delta(prev_t, t)})
             if prev_s and s and abs(s - prev_s) >= 1:
                 scope_events.append({"date": d, "from": round(prev_s), "to": round(s), "delta": round(s - prev_s)})
+            # stage moves (e.g. art→dev). Older snapshots have no stage, so this
+            # starts logging from the first snapshot that records one. (#79)
+            if prev_g and st and prev_g != st:
+                stage_events.append({"date": d, "from": prev_g, "to": st})
             if t:
                 prev_t = t
             if s:
                 prev_s = s
-        g["history"] = {"target": tgt_events, "scope": scope_events}
+            if st:
+                prev_g = st
+        g["history"] = {"target": tgt_events, "scope": scope_events, "stage": stage_events}
 
 
 # ============================================================================
