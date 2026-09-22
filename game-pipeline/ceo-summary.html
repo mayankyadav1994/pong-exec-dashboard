@@ -73,6 +73,18 @@
   .calcell .cpvd.play{background:var(--play)}
   .calfilter{font-size:12px;color:var(--muted);margin:12px 0 2px;padding:8px 12px;background:var(--surf2);border:1px solid var(--border);border-radius:8px}
   .calfilter a{color:var(--play);cursor:pointer;font-weight:600;text-decoration:none}
+  .calcell .cpvd.prod{background:var(--delivery)}
+
+  /* production releases (day sections) */
+  .prod-block{margin:2px 0 4px;padding:8px 12px;background:#eefaf6;border:1px solid #bfe6d8;border-radius:8px}
+  .prod-h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--delivery);margin-bottom:5px}
+  .prod-row{display:flex;gap:10px;align-items:baseline;font-size:12px;padding:3px 0;flex-wrap:wrap}
+  .prod-fv{font-weight:700;color:var(--delivery);white-space:nowrap}
+  .prod-games{color:#3d465e}
+  .prod-games .chip{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:9px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2);margin-right:5px}
+  .prod-games .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
+  .prod-games .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
+  .prod-games .chip.igf{color:#92660c;border-color:#f3d99b;background:#fdf6e8}
 
   .row{display:grid;grid-template-columns:34px 1.35fr 1.9fr 190px;align-items:center;gap:8px;padding:11px 6px;border-bottom:1px solid var(--border)}
   .row:last-child{border-bottom:none}
@@ -275,7 +287,7 @@ const isoDay = d => d.toISOString().slice(0,10);
 function updateEntries(g){
   const out=[]; const h=g.history||{};
   (h.stage||[]).forEach(e=> out.push({date:e.date, ic:'🔀', text:`Moved ${STAGE_LABEL[e.from]||e.from} → ${STAGE_LABEL[e.to]||e.to}`}));
-  (h.scope||[]).forEach(e=>{ if(Math.abs(e.delta)>=4) out.push({date:e.date, ic:(e.delta>0?'📈':'📉'), text:`Scope ${e.delta>0?'+':'−'}${Math.abs(e.delta)}h`}); });
+  (h.scope||[]).forEach(e=>{ if(Math.abs(e.delta)>=4) out.push({date:e.date, ic:(e.delta>0?'📈':'📉'), text:`Scope ${e.delta>0?'increased':'reduced'} by ${Math.abs(e.delta)}h`}); });
   (h.target||[]).forEach(e=>{ const d=asDate(e.to); out.push({date:e.date, ic:(e.days>0?'⏳':'⚡'), text:`${e.days>0?('Target slipped '+e.days+'d'):('Target pulled in '+Math.abs(e.days)+'d')}${d?(' → '+fmtDate(d)):''}`}); });
   const done = g.workflow_status==='Signed Off'||g.workflow_status==='Delivered';
   (g.fixVersions||[]).forEach(v=>{
@@ -311,27 +323,48 @@ function linkChips(it){
   return s;
 }
 
+// Games/features releasing to production, by date (unreleased fixVersions). (#79)
+function prodByDayMap(maxDays){
+  const m=new Map();
+  const inU = g => (g.board!=='igf' ? g.in_roster!==false : IGF_ADDED.has(g.jira));
+  GAMES_ALL.forEach(g=>{ if(!inU(g)) return;
+    (g.fixVersions||[]).forEach(v=>{ if(v.released||!v.releaseDate) return; const d=asDate(v.releaseDate); if(!d) return;
+      const k=+midnight(d), off=(k-+TODAY)/86400000; if(off<0||off>maxDays) return;
+      (m.get(k)||m.set(k,[]).get(k)).push({game:g.game, board:g.board, boardLabel:g.boardLabel, fv:v.name, jira:g.jira});
+    });
+  });
+  return m;
+}
+function prodBlock(list){
+  if(!list||!list.length) return '';
+  const byFv={}; list.forEach(p=>(byFv[p.fv]=byFv[p.fv]||[]).push(p));
+  const rows=Object.entries(byFv).map(([fv,ps])=>`<div class="prod-row"><span class="prod-fv">🏁 ${esch(fv)}</span><span class="prod-games">${ps.map(p=>`<span class="chip ${p.board}">${esch(p.boardLabel)}</span>${esch(p.game)}`).join(' · ')}</span></div>`).join('');
+  return `<div class="prod-block"><div class="prod-h">Releasing to production</div>${rows}</div>`;
+}
 function render(){
   const maxDays=+VIEW, sent=getSent();
   const inWin = ITEMS.filter(it=>{ const d=asDate(it.date); return d && (d-TODAY)/86400000 <= maxDays && (d-TODAY)/86400000 >= -3; });
   const c={ decision:0, review:0, play:0 };
   inWin.forEach(it=>{ if(c[it.action]!=null) c[it.action]++; });
+  const PBD=prodByDayMap(maxDays);
+  let prodCount=0; PBD.forEach(l=>prodCount+=l.length);
   document.getElementById('summary').innerHTML =
      sumCard('attention','🔴',c.decision,'Decisions')+sumCard('','🎨',c.review,'Creative reviews')
-   + sumCard('','🎮',c.play,'Ready to play')+sumCard('done','✓',APPROVED.length,'Approved');
+   + sumCard('','🎮',c.play,'Ready to play')+sumCard('done','🏁',prodCount,'Deliveries coming');
 
   const byDay=new Map();
   inWin.forEach(it=>{ const k=+asDate(it.date); (byDay.get(k)||byDay.set(k,[]).get(k)).push(it); });
-  const days=[...byDay.keys()].sort((a,b)=>a-b);
+  const allKeys=[...new Set([...byDay.keys(), ...PBD.keys()])].sort((a,b)=>a-b);
   const cal=document.getElementById('calendar');
-  if(!days.length){
-    cal.innerHTML=`<div class="empty"><b>No games on the review list for this window.</b><br>${isEditor()?'Use <b>Manage list</b> — or <b>Send to CEO review</b> from the pipeline.':'Nothing pending for you right now.'}</div>`;
+  if(!allKeys.length){
+    cal.innerHTML=`<div class="empty"><b>Nothing on the review list or releasing in this window.</b><br>${isEditor()?'Use <b>Manage list</b> — or <b>Send to CEO review</b> from the pipeline.':'Nothing pending right now.'}</div>`;
     return;
   }
-  const showKeys=(VIEW==='30'&&SEL_DAY!=null&&byDay.has(SEL_DAY))?[SEL_DAY]:days;
+  const selValid = SEL_DAY!=null && (byDay.has(SEL_DAY)||PBD.has(SEL_DAY));
+  const showKeys=(VIEW==='30'&&selValid)?[SEL_DAY]:allKeys;
   const daysHtml=showKeys.map(k=>{
     const d=new Date(k), isToday=k===+TODAY, isTom=k===+addDays(TODAY,1);
-    const rows=byDay.get(k).map(it=>{
+    const rows=(byDay.get(k)||[]).map(it=>{
       const a=ACTIONS[it.action]||ACTIONS.review; const idx=ITEMS.indexOf(it);
       const sentMark = sent.has(it.jira) ? `<span class="sent" title="You emailed the PMO — awaiting sign-off">✓ sent</span>` : '';
       const actionCell=`<div class="action ${a.cls}" data-idx="${idx}" role="button" tabindex="0">${a.label} →</div>`;
@@ -344,31 +377,34 @@ function render(){
         + `</div>`;
     }).join('');
     const dow=isToday?`TODAY — ${fmtDOW(d).slice(0,3)}`:isTom?`TOMORROW — ${fmtDOW(d).slice(0,3)}`:fmtDOW(d);
-    return `<section class="day" id="day-${k}"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}</section>`;
+    return `<section class="day" id="day-${k}"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}${prodBlock(PBD.get(k))}</section>`;
   }).join('');
   // 30-day view leads with a clickable month grid; clicking a date filters to it.
-  const filtered = VIEW==='30' && SEL_DAY!=null && byDay.has(SEL_DAY);
-  const filterBar = filtered
-    ? `<div class="calfilter">Showing <b>${fmtDOW(new Date(SEL_DAY)).slice(0,3)} ${fmtDate(new Date(SEL_DAY))}</b> only · <a onclick="clearSelDay()">show all ${days.length} days</a></div>`
+  const filterBar = (VIEW==='30' && selValid)
+    ? `<div class="calfilter">Showing <b>${fmtDOW(new Date(SEL_DAY)).slice(0,3)} ${fmtDate(new Date(SEL_DAY))}</b> only · <a onclick="clearSelDay()">show all ${allKeys.length} days</a></div>`
     : '';
-  cal.innerHTML = (VIEW==='30' ? renderCalGrid(byDay) : '') + filterBar + daysHtml;
+  cal.innerHTML = (VIEW==='30' ? renderCalGrid(byDay, PBD) : '') + filterBar + daysHtml;
   if(VIEW==='30') requestAnimationFrame(wireCalGrid);
 }
 function clearSelDay(){ SEL_DAY=null; render(); }
-function renderCalGrid(byDay){
+function renderCalGrid(byDay, PBD){
   const start=addDays(TODAY,-TODAY.getDay());        // Sunday on/before today
   const last=addDays(TODAY,30);
   const end=addDays(last,6-last.getDay());           // Saturday on/after +30d
   const dowHdr=['S','M','T','W','T','F','S'].map(x=>`<div class="caldow">${x}</div>`).join('');
   let cells='';
   for(let d=new Date(start); +d<=+end; d=addDays(d,1)){
-    const k=+midnight(d), items=byDay.get(k)||[], isToday=k===+TODAY, past=k<+TODAY, inWin=k>=+TODAY&&k<=+last, sel=k===SEL_DAY;
-    const pv=items.slice(0,2).map(i=>`<div class="cpv"><span class="cpvd ${(ACTIONS[i.action]||{}).cls||''}"></span>${esch(i.game)}</div>`).join('')
-            + (items.length>2?`<div class="cpv more">+${items.length-2} more</div>`:'');
-    const cls='calcell'+(isToday?' today':'')+(past?' past':'')+(items.length?' has':'')+(sel?' sel':'')+(!inWin&&!items.length?' out':'');
-    cells+=`<div class="${cls}" ${items.length?`data-day="${k}"`:''}>`
-      + `<div class="cd">${d.getDate()}${items.length?`<span class="cn">${items.length}</span>`:''}</div>`
-      + (items.length?`<div class="cpvs">${pv}</div>`:'')
+    const k=+midnight(d), rev=byDay.get(k)||[], prod=PBD.get(k)||[], count=rev.length+prod.length;
+    const isToday=k===+TODAY, past=k<+TODAY, inWin=k>=+TODAY&&k<=+last, sel=k===SEL_DAY;
+    const byFv={}; prod.forEach(p=>byFv[p.fv]=(byFv[p.fv]||0)+1);
+    const pvItems=[...rev.map(i=>({dot:(ACTIONS[i.action]||{}).cls||'', label:esch(i.game)})),
+                   ...Object.entries(byFv).map(([fv,n])=>({dot:'prod', label:'🏁 '+esch(fv)+(n>1?' ×'+n:'')}))];
+    const pv=pvItems.slice(0,2).map(p=>`<div class="cpv"><span class="cpvd ${p.dot}"></span>${p.label}</div>`).join('')
+            + (pvItems.length>2?`<div class="cpv more">+${pvItems.length-2} more</div>`:'');
+    const cls='calcell'+(isToday?' today':'')+(past?' past':'')+(count?' has':'')+(sel?' sel':'')+(!inWin&&!count?' out':'');
+    cells+=`<div class="${cls}" ${count?`data-day="${k}"`:''}>`
+      + `<div class="cd">${d.getDate()}${count?`<span class="cn">${count}</span>`:''}</div>`
+      + (count?`<div class="cpvs">${pv}</div>`:'')
       + `</div>`;
   }
   return `<div class="calgrid-wrap"><div class="calgrid">${dowHdr}${cells}</div></div>`;
