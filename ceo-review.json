@@ -8,6 +8,15 @@
       "milestone": "Review",
       "action": "review",
       "date": "2026-09-24"
+    },
+    {
+      "jira": "IG-2051",
+      "game": "Fruit Splitter",
+      "board": "ig",
+      "boardLabel": "iGaming",
+      "milestone": "Review",
+      "action": "review",
+      "date": "2026-09-23"
     }
   ],
   "approved": [],
@@ -15,5 +24,5 @@
     "pmo_email": "simon.taylor@pongstudios.com, mayank.yadav@pongstudios.com, pruthvi.patel@pongstudios.com"
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-09-23 20:27"
+  "updated_at": "2026-09-23 20:28"
 }
