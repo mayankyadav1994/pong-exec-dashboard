@@ -55,7 +55,18 @@
   .calgrid-wrap{margin:6px 0 6px}
   .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
   .caldow{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;text-align:center;letter-spacing:.05em;padding-bottom:2px}
-  .calcell{min-height:74px;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:5px 7px;font-size:11px;color:var(--muted)}
+  .calcell{min-height:120px;border:1px solid var(--border);border-radius:8px;background:var(--surface);padding:6px 8px;font-size:11px;color:var(--muted);position:relative}
+  .calcell.has:hover{z-index:30}
+  .cell-pop{display:none;position:absolute;top:-2px;left:-2px;min-width:250px;max-width:320px;background:var(--surface);border:1px solid var(--play);border-radius:9px;box-shadow:0 14px 36px rgba(0,0,0,.22);padding:10px 13px;z-index:31;max-height:340px;overflow-y:auto}
+  .calcell.has:hover .cell-pop{display:block}
+  .pop-date{font-size:11.5px;font-weight:700;color:var(--text);margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:5px}
+  .pop-grp{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:7px 0 3px}
+  .pop-item{font-size:12px;font-weight:600;color:#3d465e;padding:2px 0;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .pop-item .chip{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:9px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2)}
+  .pop-item .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
+  .pop-item .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
+  .pop-item .chip.igf{color:#92660c;border-color:#f3d99b;background:#fdf6e8}
+  .pop-item .cpvd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
   .calcell.out{background:transparent;border-color:transparent}
   .calcell.past{opacity:.5}
   .calcell.today{border-color:var(--play);box-shadow:inset 0 0 0 1px var(--play)}
@@ -65,7 +76,7 @@
   .calcell .cd{display:flex;justify-content:space-between;align-items:center;font-weight:600;color:var(--text)}
   .calcell .cd .cn{font-size:10px;font-weight:700;background:var(--surf3);border-radius:8px;padding:0 6px}
   .calcell .cpvs{margin-top:3px;display:flex;flex-direction:column;gap:2px}
-  .calcell .cpv{font-size:9px;font-weight:600;color:#3d465e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px}
+  .calcell .cpv{font-size:10px;font-weight:600;color:#3d465e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;line-height:1.35}
   .calcell .cpv.more{color:var(--sub);font-weight:500}
   .calcell .cpvd{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:var(--muted)}
   .calcell .cpvd.decision{background:var(--attention)}
@@ -85,6 +96,18 @@
   .prod-games .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
   .prod-games .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
   .prod-games .chip.igf{color:#92660c;border-color:#f3d99b;background:#fdf6e8}
+
+  /* due (target) dates */
+  .calcell .cpvd.due{background:#d97706}
+  .due-block{margin:2px 0 4px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px}
+  .due-h{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#b45309;margin-bottom:5px}
+  .due-rows{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#3d465e}
+  .due-game{font-weight:600}
+  .due-game .chip{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:600;padding:1px 6px;border-radius:9px;border:1px solid var(--border2);color:var(--muted);background:var(--surf2);margin-right:5px}
+  .due-game .chip.ig{color:#0e5a4a;border-color:#a6d8cb;background:#e6f5f0}
+  .due-game .chip.v2{color:#3730a3;border-color:#c3c0f0;background:#eeedfb}
+  .due-game .chip.igf{color:#92660c;border-color:#f3d99b;background:#fdf6e8}
+  .due-game .jira{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--sub);font-weight:500;margin-left:5px}
 
   .row{display:grid;grid-template-columns:34px 1.35fr 1.9fr 190px;align-items:center;gap:8px;padding:11px 6px;border-bottom:1px solid var(--border)}
   .row:last-child{border-bottom:none}
@@ -306,7 +329,12 @@ function renderUpdates(){
   GAMES_ALL.filter(inUniverse).forEach(g=>{
     updateEntries(g).forEach(e=>{ const dk=+asDate(e.date); if(dk>=cutoff || dk>=+TODAY) feed.push(Object.assign({}, e, {dk, game:g.game, board:g.board, boardLabel:g.boardLabel, jira:g.jira})); });
   });
-  feed.sort((a,b)=> b.dk-a.dk);
+  // Order by upcoming: today & future first (nearest first), then recent history.
+  feed.sort((a,b)=>{
+    const af=a.dk>=+TODAY, bf=b.dk>=+TODAY;
+    if(af!==bf) return af?-1:1;
+    return af ? a.dk-b.dk : b.dk-a.dk;
+  });
   const rows=feed.slice(0,50);
   if(!rows.length){ sec.hidden=true; return; }
   sec.hidden=false;
@@ -341,12 +369,30 @@ function prodBlock(list){
   const rows=Object.entries(byFv).map(([fv,ps])=>`<div class="prod-row"><span class="prod-fv">🏁 ${esch(fv)}</span><span class="prod-games">${ps.map(p=>`<span class="chip ${p.board}">${esch(p.boardLabel)}</span>${esch(p.game)}`).join(' · ')}</span></div>`).join('');
   return `<div class="prod-block"><div class="prod-h">Releasing to production</div>${rows}</div>`;
 }
+// Games/features with a due (target) date, by date — "what's due when". (#80)
+function dueByDayMap(maxDays){
+  const m=new Map();
+  const inU = g => (g.board!=='igf' ? g.in_roster!==false : IGF_ADDED.has(g.jira));
+  GAMES_ALL.forEach(g=>{ if(!inU(g)) return;
+    if(g.workflow_status==='Signed Off'||g.workflow_status==='Delivered') return;
+    const d=asDate(g.target_date); if(!d) return;
+    const k=+midnight(d), off=(k-+TODAY)/86400000; if(off<0||off>maxDays) return;
+    (m.get(k)||m.set(k,[]).get(k)).push({game:g.game, board:g.board, boardLabel:g.boardLabel, jira:g.jira});
+  });
+  return m;
+}
+function dueBlock(list){
+  if(!list||!list.length) return '';
+  const games=list.map(p=>`<span class="due-game"><span class="chip ${p.board}">${esch(p.boardLabel)}</span>${esch(p.game)} <span class="jira">${esch(p.jira)}</span></span>`).join('');
+  return `<div class="due-block"><div class="due-h">📅 Due this day</div><div class="due-rows">${games}</div></div>`;
+}
 function render(){
   const maxDays=+VIEW, sent=getSent();
   const inWin = ITEMS.filter(it=>{ const d=asDate(it.date); return d && (d-TODAY)/86400000 <= maxDays && (d-TODAY)/86400000 >= -3; });
   const c={ decision:0, review:0, play:0 };
   inWin.forEach(it=>{ if(c[it.action]!=null) c[it.action]++; });
   const PBD=prodByDayMap(maxDays);
+  const DBD=dueByDayMap(maxDays);
   let prodCount=0; PBD.forEach(l=>prodCount+=l.length);
   document.getElementById('summary').innerHTML =
      sumCard('attention','🔴',c.decision,'Decisions')+sumCard('','🎨',c.review,'Creative reviews')
@@ -354,13 +400,13 @@ function render(){
 
   const byDay=new Map();
   inWin.forEach(it=>{ const k=+asDate(it.date); (byDay.get(k)||byDay.set(k,[]).get(k)).push(it); });
-  const allKeys=[...new Set([...byDay.keys(), ...PBD.keys()])].sort((a,b)=>a-b);
+  const allKeys=[...new Set([...byDay.keys(), ...PBD.keys(), ...DBD.keys()])].sort((a,b)=>a-b);
   const cal=document.getElementById('calendar');
   if(!allKeys.length){
     cal.innerHTML=`<div class="empty"><b>Nothing on the review list or releasing in this window.</b><br>${isEditor()?'Use <b>Manage list</b> — or <b>Send to CEO review</b> from the pipeline.':'Nothing pending right now.'}</div>`;
     return;
   }
-  const selValid = SEL_DAY!=null && (byDay.has(SEL_DAY)||PBD.has(SEL_DAY));
+  const selValid = SEL_DAY!=null && (byDay.has(SEL_DAY)||PBD.has(SEL_DAY)||DBD.has(SEL_DAY));
   const showKeys=(VIEW==='30'&&selValid)?[SEL_DAY]:allKeys;
   const daysHtml=showKeys.map(k=>{
     const d=new Date(k), isToday=k===+TODAY, isTom=k===+addDays(TODAY,1);
@@ -377,34 +423,45 @@ function render(){
         + `</div>`;
     }).join('');
     const dow=isToday?`TODAY — ${fmtDOW(d).slice(0,3)}`:isTom?`TOMORROW — ${fmtDOW(d).slice(0,3)}`:fmtDOW(d);
-    return `<section class="day" id="day-${k}"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}${prodBlock(PBD.get(k))}</section>`;
+    return `<section class="day" id="day-${k}"><div class="day-h ${isToday?'is-today':''}"><span class="dow">${dow}</span><span class="date">${fmtDate(d)}</span>${isToday?'<span class="todaytag">TODAY</span>':''}</div>${rows}${dueBlock(DBD.get(k))}${prodBlock(PBD.get(k))}</section>`;
   }).join('');
   // 30-day view leads with a clickable month grid; clicking a date filters to it.
   const filterBar = (VIEW==='30' && selValid)
     ? `<div class="calfilter">Showing <b>${fmtDOW(new Date(SEL_DAY)).slice(0,3)} ${fmtDate(new Date(SEL_DAY))}</b> only · <a onclick="clearSelDay()">show all ${allKeys.length} days</a></div>`
     : '';
-  cal.innerHTML = (VIEW==='30' ? renderCalGrid(byDay, PBD) : '') + filterBar + daysHtml;
+  cal.innerHTML = (VIEW==='30' ? renderCalGrid(byDay, PBD, DBD) : '') + filterBar + daysHtml;
   if(VIEW==='30') requestAnimationFrame(wireCalGrid);
 }
 function clearSelDay(){ SEL_DAY=null; render(); }
-function renderCalGrid(byDay, PBD){
+function renderCalGrid(byDay, PBD, DBD){
   const start=addDays(TODAY,-TODAY.getDay());        // Sunday on/before today
   const last=addDays(TODAY,30);
   const end=addDays(last,6-last.getDay());           // Saturday on/after +30d
   const dowHdr=['S','M','T','W','T','F','S'].map(x=>`<div class="caldow">${x}</div>`).join('');
   let cells='';
   for(let d=new Date(start); +d<=+end; d=addDays(d,1)){
-    const k=+midnight(d), rev=byDay.get(k)||[], prod=PBD.get(k)||[], count=rev.length+prod.length;
+    const k=+midnight(d), rev=byDay.get(k)||[], prod=PBD.get(k)||[], due=DBD.get(k)||[], count=rev.length+prod.length+due.length;
     const isToday=k===+TODAY, past=k<+TODAY, inWin=k>=+TODAY&&k<=+last, sel=k===SEL_DAY;
-    const byFv={}; prod.forEach(p=>byFv[p.fv]=(byFv[p.fv]||0)+1);
-    const pvItems=[...rev.map(i=>({dot:(ACTIONS[i.action]||{}).cls||'', label:esch(i.game)})),
-                   ...Object.entries(byFv).map(([fv,n])=>({dot:'prod', label:'🏁 '+esch(fv)+(n>1?' ×'+n:'')}))];
-    const pv=pvItems.slice(0,2).map(p=>`<div class="cpv"><span class="cpvd ${p.dot}"></span>${p.label}</div>`).join('')
-            + (pvItems.length>2?`<div class="cpv more">+${pvItems.length-2} more</div>`:'');
+    const byFvGames={}; prod.forEach(p=>(byFvGames[p.fv]=byFvGames[p.fv]||[]).push(p));
+    const pvItems=[...(due.length?[{dot:'due', label:'📅 '+due.length+' due'}]:[]),
+                   ...rev.map(i=>({dot:(ACTIONS[i.action]||{}).cls||'', label:esch(i.game)})),
+                   ...Object.entries(byFvGames).map(([fv,ps])=>({dot:'prod', label:'🏁 '+esch(fv)+(ps.length>1?' ×'+ps.length:'')}))];
+    const pv=pvItems.slice(0,5).map(p=>`<div class="cpv"><span class="cpvd ${p.dot}"></span>${p.label}</div>`).join('')
+            + (pvItems.length>5?`<div class="cpv more">+${pvItems.length-5} more · hover</div>`:'');
+    // hover popover: the full breakdown so a busy release day is readable
+    let pop='';
+    if(count){
+      const parts=[];
+      if(due.length) parts.push(`<div class="pop-grp">📅 Due (${due.length})</div>`+due.map(p=>`<div class="pop-item"><span class="chip ${p.board}">${esch(p.boardLabel)}</span>${esch(p.game)}</div>`).join(''));
+      Object.entries(byFvGames).forEach(([fv,ps])=> parts.push(`<div class="pop-grp">🏁 ${esch(fv)} — production (${ps.length})</div>`+ps.map(p=>`<div class="pop-item"><span class="chip ${p.board}">${esch(p.boardLabel)}</span>${esch(p.game)}</div>`).join('')));
+      if(rev.length) parts.push(`<div class="pop-grp">Review</div>`+rev.map(i=>`<div class="pop-item"><span class="cpvd ${(ACTIONS[i.action]||{}).cls||''}"></span>${esch(i.game)} — ${esch(i.milestone)}</div>`).join(''));
+      pop=`<div class="cell-pop"><div class="pop-date">${fmtDOW(d).slice(0,3)} ${fmtDate(d)} · ${count} item${count>1?'s':''}</div>${parts.join('')}</div>`;
+    }
     const cls='calcell'+(isToday?' today':'')+(past?' past':'')+(count?' has':'')+(sel?' sel':'')+(!inWin&&!count?' out':'');
     cells+=`<div class="${cls}" ${count?`data-day="${k}"`:''}>`
       + `<div class="cd">${d.getDate()}${count?`<span class="cn">${count}</span>`:''}</div>`
       + (count?`<div class="cpvs">${pv}</div>`:'')
+      + pop
       + `</div>`;
   }
   return `<div class="calgrid-wrap"><div class="calgrid">${dowHdr}${cells}</div></div>`;
