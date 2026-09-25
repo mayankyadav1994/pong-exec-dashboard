@@ -234,6 +234,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .target-line.late{border-left-color:#dc2626}
 .target-line.early{border-left-color:#16a34a}
 .tgt-line{color:#0e7490 !important;font-weight:700}
+/* Past-due next release commitment (#81) */
+.tgt-line.tgt-late{color:#dc2626 !important}
+.tgt-late-tag{display:inline-block;margin-left:5px;font-size:8px;font-weight:700;color:#fff;background:#dc2626;border-radius:3px;padding:1px 5px;letter-spacing:.2px;white-space:nowrap}
 .dl-chip{display:inline-block;align-self:flex-end;margin-top:3px;font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;letter-spacing:.2px;white-space:nowrap}
 .dl-chip.late{background:rgba(220,38,38,.12);color:#b91c1c}
 .dl-chip.early{background:rgba(22,163,74,.12);color:#15803d}

@@ -365,6 +365,18 @@ function peopleTip(disc) {
 }
 function gameSizes(g) { return { ...(SHARED_SIZES[g.name] || {}), ...(USER_SIZES[g.name] || {}) }; }
 function hasAnySize(g) { const s = gameSizes(g); return ['art', 'math', 'dev', 'sound'].some(k => s[k]); }
+// The game's NEXT real due date is its earliest UNRELEASED fixVersion — the next
+// release train it's actually booked on. The epic's own due date goes stale once a
+// game ships in one market and rolls onto later trains, so prefer this. (#81)
+function nextDueFv(g) {
+  let best = null;
+  (g.fixVersions || []).forEach(v => {
+    if (v.released || !v.releaseDate) return;
+    const d = asDate(v.releaseDate);
+    if (d && (!best || d < best.date)) best = { date: d, fv: v.name, iso: v.releaseDate };
+  });
+  return best;
+}
 function fvRow(g) {
   if (g.delivered) {
     // Delivered in one market, but a game can still be booked for LATER release
@@ -947,13 +959,26 @@ function renderRow(g, idx) {
   const over   = g.spent > g.est && g.est > 0;
   const progressPct  = gScope > 0 ? Math.min(100, Math.round(g.spent / gScope * 100)) : 0;
   const progressColor = over ? '#dc2626' : (progressPct >= 70 ? gameColor(g) : '#60a5fa');
-  const dl = (g.target_date && proj && proj.ship) ? targetDelta(g.target_date, proj.ship.start) : null;
+  // Due date shown = next release commitment (earliest unreleased fixVersion),
+  // falling back to the Jira epic due date. Past due ⇒ flagged late. (#81)
+  const nd = nextDueFv(g);
+  const effTarget = nd ? nd.iso : g.target_date;
+  const lateDays = nd ? Math.round((+TODAY - +nd.date) / 86400000) : 0;
+  const isLate = lateDays > 0;
+  let targetLine = '';
+  if (nd) {
+    targetLine = `<div class="epic-hrs-l tgt-line${isLate ? ' tgt-late' : ''}" title="Next release commitment: ${g.name} is booked on ${nd.fv}, due ${fmtD(nd.iso)}${isLate ? ` — ${lateDays} day${lateDays === 1 ? '' : 's'} late` : ''}${g.target_date ? ` · Jira epic due ${fmtD(g.target_date)}` : ''}">`
+      + `🎯 ${nd.fv} · ${fmtD(nd.iso)}${isLate ? `<span class="tgt-late-tag">⚠ ${lateDays}d late</span>` : ''}</div>`;
+  } else if (g.target_date) {
+    targetLine = `<div class="epic-hrs-l tgt-line" title="Targeted due date (Jira epic due date)">🎯 Target ${fmtD(g.target_date)}</div>`;
+  }
+  const dl = (effTarget && proj && proj.ship) ? targetDelta(effTarget, proj.ship.start) : null;
   hrs.innerHTML = `
     <div class="epic-hrs-v ${over ? 'over' : ''}">${Math.round(g.spent)}h</div>
     <div class="epic-hrs-l" title="Scope = spent + remaining (from Jira Remaining Estimate). Original est: ${Math.round(g.est)}h">SPENT / ${Math.round(gScope)}h scope</div>
     <div class="epic-prog"><div class="epic-prog-fill" style="width:${progressPct}%;background:${progressColor}"></div></div>
     <div class="epic-hrs-l" style="color:${over ? '#dc2626' : 'var(--sub)'};margin-top:4px">${over ? `⚠ +${Math.round(g.spent - g.est)}h over est` : `${progressPct}% done · ${Math.round(gRem)}h to go`}</div>
-    ${g.target_date ? `<div class="epic-hrs-l tgt-line" title="Targeted due date (Jira epic due date)">🎯 Target ${fmtD(g.target_date)}</div>` : ''}
+    ${targetLine}
     ${proj && proj.ship ? `<div class="epic-hrs-l proj-ship" title="Forecast: remaining hours ÷ velocity (parallel)">≈ Est ${shortSprint(proj.ship.label)} · ${fmtD(proj.ship.start)}</div>` : ''}
     ${dl ? `<div class="dl-chip ${dl.cls}" title="Forecast ship vs target">${dl.txt}</div>` : ''}`;
 
