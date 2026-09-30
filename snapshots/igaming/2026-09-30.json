@@ -1,0 +1,176 @@
+{
+  "date": "2026-09-30",
+  "fvs": {
+    "Horse Play 1.00": {
+      "devEnd": "2026-09-30",
+      "qaEnd": "2026-10-14",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-14",
+      "totalEstH": 18,
+      "spentH": 19
+    },
+    "ELG Game Configs": {
+      "devEnd": "2026-10-02",
+      "qaEnd": "2026-10-16",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-16",
+      "totalEstH": 586,
+      "spentH": 406
+    },
+    "ELG Website": {
+      "devEnd": "2026-09-30",
+      "qaEnd": "2026-10-14",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-14",
+      "totalEstH": 15,
+      "spentH": 19
+    },
+    "ELG New Games": {
+      "devEnd": "2026-09-30",
+      "qaEnd": "2026-10-14",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-14",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "ELG Feature Backlog": {
+      "devEnd": "2026-12-15",
+      "qaEnd": "2026-12-29",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-29",
+      "totalEstH": 1330,
+      "spentH": 1105
+    },
+    "New Games - iGaming": {
+      "devEnd": "2028-05-03",
+      "qaEnd": "2028-05-17",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-17",
+      "totalEstH": 8877,
+      "spentH": 3490
+    },
+    "PFH Services 3.00": {
+      "devEnd": "2027-01-25",
+      "qaEnd": "2027-02-08",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-02-08",
+      "totalEstH": 46,
+      "spentH": 74
+    },
+    "PFH Games 2.31": {
+      "devEnd": "2026-09-30",
+      "qaEnd": "2026-10-14",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-14",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "ELG 4.71": {
+      "devEnd": "2026-11-09",
+      "qaEnd": "2026-11-23",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-23",
+      "totalEstH": 21,
+      "spentH": 14
+    },
+    "PFH Games 2.40": {
+      "devEnd": "2028-05-03",
+      "qaEnd": "2028-05-17",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-17",
+      "totalEstH": 24,
+      "spentH": 18
+    },
+    "ELG 5.10": {
+      "devEnd": "2028-05-03",
+      "qaEnd": "2028-05-17",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-17",
+      "totalEstH": 2148,
+      "spentH": 1931
+    },
+    "Horse Play 2.00": {
+      "devEnd": "2028-05-04",
+      "qaEnd": "2028-05-18",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-18",
+      "totalEstH": 46,
+      "spentH": 18
+    },
+    "ELG 5.20": {
+      "devEnd": "2028-05-12",
+      "qaEnd": "2028-05-26",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-26",
+      "totalEstH": 40,
+      "spentH": 4
+    },
+    "PFH Games 3.00": {
+      "devEnd": "2027-01-25",
+      "qaEnd": "2027-02-08",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-02-08",
+      "totalEstH": 480,
+      "spentH": 266
+    },
+    "PFH Games 5.00": {
+      "devEnd": "2028-05-12",
+      "qaEnd": "2028-05-26",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-26",
+      "totalEstH": 1608,
+      "spentH": 1322
+    },
+    "New Features - iGaming": {
+      "devEnd": "2026-09-30",
+      "qaEnd": "2026-10-14",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-14",
+      "totalEstH": 4,
+      "spentH": 5
+    },
+    "PFH Games 4.00": {
+      "devEnd": "2028-05-12",
+      "qaEnd": "2028-05-26",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-26",
+      "totalEstH": 296,
+      "spentH": 198
+    },
+    "PFH Games Backlog": {
+      "devEnd": "2028-05-12",
+      "qaEnd": "2028-05-26",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-05-26",
+      "totalEstH": 1761,
+      "spentH": 1643
+    },
+    "iGaming - R&D": {
+      "devEnd": "2026-09-30",
+      "qaEnd": "2026-10-14",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-10-14",
+      "totalEstH": 50,
+      "spentH": 43
+    }
+  }
+}
