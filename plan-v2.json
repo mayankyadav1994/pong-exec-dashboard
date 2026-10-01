@@ -8,6 +8,8 @@
     "Game: Steampunk Fortune 2",
     "Game: Neon Break",
     "Game: Canada Eh Part Deux",
+    "Game: Northern Buffalo Fortune 2 [V]",
+    "Game: 3 Chili Riches",
     "Game: Blue Bird Bonus Extreme [V]",
     "Game: Fall of Pompeii: Triple Link",
     "Game: Steampunk Fortune",
@@ -17,12 +19,14 @@
     "Game: Monster Cake Smash",
     "Game: Viking Blox",
     "Game: Devil's Delight",
+    "Game: Devil's Mischief",
     "Game: Hell's Outlaw",
     "Game: Piggy's Kingdom",
     "Game: Fruit Splitter",
-    "Game: Viking Blox 2",
     "Game: Fangs of Fortune",
     "Game: Quick Wins Fortune [V]",
+    "Game: Flaming Skulls [V]",
+    "Game: Viking Blox 2",
     "Game: Canada Eh",
     "Game: Northern Buffalo",
     "Game: Northern Buffalo Fortune [V]",
@@ -34,9 +38,7 @@
     "Game: Tiger Hunt [V]",
     "Game: Sword of Z Nudge",
     "Game: Blade of Fortune",
-    "Game: Flaming Skulls [V]",
-    "Game: Viking’s Voyage of Fortune",
-    "Game: Devil's Mischief"
+    "Game: Viking’s Voyage of Fortune"
   ],
   "status": {
     "Game: Nordic Paws": "Signed off",
@@ -48,6 +50,7 @@
     "Game: Monster Cake Smash": "On Hold",
     "Game: Viking Blox": "On Hold",
     "Game: Devil's Delight": "In Progress",
+    "Game: Devil's Mischief": "Signed off",
     "Game: Hell's Outlaw": "In Progress",
     "Game: Piggy's Kingdom": "In Progress",
     "Game: Fruit Splitter": "In QA",
@@ -68,6 +71,7 @@
     "Game: Golden Bank Safe": "dev",
     "Game: Monster Cake Smash": "design",
     "Game: Devil's Delight": "art",
+    "Game: Devil's Mischief": "concept",
     "Game: Fruit Splitter": "qa"
   },
   "sizes": {
@@ -96,8 +100,7 @@
     "Game: Grand Prosperity",
     "Game: Jewels of Cleopatra",
     "Game: Tiger Hunt [V]",
-    "Game: Sword of Z Nudge",
-    "Game: Devil's Mischief"
+    "Game: Sword of Z Nudge"
   ],
   "notes": {
     "V2-22808": [
@@ -137,6 +140,8 @@
     "V2-21483",
     "V2-22634",
     "V2-30826",
+    "V2-31951",
+    "V2-31477",
     "V2-30536",
     "V2-31019",
     "V2-31091",
@@ -253,5 +258,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-10-01 18:10"
+  "updated_at": "2026-10-01 18:12"
 }
