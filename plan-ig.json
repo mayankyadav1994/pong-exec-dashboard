@@ -9,12 +9,12 @@
     "Gen2 Game: Steampunk Fortune",
     "Gen2 Game: Fruit Splitter",
     "Gen2 Game: Haunted Harvest",
+    "Gen2 Game: Robin's Arrow - Thanksgiving Feast",
     "Gen2 Game: 3 Chili Riches",
+    "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Strike Forge Boost",
     "Gen2 Game: Amaterasu Rising",
-    "Gen2 Game: Robin's Arrow - Thanksgiving Feast",
     "Gen2 Game: Firecracker Frenzy",
-    "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Nordic Paws",
     "Gen2 Game: Neon Break",
     "Gen2 Game: Sizzling Deluxe",
@@ -34,25 +34,27 @@
     "Gen2 Game: Flaming Skulls [V]"
   ],
   "status": {
-    "Gen2 Game: Steampunk Fortune": "In QA",
-    "Gen2 Game: Fruit Splitter": "In Review",
-    "Gen2 Game: Strike Forge Boost": "In Progress",
+    "Gen2 Game: Haunted Harvest": "In QA",
+    "Gen2 Game: Robin's Arrow - Thanksgiving Feast": "In QA",
+    "Gen2 Game: 3 Chili Riches": "In Review",
     "Gen2 Game: Pharaoh's Quest": "In Review",
-    "Gen2 Game: Neon Break": "In Progress",
+    "Gen2 Game: Strike Forge Boost": "In Progress",
+    "Gen2 Game: Nordic Paws": "In Review",
+    "Gen2 Game: Sizzling Deluxe": "In Progress",
     "Gen2 - Game: Quick Wins Diamond Wild": "On Hold",
-    "Gen2 Game: Chain Lock 7 Refueled": "In Progress",
     "Gen2 Game: Plentiful Bounty": "In Progress",
     "Gen2 Game: Birthday Bash [V]": "In Progress"
   },
   "stage": {
-    "Gen2 Game: Steampunk Fortune": "qa",
-    "Gen2 Game: Fruit Splitter": "sound",
-    "Gen2 Game: Strike Forge Boost": "dev",
+    "Gen2 Game: Haunted Harvest": "qa",
+    "Gen2 Game: Robin's Arrow - Thanksgiving Feast": "qa",
+    "Gen2 Game: 3 Chili Riches": "dev",
     "Gen2 Game: Pharaoh's Quest": "dev",
+    "Gen2 Game: Strike Forge Boost": "math",
     "Gen2 Game: Nordic Paws": "dev",
-    "Gen2 Game: Neon Break": "dev",
+    "Gen2 Game: Sizzling Deluxe": "art",
     "Gen2 Game: Chain Lock 7 Refueled": "art",
-    "Gen2 Game: Plentiful Bounty": "art",
+    "Gen2 Game: Plentiful Bounty": "dev",
     "Gen2 Game: Birthday Bash [V]": "art"
   },
   "sizes": {
@@ -71,7 +73,11 @@
     "Gen2 Game: Ultimate Goal 10x - ELG",
     "Gen2 Game: Moolah Moolah Moolah",
     "Gen2 Game: Luck Party Blue Bird Bonanza",
-    "Gen2 Game: Flaming Skulls [V]"
+    "Gen2 Game: Flaming Skulls [V]",
+    "Gen2 Game: Great Sphinx",
+    "Gen2 Game: Northern Buffalo",
+    "Gen2 Game: Yuan Su Dragons",
+    "Gen2 Game: Mayan Madness"
   ],
   "notes": {
     "IG-1511": [
@@ -275,5 +281,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-09-21 15:29"
+  "updated_at": "2026-10-01 16:03"
 }
