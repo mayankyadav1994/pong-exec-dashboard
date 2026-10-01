@@ -7,14 +7,15 @@
     "Game: Firecracker Frenzy [V]",
     "Game: Steampunk Fortune 2",
     "Game: Neon Break",
-    "Game: Steampunk Fortune",
     "Game: Canada Eh Part Deux",
+    "Game: Blue Bird Bonus Extreme [V]",
+    "Game: Fall of Pompeii: Triple Link",
+    "Game: Steampunk Fortune",
     "Game: Birthday Bash [V]",
     "Game: Western Grand Express",
     "Game: Golden Bank Safe",
     "Game: Monster Cake Smash",
     "Game: Viking Blox",
-    "Game: Fall of Pompeii: Triple Link",
     "Game: Devil's Delight",
     "Game: Hell's Outlaw",
     "Game: Piggy's Kingdom",
@@ -33,7 +34,9 @@
     "Game: Tiger Hunt [V]",
     "Game: Sword of Z Nudge",
     "Game: Blade of Fortune",
-    "Game: Flaming Skulls [V]"
+    "Game: Flaming Skulls [V]",
+    "Game: Viking’s Voyage of Fortune",
+    "Game: Devil's Mischief"
   ],
   "status": {
     "Game: Nordic Paws": "Signed off",
@@ -41,24 +44,31 @@
     "Game: Wildlife Safari Gold": "In Review",
     "Game: Enchanted East [V]": "In Review",
     "Game: Firecracker Frenzy [V]": "In Review",
-    "Game: Birthday Bash [V]": "In Review",
+    "Game: Birthday Bash [V]": "In Progress",
     "Game: Monster Cake Smash": "On Hold",
+    "Game: Viking Blox": "On Hold",
     "Game: Devil's Delight": "In Progress",
+    "Game: Hell's Outlaw": "In Progress",
     "Game: Piggy's Kingdom": "In Progress",
+    "Game: Fruit Splitter": "In QA",
     "Game: Fangs of Fortune": "On Hold",
     "Game: Northern Buffalo Fortune [V]": "Signed Off",
     "Game: Lantern's Rising- Vertical": "In QA"
   },
   "stage": {
-    "Game: Nordic Paws": "qa",
     "Game: Fortune of Z": "dev",
     "Game: Wildlife Safari Gold": "math",
     "Game: Firecracker Frenzy [V]": "dev",
     "Game: Steampunk Fortune 2": "math",
     "Game: Neon Break": "math",
+    "Game: Fall of Pompeii: Triple Link": "dev",
     "Game: Steampunk Fortune": "math",
+    "Game: Birthday Bash [V]": "art",
+    "Game: Western Grand Express": "concept",
+    "Game: Golden Bank Safe": "dev",
     "Game: Monster Cake Smash": "design",
-    "Game: Viking Blox": "dev"
+    "Game: Devil's Delight": "art",
+    "Game: Fruit Splitter": "qa"
   },
   "sizes": {
     "Game: Enchanted East [V]": {
@@ -81,7 +91,13 @@
     "Game: Lantern's Rising- Vertical",
     "Game: Pharaoh's Quest",
     "Game: Hollow Graves of Riches",
-    "Game: Steampunk Fortune"
+    "Game: Steampunk Fortune",
+    "Game: Viking Blox 2",
+    "Game: Grand Prosperity",
+    "Game: Jewels of Cleopatra",
+    "Game: Tiger Hunt [V]",
+    "Game: Sword of Z Nudge",
+    "Game: Devil's Mischief"
   ],
   "notes": {
     "V2-22808": [
@@ -237,5 +253,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-09-08 16:08"
+  "updated_at": "2026-10-01 18:10"
 }
