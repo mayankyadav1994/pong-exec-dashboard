@@ -10,6 +10,15 @@
       "totalEstH": 117,
       "spentH": 105
     },
+    "V2 SW 16.10": {
+      "devEnd": "2026-10-05",
+      "qaEnd": "2026-10-20",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 216,
+      "spentH": 172
+    },
     "V2 C2 5.20": {
       "devEnd": "2026-10-29",
       "qaEnd": "2026-11-12",
@@ -19,15 +28,6 @@
       "totalEstH": 174,
       "spentH": 26
     },
-    "V2 SW 16.10": {
-      "devEnd": "2026-10-05",
-      "qaEnd": "2026-10-20",
-      "lab1End": null,
-      "pilotEnd": null,
-      "finalEnd": null,
-      "totalEstH": 214,
-      "spentH": 170
-    },
     "V2 P2P 16.00": {
       "devEnd": "2026-10-29",
       "qaEnd": "2026-11-19",
@@ -35,7 +35,7 @@
       "pilotEnd": "2027-01-05",
       "finalEnd": "2027-02-02",
       "totalEstH": 865,
-      "spentH": 661
+      "spentH": 663
     },
     "V2 PT 14.00": {
       "devEnd": "2026-11-17",
@@ -53,7 +53,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 22497,
-      "spentH": 11376
+      "spentH": 11383
     },
     "V2 C2 Backlog": {
       "devEnd": "2031-05-02",
