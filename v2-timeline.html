@@ -2037,6 +2037,13 @@ ordered.forEach((fv,idx)=>{
       const [moved]=FV.splice(FV.indexOf(src),1);
       let ti=FV.indexOf(tgt);if(!insertBefore)ti++;
       FV.splice(ti,0,moved);
+      // Persist the new order into LOCAL_CONFIG so (a) a page reload keeps the
+      // reorder, (b) hasLocalEdits() flips true, which (c) lights up the dirty
+      // banner and makes the "Save as default for everyone" button actionable.
+      // Without this the drag is purely visual — iGaming already does this
+      // (see igaming-timeline.template.html drop handler).
+      LOCAL_CONFIG.fv_order = FV.map(f=>f.key);
+      saveLocalConfig();
     }
     dragSrcIdx=null;
     buildRows();renderScenarioPanel();
