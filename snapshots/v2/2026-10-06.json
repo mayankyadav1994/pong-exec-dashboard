@@ -1,15 +1,6 @@
 {
   "date": "2026-10-06",
   "fvs": {
-    "G2E Show Prep 2026": {
-      "devEnd": "2026-10-06",
-      "qaEnd": "2026-10-21",
-      "lab1End": null,
-      "pilotEnd": null,
-      "finalEnd": null,
-      "totalEstH": 117,
-      "spentH": 105
-    },
     "V2 SW 16.10": {
       "devEnd": "2026-10-06",
       "qaEnd": "2026-10-21",
@@ -34,8 +25,8 @@
       "lab1End": "2026-12-18",
       "pilotEnd": "2027-01-06",
       "finalEnd": "2027-02-03",
-      "totalEstH": 865,
-      "spentH": 670
+      "totalEstH": 881,
+      "spentH": 672
     },
     "V2 PT 14.00": {
       "devEnd": "2026-11-17",
@@ -53,7 +44,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 22497,
-      "spentH": 11404
+      "spentH": 11420
     },
     "V2 C2 Backlog": {
       "devEnd": "2031-05-05",
@@ -101,13 +92,13 @@
       "spentH": 49
     },
     "Dev Test": {
-      "devEnd": "2026-11-02",
-      "qaEnd": "2026-11-16",
+      "devEnd": "2026-11-04",
+      "qaEnd": "2026-11-18",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 7,
-      "spentH": 2
+      "spentH": 4
     }
   }
 }
