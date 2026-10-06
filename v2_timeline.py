@@ -609,18 +609,97 @@ def mark_bottleneck_for_fv(fv, fvs_before):
 
 # ── Scope (epic grouping) ────────────────────────────────────────────────────
 
+# Max hops to walk up the Jira parent chain when the direct parent isn't an
+# Epic. Live audit against every unreleased FV (Oct 2026) found 100% of
+# non-Epic parents reach an Epic in <=1 hop; three gives headroom for a
+# subtask → task → story → epic chain without unbounded walks.
+SCOPE_ROLLUP_MAX_HOPS = 3
+
+
+def _resolve_parent_chain(parent_keys):
+    """Batch-fetch each parent-key's own parent + metadata.
+
+    Returns dict: key -> {"type", "summary", "status", "parent_key"}.
+    Walk follows parent_key upward up to SCOPE_ROLLUP_MAX_HOPS to find Epics
+    sitting above intermediate Story / Task / Bug parents. Batched 50 keys per
+    JQL per hop so cost stays O(hops) regardless of parent count.
+    """
+    chain = {}
+    frontier = {k for k in parent_keys if k}
+    for _hop in range(SCOPE_ROLLUP_MAX_HOPS):
+        if not frontier:
+            break
+        rows = []
+        batch_keys = list(frontier)
+        for i in range(0, len(batch_keys), 50):
+            batch = batch_keys[i:i + 50]
+            kstr = ",".join(batch)
+            try:
+                rows += jira_jql(f"key in ({kstr})",
+                                 fields=["parent", "issuetype", "status", "summary"])
+            except Exception as e:
+                print(f"   ! scope-rollup lookup batch failed: {e}")
+        next_frontier = set()
+        for r in rows:
+            key = r["key"]
+            fields = r.get("fields") or {}
+            parent = fields.get("parent") or {}
+            parent_key = parent.get("key")
+            chain[key] = {
+                "type":       ((fields.get("issuetype") or {}).get("name") or "?"),
+                "summary":    fields.get("summary") or key,
+                "status":     ((fields.get("status") or {}).get("name") or "New"),
+                "parent_key": parent_key,
+            }
+            # Only descend into parents we haven't already resolved — avoids
+            # re-fetching Epics that multiple intermediates share.
+            if parent_key and parent_key not in chain:
+                next_frontier.add(parent_key)
+        frontier = next_frontier
+    return chain
+
+
+def _nearest_epic(start_key, chain):
+    """Walk `chain` upward from start_key until an Epic is found.
+
+    Returns (epic_info, intermediate_keys) where intermediate_keys lists every
+    non-Epic parent traversed (closest-first). Returns (None, [...]) if no
+    Epic ancestor is reachable within the resolved chain.
+    """
+    intermediates = []
+    cur = start_key
+    seen = set()
+    while cur and cur not in seen:
+        seen.add(cur)
+        info = chain.get(cur)
+        if not info:
+            return None, intermediates
+        if info["type"] == "Epic":
+            return {"key": cur, **info}, intermediates
+        intermediates.append(cur)
+        cur = info.get("parent_key")
+    return None, intermediates
+
+
 def compute_scope(all_issues):
     """
-    Group issues by their direct Jira parent (epic or story) for the Scope tab.
+    Group issues by their nearest Epic ancestor for the Scope tab.
 
-    For each parent, emit one entry with key/name/status/done/total/taskKeys.
-    Tasks without a parent are dropped (they have no scope context).
+    Pass 1 (local): bucket every issue under its direct Jira parent. Records
+    both Epic-parented tickets (final home) and non-Epic parents (Story, Task,
+    Bug) that need rollup resolution.
 
-    Known limitation (docs/V2_TIMELINE_EDGE_CASES.md §17): when an issue's
-    direct parent is a Story rather than an Epic, the grouping shows the Story
-    as the scope item. Grandparent-epic resolution would need a second query.
+    Pass 2 (Jira): for every non-Epic parent, resolve its own parent chain up
+    to an Epic (<=3 hops; see SCOPE_ROLLUP_MAX_HOPS). Re-attribute each child
+    to the Epic grandparent, keeping the intermediate parent on the child row
+    as `via` so the Jira hierarchy stays legible in the UI.
+
+    Any issue whose nearest Epic can't be found stays under its original
+    direct parent (preserves prior behavior as a safety net; the Oct-2026
+    audit showed 0 cases of this across live FVs).
     """
-    by_parent = {}
+    direct = {}  # pkey -> bucket (direct parent)
+    issue_parent = {}  # child issue key -> {"pkey", "status_cat"}
     for issue in all_issues:
         if parent_is_admin(issue):
             continue
@@ -632,21 +711,89 @@ def compute_scope(all_issues):
         if not pkey:
             continue
         pfields = parent.get("fields") or {}
-        entry = by_parent.setdefault(pkey, {
-            "key":      pkey,
-            "name":     pfields.get("summary", pkey),
-            "status":   ((pfields.get("status") or {}).get("name") or "New"),
-            "done":     0,
-            "total":    0,
-            "taskKeys": [],
+        bucket = direct.setdefault(pkey, {
+            "key":    pkey,
+            "type":   ((pfields.get("issuetype") or {}).get("name") or "?"),
+            "name":   pfields.get("summary", pkey),
+            "status": ((pfields.get("status") or {}).get("name") or "New"),
+            "children": [],
         })
-        entry["taskKeys"].append(issue["key"])
-        entry["total"] += 1
-        status_cat = (fields.get("status") or {}).get("statusCategory", {}).get("key")
-        if status_cat == "done":
-            entry["done"] += 1
-    # Sort: by descending total tasks (most active scope items first)
-    return sorted(by_parent.values(), key=lambda x: -x["total"])
+        bucket["children"].append(issue["key"])
+        issue_parent[issue["key"]] = {
+            "pkey":       pkey,
+            "status_cat": (fields.get("status") or {}).get("statusCategory", {}).get("key"),
+        }
+
+    # Non-Epic buckets need rollup. Fetch their parent chains in one go.
+    non_epic_pkeys = [p for p, b in direct.items() if b["type"] != "Epic"]
+    chain = _resolve_parent_chain(non_epic_pkeys) if non_epic_pkeys else {}
+
+    # Pass 3: merge buckets. Each child lands in exactly one final bucket.
+    merged = {}
+    rolled_up = 0
+    for pkey, bucket in direct.items():
+        if bucket["type"] == "Epic":
+            final = merged.setdefault(pkey, {
+                "key":      pkey,
+                "name":     bucket["name"],
+                "status":   bucket["status"],
+                "done":     0,
+                "total":    0,
+                "taskKeys": [],
+                "viaMap":   {},   # child key -> {"key","type","name"} of intermediate parent
+            })
+            for ckey in bucket["children"]:
+                final["taskKeys"].append(ckey)
+                final["total"] += 1
+                if issue_parent[ckey]["status_cat"] == "done":
+                    final["done"] += 1
+        else:
+            epic, _intermediates = _nearest_epic(pkey, chain)
+            if not epic:
+                # Can't resolve → keep as direct bucket (safety net).
+                fallback = merged.setdefault(pkey, {
+                    "key":      pkey,
+                    "name":     bucket["name"],
+                    "status":   bucket["status"],
+                    "done":     0,
+                    "total":    0,
+                    "taskKeys": [],
+                    "viaMap":   {},
+                })
+                for ckey in bucket["children"]:
+                    fallback["taskKeys"].append(ckey)
+                    fallback["total"] += 1
+                    if issue_parent[ckey]["status_cat"] == "done":
+                        fallback["done"] += 1
+                continue
+            rolled_up += 1
+            final = merged.setdefault(epic["key"], {
+                "key":      epic["key"],
+                "name":     epic["summary"],
+                "status":   epic["status"],
+                "done":     0,
+                "total":    0,
+                "taskKeys": [],
+                "viaMap":   {},
+            })
+            via = {"key": pkey, "type": bucket["type"], "name": bucket["name"]}
+            for ckey in bucket["children"]:
+                final["taskKeys"].append(ckey)
+                final["total"] += 1
+                if issue_parent[ckey]["status_cat"] == "done":
+                    final["done"] += 1
+                final["viaMap"][ckey] = via
+
+    if rolled_up:
+        print(f"   ↳ rolled up {rolled_up} non-Epic parent(s) → "
+              f"{len(direct)} direct buckets collapsed to {len(merged)} Epics")
+
+    # Drop empty viaMap to keep the JSON compact when nothing was rolled up.
+    for b in merged.values():
+        if not b["viaMap"]:
+            del b["viaMap"]
+
+    return sorted(merged.values(), key=lambda x: -x["total"])
 
 
 # ── Sprint info (current sprint, workdays elapsed) ───────────────────────────

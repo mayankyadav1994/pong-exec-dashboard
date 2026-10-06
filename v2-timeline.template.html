@@ -228,6 +228,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .scope-task-key{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);flex-shrink:0;text-decoration:none;white-space:nowrap}
 .scope-task-key:hover{color:var(--text);text-decoration:underline}
 .scope-task-sum{font-size:11px;color:var(--text);line-height:1.35}
+.scope-task-via{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--sub);background:rgba(100,116,139,.1);padding:1px 5px;border-radius:3px;margin-left:6px;font-weight:500;text-decoration:none;white-space:nowrap;vertical-align:middle}
+.scope-task-via:hover{color:var(--text)}
+.scope-task-via b{color:var(--muted);font-weight:600}
 .scope-task-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .scope-task-hrs{font-family:'IBM Plex Mono',monospace;font-size:10px}
 .scope-no-tasks{font-size:11px;color:var(--sub);font-style:italic;padding:6px 12px}
@@ -1529,14 +1532,24 @@ function buildScopeBody(fv){
       msg.textContent=open>0?`${open} task${open!==1?'s':''} tracked in Jira (not yet estimated)`:'All tasks complete';
       taskList.appendChild(msg);
     } else {
+      // viaMap exposes the intermediate parent (Story/Task/Bug) that was
+      // collapsed into this Epic by the rollup pass in v2_timeline.py's
+      // compute_scope. Keeping it on the row preserves the Jira hierarchy
+      // ("subtask under Story under Epic") that the direct-parent grouping
+      // used to show on its own card.
+      const viaMap = epic.viaMap || {};
       epicTasks.forEach(t=>{
         const isD=isDone(t.status);
         const row=document.createElement('div');row.className='scope-task';
         const hrsCol=t.hours>0?`<span class="scope-task-hrs ${hCls(t.hours)}">${t.hours}h</span>`:'';
+        const via = viaMap[t.key];
+        const viaChip = via
+          ? ` <a class="scope-task-via" href="${BASE}${via.key}" target="_blank" onclick="event.stopPropagation()" title="Immediate Jira parent: ${(via.name||'').replace(/"/g,'&quot;')}">via <b>${via.key}</b> · ${via.type}</a>`
+          : '';
         row.innerHTML=`
           <div class="scope-task-left" style="${isD?'opacity:.45':''}">
             <a class="scope-task-key" href="${BASE}${t.key}" target="_blank">${t.key}</a>
-            <span class="scope-task-sum">${t.summary}</span>
+            <span class="scope-task-sum">${t.summary}${viaChip}</span>
           </div>
           <div class="scope-task-right">
             ${hrsCol}
