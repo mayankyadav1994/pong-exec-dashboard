@@ -993,6 +993,10 @@ def write_data_file(proj_key: str, payload: dict, refreshed_at: str) -> Path:
         f"window.GP_DATA[{proj_key!r}] = {obj_js};\n"
     )
     out.write_text(text, encoding="utf-8")
+    # Also publish a clean .json sibling of the same payload so external
+    # reporting (Power BI / Excel Power Query / scripts) can consume it directly,
+    # without the window.GP_DATA wrapper the dashboard needs. (#82)
+    (ROOT / f"data-{proj_key}.json").write_text(obj_js, encoding="utf-8")
     return out
 
 

@@ -64,6 +64,9 @@ jobs:
           cp game-pipeline/dashboard-data-v2.js .
           cp game-pipeline/dashboard-data-ig.js .
           cp game-pipeline/dashboard-data-igf.js .
+          cp game-pipeline/data-v2.json .
+          cp game-pipeline/data-ig.json .
+          cp game-pipeline/data-igf.json .
       - name: Commit & push refreshed data (rebase-safe)
         run: |
           git config user.name  "github-actions[bot]"
