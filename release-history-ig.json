@@ -1,0 +1,613 @@
+{
+ "schema_version": 1,
+ "feed": "ig",
+ "jira_project": "IG",
+ "releases": {
+  "ELG 3.30": {
+   "name": "ELG 3.30",
+   "first_seen": "2026-06-02",
+   "original_date": "2026-04-30",
+   "current_date": "2026-04-30",
+   "released": true,
+   "released_on": "2026-04-30",
+   "revisions": []
+  },
+  "ELG 3.40": {
+   "name": "ELG 3.40",
+   "first_seen": "2026-06-02",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG New Games": {
+   "name": "ELG New Games",
+   "first_seen": "2026-06-02",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "New Games - iGaming": {
+   "name": "New Games - iGaming",
+   "first_seen": "2026-06-02",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH2 Games 2.00": {
+   "name": "PFH2 Games 2.00",
+   "first_seen": "2026-06-02",
+   "original_date": "2026-05-19",
+   "current_date": "2026-05-19",
+   "released": true,
+   "released_on": "2026-05-19",
+   "revisions": []
+  },
+  "PFH2 Games 2.10": {
+   "name": "PFH2 Games 2.10",
+   "first_seen": "2026-06-02",
+   "original_date": "2026-05-19",
+   "current_date": "2026-05-19",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 4.00": {
+   "name": "ELG 4.00",
+   "first_seen": "2026-06-05",
+   "original_date": "2026-05-28",
+   "current_date": "2026-05-28",
+   "released": true,
+   "released_on": "2026-05-28",
+   "revisions": []
+  },
+  "PFH Games 2.20": {
+   "name": "PFH Games 2.20",
+   "first_seen": "2026-06-05",
+   "original_date": "2026-05-19",
+   "current_date": "2026-06-30",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-06-20",
+     "from": "2026-05-19",
+     "to": "2026-06-30",
+     "kind": "moved",
+     "slip_days": 42
+    }
+   ]
+  },
+  "ELG 4.02": {
+   "name": "ELG 4.02",
+   "first_seen": "2026-06-09",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 4.10": {
+   "name": "ELG 4.10",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-06-22",
+   "current_date": "2026-06-22",
+   "released": true,
+   "released_on": "2026-06-22",
+   "revisions": [
+    {
+     "observed": "2026-06-23",
+     "from": null,
+     "to": "2026-06-22",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-06-26",
+     "to": "2026-06-22",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG Game Configs": {
+   "name": "ELG Game Configs",
+   "first_seen": "2026-06-09",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG Website": {
+   "name": "ELG Website",
+   "first_seen": "2026-06-09",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "Horse Play 1.00": {
+   "name": "Horse Play 1.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-05-29",
+   "current_date": "2026-09-28",
+   "released": true,
+   "released_on": "2026-09-28",
+   "revisions": [
+    {
+     "observed": "2026-08-22",
+     "from": "2026-05-29",
+     "to": "2026-09-15",
+     "kind": "moved",
+     "slip_days": 109
+    },
+    {
+     "observed": "2026-10-01",
+     "from": "2026-09-15",
+     "to": "2026-09-28",
+     "kind": "moved",
+     "slip_days": 13
+    },
+    {
+     "observed": "2026-10-01",
+     "to": "2026-09-28",
+     "kind": "released"
+    }
+   ]
+  },
+  "Horse Play 2.00": {
+   "name": "Horse Play 2.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-07-15",
+   "current_date": "2026-09-30",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-06-20",
+     "from": null,
+     "to": "2026-07-15",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-06-24",
+     "from": "2026-07-15",
+     "to": "2026-07-31",
+     "kind": "moved",
+     "slip_days": 16
+    },
+    {
+     "observed": "2026-08-22",
+     "from": "2026-07-31",
+     "to": "2026-09-30",
+     "kind": "moved",
+     "slip_days": 61
+    }
+   ]
+  },
+  "PFH Games 2.10": {
+   "name": "PFH Games 2.10",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-06-12",
+   "current_date": "2026-06-12",
+   "released": true,
+   "released_on": "2026-06-12",
+   "revisions": [
+    {
+     "observed": "2026-06-13",
+     "from": null,
+     "to": "2026-06-12",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-06-13",
+     "to": "2026-06-12",
+     "kind": "released"
+    }
+   ]
+  },
+  "PFH Games 3.00": {
+   "name": "PFH Games 3.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-10-15",
+   "current_date": "2026-10-15",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-11",
+     "from": null,
+     "to": "2026-10-15",
+     "kind": "planned"
+    }
+   ]
+  },
+  "PFH Games 2.30": {
+   "name": "PFH Games 2.30",
+   "first_seen": "2026-06-13",
+   "original_date": "2026-06-30",
+   "current_date": "2026-09-03",
+   "released": true,
+   "released_on": "2026-09-03",
+   "revisions": [
+    {
+     "observed": "2026-07-18",
+     "from": "2026-06-30",
+     "to": "2026-07-31",
+     "kind": "moved",
+     "slip_days": 31
+    },
+    {
+     "observed": "2026-08-22",
+     "from": "2026-07-31",
+     "to": "2026-09-15",
+     "kind": "moved",
+     "slip_days": 46
+    },
+    {
+     "observed": "2026-09-03",
+     "to": "2026-09-15",
+     "kind": "released"
+    },
+    {
+     "observed": "2026-09-04",
+     "from": "2026-09-15",
+     "to": "2026-09-03",
+     "kind": "moved",
+     "slip_days": -12
+    }
+   ]
+  },
+  "ELG 4.20": {
+   "name": "ELG 4.20",
+   "first_seen": "2026-06-20",
+   "original_date": "2026-06-30",
+   "current_date": "2026-06-30",
+   "released": true,
+   "released_on": "2026-06-30",
+   "revisions": [
+    {
+     "observed": "2026-07-03",
+     "to": "2026-06-30",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.30": {
+   "name": "ELG 4.30",
+   "first_seen": "2026-06-30",
+   "original_date": "2026-07-01",
+   "current_date": "2026-07-01",
+   "released": true,
+   "released_on": "2026-07-01",
+   "revisions": [
+    {
+     "observed": "2026-07-11",
+     "to": "2026-07-01",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.40": {
+   "name": "ELG 4.40",
+   "first_seen": "2026-06-30",
+   "original_date": "2026-07-17",
+   "current_date": "2026-07-17",
+   "released": true,
+   "released_on": "2026-07-17",
+   "revisions": [
+    {
+     "observed": "2026-09-11",
+     "to": "2026-07-17",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.50": {
+   "name": "ELG 4.50",
+   "first_seen": "2026-06-30",
+   "original_date": "2026-07-31",
+   "current_date": "2026-07-31",
+   "released": true,
+   "released_on": "2026-07-31",
+   "revisions": [
+    {
+     "observed": "2026-08-05",
+     "to": "2026-07-31",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.31": {
+   "name": "ELG 4.31",
+   "first_seen": "2026-07-07",
+   "original_date": "2026-07-08",
+   "current_date": "2026-07-06",
+   "released": true,
+   "released_on": "2026-07-06",
+   "revisions": [
+    {
+     "observed": "2026-07-11",
+     "from": "2026-07-08",
+     "to": "2026-07-06",
+     "kind": "moved",
+     "slip_days": -2
+    },
+    {
+     "observed": "2026-07-11",
+     "to": "2026-07-06",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 5.00": {
+   "name": "ELG 5.00",
+   "first_seen": "2026-07-07",
+   "original_date": "2026-07-31",
+   "current_date": "2026-09-25",
+   "released": true,
+   "released_on": "2026-09-25",
+   "revisions": [
+    {
+     "observed": "2026-08-06",
+     "from": "2026-07-31",
+     "to": "2026-08-31",
+     "kind": "moved",
+     "slip_days": 31
+    },
+    {
+     "observed": "2026-08-14",
+     "from": "2026-08-31",
+     "to": "2026-09-16",
+     "kind": "moved",
+     "slip_days": 16
+    },
+    {
+     "observed": "2026-09-29",
+     "from": "2026-09-16",
+     "to": "2026-09-25",
+     "kind": "moved",
+     "slip_days": 9
+    },
+    {
+     "observed": "2026-09-29",
+     "to": "2026-09-25",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.41": {
+   "name": "ELG 4.41",
+   "first_seen": "2026-07-22",
+   "original_date": "2026-07-31",
+   "current_date": "2026-07-31",
+   "released": true,
+   "released_on": "2026-07-31",
+   "revisions": [
+    {
+     "observed": "2026-08-05",
+     "to": "2026-07-31",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.60": {
+   "name": "ELG 4.60",
+   "first_seen": "2026-08-06",
+   "original_date": "2026-08-14",
+   "current_date": "2026-08-31",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-08-22",
+     "from": "2026-08-14",
+     "to": "2026-08-31",
+     "kind": "moved",
+     "slip_days": 17
+    }
+   ]
+  },
+  "iGaming - R&D": {
+   "name": "iGaming - R&D",
+   "first_seen": "2026-08-08",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 4.70": {
+   "name": "ELG 4.70",
+   "first_seen": "2026-08-14",
+   "original_date": "2026-08-31",
+   "current_date": "2026-08-28",
+   "released": true,
+   "released_on": "2026-08-28",
+   "revisions": [
+    {
+     "observed": "2026-09-01",
+     "from": "2026-08-31",
+     "to": "2026-08-28",
+     "kind": "moved",
+     "slip_days": -3
+    },
+    {
+     "observed": "2026-09-01",
+     "to": "2026-08-28",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 4.51": {
+   "name": "ELG 4.51",
+   "first_seen": "2026-08-18",
+   "original_date": "2026-08-18",
+   "current_date": "2026-08-18",
+   "released": true,
+   "released_on": "2026-08-18",
+   "revisions": [
+    {
+     "observed": "2026-08-22",
+     "to": "2026-08-18",
+     "kind": "released"
+    }
+   ]
+  },
+  "PFH Games 2.40": {
+   "name": "PFH Games 2.40",
+   "first_seen": "2026-08-18",
+   "original_date": "2026-08-31",
+   "current_date": "2026-10-09",
+   "released": true,
+   "released_on": "2026-10-09",
+   "revisions": [
+    {
+     "observed": "2026-09-11",
+     "from": "2026-08-31",
+     "to": "2026-09-16",
+     "kind": "moved",
+     "slip_days": 16
+    },
+    {
+     "observed": "2026-10-07",
+     "from": "2026-09-16",
+     "to": "2026-10-06",
+     "kind": "moved",
+     "slip_days": 20
+    },
+    {
+     "observed": "2026-10-07",
+     "to": "2026-10-06",
+     "kind": "released"
+    },
+    {
+     "observed": "2026-10-13",
+     "from": "2026-10-06",
+     "to": "2026-10-09",
+     "kind": "moved",
+     "slip_days": 3
+    }
+   ]
+  },
+  "New Features - iGaming": {
+   "name": "New Features - iGaming",
+   "first_seen": "2026-08-19",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 4.52": {
+   "name": "ELG 4.52",
+   "first_seen": "2026-08-20",
+   "original_date": "2026-08-19",
+   "current_date": "2026-08-19",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 5.00": {
+   "name": "PFH Games 5.00",
+   "first_seen": "2026-08-28",
+   "original_date": "2026-11-25",
+   "current_date": "2026-11-25",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-16",
+     "from": null,
+     "to": "2026-11-25",
+     "kind": "planned"
+    }
+   ]
+  },
+  "ELG 5.10": {
+   "name": "ELG 5.10",
+   "first_seen": "2026-09-09",
+   "original_date": "2026-09-30",
+   "current_date": "2026-10-05",
+   "released": true,
+   "released_on": "2026-10-05",
+   "revisions": [
+    {
+     "observed": "2026-10-06",
+     "from": "2026-09-30",
+     "to": "2026-10-05",
+     "kind": "moved",
+     "slip_days": 5
+    },
+    {
+     "observed": "2026-10-06",
+     "to": "2026-10-05",
+     "kind": "released"
+    }
+   ]
+  },
+  "PFH Games 2.31": {
+   "name": "PFH Games 2.31",
+   "first_seen": "2026-09-10",
+   "original_date": "2026-09-11",
+   "current_date": "2026-09-11",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 4.71": {
+   "name": "ELG 4.71",
+   "first_seen": "2026-09-15",
+   "original_date": "2026-09-14",
+   "current_date": "2026-09-14",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 3.20": {
+   "name": "ELG 3.20",
+   "first_seen": "2026-09-16",
+   "original_date": "2026-04-10",
+   "current_date": "2026-04-10",
+   "released": true,
+   "released_on": "2026-04-10",
+   "revisions": []
+  },
+  "ELG 5.20": {
+   "name": "ELG 5.20",
+   "first_seen": "2026-10-02",
+   "original_date": "2026-10-15",
+   "current_date": "2026-10-15",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 2.50": {
+   "name": "PFH Games 2.50",
+   "first_seen": "2026-10-14",
+   "original_date": "2026-10-20",
+   "current_date": "2026-10-20",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 5.30": {
+   "name": "ELG 5.30",
+   "first_seen": "2026-10-14",
+   "original_date": "2026-10-30",
+   "current_date": "2026-10-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  }
+ },
+ "history_from": "2026-06-02",
+ "history_to": "2026-10-09",
+ "backfilled_from_days": 130,
+ "generated_at": "2026-10-13 15:27"
+}

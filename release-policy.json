@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-10-13",
+  "updated_by": "PMO",
+  "_readme": [
+    "Which Jira fixVersions count as real release commitments.",
+    "A version listed here is NOT a release train — it is a backlog, patch bucket,",
+    "config container, staging queue or platform workstream. Versions listed here",
+    "never set a due date and never make a game 'late'. Everything NOT listed is",
+    "treated as a committed release when it carries a release date.",
+    "Published deliberately: exclusions are visible, not hidden build logic."
+  ],
+  "excluded": {
+    "IG": [
+      { "name": "PFH Services 3.00",      "reason": "Services workstream, not a game release train" },
+      { "name": "PFH Games 2.31",         "reason": "Interim-release patch bucket" },
+      { "name": "ELG 4.71",               "reason": "Patch release bucket (FS IR)" },
+      { "name": "PFH Games 5.00",         "reason": "iFrame issue bucket - dated but not a delivery commitment" },
+      { "name": "PFH Games 4.00",         "reason": "Gen2 change bucket, undated" },
+      { "name": "PFH Games Backlog",      "reason": "Backlog container" },
+      { "name": "ELG Game Configs",       "reason": "Config container (Blazesoft game configs)" },
+      { "name": "ELG Feature Backlog",    "reason": "Backlog container" },
+      { "name": "ELG Website",            "reason": "Demo website work, not a game release" },
+      { "name": "ELG New Games",          "reason": "Approved-games intake queue" },
+      { "name": "New Games - iGaming",    "reason": "Pre-sign-off staging queue" },
+      { "name": "New Features - iGaming", "reason": "Approved-feature intake queue" },
+      { "name": "iGaming - R&D",          "reason": "Research container, no delivery commitment" }
+    ],
+    "V2": [
+      { "name": "V2 HHR 3.20",    "reason": "POS workstream, not a game release train" },
+      { "name": "V2 P2P 16.00",   "reason": "Platform workstream (Georgia), not games" },
+      { "name": "V2 PT 14.00",    "reason": "Platform workstream (Ohio central server), not games" },
+      { "name": "V2 C2 Backlog",  "reason": "Backlog container" },
+      { "name": "V2 PT Backlog",  "reason": "Backlog container" },
+      { "name": "V2 P2P Backlog", "reason": "Backlog container" },
+      { "name": "V2 SW Backlog",  "reason": "Backlog container" },
+      { "name": "New Games",      "reason": "Pre-sign-off staging queue" },
+      { "name": "Dev Test",       "reason": "Internal dev/test container" }
+    ]
+  }
+}

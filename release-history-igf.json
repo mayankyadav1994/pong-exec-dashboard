@@ -1,0 +1,181 @@
+{
+ "schema_version": 1,
+ "feed": "igf",
+ "jira_project": "IG",
+ "releases": {
+  "ELG 4.70": {
+   "name": "ELG 4.70",
+   "first_seen": "2026-08-26",
+   "original_date": "2026-08-31",
+   "current_date": "2026-08-28",
+   "released": true,
+   "released_on": "2026-08-28",
+   "revisions": [
+    {
+     "observed": "2026-09-01",
+     "from": "2026-08-31",
+     "to": "2026-08-28",
+     "kind": "moved",
+     "slip_days": -3
+    },
+    {
+     "observed": "2026-09-01",
+     "to": "2026-08-28",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG 5.00": {
+   "name": "ELG 5.00",
+   "first_seen": "2026-08-26",
+   "original_date": "2026-09-16",
+   "current_date": "2026-09-25",
+   "released": true,
+   "released_on": "2026-09-25",
+   "revisions": [
+    {
+     "observed": "2026-09-29",
+     "from": "2026-09-16",
+     "to": "2026-09-25",
+     "kind": "moved",
+     "slip_days": 9
+    },
+    {
+     "observed": "2026-09-29",
+     "to": "2026-09-25",
+     "kind": "released"
+    }
+   ]
+  },
+  "ELG Game Configs": {
+   "name": "ELG Game Configs",
+   "first_seen": "2026-08-26",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG Website": {
+   "name": "ELG Website",
+   "first_seen": "2026-08-26",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "Horse Play 1.00": {
+   "name": "Horse Play 1.00",
+   "first_seen": "2026-08-26",
+   "original_date": "2026-09-15",
+   "current_date": "2026-09-28",
+   "released": true,
+   "released_on": "2026-09-28",
+   "revisions": [
+    {
+     "observed": "2026-10-01",
+     "from": "2026-09-15",
+     "to": "2026-09-28",
+     "kind": "moved",
+     "slip_days": 13
+    },
+    {
+     "observed": "2026-10-01",
+     "to": "2026-09-28",
+     "kind": "released"
+    }
+   ]
+  },
+  "Horse Play 2.00": {
+   "name": "Horse Play 2.00",
+   "first_seen": "2026-08-26",
+   "original_date": "2026-09-30",
+   "current_date": "2026-09-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "New Features - iGaming": {
+   "name": "New Features - iGaming",
+   "first_seen": "2026-08-26",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "New Games - iGaming": {
+   "name": "New Games - iGaming",
+   "first_seen": "2026-08-26",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 2.30": {
+   "name": "PFH Games 2.30",
+   "first_seen": "2026-08-26",
+   "original_date": "2026-09-15",
+   "current_date": "2026-09-15",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 3.00": {
+   "name": "PFH Games 3.00",
+   "first_seen": "2026-08-26",
+   "original_date": "2026-10-15",
+   "current_date": "2026-10-15",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-11",
+     "from": null,
+     "to": "2026-10-15",
+     "kind": "planned"
+    }
+   ]
+  },
+  "iGaming - R&D": {
+   "name": "iGaming - R&D",
+   "first_seen": "2026-08-26",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 5.00": {
+   "name": "PFH Games 5.00",
+   "first_seen": "2026-08-28",
+   "original_date": "2026-11-25",
+   "current_date": "2026-11-25",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-16",
+     "from": null,
+     "to": "2026-11-25",
+     "kind": "planned"
+    }
+   ]
+  },
+  "ELG 5.10": {
+   "name": "ELG 5.10",
+   "first_seen": "2026-09-22",
+   "original_date": "2026-09-30",
+   "current_date": "2026-09-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  }
+ },
+ "history_from": "2026-08-26",
+ "history_to": "2026-10-09",
+ "backfilled_from_days": 45,
+ "generated_at": "2026-10-13 15:27"
+}
