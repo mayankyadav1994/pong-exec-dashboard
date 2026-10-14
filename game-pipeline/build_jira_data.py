@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -970,9 +971,671 @@ def build_sprint_list(sprint_meta: dict[int, dict], board_ids: set = None,
 
 
 # ============================================================================
+#  Release policy · confidence · forecast  (#83)
+# ============================================================================
+# SCHEMA_VERSION is the contract version for the published feeds. Bump it the
+# moment a field changes meaning, is renamed, or is removed, so anything built
+# against the data can detect the break instead of silently misreading it.
+#   1 = the original unversioned payload first published in #82
+#   2 = adds schema_version/generated_at/policy at the top level, and
+#       next_due + forecast + fixVersion.excluded per game
+SCHEMA_VERSION = 2
+
+# Fallback throughput (hours per discipline-sprint) used only when a lane has no
+# measurable history anywhere in the project. Mirrors DEFAULT_VELOCITY in
+# dashboard.js so the published forecast equals the on-screen forecast.
+DEFAULT_VELOCITY = {"art": 50, "design": 30, "math": 40, "dev": 140, "sound": 20, "qa": 25}
+FORECAST_LANES = ("art", "design", "math", "dev", "sound", "review", "qa")
+PROD_LANES = ("art", "design", "math", "dev", "sound")
+STATUS_TERMINAL = {"Signed Off", "Delivered", "On Hold"}
+STATUS_QA_ONLY = {"In QA"}
+SPRINT_LEN_DAYS = 14
+
+
+def load_release_policy() -> dict:
+    """Read release-policy.json -> {PROJECT_KEY: {version_name: reason}}.
+
+    The file is published alongside the feeds on purpose: which versions count
+    as real release commitments is a PMO decision, and it should be inspectable
+    rather than buried in build logic.
+    """
+    path = ROOT / "release-policy.json"
+    if not path.exists():
+        return {}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"   {WARN} release-policy.json unreadable ({exc}) - no exclusions applied")
+        return {}
+    out: dict = {}
+    for proj, rows in (doc.get("excluded") or {}).items():
+        out[str(proj).upper()] = {
+            str(r.get("name")): str(r.get("reason") or "excluded")
+            for r in (rows or []) if r.get("name")
+        }
+    return out
+
+
+def apply_release_policy(games: list, excluded: dict) -> int:
+    """Tag each fixVersion excluded/not. Tagged, never dropped — a reader can
+    always see what was filtered out and why."""
+    hits = 0
+    for g in games:
+        for fv in (g.get("fixVersions") or []):
+            reason = excluded.get(fv.get("name") or "")
+            fv["excluded"] = bool(reason)
+            if reason:
+                fv["exclusion_reason"] = reason
+                hits += 1
+    return hits
+
+
+def compute_next_due(g: dict, today: date) -> Optional[dict]:
+    """The live delivery commitment: earliest dated, unreleased, non-excluded
+    fixVersion. Same rule the dashboard's right-hand panel uses (#81), lifted
+    into the feed so external reporting lands on the identical date."""
+    best = None
+    for fv in (g.get("fixVersions") or []):
+        if fv.get("released") or fv.get("excluded") or not fv.get("releaseDate"):
+            continue
+        d = _parse_date(fv.get("releaseDate"))
+        if d and (best is None or d < best[0]):
+            best = (d, fv.get("name") or "")
+    if best is None:
+        return None
+    due, name = best
+    late = (today - due).days
+    return {
+        "fv": name,
+        "date": due.isoformat(),
+        "confidence": "committed",     # a date PMO planned, not a model output
+        "is_late": late > 0,
+        "days_late": late if late > 0 else 0,
+    }
+
+
+def _past_sprint_count(disc: dict, sprint_by_id: dict, today: date) -> int:
+    n = 0
+    for sid in (disc.get("sprints") or []):
+        s = sprint_by_id.get(str(sid))
+        start = _parse_date(s.get("start")) if s else None
+        if start and start <= today:
+            n += 1
+    return n
+
+
+def studio_velocity(games: list, sprint_by_id: dict, today: date) -> dict:
+    """Measured throughput per lane: sum(spent) / sum(past discipline-sprints)."""
+    acc = {k: [0.0, 0] for k in FORECAST_LANES}
+    for g in games:
+        for d in (g.get("disciplines") or []):
+            k = d.get("key")
+            if k in acc:
+                acc[k][0] += d.get("spent") or 0.0
+                acc[k][1] += _past_sprint_count(d, sprint_by_id, today)
+    return {k: (round(sp / spr, 2) if spr > 0 else None) for k, (sp, spr) in acc.items()}
+
+
+def compute_forecast(games: list, sprints: list, today: date) -> dict:
+    """Python port of applyForecast() in dashboard.js.
+
+    Per open discipline: remaining hours / that lane's measured hours-per-sprint
+    = sprints needed. The slowest open lane sets the game's ship sprint.
+    Published as confidence='basis' — a projection, never a commitment.
+    """
+    sprint_by_id = {str(s.get("id")): s for s in sprints}
+    ladder = sorted([s for s in sprints if s.get("start")], key=lambda s: s["start"])
+    studio = studio_velocity(games, sprint_by_id, today)
+
+    def base_rate(k: str) -> float:
+        return studio.get(k) or DEFAULT_VELOCITY.get(k, 30)
+
+    def eff_rate(d: dict) -> float:
+        """A lane's own pace once it has real history, clamped to 0.5x–2x the
+        studio rate so one unusual game cannot distort its own forecast."""
+        base = base_rate(d.get("key") or "")
+        past = _past_sprint_count(d, sprint_by_id, today)
+        spent = d.get("spent") or 0.0
+        if past >= 2 and spent >= 8:
+            return min(max(spent / past, 0.5 * base), 2.0 * base)
+        return base
+
+    first_future = len(ladder)
+    for i, s in enumerate(ladder):
+        st = _parse_date(s.get("start"))
+        if st and st > today:
+            first_future = i
+            break
+
+    needs: dict = {}
+    max_need = 0
+    for g in games:
+        if g.get("delivered"):
+            continue
+        ws = g.get("workflow_status") or ""
+        if ws in STATUS_TERMINAL:
+            continue
+        by_key = {d.get("key"): d for d in (g.get("disciplines") or [])}
+
+        def rem_of(d) -> float:
+            if not d:
+                return 0.0
+            r = d.get("remaining")
+            if r is not None:
+                return max(0.0, float(r))
+            return max(0.0, float(d.get("est") or 0) - float(d.get("spent") or 0))
+
+        # "In QA" alone does not mean production is finished — derive_status flips
+        # a game to In QA on a single reopened bug. Only collapse to a QA-only
+        # forecast when no production lane still has open hours (#52).
+        prod_open = any(
+            by_key.get(k) and by_key[k].get("phase") not in ("done", "hold") and rem_of(by_key.get(k)) > 0
+            for k in PROD_LANES
+        )
+        qa_only = ws in STATUS_QA_ONLY and not prod_open
+        active_key = "qa" if qa_only else (g.get("current_stage") or "")
+
+        lanes: dict = {}
+        for k in FORECAST_LANES:
+            d = by_key.get(k)
+            if not d or d.get("phase") == "done":
+                continue
+            if qa_only and k != "qa":
+                continue
+            rem = rem_of(d)
+            # No hours left: skip unless this is the lane the game is sitting in,
+            # which floors to one sprint so an over-budget but unfinished game
+            # still forecasts instead of vanishing from the projection.
+            if rem <= 0 and k != active_key:
+                continue
+            need = max(1, math.ceil(rem / eff_rate(d))) if rem > 0 else 1
+            lanes[k] = need
+            max_need = max(max_need, need)
+        if lanes:
+            needs[g.get("jira") or ""] = lanes
+
+    # Extend the sprint ladder with projected slots when the forecast runs past
+    # the last sprint Jira actually knows about, so long games still get a date.
+    synth = max(0, max_need - (len(ladder) - first_future))
+    if synth and ladder:
+        last = ladder[-1]
+        m = re.match(r"^(.*?)(\d+)\s*$", str(last.get("label") or ""))
+        prefix = m.group(1) if m else "Sprint "
+        num = int(m.group(2)) if m else len(ladder)
+        start = _parse_date(last.get("start")) or today
+        for i in range(1, synth + 1):
+            start = start + timedelta(days=SPRINT_LEN_DAYS)
+            ladder.append({
+                "id": f"proj{i}", "label": f"{prefix}{num + i}",
+                "start": start.isoformat(),
+                "end": (start + timedelta(days=12)).isoformat(),
+                "projected": True,
+            })
+
+    for g in games:
+        lanes = needs.get(g.get("jira") or "")
+        if not lanes or not ladder:
+            g["forecast"] = None
+            continue
+        idx = min(first_future + max(lanes.values()) - 1, len(ladder) - 1)
+        ship = ladder[idx]
+        g["forecast"] = {
+            "sprint": ship.get("label"),
+            "date": ship.get("end") or ship.get("start"),
+            "confidence": "basis",          # modelled from velocity, not promised
+            "method": "velocity",
+            "projected_sprint": bool(ship.get("projected")),
+            "sprints_needed": lanes,        # per open discipline
+        }
+
+    return {
+        "method": "velocity",
+        "description": ("remaining hours per discipline / that discipline's measured "
+                        "hours-per-sprint; the slowest open discipline sets the ship sprint"),
+        "studio_hours_per_sprint": studio,
+        "fallback_hours_per_sprint": DEFAULT_VELOCITY,
+        "note": ("rates are measured from this project's own completed sprints; the "
+                 "fallback applies only to a discipline with no sprint history. "
+                 "Per-board velocity overrides set inside the dashboard UI are not "
+                 "applied here - the published forecast always uses measured rates."),
+    }
+
+
+# ============================================================================
+#  Release-date history  (#84)
+# ============================================================================
+# Jira keeps only a version's CURRENT release date - when a train slips, the old
+# date is gone. The dashboard has been archiving the full fixVersion set nightly
+# since 2026-06-02, so the slip history is reconstructable and from here on is
+# maintained incrementally: each build compares today's dates against the stored
+# record and appends a revision whenever one moves.
+RELEASE_HISTORY_SCHEMA = 1
+
+
+def release_history_path(proj_key: str) -> Path:
+    return ROOT / f"release-history-{proj_key}.json"
+
+
+def load_release_history(proj_key: str) -> dict:
+    path = release_history_path(proj_key)
+    if not path.exists():
+        return {"schema_version": RELEASE_HISTORY_SCHEMA,
+                "feed": proj_key,
+                "jira_project": PROJECTS[proj_key]["key"],
+                "releases": {}}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"   {WARN} {path.name} unreadable ({exc}) - starting a fresh history")
+        return {"schema_version": RELEASE_HISTORY_SCHEMA, "feed": proj_key,
+                "jira_project": PROJECTS[proj_key]["key"], "releases": {}}
+    doc.setdefault("releases", {})
+    return doc
+
+
+def observe_releases(doc: dict, games: list, observed_on: date) -> int:
+    """Fold one day's fixVersion snapshot into the history. Idempotent: re-running
+    the same day changes nothing, because a revision is only appended when the
+    date actually differs from the last one recorded.
+
+    Observations MUST be applied in chronological order - the backfill replays
+    git history oldest-first for exactly this reason.
+    """
+    rel = doc["releases"]
+    obs = observed_on.isoformat()
+    changes = 0
+    seen: dict = {}
+    for g in games:
+        for fv in (g.get("fixVersions") or []):
+            # Very early payloads stored fixVersions as bare strings. They carry
+            # no date, so they tell us nothing about planning and are ignored.
+            if not isinstance(fv, dict):
+                continue
+            name = fv.get("name")
+            if name and name not in seen:
+                seen[name] = fv
+    for name, fv in sorted(seen.items()):
+        d = fv.get("releaseDate") or None
+        released = bool(fv.get("released"))
+        rec = rel.get(name)
+        if rec is None:
+            rel[name] = {
+                "name": name,
+                "first_seen": obs,
+                "original_date": d,       # the first date ever planned for this train
+                "current_date": d,
+                "released": released,
+                "released_on": d if released else None,
+                "revisions": [],
+            }
+            continue
+        prev = rec.get("current_date")
+        if d != prev:
+            # A version can gain a date it never had (planned for the first time).
+            # That is not a slip, so it is recorded with a distinct kind and no
+            # slip_days - otherwise "first planned" would pollute the slip stats.
+            kind = "planned" if prev is None else ("unset" if d is None else "moved")
+            entry = {"observed": obs, "from": prev, "to": d, "kind": kind}
+            if kind == "moved":
+                a, b = _parse_date(prev), _parse_date(d)
+                if a and b:
+                    entry["slip_days"] = (b - a).days
+            rec["revisions"].append(entry)
+            rec["current_date"] = d
+            # A version often appears in the data before anyone has dated it.
+            # The FIRST date it is ever given is its original plan - without
+            # this, slip-from-original stays null on precisely the trains that
+            # were planned after they were created.
+            if rec.get("original_date") is None and d is not None:
+                rec["original_date"] = d
+            changes += 1
+        if released and not rec.get("released"):
+            # Shipping is its own event, not a date "slip". A train's final date
+            # move is usually just it landing - reporting that as a slip would
+            # be actively misleading.
+            rec["revisions"].append({"observed": obs, "to": d, "kind": "released"})
+        if released:
+            # Keep in step with Jira: a train's recorded release date is often
+            # finalised a day or two after the flag flips, and the real date is
+            # the one worth publishing.
+            rec["released_on"] = d
+        rec["released"] = released
+    return changes
+
+
+def release_history_rows(doc: dict, excluded: dict) -> list:
+    """Flatten the stored history into the sorted array published in the feed."""
+    rows = []
+    for rec in doc.get("releases", {}).values():
+        revs = rec.get("revisions") or []
+        moves = [r for r in revs if r.get("kind") == "moved"]
+        orig, cur = _parse_date(rec.get("original_date")), _parse_date(rec.get("current_date"))
+        rows.append({
+            "name": rec.get("name"),
+            "released": bool(rec.get("released")),
+            "original_date": rec.get("original_date"),
+            "current_date": rec.get("current_date"),
+            "released_on": rec.get("released_on"),
+            # How far the train has moved from the FIRST date ever planned for it.
+            "total_slip_days": (cur - orig).days if (orig and cur) else None,
+            "revision_count": len(moves),
+            "revisions": revs,
+            "first_seen": rec.get("first_seen"),
+            "excluded": rec.get("name") in excluded,
+            "history_from": doc.get("history_from"),
+        })
+    rows.sort(key=lambda r: (r["current_date"] or "9999-99-99", r["name"] or ""))
+    return rows
+
+
+def save_release_history(proj_key: str, doc: dict) -> Path:
+    path = release_history_path(proj_key)
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    return path
+
+
+# ============================================================================
+#  Alerts feed  (#85) + event lifecycle (#86)
+# ============================================================================
+# A single alerts.json spanning every feed: the things worth someone's attention
+# today, already judged rather than left as raw rows to re-derive.
+#
+# Cadence is deliberately nightly, not hourly. The source data moves once a day,
+# so an hourly file would republish identical content 23 times out of 24 and
+# train readers to stop checking it. generated_at is published so freshness is
+# always visible, and the build can be triggered on demand when something
+# material changes mid-day.
+#
+# (#86) Every alert carries a STABLE id plus change_type/first_detected/
+# previous_value/new_value, so a consumer can tell genuinely new information
+# from a problem it has already reported. Without this, a condition that
+# persists for three weeks reads as 21 fresh alerts.
+ALERTS_SCHEMA = 2
+SCOPE_ALERT_HOURS = 40      # scope move worth surfacing, in hours
+DUE_SOON_DAYS = 10          # commitment horizon that counts as imminent
+
+SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2, "info": 3}
+
+# Conditions are states that persist until they stop being true, so they have a
+# life cycle: new -> ongoing/updated -> resolved. Events happened on a given day
+# and are true exactly once; they are never "resolved", they simply stop being
+# reported. Treating the two the same is what makes alert feeds noisy.
+ALERT_CLASS = {
+    "late_vs_commitment": "condition",
+    "due_soon": "condition",
+    "no_commitment": "condition",
+    "release_date_moved": "event",
+    "release_shipped": "event",
+    "scope_change": "event",
+    "target_date_moved": "event",
+}
+
+
+def collect_alerts(feed: str, games: list, releases: list, today: date) -> list:
+    """Derive this feed's alerts from data already computed for the main feed.
+
+    Each alert carries `key` (its stable identity) and `new_value` (the number or
+    date that defines it). reconcile_alerts() turns those into the published
+    id/change_type/previous_value fields.
+    """
+    out = []
+    obs = today.isoformat()
+
+    def add(kind, severity, jira, game, message, subject, value, **extra):
+        row = {"type": kind, "severity": severity, "feed": feed,
+               "jira": jira, "game": game, "message": message,
+               # Identity is deliberately readable rather than a hash: when this
+               # shows up in someone's reporting tool it should be obvious what
+               # it refers to without a lookup.
+               "key": f"{kind}:{feed}:{subject}",
+               "new_value": value}
+        row.update(extra)
+        out.append(row)
+
+    # 1. Release trains that moved today. Listed first because one train moving
+    #    explains every game on it moving - without it, a reader sees N separate
+    #    "late" alerts and no cause.
+    for r in releases:
+        if r.get("excluded"):
+            continue
+        for rev in (r.get("revisions") or []):
+            if rev.get("observed") != obs:
+                continue
+            if rev.get("kind") == "released":
+                add("release_shipped", "info", None, None,
+                    f"{r['name']} released ({rev.get('to')})",
+                    subject=r["name"], value=rev.get("to"),
+                    fv=r["name"], released_on=rev.get("to"))
+                continue
+            if rev.get("kind") != "moved":
+                continue
+            # A train that has now shipped reports as shipped above; its final
+            # date move is it landing, not a slip.
+            if r.get("released"):
+                continue
+            slip = rev.get("slip_days")
+            direction = "slipped" if (slip or 0) > 0 else "pulled in"
+            add("release_date_moved",
+                "medium" if (slip or 0) > 0 else "info",
+                None, None,
+                f"{r['name']} {direction} {abs(slip or 0)}d: {rev.get('from')} -> {rev.get('to')}",
+                subject=r["name"], value=rev.get("to"),
+                fv=r["name"], date_from=rev.get("from"), date_to=rev.get("to"),
+                slip_days=slip)
+
+    for g in games:
+        if g.get("in_roster") is False:
+            continue          # add-by-search candidates are not on the board
+        jira, name = g.get("jira"), g.get("name")
+        nd = g.get("next_due") or None
+
+        # 2. Past its committed release date.
+        if nd and nd.get("is_late"):
+            add("late_vs_commitment", "high", jira, name,
+                f"{nd['days_late']}d past {nd['fv']} ({nd['date']})",
+                subject=jira, value=nd["days_late"],
+                fv=nd["fv"], due=nd["date"], days_late=nd["days_late"],
+                confidence="committed")
+
+        # 3. Committed and imminent - still time to act, which is the point.
+        elif nd and not g.get("delivered"):
+            d = _parse_date(nd["date"])
+            days = (d - today).days if d else None
+            if days is not None and 0 <= days <= DUE_SOON_DAYS:
+                add("due_soon", "medium", jira, name,
+                    f"due in {days}d on {nd['fv']} ({nd['date']})",
+                    subject=jira, value=nd["date"],
+                    fv=nd["fv"], due=nd["date"], days_until=days,
+                    confidence="committed")
+
+        # 4. Active work with no dated release behind it. Not a failure - but it
+        #    means the forecast is the only date there is, and that is worth
+        #    knowing before it is quoted as a commitment.
+        elif not g.get("delivered") and (g.get("workflow_status") or "") not in ("Not Started", "On Hold"):
+            fc = g.get("forecast") or {}
+            add("no_commitment", "low", jira, name,
+                "in progress with no dated release; forecast only"
+                + (f" (basis {fc.get('date')})" if fc.get("date") else ""),
+                subject=jira, value=fc.get("date"),
+                forecast=fc.get("date"), confidence="basis")
+
+        hist = g.get("history") or {}
+        # 5. Material scope movement recorded today.
+        for ev in (hist.get("scope") or []):
+            if ev.get("date") != obs:
+                continue
+            delta = ev.get("delta") or 0
+            if abs(delta) < SCOPE_ALERT_HOURS:
+                continue
+            add("scope_change", "medium" if delta > 0 else "info", jira, name,
+                f"scope {'up' if delta > 0 else 'down'} {abs(delta):.0f}h "
+                f"({ev.get('from')}h -> {ev.get('to')}h)",
+                subject=jira, value=ev.get("to"),
+                delta_hours=delta, scope_from=ev.get("from"), scope_to=ev.get("to"))
+
+        # 6. Epic target date moved today.
+        for ev in (hist.get("target") or []):
+            if ev.get("date") != obs:
+                continue
+            add("target_date_moved", "medium", jira, name,
+                f"target moved {ev.get('days')}d: {ev.get('from')} -> {ev.get('to')}",
+                subject=jira, value=ev.get("to"),
+                date_from=ev.get("from"), date_to=ev.get("to"), days=ev.get("days"))
+
+    return out
+
+
+def _alerts_state_path() -> Path:
+    return ROOT / "alerts-state.json"
+
+
+def load_alerts_state() -> dict:
+    """What was already reported, so today's build can tell new from ongoing.
+
+    This file MUST stay committed: CI runners are ephemeral, so without it every
+    nightly build would start empty and report every standing condition as new.
+    """
+    path = _alerts_state_path()
+    if not path.exists():
+        return {"schema_version": ALERTS_SCHEMA, "open": {}}
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        print(f"   {WARN} alerts-state.json unreadable ({exc}) - every alert will read as new")
+        return {"schema_version": ALERTS_SCHEMA, "open": {}}
+    doc.setdefault("open", {})
+    return doc
+
+
+def reconcile_alerts(alerts: list, state: dict, now_iso: str, today: date) -> list:
+    """Assign change_type + identity by diffing today's alerts against the last
+    build, and raise a 'resolved' row for any condition that has stopped being
+    true. Returns the published alert list; mutates `state` in place.
+    """
+    open_now = state.setdefault("open", {})
+    seen: set = set()
+    out = []
+
+    for src in alerts:
+        # Copy rather than mutate: the caller's list stays reusable, which makes
+        # this safe to run twice over the same input (tests, dry runs, retries).
+        a = {k: v for k, v in src.items() if k != "key"}
+        key = src["key"]
+        new_value = a.get("new_value")
+        prior = open_now.get(key)
+        seen.add(key)
+        cls = ALERT_CLASS.get(a["type"], "condition")
+
+        if prior is None:
+            change_type = "new"
+            first = now_iso
+            prev_value = None
+            occurrence = 1
+        else:
+            first = prior.get("first_detected") or now_iso
+            prev_value = prior.get("value")
+            occurrence = int(prior.get("occurrences") or 1) + 1
+            # "updated" is reserved for a real change in the underlying number or
+            # date. A condition simply persisting is "ongoing", which is what lets
+            # a consumer suppress it without losing a genuine change.
+            change_type = "updated" if new_value != prev_value else "ongoing"
+
+        a.update({
+            "id": key,
+            # Unique per state change, so an event can be deduplicated exactly
+            # even if the same condition changes more than once.
+            "event_id": f"{key}#{occurrence}",
+            "alert_class": cls,
+            "change_type": change_type,
+            "first_detected": first,
+            "last_detected": now_iso,
+            "previous_value": prev_value,
+            "new_value": new_value,
+            "occurrences": occurrence,
+        })
+        out.append(a)
+        open_now[key] = {"first_detected": first, "last_detected": now_iso,
+                         "value": new_value, "occurrences": occurrence,
+                         "type": a["type"], "feed": a["feed"],
+                         "jira": a.get("jira"), "class": cls}
+
+    # Conditions that have stopped being true get one final row so a consumer can
+    # close them out rather than leaving them open forever. Events are not
+    # resolved - they happened, and then they are simply no longer news.
+    for key, prior in list(open_now.items()):
+        if key in seen:
+            continue
+        if prior.get("class") == "condition":
+            out.append({
+                "type": prior.get("type"), "severity": "info",
+                "feed": prior.get("feed"), "jira": prior.get("jira"),
+                "game": None,
+                "message": "no longer applies",
+                "id": key,
+                "event_id": f"{key}#{int(prior.get('occurrences') or 1) + 1}",
+                "alert_class": "condition",
+                "change_type": "resolved",
+                "first_detected": prior.get("first_detected"),
+                "last_detected": now_iso,
+                "resolved_at": now_iso,
+                "previous_value": prior.get("value"),
+                "new_value": None,
+                "occurrences": int(prior.get("occurrences") or 1),
+            })
+        del open_now[key]
+
+    state["schema_version"] = ALERTS_SCHEMA
+    state["updated_at"] = now_iso
+    return out
+
+
+def write_alerts(alerts: list, state: dict, refreshed_at: str, now_iso: str,
+                 today: date) -> Path:
+    alerts = sorted(alerts, key=lambda a: (SEVERITY_ORDER.get(a.get("severity"), 9),
+                                           a.get("type") or "", a.get("jira") or ""))
+    counts: dict = {}
+    changes: dict = {}
+    for a in alerts:
+        counts[a["type"]] = counts.get(a["type"], 0) + 1
+        ct = a.get("change_type") or "new"
+        changes[ct] = changes.get(ct, 0) + 1
+    doc = {
+        "schema_version": ALERTS_SCHEMA,
+        "generated_at": refreshed_at,
+        "generated_at_iso": now_iso,
+        "as_of": today.isoformat(),
+        "cadence": "nightly",
+        "note": ("Rebuilt with the nightly Jira build, and on demand when something "
+                 "material changes mid-day. The source data moves once a day, so a "
+                 "changed generated_at means the content actually changed."),
+        "change_types": {
+            "new": "first time this has been reported",
+            "ongoing": "already reported and unchanged since - safe to suppress",
+            "updated": "already reported, but previous_value -> new_value has changed",
+            "resolved": "previously reported and no longer true; close it out",
+        },
+        "alert_classes": {
+            "condition": "a state that persists until it stops being true; can resolve",
+            "event": "something that happened on a given day; reported once, never resolves",
+        },
+        "severities": ["high", "medium", "low", "info"],
+        "counts": counts,
+        "change_counts": changes,
+        "total": len(alerts),
+        "alerts": alerts,
+    }
+    path = ROOT / "alerts.json"
+    path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+    _alerts_state_path().write_text(json.dumps(state, ensure_ascii=False, indent=1),
+                                    encoding="utf-8")
+    return path
+
+
+# ============================================================================
 #  Output
 # ============================================================================
-def write_data_file(proj_key: str, payload: dict, refreshed_at: str) -> Path:
+def write_data_file(proj_key: str, payload: dict, refreshed_at: str,
+                    meta: Optional[dict] = None) -> Path:
     """Emit dashboard-data-{project}.js as a namespaced global.
 
     Published as window.GP_DATA[<key>] so the combined game-pipeline.html can
@@ -981,10 +1644,19 @@ def write_data_file(proj_key: str, payload: dict, refreshed_at: str) -> Path:
     """
     out = PROJECTS[proj_key]["out"]
     obj = {
+        # Contract version first: anything reading this feed should check it
+        # before trusting field names/meanings (#83).
+        "schema_version": SCHEMA_VERSION,
+        "generated_at": refreshed_at,
+        "feed": proj_key,
+        "jira_project": PROJECTS[proj_key]["key"],
+    }
+    obj.update(meta or {})
+    obj.update({
         "games": payload["games"],
         "sprints": payload["sprints"],
         "refreshed_at": refreshed_at,
-    }
+    })
     obj_js = json.dumps(obj, ensure_ascii=False)
     text = (
         f"// Auto-generated by build_jira_data.py — do not edit by hand.\n"
@@ -1197,6 +1869,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     stamp = now.strftime("%Y-%m-%d-%H%M")
 
     print(f"{OK} Game Pipeline Jira builder · base {base} · today {today.isoformat()}")
+    policy = load_release_policy()    # published exclusion list (#83)
+    all_alerts: list = []             # one alerts.json spanning every feed (#85)
     rc = 0
     for proj_key in targets:
         try:
@@ -1209,15 +1883,63 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"{ERR} {proj_key}: build failed: {exc}")
             rc = 1
             continue
+        # (#83) Policy first: compute_next_due must not pick a version PMO has
+        # already ruled out as a non-commitment, or the feed reports a fake date.
+        excluded = policy.get(PROJECTS[proj_key]["key"], {})
+        n_excl = apply_release_policy(payload["games"], excluded)
+        for g in payload["games"]:
+            g["next_due"] = compute_next_due(g, today)        # confidence='committed'
+        forecast_basis = compute_forecast(payload["games"], payload["sprints"], today)
+        # (#84) Fold today's release dates into the persistent slip history, then
+        # publish it in the feed so a reader gets dates AND how they moved.
+        hist_doc = load_release_history(proj_key)
+        n_moved = observe_releases(hist_doc, payload["games"], today)
+        save_release_history(proj_key, hist_doc)
+        releases = release_history_rows(hist_doc, excluded)
+        n_late = sum(1 for g in payload["games"] if (g.get("next_due") or {}).get("is_late"))
+        n_fc = sum(1 for g in payload["games"] if g.get("forecast"))
+        meta = {
+            "policy": {
+                "source": "release-policy.json",
+                "note": ("versions listed here are backlogs/buckets/platform workstreams, "
+                         "not delivery commitments; they never set a due date"),
+                "excluded_versions": sorted(excluded),
+            },
+            "forecast_basis": forecast_basis,
+            "releases": releases,
+            "confidence_levels": {
+                "committed": "a release date planned by PMO on a Jira fixVersion",
+                "basis": "modelled from measured team velocity - a projection, not a commitment",
+            },
+        }
         write_history_snapshot(proj_key, payload, today)     # persist today's point (#66)
         compute_history_events(proj_key, payload["games"])    # bake the change-event log
-        out = write_data_file(proj_key, payload, refreshed_at)
+        out = write_data_file(proj_key, payload, refreshed_at, meta)
         snap = archive_snapshot(proj_key, payload, stamp)
         n_moves = sum(len(g["history"]["target"]) for g in payload["games"])
         n_scope = sum(len(g["history"]["scope"]) for g in payload["games"])
         print(f"   {OK} wrote {out.name}  ·  snapshot {snap.relative_to(ROOT)}  ·  history {n_moves} date-move(s) / {n_scope} scope-change(s)")
+        print(f"   {OK} release history: {len(releases)} version(s), {n_moved} date move(s) today")
+        print(f"   {OK} policy {n_excl} fixVersion tag(s) excluded  ·  {n_late} game(s) late vs commitment  ·  forecast on {n_fc} game(s)")
+        all_alerts.extend(collect_alerts(proj_key, payload["games"], releases, today))
         print_summary(proj_key, payload)
 
+    # Only rewrite alerts.json when every requested feed built; a partial run
+    # would silently drop the failed project's alerts and read as "all clear".
+    if rc == 0:
+        # (#86) Diff against the last build so a standing problem reads as
+        # ongoing rather than as fresh news every single night.
+        state = load_alerts_state()
+        now_iso = now.isoformat(timespec="seconds")
+        published = reconcile_alerts(all_alerts, state, now_iso, today)
+        ap = write_alerts(published, state, refreshed_at, now_iso, today)
+        tally = {}
+        for a in published:
+            tally[a["change_type"]] = tally.get(a["change_type"], 0) + 1
+        detail = " · ".join(f"{k} {v}" for k, v in sorted(tally.items()))
+        print(f"{OK} wrote {ap.name} · {len(published)} alert(s) · {detail}")
+    else:
+        print(f"{WARN} alerts.json left untouched - a feed failed to build")
     print(f"{OK} Done." if rc == 0 else f"{WARN} Finished with errors.")
     return rc
 

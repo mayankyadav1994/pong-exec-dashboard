@@ -26,6 +26,7 @@ on:
       - 'game-pipeline/game-pipeline.html'
       - 'game-pipeline/ceo-summary.html'
       - 'game-pipeline/build_jira_data.py'
+      - 'game-pipeline/release-policy.json'
 
 # Serialize against the other dashboard refreshes — the v2/iGaming timeline
 # workflows use this same group — so their commits to main can't land mid-build
@@ -67,6 +68,11 @@ jobs:
           cp game-pipeline/data-v2.json .
           cp game-pipeline/data-ig.json .
           cp game-pipeline/data-igf.json .
+          cp game-pipeline/release-policy.json .
+          cp game-pipeline/alerts.json .
+          cp game-pipeline/release-history-v2.json .
+          cp game-pipeline/release-history-ig.json .
+          cp game-pipeline/release-history-igf.json .
       - name: Commit & push refreshed data (rebase-safe)
         run: |
           git config user.name  "github-actions[bot]"

@@ -1,0 +1,442 @@
+{
+ "schema_version": 1,
+ "feed": "v2",
+ "jira_project": "V2",
+ "releases": {
+  "New Games": {
+   "name": "New Games",
+   "first_seen": "2026-06-02",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 P2P Backlog": {
+   "name": "V2 P2P Backlog",
+   "first_seen": "2026-06-02",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 PT 13.30": {
+   "name": "V2 PT 13.30",
+   "first_seen": "2026-06-05",
+   "original_date": "2026-07-21",
+   "current_date": "2026-07-21",
+   "released": true,
+   "released_on": "2026-07-21",
+   "revisions": [
+    {
+     "observed": "2026-07-22",
+     "from": null,
+     "to": "2026-07-21",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-07-22",
+     "to": "2026-07-21",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 HHR 3.00": {
+   "name": "V2 HHR 3.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-07-10",
+   "current_date": "2026-07-10",
+   "released": true,
+   "released_on": "2026-07-10",
+   "revisions": [
+    {
+     "observed": "2026-07-14",
+     "from": null,
+     "to": "2026-07-10",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-07-14",
+     "to": "2026-07-10",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 HHR 3.10": {
+   "name": "V2 HHR 3.10",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-07-15",
+   "current_date": "2026-07-31",
+   "released": true,
+   "released_on": "2026-07-31",
+   "revisions": [
+    {
+     "observed": "2026-07-04",
+     "from": null,
+     "to": "2026-07-15",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-08-11",
+     "from": "2026-07-15",
+     "to": "2026-07-31",
+     "kind": "moved",
+     "slip_days": 16
+    },
+    {
+     "observed": "2026-08-11",
+     "to": "2026-07-31",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 P2P 15.20": {
+   "name": "V2 P2P 15.20",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-07-03",
+   "current_date": "2026-07-03",
+   "released": true,
+   "released_on": "2026-07-03",
+   "revisions": [
+    {
+     "observed": "2026-07-04",
+     "from": null,
+     "to": "2026-07-03",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-07-04",
+     "to": "2026-07-03",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 P2P 16.00": {
+   "name": "V2 P2P 16.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-11-16",
+   "current_date": "2026-11-16",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-16",
+     "from": null,
+     "to": "2026-11-16",
+     "kind": "planned"
+    }
+   ]
+  },
+  "V2 PT 14.00": {
+   "name": "V2 PT 14.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-08-14",
+   "current_date": "2026-12-31",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-10-07",
+     "from": "2026-08-14",
+     "to": "2026-12-31",
+     "kind": "moved",
+     "slip_days": 139
+    }
+   ]
+  },
+  "V2 SW 15.00": {
+   "name": "V2 SW 15.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-05-30",
+   "current_date": "2026-06-11",
+   "released": true,
+   "released_on": "2026-06-11",
+   "revisions": [
+    {
+     "observed": "2026-06-13",
+     "from": "2026-05-30",
+     "to": "2026-06-11",
+     "kind": "moved",
+     "slip_days": 12
+    },
+    {
+     "observed": "2026-06-13",
+     "to": "2026-06-11",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 SW 16.00": {
+   "name": "V2 SW 16.00",
+   "first_seen": "2026-06-09",
+   "original_date": "2026-06-30",
+   "current_date": "2026-09-23",
+   "released": true,
+   "released_on": "2026-09-23",
+   "revisions": [
+    {
+     "observed": "2026-07-15",
+     "from": "2026-06-30",
+     "to": "2026-07-31",
+     "kind": "moved",
+     "slip_days": 31
+    },
+    {
+     "observed": "2026-08-11",
+     "from": "2026-07-31",
+     "to": "2026-08-31",
+     "kind": "moved",
+     "slip_days": 31
+    },
+    {
+     "observed": "2026-09-16",
+     "from": "2026-08-31",
+     "to": "2026-09-18",
+     "kind": "moved",
+     "slip_days": 18
+    },
+    {
+     "observed": "2026-09-24",
+     "from": "2026-09-18",
+     "to": "2026-09-23",
+     "kind": "moved",
+     "slip_days": 5
+    },
+    {
+     "observed": "2026-09-24",
+     "to": "2026-09-23",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 P2P 13.04": {
+   "name": "V2 P2P 13.04",
+   "first_seen": "2026-06-11",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 P2P 15.30": {
+   "name": "V2 P2P 15.30",
+   "first_seen": "2026-06-20",
+   "original_date": "2026-07-01",
+   "current_date": "2026-08-05",
+   "released": true,
+   "released_on": "2026-08-05",
+   "revisions": [
+    {
+     "observed": "2026-07-30",
+     "from": "2026-07-01",
+     "to": "2026-07-31",
+     "kind": "moved",
+     "slip_days": 30
+    },
+    {
+     "observed": "2026-08-06",
+     "from": "2026-07-31",
+     "to": "2026-08-05",
+     "kind": "moved",
+     "slip_days": 5
+    },
+    {
+     "observed": "2026-08-06",
+     "to": "2026-08-05",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 HHR 3.20": {
+   "name": "V2 HHR 3.20",
+   "first_seen": "2026-07-04",
+   "original_date": "2026-10-30",
+   "current_date": "2026-10-30",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-16",
+     "from": null,
+     "to": "2026-10-30",
+     "kind": "planned"
+    }
+   ]
+  },
+  "V2 Georgia Show Release - 2026": {
+   "name": "V2 Georgia Show Release - 2026",
+   "first_seen": "2026-07-16",
+   "original_date": "2026-08-03",
+   "current_date": "2026-08-03",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 PT Backlog": {
+   "name": "V2 PT Backlog",
+   "first_seen": "2026-07-22",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 P2P 15.40": {
+   "name": "V2 P2P 15.40",
+   "first_seen": "2026-07-30",
+   "original_date": "2026-08-31",
+   "current_date": "2026-08-21",
+   "released": true,
+   "released_on": "2026-08-21",
+   "revisions": [
+    {
+     "observed": "2026-08-21",
+     "from": "2026-08-31",
+     "to": "2026-08-21",
+     "kind": "moved",
+     "slip_days": -10
+    },
+    {
+     "observed": "2026-08-21",
+     "to": "2026-08-21",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 SW 16.10": {
+   "name": "V2 SW 16.10",
+   "first_seen": "2026-08-18",
+   "original_date": "2026-09-30",
+   "current_date": "2026-10-30",
+   "released": false,
+   "released_on": null,
+   "revisions": [
+    {
+     "observed": "2026-09-16",
+     "from": null,
+     "to": "2026-09-30",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-10-13",
+     "from": "2026-09-30",
+     "to": "2026-10-30",
+     "kind": "moved",
+     "slip_days": 30
+    }
+   ]
+  },
+  "G2E Show Prep 2026": {
+   "name": "G2E Show Prep 2026",
+   "first_seen": "2026-08-24",
+   "original_date": "2026-09-30",
+   "current_date": "2026-09-30",
+   "released": true,
+   "released_on": "2026-09-30",
+   "revisions": [
+    {
+     "observed": "2026-09-16",
+     "from": null,
+     "to": "2026-09-30",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-10-07",
+     "to": "2026-09-30",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 C2 5.10": {
+   "name": "V2 C2 5.10",
+   "first_seen": "2026-08-28",
+   "original_date": "2026-09-11",
+   "current_date": "2026-09-11",
+   "released": true,
+   "released_on": "2026-09-11",
+   "revisions": [
+    {
+     "observed": "2026-09-11",
+     "from": null,
+     "to": "2026-09-11",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-09-11",
+     "to": "2026-09-11",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 P2P 15.41": {
+   "name": "V2 P2P 15.41",
+   "first_seen": "2026-08-28",
+   "original_date": "2026-08-27",
+   "current_date": "2026-08-31",
+   "released": true,
+   "released_on": "2026-08-31",
+   "revisions": [
+    {
+     "observed": "2026-09-02",
+     "from": "2026-08-27",
+     "to": "2026-08-31",
+     "kind": "moved",
+     "slip_days": 4
+    },
+    {
+     "observed": "2026-09-02",
+     "to": "2026-08-31",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 PT 13.40": {
+   "name": "V2 PT 13.40",
+   "first_seen": "2026-08-28",
+   "original_date": "2026-09-04",
+   "current_date": "2026-09-04",
+   "released": true,
+   "released_on": "2026-09-04",
+   "revisions": [
+    {
+     "observed": "2026-09-05",
+     "from": null,
+     "to": "2026-09-04",
+     "kind": "planned"
+    },
+    {
+     "observed": "2026-09-05",
+     "to": "2026-09-04",
+     "kind": "released"
+    }
+   ]
+  },
+  "V2 HHR 3.11": {
+   "name": "V2 HHR 3.11",
+   "first_seen": "2026-09-29",
+   "original_date": "2026-09-30",
+   "current_date": "2026-10-01",
+   "released": true,
+   "released_on": "2026-10-01",
+   "revisions": [
+    {
+     "observed": "2026-10-02",
+     "from": "2026-09-30",
+     "to": "2026-10-01",
+     "kind": "moved",
+     "slip_days": 1
+    },
+    {
+     "observed": "2026-10-02",
+     "to": "2026-10-01",
+     "kind": "released"
+    }
+   ]
+  }
+ },
+ "history_from": "2026-06-02",
+ "history_to": "2026-10-09",
+ "backfilled_from_days": 130,
+ "generated_at": "2026-10-13 15:27"
+}

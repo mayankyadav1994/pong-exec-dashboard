@@ -1,0 +1,346 @@
+{
+ "schema_version": 2,
+ "open": {
+  "no_commitment:v2:V2-18699": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": null,
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-18699",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-16983": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-08",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-16983",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-16942": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": null,
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-16942",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-18304": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-08",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-18304",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-19318": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": null,
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-19318",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-22634": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-03",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-22634",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-22808": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-08",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-22808",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-22849": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-03",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-22849",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-22890": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-22",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-22890",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-23247": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": null,
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-23247",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-23288": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-02-28",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-23288",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-23329": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-17",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-23329",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-29633": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-17",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-29633",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-30536": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-31",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-30536",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-30826": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-08",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-30826",
+   "class": "condition"
+  },
+  "no_commitment:v2:V2-31779": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-17",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "v2",
+   "jira": "V2-31779",
+   "class": "condition"
+  },
+  "late_vs_commitment:ig:IG-1510": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": 14,
+   "occurrences": 2,
+   "type": "late_vs_commitment",
+   "feed": "ig",
+   "jira": "IG-1510",
+   "class": "condition"
+  },
+  "late_vs_commitment:ig:IG-1626": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": 14,
+   "occurrences": 2,
+   "type": "late_vs_commitment",
+   "feed": "ig",
+   "jira": "IG-1626",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-2821": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-02",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-2821",
+   "class": "condition"
+  },
+  "late_vs_commitment:ig:IG-1509": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": 14,
+   "occurrences": 2,
+   "type": "late_vs_commitment",
+   "feed": "ig",
+   "jira": "IG-1509",
+   "class": "condition"
+  },
+  "late_vs_commitment:ig:IG-3234": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": 14,
+   "occurrences": 2,
+   "type": "late_vs_commitment",
+   "feed": "ig",
+   "jira": "IG-3234",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-2231": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-21",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-2231",
+   "class": "condition"
+  },
+  "late_vs_commitment:ig:IG-1506": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": 14,
+   "occurrences": 2,
+   "type": "late_vs_commitment",
+   "feed": "ig",
+   "jira": "IG-1506",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-3307": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-02",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-3307",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-1505": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-02-13",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-1505",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-1517": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-16",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-1517",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-3464": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-16",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-3464",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-4803": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2027-01-16",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-4803",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-4962": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-09",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-4962",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-5005": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-12-19",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-5005",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-5593": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-09",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-5593",
+   "class": "condition"
+  },
+  "no_commitment:ig:IG-5761": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-11-21",
+   "occurrences": 2,
+   "type": "no_commitment",
+   "feed": "ig",
+   "jira": "IG-5761",
+   "class": "condition"
+  },
+  "due_soon:ig:IG-6199": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-10-15",
+   "occurrences": 2,
+   "type": "due_soon",
+   "feed": "ig",
+   "jira": "IG-6199",
+   "class": "condition"
+  },
+  "due_soon:ig:IG-6250": {
+   "first_detected": "2026-10-14T11:38:21",
+   "last_detected": "2026-10-14T11:45:10",
+   "value": "2026-10-15",
+   "occurrences": 2,
+   "type": "due_soon",
+   "feed": "ig",
+   "jira": "IG-6250",
+   "class": "condition"
+  }
+ },
+ "updated_at": "2026-10-14T11:45:10"
+}
