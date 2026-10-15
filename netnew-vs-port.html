@@ -486,22 +486,35 @@ footer{margin-top:20px;padding-top:12px;border-top:1px solid var(--border);color
     function gameTotal(g){
       var t=0; CMP_AREAS.forEach(function(a){ t+=cmpVal(by[g.name][a]); }); return t;
     }
-    // % complete is spent over spent+remaining, whichever measure is on
-    // screen -- it describes the game, not the column.
+    /* Two different questions, deliberately not mixed:
+
+       Total and Cost take the whole SCOPE -- hours spent to date plus hours
+       still estimated -- because that is what the game costs once finished.
+       Strike Forge Boost's 954h is its full scope, not its progress.
+
+       This row is delivery status, which is a separate fact. Strike Forge is
+       84% through that scope and says so. A delivered game is 100% by
+       definition (see COMPLETE in games.json).
+
+       The group figure covers the DELIVERED games only. Averaging an
+       in-flight game into it produced a 95% that was really a statement
+       about one unfinished title, not about net-new games as a class. */
     function gamePct(g){
       if(g.complete === true) return 100;
-      var s=0,r=0;
-      CMP_AREAS.forEach(function(a){ s+=by[g.name][a].s; r+=by[g.name][a].r; });
-      return (s+r)? s/(s+r)*100 : 0;
+      var sp=0,rm=0;
+      CMP_AREAS.forEach(function(a){ sp+=by[g.name][a].s; rm+=by[g.name][a].r; });
+      return (sp+rm)? sp/(sp+rm)*100 : 0;
     }
     function groupPct(games){
-      if(!games.length) return 0;
-      var s=0,r=0;
-      games.forEach(function(g){
-        CMP_AREAS.forEach(function(a){ s+=by[g.name][a].s; r+=by[g.name][a].r; });
+      var done = games.filter(function(g){ return g.complete === true; });
+      if(!done.length) return 0;
+      var sp=0,rm=0;
+      done.forEach(function(g){
+        CMP_AREAS.forEach(function(a){ sp+=by[g.name][a].s; rm+=by[g.name][a].r; });
       });
-      return (s+r)? s/(s+r)*100 : 0;
+      return (sp+rm)? sp/(sp+rm)*100 : 100;
     }
+
     // the last foot row also closes the bottom of both boxes
     function footRow(cls, label, cell, avg, last){
       var tail = last ? " box-b" : "";
