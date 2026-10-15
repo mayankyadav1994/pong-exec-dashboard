@@ -80,6 +80,14 @@ CONFIG = load_config()
 # because elg_cost_spreadsheet.py unpacks `for e, (n, c, r) in GAMES.items()`.
 GAMES = {k: (v["name"], v["cat"], v["rel"]) for k, v in CONFIG["games"].items()}
 
+# epic -> delivered? Set in games.json, because ticket status cannot carry
+# this: all five ports sit "In QA" with the epic shipped and stale Remaining
+# left on open tickets. A game marked complete has no work left by
+# definition, so its Remaining is dropped and it reports 100% complete.
+# An epic absent from this map keeps the per-ticket status behaviour.
+COMPLETE = {k: bool(v["complete"]) for k, v in CONFIG["games"].items()
+            if "complete" in v}
+
 # Blended hourly rate used to cost the hours. One knob -- change it in
 # games.json and every figure on the page follows.
 HOURLY_RATE = CONFIG.get("hourly_rate", 82.5)
@@ -376,6 +384,11 @@ def flatten(issue):
         "type": f["issuetype"]["name"],
         "summary": f.get("summary") or "",
         "status": (f.get("status") or {}).get("name", ""),
+        # statusCategory arrives nested inside `status` -- no extra field to
+        # request. Stored so Remaining can be zeroed on finished tickets:
+        # a Closed ticket's Remaining is a stale estimate, not work left.
+        "done": (((f.get("status") or {}).get("statusCategory") or {})
+                 .get("key", "").lower() == "done"),
         "fv": fvs,
         "elg": any(ELG_RE.match(v) for v in fvs),
         # by fix version OR by summary -- see PFH_TITLE_RE above

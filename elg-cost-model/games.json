@@ -1,14 +1,69 @@
 {
   "hourly_rate": 82.5,
   "games": {
-    "IG-1506": { "name": "Flaming Skulls",               "cat": "Port",    "rel": "ELG 4.30" },
-    "IG-1509": { "name": "Northern Buffalo Fortune [V]", "cat": "Port",    "rel": "ELG 4.40" },
-    "IG-1508": { "name": "Lost Totem",                   "cat": "Port",    "rel": "ELG 4.50" },
-    "IG-3234": { "name": "Viking's Voyage of Fortune",   "cat": "Port",    "rel": "ELG 4.70" },
-    "IG-3304": { "name": "Lantern's Rising [V]",         "cat": "Port",    "rel": "ELG 4.70" },
-    "IG-4555": { "name": "Luck Party Blue Bird Bonanza", "cat": "Branded", "rel": "ELG 4.50" },
-    "IG-3657": { "name": "American Wins",                "cat": "Skin",    "rel": "ELG 4.20" },
-    "IG-3689": { "name": "Fortune Diamond 10X",          "cat": "Skin",    "rel": "ELG 4.20" }
+    "IG-1506": {
+      "name": "Flaming Skulls",
+      "cat": "Port",
+      "rel": "ELG 4.30",
+      "complete": true
+    },
+    "IG-1509": {
+      "name": "Northern Buffalo Fortune [V]",
+      "cat": "Port",
+      "rel": "ELG 4.40",
+      "complete": true
+    },
+    "IG-1508": {
+      "name": "Lost Totem",
+      "cat": "Port",
+      "rel": "ELG 4.50",
+      "complete": true
+    },
+    "IG-3234": {
+      "name": "Viking's Voyage of Fortune",
+      "cat": "Port",
+      "rel": "ELG 4.70",
+      "complete": true
+    },
+    "IG-3304": {
+      "name": "Lantern's Rising [V]",
+      "cat": "Port",
+      "rel": "ELG 4.70",
+      "complete": true
+    },
+    "IG-4555": {
+      "name": "Luck Party Blue Bird Bonanza",
+      "cat": "Branded",
+      "rel": "ELG 4.50"
+    },
+    "IG-3657": {
+      "name": "American Wins",
+      "cat": "Skin",
+      "rel": "ELG 4.20"
+    },
+    "IG-3689": {
+      "name": "Fortune Diamond 10X",
+      "cat": "Skin",
+      "rel": "ELG 4.20"
+    },
+    "IG-3034": {
+      "name": "Blue Bird Bonus Extreme",
+      "cat": "New",
+      "rel": "ELG 5.10",
+      "complete": true
+    },
+    "IG-4803": {
+      "name": "Strike Forge Boost",
+      "cat": "New",
+      "rel": "New Games - iGaming",
+      "complete": false
+    },
+    "IG-1578": {
+      "name": "Cleopatra’s Sands of Time",
+      "cat": "New",
+      "rel": "ELG 3.30",
+      "complete": true
+    }
   },
   "release_epics": {
     "IG-5427": "ELG 4.20",

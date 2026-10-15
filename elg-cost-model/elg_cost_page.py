@@ -45,7 +45,19 @@ def payload(rows):
 
         0 game   1 category  2 key    3 type   4 department  5 fix versions
         6 elg    7 est h     8 spent h         9 summary    10 matched rule
-       11 pfh
+       11 pfh   12 remaining h            13 done
+
+    12 and 13 exist for the net-new vs port comparison, which is the only
+    thing on the page that reads Remaining. 13 is the status CATEGORY being
+    Done, not the status name -- "Signed Off" and "Closed" both count.
+
+    Hours are rounded to 2dp PER TICKET here, so a group total on the page
+    can sit up to ~0.02h from the same total computed by summing raw seconds
+    and rounding once (netnew_vs_port_comparison.py does the latter). Across
+    1,275 tickets the worst observed gap is 0.02h -- 72 seconds -- and every
+    figure on the page renders at 0dp, so it is never visible. Do not "fix"
+    it by re-rounding; if exactness is ever needed, carry raw seconds here
+    and divide in the page instead.
 
     `elg` and `pfh` do not partition -- plenty of tickets carry neither -- but
     they no longer overlap either: PFH wins, so the page's "ELG only" filter
@@ -68,6 +80,8 @@ def payload(rows):
             (d["summary"] or "")[:118],
             d["rule"],
             1 if d.get("pfh") else 0,
+            round(d["re_s"] / 3600, 2),
+            1 if d.get("done") else 0,
         ])
     return out
 

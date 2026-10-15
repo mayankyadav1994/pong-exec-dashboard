@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- charset is load-bearing: this page emits ·, —, ×, − and curly
+     apostrophes (Cleopatra's, Lantern's) straight out of Jira. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Net-new vs Ported Game Costs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- The stylesheet is injected from page_template.html at build time, so the
+     two pages cannot drift apart on tokens, dark mode or component styling.
+     Edit the CSS there, not here. -->
+<style>__STYLE__</style>
+</head>
+<body>
+
+<div class="pagetitle">
+  <h1>Net-new game costs</h1>
+  <span>What a net-new iGaming game costs against one ported from V2 · project IG</span>
+</div>
+
+<p class="note" style="margin-bottom:14px">
+  Companion to the <a class="epic" href="elg-cost-model.html">ELG game cost model</a>, built
+  from the same Jira pull and the same department rules.
+</p>
+
+<div class="card" id="pgCard">
+  <div class="eyebrow">Per game</div>
+  <div class="card-hd">
+    <h2>Net-new and ported games, per game</h2>
+    <span class="pill" id="pgPill">Forecast</span>
+  </div>
+  <div class="mwrap"><table class="pg">
+    <thead id="pgHead"></thead>
+    <tbody id="pgRows"></tbody>
+    <tfoot id="pgFoot"></tfoot>
+  </table></div>
+  <p class="note" id="pgNote"></p>
+</div>
+
+<div class="card" id="cmpCard">
+  <div class="eyebrow">Group comparison</div>
+  <div class="card-hd">
+    <h2>Net-new vs ported games</h2>
+    <span class="pill" id="cmpPill">Forecast · all 8 games</span>
+  </div>
+  <p class="note">
+    Group averages from the table above, area by area. Bars share one scale, so a longer bar is
+    always more hours.
+  </p>
+  <div class="statline" id="cmpTiles"></div>
+  <div class="legend">
+    <span><i style="background:var(--nn)"></i> Net-new <b id="cmpNnN"></b></span>
+    <span><i style="background:var(--pt)"></i> Ported <b id="cmpPtN"></b></span>
+    <span>Average hours per game · bars share one scale</span>
+  </div>
+  <div class="mwrap">
+    <table class="cmp">
+      <thead><tr>
+        <th class="a">Area</th>
+        <th class="b">Average hours per game</th>
+        <th class="n">Net-new</th><th class="n">Port</th>
+        <th class="n">Diff</th><th class="n">Ratio</th>
+      </tr></thead>
+      <tbody id="cmpRows"></tbody>
+      <tfoot id="cmpFoot"></tfoot>
+    </table>
+  </div>
+</div>
+<div id="cmpTip" role="tooltip" aria-hidden="true"></div>
+
+<footer>
+  Built from Jira by <span class="mono">netnew_page.py</span> · hours are Time Spent and
+  Remaining in raw seconds, rounded at output · rollup walks epic → children → subtasks,
+  never <span class="mono">aggregatetimespent</span>.
+</footer>
+
+<script id="payload" type="application/json">__DATA__</script>
+<script>
+(function(){
+  "use strict";
+  var RAW = JSON.parse(document.getElementById("payload").textContent);
+  var GAMES = RAW.meta.games, T = RAW.tickets;
+  var RATE = RAW.meta.rate;
+
+  function esc(s){
+    return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function fmt(n,d){ d=d==null?1:d; return n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}); }
+  function money(n){ return "$"+Math.round(n).toLocaleString("en-US"); }
+
+  /* ---------- net-new vs port ----------------------------------------
+     Deliberately independent of `state`: this card is always Full-game
+     scope and never filtered by the game/department selectors. Two of the
+     three net-new games carry no ELG fix version, so an ELG-scoped version
+     of this comparison would read as zero and look like a finding.
+
+     Remaining is zeroed on tickets whose status CATEGORY is Done -- a
+     Closed ticket's Remaining is a stale estimate, not work left to do.
+     Strike Forge Boost alone carries 153h of it.
+  ------------------------------------------------------------------- */
+  var CMP_AREAS = ["Concept","Creative","Sound","Math","Game Engine","Server",
+                   "Dev","Review","QA","Bugs"];
+
+  /* "[V]" is a Jira naming artefact, not part of the game's name. Stripped
+     for display only -- g.name stays the key the ticket rows index by. */
+  function gameLabel(g){ return g.name.replace(/\s*\[V\]\s*$/, ""); }
+
+  function cmpGames(){
+    var nn=[], pt=[];
+    GAMES.forEach(function(g){
+      if(g.cat==="New") nn.push(g);
+      else if(g.cat==="Port") pt.push(g);
+    });
+    return {nn:nn, pt:pt};
+  }
+
+  /* name -> area -> {s:spent, r:remaining} */
+  function cmpByGame(){
+    var by={};
+    GAMES.forEach(function(g){
+      if(g.cat!=="New" && g.cat!=="Port") return;
+      by[g.name]={};
+      CMP_AREAS.forEach(function(a){ by[g.name][a]={s:0,r:0}; });
+    });
+    /* A game marked complete in games.json has no work left by definition,
+       so none of its Remaining counts -- the five ports all sit "In QA" with
+       the epic delivered and stale Remaining still on open tickets. Only a
+       game NOT marked complete falls back to per-ticket status. */
+    var done = {};
+    GAMES.forEach(function(g){ done[g.name] = g.complete === true; });
+    T.forEach(function(t){
+      var g=by[t[0]]; if(!g) return;
+      // the skill's 10-area table folds Enhancement into Bugs; the rest of
+      // this page keeps it separate, so the fold is local to this card.
+      var d = t[4]==="Enhancement" ? "Bugs" : t[4];
+      if(!g[d]) return;                       // Release / CR: not a game area
+      g[d].s += t[8];
+      if(!done[t[0]] && !t[13]) g[d].r += t[12];
+    });
+    return by;
+  }
+
+  /* Forecast = spent + remaining. A delivered game has no remaining (see
+     COMPLETE in games.json), so for all but Strike Forge Boost this is
+     simply what the game cost -- which is why there is no measure toggle. */
+  function cmpVal(cell){ return cell.s + cell.r; }
+  function cmpAvg(games, by, area){
+    if(!games.length) return 0;
+    var tot=0;
+    games.forEach(function(g){ tot += cmpVal(by[g.name][area]); });
+    return tot/games.length;
+  }
+  function cmpTotal(games, by){
+    if(!games.length) return 0;
+    var tot=0;
+    games.forEach(function(g){
+      CMP_AREAS.forEach(function(a){ tot += cmpVal(by[g.name][a]); });
+    });
+    return tot/games.length;
+  }
+
+  /* Section 1: every game's own numbers, net-new beside ports, with the two
+     group-average columns the comparison below is built from. Shown so the
+     averages can be checked against the games they come from rather than
+     taken on trust. */
+  function drawPerGame(){
+    var gs=cmpGames(), by=cmpByGame(), nn=gs.nn, pt=gs.pt;
+    /* Each group is drawn as a box enclosing its games AND its Avg column.
+       b() builds the class list for one cell: the group's box colour, plus
+       the edges it happens to sit on. i is the index within the group,
+       n the group's game count; the Avg column is passed i === n. */
+    function b(grp, i, n, extra){
+      var c = [grp==="nn" ? "nnbox" : "ptbox"];
+      if(i===0) c.push("box-l");
+      if(i===n) c.push("box-r");
+      if(extra) c.push(extra);
+      return c.join(" ");
+    }
+    document.getElementById("pgPill").textContent = "Forecast";
+
+    function th(g, cls){
+      // Strike Forge Boost is still in flight; say so in its own column
+      // rather than only in the prose, where it is easy to miss.
+      return '<th class="'+(cls||"")+'" title="'+esc(g.name)+' — '+esc(g.epic)+'">'
+           + esc(gameLabel(g))
+           + (g.complete === false ? '<span class="wip">in progress</span>' : '')
+           + '</th>';
+    }
+    document.getElementById("pgHead").innerHTML =
+      '<tr><th class="a grp"></th>'
+      + '<th class="grp nn nnbox box-l box-t" colspan="'+nn.length+'">Net-new</th>'
+      + '<th class="grp nn avg nnbox box-r box-t">Avg</th>'
+      + '<th class="gap"></th>'
+      + '<th class="grp pt ptbox box-l box-t" colspan="'+pt.length+'">Ported from V2</th>'
+      + '<th class="grp pt avg ptbox box-r box-t">Avg</th></tr>'
+      + '<tr><th class="a">Area</th>'
+      + nn.map(function(g,i){ return th(g, b("nn",i,nn.length)); }).join("")
+      + '<th class="avg nn '+b("nn",nn.length,nn.length)+'">Net-new</th>'
+      + '<th class="gap"></th>'
+      + pt.map(function(g,i){ return th(g, b("pt",i,pt.length)); }).join("")
+      + '<th class="avg pt '+b("pt",pt.length,pt.length)+'">Port</th></tr>';
+
+    function cell(v, cls){
+      return '<td class="'+(cls||"")+(v>0?"":" zero")+'">'
+           + (v>0 ? fmt(v,0) : "·") + '</td>';
+    }
+    document.getElementById("pgRows").innerHTML = CMP_AREAS.map(function(a){
+      return '<tr><td class="a">'+esc(a)+'</td>'
+        + nn.map(function(g,i){ return cell(cmpVal(by[g.name][a]), b("nn",i,nn.length)); }).join("")
+        + cell(cmpAvg(nn,by,a), "avg nn "+b("nn",nn.length,nn.length))
+        + '<td class="gap"></td>'
+        + pt.map(function(g,i){ return cell(cmpVal(by[g.name][a]), b("pt",i,pt.length)); }).join("")
+        + cell(cmpAvg(pt,by,a), "avg pt "+b("pt",pt.length,pt.length))
+        + '</tr>';
+    }).join("");
+
+    function gameTotal(g){
+      var t=0; CMP_AREAS.forEach(function(a){ t+=cmpVal(by[g.name][a]); }); return t;
+    }
+    // % complete is spent over spent+remaining, whichever measure is on
+    // screen -- it describes the game, not the column.
+    function gamePct(g){
+      if(g.complete === true) return 100;
+      var s=0,r=0;
+      CMP_AREAS.forEach(function(a){ s+=by[g.name][a].s; r+=by[g.name][a].r; });
+      return (s+r)? s/(s+r)*100 : 0;
+    }
+    function groupPct(games){
+      if(!games.length) return 0;
+      var s=0,r=0;
+      games.forEach(function(g){
+        CMP_AREAS.forEach(function(a){ s+=by[g.name][a].s; r+=by[g.name][a].r; });
+      });
+      return (s+r)? s/(s+r)*100 : 0;
+    }
+    // the last foot row also closes the bottom of both boxes
+    function footRow(cls, label, cell, avg, last){
+      var tail = last ? " box-b" : "";
+      return '<tr class="'+cls+'"><td class="a">'+label+'</td>'
+        + nn.map(function(g,i){
+            return '<td class="'+b("nn",i,nn.length)+tail+'">'+cell(g)+'</td>'; }).join("")
+        + '<td class="avg nn '+b("nn",nn.length,nn.length)+tail+'">'+avg(nn)+'</td>'
+        + '<td class="gap"></td>'
+        + pt.map(function(g,i){
+            return '<td class="'+b("pt",i,pt.length)+tail+'">'+cell(g)+'</td>'; }).join("")
+        + '<td class="avg pt '+b("pt",pt.length,pt.length)+tail+'">'+avg(pt)+'</td></tr>';
+    }
+    document.getElementById("pgFoot").innerHTML =
+        footRow("tot", "Total",
+                function(g){ return fmt(gameTotal(g),0); },
+                function(gr){ return fmt(cmpTotal(gr,by),0); }, false)
+      + footRow("tot", "Cost",
+                function(g){ return money(gameTotal(g)*RATE); },
+                function(gr){ return money(cmpTotal(gr,by)*RATE); }, false)
+      + footRow("pct", "% complete",
+                function(g){ return fmt(gamePct(g),0)+"%"; },
+                function(gr){ return fmt(groupPct(gr),0)+"%"; }, true);
+
+    document.getElementById("pgNote").innerHTML =
+      'Hours per game, rounded. “·” is a genuine zero, not missing data. '
+      + 'Cost at $'+RATE.toFixed(2)+'/h.';
+  }
+
+  function drawCmp(){
+    drawPerGame();
+    var gs=cmpGames(), by=cmpByGame();
+    var nn=gs.nn, pt=gs.pt;
+    var metricLabel = "Forecast";
+    document.getElementById("cmpPill").textContent =
+      metricLabel+" · "+(nn.length+pt.length)+" games";
+    document.getElementById("cmpNnN").textContent = "n="+nn.length;
+    document.getElementById("cmpPtN").textContent = "n="+pt.length;
+
+
+    // one shared scale across both series, so bar length is comparable
+    var max=0;
+    CMP_AREAS.forEach(function(a){
+      max=Math.max(max, cmpAvg(nn,by,a), cmpAvg(pt,by,a));
+    });
+    // a zero value gets a genuinely zero-width mark: the CSS min-width that
+    // keeps small bars visible would otherwise paint a sliver at 0 and read
+    // as "a little", which is the opposite of what a 0 means here.
+    var w=function(v){ return max && v>0 ? Math.max((v/max)*100, 1.5) : 0; };
+    var bar=function(cls,v){
+      return '<div class="tr"><i class="'+cls+'" style="width:'+w(v).toFixed(1)+'%'
+           + (v>0?'':';min-width:0')+'"></i></div>';
+    };
+    // ±0 rather than a signed zero: "−0" on Sound (a 0.03h gap) read as a
+    // real deficit at 0dp when the two are in fact level.
+    var signed=function(v){
+      return Math.abs(v)<0.5 ? "±0"
+           : (v>0?"+":"−")+fmt(Math.abs(v),0);
+    };
+
+    document.getElementById("cmpRows").innerHTML = CMP_AREAS.map(function(a){
+      var x=cmpAvg(nn,by,a), y=cmpAvg(pt,by,a);
+      var ratio = y? x/y : null;
+      return '<tr data-dept="'+esc(a)+'" data-area="'+esc(a)+'" tabindex="0">'
+        + '<td class="a">'+esc(a)+'</td>'
+        + '<td class="b"><div class="pair">'+bar("nn",x)+bar("pt",y)+'</div></td>'
+        + '<td class="n">'+fmt(x,0)+'</td>'
+        + '<td class="n">'+fmt(y,0)+'</td>'
+        + '<td class="n sub">'+signed(x-y)+'</td>'
+        + '<td class="n sub">'+(ratio===null? "—" : fmt(ratio,2)+"×")+'</td>'
+        + '</tr>';
+    }).join("");
+
+    var tn=cmpTotal(nn,by), tp=cmpTotal(pt,by);
+    document.getElementById("cmpFoot").innerHTML =
+      '<tr><td class="a">Total</td><td class="b"></td>'
+      + '<td class="n">'+fmt(tn,0)+'</td><td class="n">'+fmt(tp,0)+'</td>'
+      + '<td class="n">'+signed(tn-tp)+'</td>'
+      + '<td class="n">'+(tp? fmt(tn/tp,2)+"×":"—")+'</td></tr>';
+
+    function s(l,v,colour){
+      return '<div><span class="l">'+esc(l)+'</span>'
+           + '<span class="v"'+(colour?' style="color:'+colour+'"':'')+'>'+v+'</span></div>';
+    }
+    document.getElementById("cmpTiles").innerHTML =
+        s("Net-new avg", fmt(tn,0)+'<small> h</small>', "var(--nn)")
+      + s("Port avg",    fmt(tp,0)+'<small> h</small>', "var(--pt)")
+      + s("Net-new cost", money(tn*RATE))
+      + s("Port cost",    money(tp*RATE))
+      + s("Net-new vs port", tp? fmt(tn/tp,2)+"×" : "—",
+          tp? (tn/tp>1.05? "var(--pt)" : tn/tp<0.95? "var(--nn)" : "var(--mid)") : null);
+
+
+    wireCmpRows(by, nn, pt);
+  }
+
+  function wireCmpRows(by, nn, pt){
+    var tip=document.getElementById("cmpTip");
+    function hide(){ tip.className=""; tip.setAttribute("aria-hidden","true"); }
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#cmpRows tr"), function(tr){
+      var a=tr.getAttribute("data-area");
+      function show(ev){
+        var x=cmpAvg(nn,by,a), y=cmpAvg(pt,by,a);
+        function part(games){
+          var s=0,r=0;
+          games.forEach(function(g){ s+=by[g.name][a].s; r+=by[g.name][a].r; });
+          return {s:s/(games.length||1), r:r/(games.length||1)};
+        }
+        var pn=part(nn), pp=part(pt);
+        tip.innerHTML='<b>'+esc(a)+'</b>'
+          + '<div class="r"><span><i style="background:var(--nn)"></i>Net-new</span>'
+          +   '<span>'+fmt(x,1)+' h</span></div>'
+          + '<div class="r"><span><i style="background:var(--pt)"></i>Ported</span>'
+          +   '<span>'+fmt(y,1)+' h</span></div>'
+          + '<div class="r" style="border-top:1px solid var(--border);padding-top:4px">'
+          +   '<span>Spent / remaining</span><span>'+fmt(pn.s,0)+'+'+fmt(pn.r,0)
+          +   ' vs '+fmt(pp.s,0)+'+'+fmt(pp.r,0)+'</span></div>';
+        tip.className="on"; tip.setAttribute("aria-hidden","false");
+        var pad=14, r=tip.getBoundingClientRect();
+        var left=Math.min(ev.clientX+pad, window.innerWidth-r.width-8);
+        var top=Math.min(ev.clientY+pad, window.innerHeight-r.height-8);
+        tip.style.left=Math.max(8,left)+"px"; tip.style.top=Math.max(8,top)+"px";
+      }
+      tr.addEventListener("mousemove", show);
+      tr.addEventListener("mouseleave", hide);
+      tr.addEventListener("focus", function(){ show({clientX:0,clientY:0}); });
+      tr.addEventListener("blur", hide);
+    });
+  }
+
+
+
+  drawCmp();
+})();
+</script>
+
+</body>
+</html>
