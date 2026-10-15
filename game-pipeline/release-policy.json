@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-10-13",
+  "updated_at": "2026-10-15",
   "updated_by": "PMO",
   "_readme": [
     "Which Jira fixVersions count as real release commitments.",
@@ -13,8 +13,6 @@
   "excluded": {
     "IG": [
       { "name": "PFH Services 3.00",      "reason": "Services workstream, not a game release train" },
-      { "name": "PFH Games 2.31",         "reason": "Interim-release patch bucket" },
-      { "name": "ELG 4.71",               "reason": "Patch release bucket (FS IR)" },
       { "name": "PFH Games 5.00",         "reason": "iFrame issue bucket - dated but not a delivery commitment" },
       { "name": "PFH Games 4.00",         "reason": "Gen2 change bucket, undated" },
       { "name": "PFH Games Backlog",      "reason": "Backlog container" },

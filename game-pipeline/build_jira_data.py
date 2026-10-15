@@ -1371,7 +1371,8 @@ ALERT_CLASS = {
 }
 
 
-def collect_alerts(feed: str, games: list, releases: list, today: date) -> list:
+def collect_alerts(feed: str, games: list, releases: list, today: date,
+                   jira_project: str) -> list:
     """Derive this feed's alerts from data already computed for the main feed.
 
     Each alert carries `key` (its stable identity) and `new_value` (the number or
@@ -1381,13 +1382,20 @@ def collect_alerts(feed: str, games: list, releases: list, today: date) -> list:
     out = []
     obs = today.isoformat()
 
-    def add(kind, severity, jira, game, message, subject, value, **extra):
+    def add(kind, severity, jira, game, message, subject, value, scope=None, **extra):
+        # A release train belongs to a Jira PROJECT, not to a feed, and two feeds
+        # can be built from the same project (ig and igf are both IG). Keying a
+        # release alert by feed therefore raises the same train move twice - the
+        # exact duplication this feed exists to prevent. Game-level alerts stay
+        # keyed by feed, because a game only ever lives in one.
+        owner = jira_project if scope == "project" else feed
         row = {"type": kind, "severity": severity, "feed": feed,
+               "jira_project": jira_project,
                "jira": jira, "game": game, "message": message,
                # Identity is deliberately readable rather than a hash: when this
                # shows up in someone's reporting tool it should be obvious what
                # it refers to without a lookup.
-               "key": f"{kind}:{feed}:{subject}",
+               "key": f"{kind}:{owner}:{subject}",
                "new_value": value}
         row.update(extra)
         out.append(row)
@@ -1404,7 +1412,7 @@ def collect_alerts(feed: str, games: list, releases: list, today: date) -> list:
             if rev.get("kind") == "released":
                 add("release_shipped", "info", None, None,
                     f"{r['name']} released ({rev.get('to')})",
-                    subject=r["name"], value=rev.get("to"),
+                    subject=r["name"], value=rev.get("to"), scope="project",
                     fv=r["name"], released_on=rev.get("to"))
                 continue
             if rev.get("kind") != "moved":
@@ -1419,7 +1427,7 @@ def collect_alerts(feed: str, games: list, releases: list, today: date) -> list:
                 "medium" if (slip or 0) > 0 else "info",
                 None, None,
                 f"{r['name']} {direction} {abs(slip or 0)}d: {rev.get('from')} -> {rev.get('to')}",
-                subject=r["name"], value=rev.get("to"),
+                subject=r["name"], value=rev.get("to"), scope="project",
                 fv=r["name"], date_from=rev.get("from"), date_to=rev.get("to"),
                 slip_days=slip)
 
@@ -1521,6 +1529,10 @@ def reconcile_alerts(alerts: list, state: dict, now_iso: str, today: date) -> li
         # this safe to run twice over the same input (tests, dry runs, retries).
         a = {k: v for k, v in src.items() if k != "key"}
         key = src["key"]
+        if key in seen:
+            # Same identity already reported by an earlier feed in this build
+            # (a release train shared by two feeds of one Jira project).
+            continue
         new_value = a.get("new_value")
         prior = open_now.get(key)
         seen.add(key)
@@ -1921,7 +1933,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         print(f"   {OK} wrote {out.name}  ·  snapshot {snap.relative_to(ROOT)}  ·  history {n_moves} date-move(s) / {n_scope} scope-change(s)")
         print(f"   {OK} release history: {len(releases)} version(s), {n_moved} date move(s) today")
         print(f"   {OK} policy {n_excl} fixVersion tag(s) excluded  ·  {n_late} game(s) late vs commitment  ·  forecast on {n_fc} game(s)")
-        all_alerts.extend(collect_alerts(proj_key, payload["games"], releases, today))
+        all_alerts.extend(collect_alerts(proj_key, payload["games"], releases, today,
+                                         PROJECTS[proj_key]["key"]))
         print_summary(proj_key, payload)
 
     # Only rewrite alerts.json when every requested feed built; a partial run
