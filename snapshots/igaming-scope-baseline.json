@@ -1852,6 +1852,13 @@
       "IG-7233": 1.0
     }
   },
+  "PFH Games 2.50": {
+    "date": "2026-10-15",
+    "orig_hours_by_key": {
+      "IG-8408": 4.0,
+      "IG-8410": 4.0
+    }
+  },
   "PFH Games 3.00": {
     "date": "2026-07-10",
     "orig_hours_by_key": {
