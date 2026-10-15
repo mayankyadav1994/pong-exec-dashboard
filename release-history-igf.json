@@ -91,10 +91,18 @@
    "name": "Horse Play 2.00",
    "first_seen": "2026-08-26",
    "original_date": "2026-09-30",
-   "current_date": "2026-09-30",
+   "current_date": "2026-10-30",
    "released": false,
    "released_on": null,
-   "revisions": []
+   "revisions": [
+    {
+     "observed": "2026-10-15",
+     "from": "2026-09-30",
+     "to": "2026-10-30",
+     "kind": "moved",
+     "slip_days": 30
+    }
+   ]
   },
   "New Features - iGaming": {
    "name": "New Features - iGaming",
@@ -127,7 +135,7 @@
    "name": "PFH Games 3.00",
    "first_seen": "2026-08-26",
    "original_date": "2026-10-15",
-   "current_date": "2026-10-15",
+   "current_date": "2026-11-15",
    "released": false,
    "released_on": null,
    "revisions": [
@@ -136,6 +144,13 @@
      "from": null,
      "to": "2026-10-15",
      "kind": "planned"
+    },
+    {
+     "observed": "2026-10-15",
+     "from": "2026-10-15",
+     "to": "2026-11-15",
+     "kind": "moved",
+     "slip_days": 31
     }
    ]
   },
