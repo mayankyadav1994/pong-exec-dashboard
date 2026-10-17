@@ -187,6 +187,15 @@
    "released": false,
    "released_on": null,
    "revisions": []
+  },
+  "PFH Services 3.00": {
+   "name": "PFH Services 3.00",
+   "first_seen": "2026-10-17",
+   "original_date": "2026-08-31",
+   "current_date": "2026-08-31",
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-08-26",
