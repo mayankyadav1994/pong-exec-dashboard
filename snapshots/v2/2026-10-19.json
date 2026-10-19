@@ -25,8 +25,8 @@
       "lab1End": "2027-01-04",
       "pilotEnd": "2027-01-18",
       "finalEnd": "2027-02-16",
-      "totalEstH": 1005,
-      "spentH": 771
+      "totalEstH": 1026,
+      "spentH": 778
     },
     "V2 PT 14.00": {
       "devEnd": "2026-11-18",
@@ -38,17 +38,17 @@
       "spentH": 876
     },
     "New Games": {
-      "devEnd": "2031-04-17",
-      "qaEnd": "2031-05-01",
+      "devEnd": "2031-04-16",
+      "qaEnd": "2031-04-30",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 22450,
-      "spentH": 11811
+      "spentH": 11821
     },
     "V2 C2 Backlog": {
-      "devEnd": "2031-04-17",
-      "qaEnd": "2031-05-01",
+      "devEnd": "2031-04-16",
+      "qaEnd": "2031-04-30",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
