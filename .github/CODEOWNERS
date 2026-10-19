@@ -1,0 +1,11 @@
+# CODEOWNERS — https://docs.github.com/articles/about-code-owners
+#
+# GitHub reads this file to decide who to auto-request as reviewer on every
+# pull request. Combined with the "Require review from Code Owners" toggle on
+# the main-branch protection rule, it also blocks merge until the owner approves.
+#
+# Pattern syntax follows .gitignore. Last matching rule for a given path wins,
+# so place more specific patterns BELOW the catch-all.
+
+# Catch-all — every PR requests @mayankyadav1994 as reviewer by default.
+*   @mayankyadav1994
