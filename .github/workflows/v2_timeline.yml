@@ -35,7 +35,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use the PUSH_PAT (fine-grained PAT scoped to this repo, Contents:
+          # read+write, owned by @mayankyadav1994) rather than the default
+          # GITHUB_TOKEN so the eventual `git push` happens as that user —
+          # the bypass actor on the main-branch ruleset. The github-actions
+          # bot identity backing GITHUB_TOKEN can't push directly to main
+          # under the current rule.
+          token: ${{ secrets.PUSH_PAT }}
           persist-credentials: true
 
       - name: Set up Python
@@ -89,5 +95,3 @@ jobs:
           # other unstaged modifications a future build step might introduce.
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

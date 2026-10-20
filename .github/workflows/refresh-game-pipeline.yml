@@ -42,7 +42,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }   # full history so the rebase-safe push below can rebase
+        # PUSH_PAT = @mayankyadav1994's fine-grained PAT; bypass actor on the
+        # main-branch ruleset. The default GITHUB_TOKEN is bound to the
+        # github-actions bot identity which the ruleset refuses.
+        with: { fetch-depth: 0, token: '${{ secrets.PUSH_PAT }}' }
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: pip install -r game-pipeline/requirements.txt

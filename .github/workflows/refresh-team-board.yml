@@ -16,6 +16,11 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Push identity = @mayankyadav1994 (bypass actor on the main-branch
+          # ruleset). git-auto-commit-action below uses the credentials
+          # actions/checkout configured, so this covers both.
+          token: ${{ secrets.PUSH_PAT }}
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: pip install -r requirements.txt
