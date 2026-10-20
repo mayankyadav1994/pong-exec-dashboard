@@ -550,20 +550,45 @@ def classify_status_label(dev_people, qa_round=None):
     """Auto-derive FV status label from the *majority* of open task statuses.
 
     Rules (50% threshold, inclusive — see docs/V2_TIMELINE_EDGE_CASES.md §16):
-      • Release-ticket signal (qa_round set)        → In QA · R<n>   (NEW)
-      • ≥50% of open tickets in QA-like status     → In QA      (devStart=null)
-      • ≥50% of open tickets in "New" status        → Scheduled (devStart=today)
+      • Release-ticket signal (qa_round set) + estimated dev work remaining
+                                                     → In QA · R<n>  (devStart=today)
+      • Release-ticket signal (qa_round set), no estimated dev remaining
+                                                     → In QA · R<n>  (devStart=null)
+      • ≥50% of open tickets in QA-like status + estimated dev work remaining
+                                                     → In QA         (devStart=today)
+      • ≥50% of open tickets in QA-like status, no estimated dev remaining
+                                                     → In QA         (devStart=null)
+      • ≥50% of open tickets in "New" status         → Scheduled     (devStart=today)
       • otherwise                                    → In Development
 
-    The Release-ticket signal beats every count-based rule — when a release
-    round is in flight, the build is in QA regardless of how many `Ready` or
-    `In Progress` stragglers still sit on the dev side.
+    The Release-ticket signal picks the LABEL (so "In QA · R1" still reads
+    correctly on the pill), but it no longer blanket-nulls devStart: if there
+    are open dev tickets with any remaining-hour estimate, the dev bar keeps
+    extending to the projected devEnd. Previously the Release override would
+    paint the whole row green ("DEV COMPLETE") the moment the Release ticket
+    moved into QA, even when 20 dev tickets were still open — that was the
+    bug: QA started early but dev wasn't actually done.
+
+    Zero-estimate tickets are treated as admin / unestimated placeholders and
+    don't block the "dev complete" state — same conservative definition the
+    rest of the pipeline uses for "real work left".
 
     QA check runs before New, so a hypothetical 50/50 QA/New tie lands on
     "In QA" — defensible because QA is the later phase.
     """
+    # Honest "is any real dev work still remaining?" signal, shared by the two
+    # QA branches below. Hours > 0 filters out zero-estimate placeholders.
+    open_dev_hours = sum(
+        t["hours"]
+        for p in dev_people
+        for t in p["tasks"]
+        if not is_done(t["status"]) and (t.get("hours") or 0) > 0
+    )
+    dev_still_running = open_dev_hours > 0
+
     if qa_round:
-        return (f"In QA · {qa_round}", None)
+        return (f"In QA · {qa_round}",
+                TODAY.isoformat() if dev_still_running else None)
     open_tasks = [t for p in dev_people for t in p["tasks"] if not is_done(t["status"])]
     if not open_tasks:
         return ("In QA", None)
@@ -574,7 +599,8 @@ def classify_status_label(dev_people, qa_round=None):
     n_new   = sum(1 for t in open_tasks if t["status"] == "New")
 
     if n_qa  / n_total >= 0.5:
-        return ("In QA", None)
+        return ("In QA",
+                TODAY.isoformat() if dev_still_running else None)
     if n_new / n_total >= 0.5:
         return ("Scheduled", TODAY.isoformat())
     return ("In Development", TODAY.isoformat())
