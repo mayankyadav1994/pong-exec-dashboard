@@ -1,6 +1,5 @@
 {
   "fv_order": [
-    "G2E Show Prep 2026",
     "V2 SW 16.10",
     "V2 C2 5.20",
     "V2 P2P 16.00",
@@ -55,7 +54,7 @@
     "V2 PT 14.00": {
       "color": "#f87171",
       "sub": "Ohio Central Server · Location Server · Pull Tab Print",
-      "qaWeeks": 3,
+      "qaWeeks": 4,
       "isLab": true,
       "lab1Weeks": 4,
       "pilotWeeks": 2,
@@ -63,7 +62,8 @@
       "salesTrip": {
         "tbd": true,
         "label": "Sales Trip · Ohio"
-      }
+      },
+      "target_date": "2027-02-25"
     },
     "V2 C2 5.10": {
       "color": "#a78bfa",
@@ -83,7 +83,6 @@
   },
   "hidden_fvs": [
     "Dev Test",
-    "G2E Show Prep 2026",
     "New Games",
     "V2 C2 Backlog",
     "V2 P2P Backlog",
@@ -102,7 +101,7 @@
     "2027-02-15"
   ],
   "_meta": {
-    "published_at": "2026-10-05T19:53:53.493Z",
+    "published_at": "2026-10-20T15:49:15.831Z",
     "published_by": "mayankyadav1994"
   }
 }
