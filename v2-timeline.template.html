@@ -819,18 +819,29 @@ function phasePct(fv, devEnd, qaEnd){
 }
 
 // ─── Dynamic QA-end (scale-based on actual progress) ─────────────────────
-// When fv.qaProgress is set, the QA bar's right edge slides based on real
-// burn rate rather than the static qaWeeks window. Formula:
+// When fv.qaProgress is set AND dev is already complete (devEnd <= TODAY),
+// the QA bar's right edge slides based on real burn rate rather than the
+// static qaWeeks window. Formula:
 //   remaining_qa_hours = (1 - progress%) × qaWeeks × 5d × 8h
 //   qaEnd = TODAY + remaining_qa_hours (in working days)
 // At 0% (just entered QA): qaEnd = TODAY + qaWeeks*5d (same as static).
 // At 50%: qaEnd = TODAY + qaWeeks*2.5d (half the planned window left).
 // At 100%: qaEnd = TODAY (basically done).
+//
+// If dev is still running (devEnd > TODAY — e.g. R1 is 79% through QA but
+// there's a batch of new dev tickets still being burned down), fall back
+// to the static qaWeeks formula anchored on devEnd. The dynamic burn-down
+// only makes sense when the thing being QA'd is itself done; while dev is
+// still landing changes, we assume a full QA cycle after dev completes.
+// This also keeps the QA bar visible — anchoring qaEnd to TODAY when
+// devEnd is in the future collapses the QA bar to a 1-pixel sliver.
+//
 // Falls through to the static calc when fv.qaProgress is missing.
 function calcQaEnd(fv, devEnd){
   const planHours = (fv.qaWeeks || 0) * 5 * 8;
   if(planHours <= 0) return devEnd;
-  if(fv.qaProgress && typeof fv.qaProgress.progress === 'number' && fv.qaProgress.progress >= 0){
+  const devStillRunning = devEnd && new Date(devEnd) > TODAY;
+  if(!devStillRunning && fv.qaProgress && typeof fv.qaProgress.progress === 'number' && fv.qaProgress.progress >= 0){
     const remainPct = Math.max(0, 100 - fv.qaProgress.progress);
     const remainHours = planHours * (remainPct / 100);
     return addWD(TODAY, remainHours, 8);
