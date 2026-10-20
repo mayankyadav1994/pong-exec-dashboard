@@ -164,7 +164,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
    and stays visible wherever the chart is scrolled horizontally. */
 .bar-dev {background:var(--dev);border-color:#1d4ed8;color:#fff;top:8px;justify-content:flex-end}
 .bar-qa  {background:var(--qa); border-color:#b45309; color:#fff;top:8px}
-.bar-live{background:var(--done);border-color:#15803d;color:#fff;top:8px}
+/* bar-live (In-QA FVs, devStart=null) uses the same right-align so the
+   "Dev complete · <date>" label hugs today's edge and stays visible. */
+.bar-live{background:var(--done);border-color:#15803d;color:#fff;top:8px;justify-content:flex-end}
 
 /* Lab / regulatory phase bars (same row as Dev/QA — sequential) */
 .bar-lab1  {background:#ea580c;border-color:#c2410c;color:#fff;top:8px}
@@ -172,14 +174,14 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .bar-lab2  {background:#dc2626;border-color:#991b1b;color:#fff;top:8px}
 
 /* Scope-added markers — one triangle per unique day scope grew on this FV.
-   Powered by fv.scopeDelta.addedByDate[]. Count chip above the triangle,
-   popover (click-to-pin) below shows the ticket list. Markers overlay the
-   dev bar top edge so they read against the row background. */
-.scope-marker{position:absolute;top:1px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid #b45309;cursor:pointer;z-index:6;transform:translateX(-5px);transition:transform .12s,filter .12s;pointer-events:auto}
-.scope-marker::before{content:'';position:absolute;top:-8px;left:-6px;right:-6px;height:14px}
+   Powered by fv.scopeDelta.addedByDate[]. Triangles sit ABOVE the dev bar
+   pointing DOWN into it, so they read as pointers rather than random upward
+   spikes. Count chip above the triangle, popover (click-to-pin) below. */
+.scope-marker{position:absolute;top:0;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid #b45309;cursor:pointer;z-index:6;transform:translateX(-5px);transition:transform .12s,filter .12s;pointer-events:auto}
+.scope-marker::before{content:'';position:absolute;top:-2px;left:-6px;right:-6px;height:14px}
 .scope-marker:hover,.scope-marker.active{transform:translateX(-5px) scale(1.35);filter:drop-shadow(0 0 4px rgba(180,83,9,.45))}
 .scope-marker-stem{position:absolute;top:9px;height:22px;width:1.5px;background:#b45309;opacity:.55;z-index:5;pointer-events:none;transform:translateX(-0.5px)}
-.scope-marker-count{position:absolute;top:-6px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:#b45309;background:var(--bg);padding:0 3px;border-radius:2px;line-height:1;pointer-events:none;white-space:nowrap;z-index:6}
+.scope-marker-count{position:absolute;top:-9px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:#b45309;background:var(--bg);padding:0 3px;border-radius:2px;line-height:1;pointer-events:none;white-space:nowrap;z-index:6}
 .scope-pop{position:absolute;top:38px;background:var(--surface);border:1px solid #b45309;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:10px 12px;min-width:260px;max-width:380px;z-index:30;display:none;font-size:11.5px}
 .scope-pop.open{display:block}
 .scope-pop-head{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#b45309;font-weight:700;letter-spacing:.4px;margin-bottom:5px;text-transform:uppercase}
@@ -739,7 +741,12 @@ function stCls(s){return({'To Do':'s-todo','In Progress':'s-prog','Ready':'s-rdy
 // two-tone gradient: past = darker, future = lighter.
 function devBarStyle(fv, devEnd){
   if(!fv.devStart){
-    return {left:0, width:+pct(TODAY), bg:'', label:'DEV COMPLETE', cls:'bar bar-live'};
+    // In-QA (or later) FVs — dev is already done. Show the actual completion
+    // date when we have one so the bar reads unambiguously; without a date,
+    // "Dev complete" sentence-case so a glance can't confuse it with a month
+    // abbreviation ("DEC complete") like the all-caps version did.
+    const label = devEnd ? `Dev complete · ${fmtD(devEnd)}` : 'Dev complete';
+    return {left:0, width:+pct(TODAY), bg:'', label, cls:'bar bar-live'};
   }
   const allDevT = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
   const spent = allDevT.reduce((s,t)=>s+(t.spentH||0),0);
