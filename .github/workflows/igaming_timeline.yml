@@ -39,7 +39,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Push identity = @mayankyadav1994 (bypass actor on the main-branch
+          # ruleset). See v2_timeline.yml for the full rationale.
+          token: ${{ secrets.PUSH_PAT }}
           persist-credentials: true
 
       - name: Set up Python
@@ -88,5 +90,3 @@ jobs:
           # other unstaged modifications a future build step might introduce.
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
