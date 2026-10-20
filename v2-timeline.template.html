@@ -160,7 +160,9 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(185,28,28,.5);pointer-events:none;z-index:3}
 
 .bar{position:absolute;height:22px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;border:1px solid;pointer-events:none;transition:left .3s,width .3s}
-.bar-dev {background:var(--dev);border-color:#1d4ed8;color:#fff;top:8px}
+/* bar-dev text is right-aligned so "Dev complete · <date>" hugs the QA edge
+   and stays visible wherever the chart is scrolled horizontally. */
+.bar-dev {background:var(--dev);border-color:#1d4ed8;color:#fff;top:8px;justify-content:flex-end}
 .bar-qa  {background:var(--qa); border-color:#b45309; color:#fff;top:8px}
 .bar-live{background:var(--done);border-color:#15803d;color:#fff;top:8px}
 
@@ -168,6 +170,27 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .bar-lab1  {background:#ea580c;border-color:#c2410c;color:#fff;top:8px}
 .bar-pilot {background:#db2777;border-color:#9d174d;color:#fff;top:8px}
 .bar-lab2  {background:#dc2626;border-color:#991b1b;color:#fff;top:8px}
+
+/* Scope-added markers — one triangle per unique day scope grew on this FV.
+   Powered by fv.scopeDelta.addedByDate[]. Count chip above the triangle,
+   popover (click-to-pin) below shows the ticket list. Markers overlay the
+   dev bar top edge so they read against the row background. */
+.scope-marker{position:absolute;top:1px;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:8px solid #b45309;cursor:pointer;z-index:6;transform:translateX(-5px);transition:transform .12s,filter .12s;pointer-events:auto}
+.scope-marker::before{content:'';position:absolute;top:-8px;left:-6px;right:-6px;height:14px}
+.scope-marker:hover,.scope-marker.active{transform:translateX(-5px) scale(1.35);filter:drop-shadow(0 0 4px rgba(180,83,9,.45))}
+.scope-marker-stem{position:absolute;top:9px;height:22px;width:1.5px;background:#b45309;opacity:.55;z-index:5;pointer-events:none;transform:translateX(-0.5px)}
+.scope-marker-count{position:absolute;top:-6px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:#b45309;background:var(--bg);padding:0 3px;border-radius:2px;line-height:1;pointer-events:none;white-space:nowrap;z-index:6}
+.scope-pop{position:absolute;top:38px;background:var(--surface);border:1px solid #b45309;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:10px 12px;min-width:260px;max-width:380px;z-index:30;display:none;font-size:11.5px}
+.scope-pop.open{display:block}
+.scope-pop-head{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#b45309;font-weight:700;letter-spacing:.4px;margin-bottom:5px;text-transform:uppercase}
+.scope-pop-stats{font-size:11px;color:var(--muted);margin-bottom:8px}
+.scope-pop-stats b{color:var(--text);font-weight:600}
+.scope-pop-list{max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:6px;display:flex;flex-direction:column;gap:3px}
+.scope-pop-row{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.scope-pop-row a{color:#2563eb;text-decoration:none}
+.scope-pop-row a:hover{text-decoration:underline}
+.scope-pop-row .scope-pop-sum{color:var(--text);font-family:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scope-pop-row .scope-pop-h{color:var(--muted);font-weight:600}
 
 /* Ghost bars — dashed-outline overlays showing where Dev / QA / Lab phases
    were projected to end ~7 days ago. Hidden until SNAPSHOTS has at least one
@@ -750,7 +773,10 @@ function devBarStyle(fv, devEnd){
     left: l,
     width: Math.max(w, .3),
     bg,
-    label: w > 3 ? (fv.isScenario ? `⚡ ${fmtD(devEnd)}` : `Dev → ${fmtD(devEnd)}`) : '',
+    // Label right-aligned via .bar-dev CSS so the dev-end date hugs the QA
+    // bar start — the actionable info stays on-screen even when the chart
+    // is scrolled past the bar's left edge.
+    label: w > 3 ? (fv.isScenario ? `⚡ ${fmtD(devEnd)}` : `Dev complete · ${fmtD(devEnd)}`) : '',
     cls: `bar ${fv.isScenario ? 'bar-scenario' : 'bar-dev'}`
   };
 }
@@ -1803,6 +1829,68 @@ ordered.forEach((fv,idx)=>{
   db.style.cssText = `left:${dbs.left}%;width:${dbs.width}%;` + (dbs.bg ? `background:${dbs.bg};` : '');
   db.textContent = dbs.label;
   barEls[`devbar-${idx}`]=db;track.appendChild(db);
+
+  // ── Scope-added markers ──
+  // One triangle per unique day scope grew. Source: fv.scopeDelta.addedByDate[]
+  // emitted by compute_scope_delta in v2_timeline.py. Markers clamp to the
+  // visible chart window so a ticket created pre-chart-start pins at the left
+  // edge rather than overflowing off the track.
+  const addedByDate = (effectiveFv.scopeDelta && effectiveFv.scopeDelta.addedByDate) || [];
+  if(addedByDate.length){
+    addedByDate.forEach((batch, bIdx) => {
+      let addedAt;
+      try { addedAt = D(batch.date); } catch(e){ return; }
+      if(!addedAt || isNaN(addedAt.getTime())) return;
+      // Clamp into [chart_start, dev_end] so markers always sit on the dev bar.
+      let anchor = addedAt;
+      if(anchor < CHART_START) anchor = CHART_START;
+      if(devEnd && anchor > devEnd) anchor = devEnd;
+      const x = +pct(anchor);
+      const stem = document.createElement('div');
+      stem.className = 'scope-marker-stem';
+      stem.style.left = x + '%';
+      track.appendChild(stem);
+      const chip = document.createElement('div');
+      chip.className = 'scope-marker-count';
+      chip.style.left = x + '%';
+      chip.textContent = `+${batch.tickets.length}`;
+      track.appendChild(chip);
+      const mk = document.createElement('div');
+      mk.className = 'scope-marker';
+      mk.style.left = x + '%';
+      mk.dataset.idx = idx;
+      mk.dataset.bidx = bIdx;
+      mk.title = `${batch.date} · +${batch.tickets.length} ticket${batch.tickets.length>1?'s':''} · +${batch.hours}h`;
+      track.appendChild(mk);
+      // Popover — clamp to the right so wide batches don't overflow the chart.
+      const pop = document.createElement('div');
+      pop.className = 'scope-pop';
+      pop.dataset.popIdx = idx;
+      pop.dataset.popBidx = bIdx;
+      if(x > 70) pop.style.right = (100 - x + 0.5) + '%';
+      else       pop.style.left  = (x + 0.5) + '%';
+      const rows = batch.tickets.map(t => {
+        const sumEsc = String(t.summary||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+        return `<div class="scope-pop-row">`
+             + `<a href="${BASE}${t.key}" target="_blank" onclick="event.stopPropagation()">${t.key}</a>`
+             + `<span class="scope-pop-sum" title="${sumEsc}">${sumEsc}</span>`
+             + `<span class="scope-pop-h">${t.hours ? '+' + t.hours + 'h' : '—'}</span>`
+             + `</div>`;
+      }).join('');
+      pop.innerHTML = `<div class="scope-pop-head">📈 Scope added · ${batch.date}</div>`
+                    + `<div class="scope-pop-stats"><b>${batch.tickets.length} ticket${batch.tickets.length>1?'s':''}</b> · <b>+${batch.hours}h</b></div>`
+                    + `<div class="scope-pop-list">${rows}</div>`;
+      track.appendChild(pop);
+      mk.addEventListener('click', e => {
+        e.stopPropagation();
+        const already = pop.classList.contains('open');
+        // Close all other scope popovers across the chart (one open at a time)
+        document.querySelectorAll('.scope-pop.open').forEach(p => p.classList.remove('open'));
+        document.querySelectorAll('.scope-marker.active').forEach(x => x.classList.remove('active'));
+        if(!already){ pop.classList.add('open'); mk.classList.add('active'); }
+      });
+    });
+  }
 
   // QA bar (skip for zero-QA scenarios)
   const qb=document.createElement('div');qb.id=`qabar-${idx}`;qb.className='bar bar-qa';
@@ -3261,6 +3349,13 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && document.getElementById('spModalOverlay').classList.contains('open')){
     closeModal();
   }
+});
+// Scope-marker popovers: close any open one on an outside click. The marker's
+// own click handler stops propagation, so clicking a different marker toggles
+// cleanly without racing this.
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.scope-pop.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.scope-marker.active').forEach(m => m.classList.remove('active'));
 });
 </script>
 </body>
