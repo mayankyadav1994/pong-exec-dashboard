@@ -496,7 +496,11 @@ def fetch_fv_tasks(fv_name, types):
         f'ORDER BY assignee ASC'
     )
     fields = ["summary", "status", "issuetype", "assignee",
-              "timeestimate", "timeoriginalestimate", "timespent", "parent"]
+              "timeestimate", "timeoriginalestimate", "timespent", "parent",
+              # `created` powers the scope-added markers on the dev timeline:
+              # compute_scope_delta uses it to pin each added ticket to the day
+              # scope grew, so the chart can show when batches landed.
+              "created"]
     return jira_jql(jql, fields)
 
 
@@ -527,6 +531,9 @@ def group_by_assignee(issues, fv_name):
             "origH":   orig_h,
             "spentH":  spent_h,
             "status":  status,
+            # ISO timestamp; _ticket_created_date trims to YYYY-MM-DD when
+            # the scope-delta pass pins each added ticket to a chart marker.
+            "created": fields.get("created"),
         }
         if status == "In Progress" and hours == 0:
             print(f"  ⚠ {fv_name} :: {task['key']} ({name}) — In Progress with 0h estimate")
@@ -977,10 +984,27 @@ def _fv_task_lookup(fv):
     return out
 
 
+def _ticket_created_date(ticket):
+    """Return YYYY-MM-DD for the ticket's Jira `created` field, or None.
+    Jira returns ISO 8601 like "2026-07-10T14:32:11.123+0000"; we only want
+    the day. Falls back to the raw string's leading 10 chars if parsing fails."""
+    if not ticket:
+        return None
+    created = ticket.get("created")
+    if not created:
+        return None
+    return str(created)[:10] or None
+
+
 def compute_scope_delta(fv, baseline_entry):
     """Diff current vs baseline for one FV. Returns None when there's
     nothing meaningful to report (all zero counts). `baseline_entry` is the
-    dict for this FV inside the baseline JSON — {date, orig_hours_by_key}."""
+    dict for this FV inside the baseline JSON — {date, orig_hours_by_key}.
+
+    For every added ticket we also attach `addedAt` — the later of its Jira
+    `created` date and the baseline date — and emit `addedByDate` grouping
+    those tickets by day. That powers the scope-added markers on the dev
+    timeline (one marker per unique day scope grew)."""
     if not baseline_entry:
         return None
     baseline_hours = baseline_entry.get("orig_hours_by_key") or {}
@@ -991,10 +1015,18 @@ def compute_scope_delta(fv, baseline_entry):
     added, resized, removed = [], [], []
     for key, cur_h in current.items():
         if key not in baseline_hours:
+            ticket = lookup.get(key) or {}
+            # addedAt = later of (ticket created, baseline date). Tickets that
+            # existed before baseline but joined this FV later still appear as
+            # "added" to this release; use baselineDate as the floor so markers
+            # never sit before the comparison starts.
+            created = _ticket_created_date(ticket)
+            added_at = max(baseline_date, created) if created else baseline_date
             added.append({
                 "key":     key,
-                "summary": (lookup.get(key) or {}).get("summary") or "",
+                "summary": ticket.get("summary") or "",
                 "hours":   round(cur_h, 1),
+                "addedAt": added_at,
             })
         else:
             delta = cur_h - baseline_hours[key]
@@ -1015,6 +1047,23 @@ def compute_scope_delta(fv, baseline_entry):
     removed_h = round(sum(r["hours"] for r in removed), 1)
     if not added and not resized and not removed:
         return None
+
+    # Group added tickets by addedAt date for the chart markers. Each entry is
+    # one triangle on the dev bar; the template pops a list on click.
+    by_date = {}
+    for t in added:
+        d = t.get("addedAt") or baseline_date
+        bucket = by_date.setdefault(d, {"date": d, "hours": 0.0, "tickets": []})
+        bucket["hours"] += t["hours"]
+        bucket["tickets"].append({
+            "key":     t["key"],
+            "summary": t["summary"],
+            "hours":   t["hours"],
+        })
+    added_by_date = sorted(by_date.values(), key=lambda b: b["date"])
+    for b in added_by_date:
+        b["hours"] = round(b["hours"], 1)
+
     return {
         "baselineDate":     baseline_date,
         "addedHours":       added_h,
@@ -1024,6 +1073,7 @@ def compute_scope_delta(fv, baseline_entry):
         "addedTickets":     added,
         "resizedTickets":   resized,
         "removedTickets":   removed,
+        "addedByDate":      added_by_date,
     }
 
 
