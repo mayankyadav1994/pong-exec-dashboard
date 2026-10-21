@@ -531,7 +531,7 @@
    "name": "PFH Games 5.00",
    "first_seen": "2026-08-28",
    "original_date": "2026-11-25",
-   "current_date": "2026-11-25",
+   "current_date": "2027-02-28",
    "released": false,
    "released_on": null,
    "revisions": [
@@ -540,6 +540,13 @@
      "from": null,
      "to": "2026-11-25",
      "kind": "planned"
+    },
+    {
+     "observed": "2026-10-21",
+     "from": "2026-11-25",
+     "to": "2027-02-28",
+     "kind": "moved",
+     "slip_days": 95
     }
    ]
   },
@@ -611,10 +618,23 @@
    "name": "PFH Games 2.50",
    "first_seen": "2026-10-14",
    "original_date": "2026-10-20",
-   "current_date": "2026-10-20",
-   "released": false,
-   "released_on": null,
-   "revisions": []
+   "current_date": "2026-10-19",
+   "released": true,
+   "released_on": "2026-10-19",
+   "revisions": [
+    {
+     "observed": "2026-10-21",
+     "from": "2026-10-20",
+     "to": "2026-10-19",
+     "kind": "moved",
+     "slip_days": -1
+    },
+    {
+     "observed": "2026-10-21",
+     "to": "2026-10-19",
+     "kind": "released"
+    }
+   ]
   },
   "ELG 5.30": {
    "name": "ELG 5.30",
@@ -648,6 +668,33 @@
    "first_seen": "2026-10-17",
    "original_date": "2026-08-31",
    "current_date": "2026-08-31",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 5.21": {
+   "name": "ELG 5.21",
+   "first_seen": "2026-10-21",
+   "original_date": "2026-10-20",
+   "current_date": "2026-10-20",
+   "released": true,
+   "released_on": "2026-10-20",
+   "revisions": []
+  },
+  "PFH Games 2.80": {
+   "name": "PFH Games 2.80",
+   "first_seen": "2026-10-21",
+   "original_date": "2026-11-10",
+   "current_date": "2026-11-10",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 4.00": {
+   "name": "PFH Games 4.00",
+   "first_seen": "2026-10-21",
+   "original_date": "2026-12-31",
+   "current_date": "2026-12-31",
    "released": false,
    "released_on": null,
    "revisions": []

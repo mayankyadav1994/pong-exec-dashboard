@@ -167,7 +167,7 @@
    "name": "PFH Games 5.00",
    "first_seen": "2026-08-28",
    "original_date": "2026-11-25",
-   "current_date": "2026-11-25",
+   "current_date": "2027-02-28",
    "released": false,
    "released_on": null,
    "revisions": [
@@ -176,6 +176,13 @@
      "from": null,
      "to": "2026-11-25",
      "kind": "planned"
+    },
+    {
+     "observed": "2026-10-21",
+     "from": "2026-11-25",
+     "to": "2027-02-28",
+     "kind": "moved",
+     "slip_days": 95
     }
    ]
   },
@@ -193,6 +200,15 @@
    "first_seen": "2026-10-17",
    "original_date": "2026-08-31",
    "current_date": "2026-08-31",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH Games 4.00": {
+   "name": "PFH Games 4.00",
+   "first_seen": "2026-10-21",
+   "original_date": "2026-12-31",
+   "current_date": "2026-12-31",
    "released": false,
    "released_on": null,
    "revisions": []
