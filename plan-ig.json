@@ -31,9 +31,12 @@
     "Gen2 Game: Fiery 7s",
     "Gen2 Game: Mandarin Madness",
     "Gen2 Game: Kandy Land Keno - PFH",
-    "Gen2 Game: Flaming Skulls [V]"
+    "Gen2 Game: Flaming Skulls [V]",
+    "Gen2 Game: Fall of Pompeii",
+    "Gen2 Game: Snow Bird Bonus Extreme"
   ],
   "status": {
+    "Gen2 Game: Steampunk Fortune": "In QA",
     "Gen2 Game: Haunted Harvest": "In QA",
     "Gen2 Game: Robin's Arrow - Thanksgiving Feast": "In QA",
     "Gen2 Game: 3 Chili Riches": "In Review",
@@ -42,15 +45,16 @@
     "Gen2 Game: Nordic Paws": "In Review",
     "Gen2 Game: Sizzling Deluxe": "In Progress",
     "Gen2 - Game: Quick Wins Diamond Wild": "On Hold",
-    "Gen2 Game: Plentiful Bounty": "In Progress",
     "Gen2 Game: Birthday Bash [V]": "In Progress"
   },
   "stage": {
+    "Gen2 Game: Steampunk Fortune": "qa",
     "Gen2 Game: Haunted Harvest": "qa",
     "Gen2 Game: Robin's Arrow - Thanksgiving Feast": "qa",
     "Gen2 Game: 3 Chili Riches": "dev",
     "Gen2 Game: Pharaoh's Quest": "dev",
     "Gen2 Game: Strike Forge Boost": "math",
+    "Gen2 Game: Amaterasu Rising": "dev",
     "Gen2 Game: Nordic Paws": "dev",
     "Gen2 Game: Sizzling Deluxe": "art",
     "Gen2 Game: Chain Lock 7 Refueled": "art",
@@ -77,7 +81,12 @@
     "Gen2 Game: Great Sphinx",
     "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
-    "Gen2 Game: Mayan Madness"
+    "Gen2 Game: Mayan Madness",
+    "Gen2 Game: Northern Buffalo Fortune [V]",
+    "Gen2 Game: Jewels of Cleopatra",
+    "Gen2 Game: Lost Totem",
+    "Gen2 Game: Haunted Harvest",
+    "Gen2 Game: Robin's Arrow - Thanksgiving Feast"
   ],
   "notes": {
     "IG-1511": [
@@ -281,5 +290,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-10-01 16:03"
+  "updated_at": "2026-10-21 20:44"
 }
