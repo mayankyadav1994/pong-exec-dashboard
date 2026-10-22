@@ -694,10 +694,18 @@
    "name": "PFH Games 4.00",
    "first_seen": "2026-10-21",
    "original_date": "2026-12-31",
-   "current_date": "2026-12-31",
+   "current_date": "2026-12-30",
    "released": false,
    "released_on": null,
-   "revisions": []
+   "revisions": [
+    {
+     "observed": "2026-10-22",
+     "from": "2026-12-31",
+     "to": "2026-12-30",
+     "kind": "moved",
+     "slip_days": -1
+    }
+   ]
   }
  },
  "history_from": "2026-06-02",
