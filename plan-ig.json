@@ -33,7 +33,8 @@
     "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Flaming Skulls [V]",
     "Gen2 Game: Fall of Pompeii",
-    "Gen2 Game: Snow Bird Bonus Extreme"
+    "Gen2 Game: Snow Bird Bonus Extreme",
+    "Gen2 Game: Fortune of Z"
   ],
   "status": {
     "Gen2 Game: Strike Forge Boost": "In Progress",
@@ -163,7 +164,8 @@
     "IG-5593",
     "IG-1513",
     "IG-5761",
-    "IG-5708"
+    "IG-5708",
+    "IG-3306"
   ],
   "config": {
     "statuses": [
@@ -280,5 +282,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-10-22 14:15"
+  "updated_at": "2026-10-23 15:03"
 }
