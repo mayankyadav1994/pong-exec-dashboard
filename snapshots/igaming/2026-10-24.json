@@ -1,0 +1,158 @@
+{
+  "date": "2026-10-24",
+  "fvs": {
+    "ELG Game Configs": {
+      "devEnd": "2026-10-27",
+      "qaEnd": "2026-11-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-10",
+      "totalEstH": 610,
+      "spentH": 433
+    },
+    "ELG Website": {
+      "devEnd": "2026-10-24",
+      "qaEnd": "2026-11-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-06",
+      "totalEstH": 19,
+      "spentH": 26
+    },
+    "ELG Feature Backlog": {
+      "devEnd": "2027-01-07",
+      "qaEnd": "2027-01-21",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-01-21",
+      "totalEstH": 1350,
+      "spentH": 1103
+    },
+    "New Games - iGaming": {
+      "devEnd": "2028-05-19",
+      "qaEnd": "2028-06-02",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-06-02",
+      "totalEstH": 10124,
+      "spentH": 1778
+    },
+    "PFH Services 3.00": {
+      "devEnd": "2026-10-24",
+      "qaEnd": "2026-11-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-06",
+      "totalEstH": 26,
+      "spentH": 30
+    },
+    "PFH Games 2.60": {
+      "devEnd": "2027-03-17",
+      "qaEnd": "2027-03-31",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-03-31",
+      "totalEstH": 4,
+      "spentH": 7
+    },
+    "ELG 5.30": {
+      "devEnd": "2028-05-19",
+      "qaEnd": "2028-06-02",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-06-02",
+      "totalEstH": 2040,
+      "spentH": 2057
+    },
+    "Horse Play 2.00": {
+      "devEnd": "2028-05-22",
+      "qaEnd": "2028-06-05",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-06-05",
+      "totalEstH": 46,
+      "spentH": 18
+    },
+    "PFH Games 2.70": {
+      "devEnd": "2027-03-17",
+      "qaEnd": "2027-03-31",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-03-31",
+      "totalEstH": 4,
+      "spentH": 0
+    },
+    "PFH Games 2.80": {
+      "devEnd": "2028-05-22",
+      "qaEnd": "2028-06-05",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-06-05",
+      "totalEstH": 4,
+      "spentH": 0
+    },
+    "PFH Games 3.00": {
+      "devEnd": "2028-05-23",
+      "qaEnd": "2028-06-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-06-06",
+      "totalEstH": 516,
+      "spentH": 332
+    },
+    "PFH Games 4.00": {
+      "devEnd": "2027-03-17",
+      "qaEnd": "2027-03-31",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-03-31",
+      "totalEstH": 418,
+      "spentH": 299
+    },
+    "PFH Games 5.00": {
+      "devEnd": "2026-11-04",
+      "qaEnd": "2026-11-18",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-18",
+      "totalEstH": 218,
+      "spentH": 118
+    },
+    "New Features - iGaming": {
+      "devEnd": "2026-10-24",
+      "qaEnd": "2026-11-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-06",
+      "totalEstH": 4,
+      "spentH": 5
+    },
+    "New Games - PFH": {
+      "devEnd": "2027-02-18",
+      "qaEnd": "2027-03-04",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-03-04",
+      "totalEstH": 298,
+      "spentH": 223
+    },
+    "PFH Games Backlog": {
+      "devEnd": "2028-05-23",
+      "qaEnd": "2028-06-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2028-06-06",
+      "totalEstH": 3221,
+      "spentH": 2869
+    },
+    "iGaming - R&D": {
+      "devEnd": "2026-10-24",
+      "qaEnd": "2026-11-06",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-11-06",
+      "totalEstH": 50,
+      "spentH": 43
+    }
+  }
+}
