@@ -715,6 +715,24 @@
    "released": true,
    "released_on": "2026-10-22",
    "revisions": []
+  },
+  "ELG Feature Backlog": {
+   "name": "ELG Feature Backlog",
+   "first_seen": "2026-10-24",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "New Games - PFH": {
+   "name": "New Games - PFH",
+   "first_seen": "2026-10-24",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-06-02",

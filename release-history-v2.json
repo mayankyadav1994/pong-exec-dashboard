@@ -433,6 +433,15 @@
      "kind": "released"
     }
    ]
+  },
+  "V2 C2 5.20": {
+   "name": "V2 C2 5.20",
+   "first_seen": "2026-10-24",
+   "original_date": "2026-11-06",
+   "current_date": "2026-11-06",
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-06-02",
