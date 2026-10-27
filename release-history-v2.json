@@ -442,6 +442,15 @@
    "released": false,
    "released_on": null,
    "revisions": []
+  },
+  "V2 C2 Backlog": {
+   "name": "V2 C2 Backlog",
+   "first_seen": "2026-10-27",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-06-02",
