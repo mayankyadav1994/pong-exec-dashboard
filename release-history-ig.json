@@ -748,6 +748,15 @@
    "released": false,
    "released_on": null,
    "revisions": []
+  },
+  "PFH - Features": {
+   "name": "PFH - Features",
+   "first_seen": "2026-10-30",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-06-02",
