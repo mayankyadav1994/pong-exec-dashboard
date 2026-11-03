@@ -164,7 +164,7 @@
    "name": "Horse Play 2.00",
    "first_seen": "2026-06-09",
    "original_date": "2026-07-15",
-   "current_date": "2026-10-30",
+   "current_date": null,
    "released": false,
    "released_on": null,
    "revisions": [
@@ -194,6 +194,12 @@
      "to": "2026-10-30",
      "kind": "moved",
      "slip_days": 30
+    },
+    {
+     "observed": "2026-11-03",
+     "from": "2026-10-30",
+     "to": null,
+     "kind": "unset"
     }
    ]
   },
@@ -641,9 +647,15 @@
    "first_seen": "2026-10-14",
    "original_date": "2026-10-30",
    "current_date": "2026-10-30",
-   "released": false,
-   "released_on": null,
-   "revisions": []
+   "released": true,
+   "released_on": "2026-10-30",
+   "revisions": [
+    {
+     "observed": "2026-11-03",
+     "to": "2026-10-30",
+     "kind": "released"
+    }
+   ]
   },
   "PFH Games 2.60": {
    "name": "PFH Games 2.60",
@@ -754,6 +766,15 @@
    "first_seen": "2026-10-30",
    "original_date": null,
    "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 5.40": {
+   "name": "ELG 5.40",
+   "first_seen": "2026-11-03",
+   "original_date": "2026-11-11",
+   "current_date": "2026-11-11",
    "released": false,
    "released_on": null,
    "revisions": []

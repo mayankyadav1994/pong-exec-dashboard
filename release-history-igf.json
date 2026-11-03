@@ -91,7 +91,7 @@
    "name": "Horse Play 2.00",
    "first_seen": "2026-08-26",
    "original_date": "2026-09-30",
-   "current_date": "2026-10-30",
+   "current_date": null,
    "released": false,
    "released_on": null,
    "revisions": [
@@ -101,6 +101,12 @@
      "to": "2026-10-30",
      "kind": "moved",
      "slip_days": 30
+    },
+    {
+     "observed": "2026-11-03",
+     "from": "2026-10-30",
+     "to": null,
+     "kind": "unset"
     }
    ]
   },
@@ -244,6 +250,15 @@
    "first_seen": "2026-10-30",
    "original_date": null,
    "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG 5.40": {
+   "name": "ELG 5.40",
+   "first_seen": "2026-11-03",
+   "original_date": "2026-11-11",
+   "current_date": "2026-11-11",
    "released": false,
    "released_on": null,
    "revisions": []
