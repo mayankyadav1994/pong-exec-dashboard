@@ -308,9 +308,9 @@
    "name": "V2 SW 16.10",
    "first_seen": "2026-08-18",
    "original_date": "2026-09-30",
-   "current_date": "2026-10-30",
-   "released": false,
-   "released_on": null,
+   "current_date": "2026-10-28",
+   "released": true,
+   "released_on": "2026-10-28",
    "revisions": [
     {
      "observed": "2026-09-16",
@@ -324,6 +324,18 @@
      "to": "2026-10-30",
      "kind": "moved",
      "slip_days": 30
+    },
+    {
+     "observed": "2026-11-04",
+     "from": "2026-10-30",
+     "to": "2026-10-28",
+     "kind": "moved",
+     "slip_days": -2
+    },
+    {
+     "observed": "2026-11-04",
+     "to": "2026-10-28",
+     "kind": "released"
     }
    ]
   },
@@ -438,16 +450,38 @@
    "name": "V2 C2 5.20",
    "first_seen": "2026-10-24",
    "original_date": "2026-11-06",
-   "current_date": "2026-11-06",
-   "released": false,
-   "released_on": null,
-   "revisions": []
+   "current_date": "2026-10-30",
+   "released": true,
+   "released_on": "2026-10-30",
+   "revisions": [
+    {
+     "observed": "2026-11-04",
+     "from": "2026-11-06",
+     "to": "2026-10-30",
+     "kind": "moved",
+     "slip_days": -7
+    },
+    {
+     "observed": "2026-11-04",
+     "to": "2026-10-30",
+     "kind": "released"
+    }
+   ]
   },
   "V2 C2 Backlog": {
    "name": "V2 C2 Backlog",
    "first_seen": "2026-10-27",
    "original_date": null,
    "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 PT 13.41": {
+   "name": "V2 PT 13.41",
+   "first_seen": "2026-11-04",
+   "original_date": "2026-11-10",
+   "current_date": "2026-11-10",
    "released": false,
    "released_on": null,
    "revisions": []
