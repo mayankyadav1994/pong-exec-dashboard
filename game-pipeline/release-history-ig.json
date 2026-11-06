@@ -778,6 +778,15 @@
    "released": false,
    "released_on": null,
    "revisions": []
+  },
+  "ELG 5.50": {
+   "name": "ELG 5.50",
+   "first_seen": "2026-11-06",
+   "original_date": "2026-11-30",
+   "current_date": "2026-11-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-06-02",
