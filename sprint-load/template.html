@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Sprint Capacity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,300..800&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg:        #f4f3ef;
+  --surface:   #fcfcfb;
+  --surface-2: #f0efea;
+  --ink:       #0b0b0b;
+  --ink-2:     #52514e;
+  --ink-3:     #706f6a;
+  --line:      #e1e0d9;
+  --line-2:    #c3c2b7;
+  --track:     #e9e8e2;
+  --accent:    #2a78d6;
+  --accent-ink:#1d5fae;
+  --good:      #0ca30c;
+  --good-ink:  #006300;
+  --warn:      #fab219;
+  --warn-ink:  #8a5a00;
+  --warn-wash: #fdf3dc;
+  --crit:      #d03b3b;
+  --crit-ink:  #b42323;
+  --crit-wash: #fbe9e7;
+  --info-wash: #eaf1fb;
+  --shadow:    0 1px 0 rgba(11,11,11,.04), 0 0 0 1px rgba(11,11,11,.06);
+  --gutter: 16px;
+  --font: "Roboto Flex", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg:        #121211;
+    --surface:   #1a1a19;
+    --surface-2: #222220;
+    --ink:       #f0efec;
+    --ink-2:     #c3c2b7;
+    --ink-3:     #9a998f;
+    --line:      #2c2c2a;
+    --line-2:    #383835;
+    --track:     #2b2b29;
+    --accent:    #3987e5;
+    --accent-ink:#7fb2f0;
+    --good-ink:  #3fc43f;
+    --warn-ink:  #fab219;
+    --warn-wash: #2e2512;
+    --crit-ink:  #f07a7a;
+    --crit-wash: #331a19;
+    --info-wash: #17202c;
+    --shadow:    0 0 0 1px rgba(255,255,255,.07);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --surface-2: #222220; --ink: #f0efec; --ink-2: #c3c2b7;
+  --ink-3: #9a998f; --line: #2c2c2a; --line-2: #383835; --track: #2b2b29; --accent: #3987e5;
+  --accent-ink: #7fb2f0; --good-ink: #3fc43f; --warn-ink: #fab219; --warn-wash: #2e2512;
+  --crit-ink: #f07a7a; --crit-wash: #331a19; --info-wash: #17202c; --shadow: 0 0 0 1px rgba(255,255,255,.07);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 14px; line-height: 1.45;
+  font-variant-numeric: tabular-nums; font-optical-sizing: auto;
+  padding: env(safe-area-inset-top) max(var(--gutter), env(safe-area-inset-right))
+           max(24px, env(safe-area-inset-bottom)) max(var(--gutter), env(safe-area-inset-left));
+}
+a { color: inherit; text-decoration-color: var(--line-2); text-underline-offset: 2px; }
+a:hover { color: var(--accent-ink); text-decoration-color: currentColor; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+
+/* ── top bar ── */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; padding: 20px 0 14px; }
+.top h1 { margin: 0; font-size: 26px; font-weight: 760; font-stretch: 72%; letter-spacing: -.01em; line-height: 1.05; }
+.stamp { margin: 4px 0 0; color: var(--ink-3); font-size: 12px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: var(--surface-2); border-radius: 10px; box-shadow: var(--shadow); }
+.seg button {
+  font: inherit; font-size: 13px; font-weight: 560; border: 0; background: transparent; color: var(--ink-2);
+  padding: 7px 12px; border-radius: 7px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; min-height: 34px;
+}
+.seg button[aria-selected="true"], .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.seg button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--crit); display: inline-block; }
+
+/* ── board head ── */
+.board-head { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); padding: 16px 18px; display: grid; gap: 8px; }
+.board-head h2 { margin: 0; font-size: 20px; font-weight: 720; font-stretch: 80%; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink-2); font-size: 13px; }
+.meta b { color: var(--ink); font-weight: 600; }
+.sprint-chip { display: inline-flex; gap: 6px; align-items: baseline; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); font-size: 12.5px; }
+
+/* ── notices ── */
+.notices { display: grid; gap: 6px; margin-top: 10px; }
+.notice { border-radius: 10px; padding: 0 14px; background: var(--info-wash); font-size: 13px; }
+.notice.warn  { background: var(--warn-wash); }
+.notice.alert { background: var(--crit-wash); box-shadow: inset 3px 0 0 var(--crit); }
+.notice summary { cursor: pointer; padding: 9px 0; font-weight: 600; list-style: none; display: flex; gap: 8px; align-items: baseline; }
+.notice summary::-webkit-details-marker { display: none; }
+.notice summary .ico { font-size: 12px; width: 14px; flex: none; }
+.notice.alert summary { color: var(--crit-ink); }
+.notice.warn summary .ico { color: var(--warn-ink); }
+.notice .body { padding: 0 0 10px 22px; color: var(--ink-2); display: grid; gap: 6px; }
+.notice .keys { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; }
+
+/* ── tabs + controls ── */
+.tabbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin: 18px 0 10px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; color: var(--ink-2); font-size: 13px; }
+.controls label { display: inline-flex; gap: 8px; align-items: center; }
+input[type=number] {
+  font: inherit; font-variant-numeric: tabular-nums; width: 64px; padding: 5px 7px; border-radius: 7px;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink); text-align: right;
+}
+input[type=number].edited { border-color: var(--accent); background: var(--info-wash); }
+.btn-link { font: inherit; font-size: 13px; background: none; border: 0; color: var(--accent-ink); cursor: pointer; padding: 4px 0; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── tiles ── */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.tile { background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); padding: 10px 14px; }
+.tile .k { font-size: 11.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; font-stretch: 110%; }
+.tile .v { font-size: 24px; font-weight: 700; font-stretch: 78%; line-height: 1.15; }
+.tile .v small { font-size: 13px; font-weight: 500; color: var(--ink-3); font-stretch: 100%; }
+.tile.bad .v { color: var(--crit-ink); }
+
+/* ── groups / tables ── */
+.group { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); margin-bottom: 14px; overflow: hidden; }
+.group-head { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; justify-content: space-between; padding: 12px 16px 10px; border-bottom: 1px solid var(--line); }
+.group-head h3 { margin: 0; font-size: 17px; font-weight: 740; font-stretch: 75%; letter-spacing: .01em; }
+.group-head h3 span { font-weight: 450; color: var(--ink-3); font-size: 13px; font-stretch: 100%; margin-left: 6px; }
+.group-head .sub { color: var(--ink-2); font-size: 13px; }
+table.grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+/* fixed widths so bars and figures line up from one discipline group to the next */
+.grid.cur th:nth-child(1) { width: 23%; } .grid.cur th:nth-child(2) { width: 8%; } .grid.cur th:nth-child(3) { width: 27%; }
+.grid.cur th:nth-child(4), .grid.cur th:nth-child(5), .grid.cur th:nth-child(6) { width: 9%; } .grid.cur th:nth-child(7) { width: 15%; }
+.grid.nxt th:nth-child(1) { width: 26%; } .grid.nxt th:nth-child(2) { width: 11%; } .grid.nxt th:nth-child(3) { width: 19%; }
+.grid.nxt th:nth-child(4), .grid.nxt th:nth-child(5) { width: 11%; } .grid.nxt th:nth-child(6) { width: 22%; }
+.grid th { text-align: left; font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; font-stretch: 110%; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.grid td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.grid th.num, .grid td.num { text-align: right; white-space: nowrap; }
+.grid tbody tr:last-child td { border-bottom: 0; }
+.grid tfoot td { background: var(--surface-2); font-weight: 650; border-bottom: 0; border-top: 1px solid var(--line-2); }
+.grid td:first-child, .grid th:first-child { padding-left: 16px; }
+.grid td:last-child, .grid th:last-child { padding-right: 16px; }
+.name { font-weight: 600; }
+.sub { display: block; font-size: 11.5px; color: var(--ink-3); font-weight: 450; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.chip { font-size: 11.5px; padding: 1px 7px; border-radius: 5px; background: var(--surface-2); color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+.chip.xb { background: var(--crit-wash); color: var(--crit-ink); font-weight: 600; }
+.chip.flag { background: var(--warn-wash); color: var(--warn-ink); }
+tr.xb td:first-child { box-shadow: inset 3px 0 0 var(--crit); }
+tr.xb .name { color: var(--crit-ink); }
+
+/* load bar */
+.c-name { overflow-wrap: anywhere; }
+.bar { position: relative; height: 10px; border-radius: 5px; background: var(--track); margin-top: 5px; }
+.bar .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--accent); }
+.bar .fill.near { background: var(--warn); }
+.bar .fill.over { background: var(--crit); }
+.bar .fill.clip { border-radius: 5px 0 0 5px; }
+.bar .cap { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
+.bar .cap::after { content: attr(data-l); position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+.bar-wrap { padding-top: 10px; }
+
+/* verdicts — color never alone: icon + words */
+.verdict { white-space: nowrap; font-weight: 600; }
+.verdict i { font-style: normal; font-size: 10px; margin-right: 4px; vertical-align: 1px; }
+.verdict.over { color: var(--crit-ink); }
+.verdict.at   { color: var(--warn-ink); }
+.verdict.room { color: var(--good-ink); }
+.verdict .mult { font-weight: 450; color: var(--ink-3); margin-left: 4px; }
+
+/* bias */
+.badge { display: inline-block; font-size: 10.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 4px; margin-left: 6px; vertical-align: 1px; font-stretch: 110%; }
+.badge.measured { background: var(--info-wash); color: var(--accent-ink); }
+.badge.carried  { background: var(--surface-2); color: var(--ink-2); }
+.badge.inferred { background: var(--warn-wash); color: var(--warn-ink); }
+.bias-num { font-weight: 650; cursor: help; }
+
+.statement { padding: 11px 16px; border-top: 1px solid var(--line); font-size: 13px; display: flex; gap: 8px; }
+.statement .ico { flex: none; font-size: 11px; line-height: 1.7; }
+.statement.ok   .ico { color: var(--good-ink); }
+.statement.part { background: var(--warn-wash); } .statement.part .ico { color: var(--warn-ink); }
+.statement.none { background: var(--crit-wash); } .statement.none .ico { color: var(--crit-ink); }
+.statement b { font-weight: 650; }
+
+.explain { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow), inset 3px 0 0 var(--crit); padding: 12px 16px; font-size: 13px; color: var(--ink-2); margin-bottom: 14px; }
+.explain b { color: var(--crit-ink); }
+.note { font-size: 12.5px; color: var(--ink-3); margin: 0 0 14px; max-width: 80ch; }
+.empty { padding: 24px 16px; color: var(--ink-3); }
+
+/* ── narrow: tables become stacked blocks ── */
+@media (max-width: 760px) {
+  :root { --gutter: 12px; }
+  .top h1 { font-size: 22px; }
+  table.grid, .grid tbody, .grid tfoot, .grid tr, .grid td { display: block; width: auto; }
+  .grid thead { display: none; }
+  .grid tr { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .grid tbody tr:last-child { border-bottom: 0; }
+  .grid td { padding: 0 !important; border: 0 !important; text-align: left !important; min-width: 0; }
+  .grid td[data-label]::before { content: attr(data-label); display: block; font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .grid td.c-name, .grid td.c-bar, .grid td.c-verdict, .grid td.c-wide { grid-column: 1 / -1; }
+  .grid td.c-name::before { display: none; }
+  .grid td.c-bar { min-width: 0; }
+  tr.xb { box-shadow: inset 3px 0 0 var(--crit); }
+  tr.xb td:first-child { box-shadow: none; }
+  .grid tfoot tr { background: var(--surface-2); }
+  .grid tfoot td { background: none; border: 0; }
+  .c-bar .bar-wrap { padding-top: 12px; }
+}
+@media (max-width: 420px) {
+  .grid tr { grid-template-columns: 1fr 1fr; }
+  .seg button { padding: 6px 9px; font-size: 12.5px; }
+}
+@media (forced-colors: active) {
+  .bar .fill { background: CanvasText; } .bar .cap { background: Highlight; }
+  tr.xb td:first-child, tr.xb { border-left: 3px solid CanvasText; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Sprint capacity</h1>
+      <p class="stamp" id="stamp"></p>
+    </div>
+    <div class="seg" id="boards" role="tablist" aria-label="Board"></div>
+  </header>
+
+  <main>
+    <section class="board-head" id="boardHead" aria-live="polite"></section>
+    <section class="notices" id="notices"></section>
+
+    <div class="tabbar">
+      <div class="seg" role="tablist" aria-label="View" id="tabs">
+        <button role="tab" data-tab="current">Current load</button>
+        <button role="tab" data-tab="next">Next sprint</button>
+      </div>
+      <div class="controls" id="controls"></div>
+    </div>
+
+    <section id="panel"></section>
+  </main>
+</div>
+
+<script>const SNAPSHOTS = __SNAPSHOTS__;</script>
+<script>
+(() => {
+  "use strict";
+  const S = SNAPSHOTS;
+  const SLUGS = Object.keys(S);
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const h1 = x => (Math.round((x || 0) * 10) / 10).toFixed(1);
+  const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+
+  // per-viewer conveniences only; page works without storage
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k)    { try { localStorage.removeItem(k); } catch (e) {} },
+  };
+
+  const state = { slug: SLUGS[0], tab: "current", measure: "remaining" };
+  function readHash() {
+    const [s, t, m] = decodeURIComponent(location.hash.slice(1)).split("/");
+    if (S[s]) state.slug = s;
+    if (t === "current" || t === "next") state.tab = t;
+    if (m === "remaining" || m === "assigned") state.measure = m;
+  }
+  function writeHash() { try { history.replaceState(null, "", `#${state.slug}/${state.tab}/${state.measure}`); } catch (e) {} }
+
+  const B = () => S[state.slug];
+  const skey = b => "sprintload:" + b.slug + ":" + (b.sprints.map(s => s.id).join("-") || "none");
+  const capOf = b => { const v = store.get(skey(b) + ":cap", null); return typeof v === "number" && v >= 0 ? v : b.config.capacity_h; };
+  const ptoOf = b => store.get(skey(b) + ":pto", {}) || {};
+  const personCap = (b, p) => { const o = ptoOf(b)[p.account]; return typeof o === "number" && o >= 0 ? o : capOf(b); };
+
+  const fmtDay = iso => { if (!iso) return "?"; const d = new Date(iso); return isNaN(d) ? "?" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
+  const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
+  const fmtStamp = iso => { const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+
+  // ── shared arithmetic (mirrors sprint_load.py intake_row) ──
+  function nextRow(p, cap) {
+    const bias = p.bias.factor;
+    const trueLoad = p.remaining_h * bias;
+    const room = cap - trueLoad;
+    return { bias, trueLoad, room, intake: room > 0 ? room / bias : 0,
+             overflow: room < 0 ? -room : 0, toMove: room < 0 ? -room / bias : 0 };
+  }
+  function verdict(v, cap, band) {
+    if (cap <= 0) return v > 0 ? { cls: "over", icon: "▲", text: "No capacity set" } : { cls: "at", icon: "●", text: "No capacity" };
+    const d = v - cap;
+    if (Math.abs(d) <= band) return { cls: "at", icon: "●", text: "At capacity" };
+    if (d > 0) return { cls: "over", icon: "▲", text: `Over by ${h1(d)}h`, mult: `${(v / cap).toFixed(2)}×` };
+    return { cls: "room", icon: "○", text: `Room for ${h1(-d)}h` };
+  }
+  const verdictHtml = vd => `<span class="verdict ${vd.cls}"><i aria-hidden="true">${vd.icon}</i>${esc(vd.text)}${vd.mult ? `<span class="mult">${vd.mult}</span>` : ""}</span>`;
+
+  function barHtml(v, cap, scale, b, label) {
+    const band = b.config.at_capacity_band_h, near = b.config.near_capacity_pct;
+    const cls = cap > 0 && v - cap > band ? "over" : cap > 0 && v >= cap * near ? "near" : "";
+    const w = Math.min(v / scale, 1) * 100, c = Math.min(cap / scale, 1) * 100;
+    const pct = cap > 0 ? Math.round(v / cap * 100) + "%" : "–";
+    return `<div class="bar-wrap" title="${esc(label)} ${h1(v)}h of ${h1(cap)}h capacity (${pct})">
+      <div class="bar" role="img" aria-label="${esc(label)} ${h1(v)} hours of ${h1(cap)} hours capacity">
+        <div class="fill ${cls} ${v > scale ? "clip" : ""}" style="width:${w.toFixed(2)}%"></div>
+        <div class="cap" style="left:${c.toFixed(2)}%" data-l="${h1(cap).replace(/\.0$/, "")}h"></div>
+      </div></div>`;
+  }
+
+  function groupsOf(b) {
+    const order = b.config.discipline_order;
+    const g = new Map();
+    for (const p of b.people) { if (!g.has(p.discipline)) g.set(p.discipline, []); g.get(p.discipline).push(p); }
+    return [...g.entries()].sort((a, z) => order.indexOf(a[0]) - order.indexOf(z[0]));
+  }
+
+  function nameCell(b, p, withChips) {
+    const xb = (p.other_boards || []).length > 0;
+    const chips = [];
+    if (xb) {
+      for (const o of p.other_boards) chips.push(`<a class="chip xb" href="${esc(o.url)}" target="_blank" rel="noopener" title="${o.tickets} tickets, ${h1(o.assigned_h)}h assigned on ${esc(o.label)}">Also ${esc(o.label.replace(/ board$/, ""))} · ${h1(o.remaining_h)}h rem</a>`);
+      chips.push(`<span class="chip xb" title="Remaining across every board">Combined ${h1(p.combined_remaining_h)}h rem</span>`);
+    }
+    if (withChips && p.closed_rem.count) chips.push(`<a class="chip flag" href="${esc(p.links.closed_rem)}" target="_blank" rel="noopener" title="${esc(p.closed_rem.keys.join(", "))}">⚑ ${p.closed_rem.count} Closed w/ ${h1(p.closed_rem.hours)}h rem — counted as 0</a>`);
+    if (withChips && p.discipline_tie) chips.push(`<span class="chip flag" title="${esc(JSON.stringify(p.discipline_votes))}">⚑ discipline tie</span>`);
+    return `<td class="c-name"><a class="name" href="${esc(p.links.person)}" target="_blank" rel="noopener">${esc(p.name)}</a>${chips.length ? `<div class="chips">${chips.join("")}</div>` : ""}</td>`;
+  }
+
+  // ── chrome ──
+  function renderChrome() {
+    const b = B();
+    $("#stamp").textContent = `Built ${fmtStamp(b.generated_at)} · data inlined at build time · ${b.site.replace(/^https?:\/\//, "")}`;
+    $("#boards").innerHTML = SLUGS.map(s => {
+      const alert = S[s].warnings.some(w => w.level === "alert");
+      return `<button role="tab" data-slug="${s}" aria-selected="${s === state.slug}">${esc(S[s].label.replace(/ board$/, ""))}${alert ? '<span class="dot" title="Has an alert"></span>' : ""}</button>`;
+    }).join("");
+    for (const t of document.querySelectorAll("#tabs button")) t.setAttribute("aria-selected", String(t.dataset.tab === state.tab));
+
+    const sp = b.sprints.map(s => `<span class="sprint-chip"><b>${esc(s.name)}</b> ${fmtDay(s.start)} – ${fmtDay(s.end)} · ${s.tickets} tickets</span>`).join(" ");
+    const pl = b.pulled;
+    $("#boardHead").innerHTML = `
+      <h2>${esc(b.label)} <span style="font-weight:450;color:var(--ink-3);font-size:14px;font-stretch:100%">board ${b.board_id}</span></h2>
+      <div class="meta">${sp || '<span class="sprint-chip">No active sprint found</span>'}</div>
+      <div class="meta">
+        <span>Scope: ${esc(b.scope)} · <a href="${esc(b.scope_url)}" target="_blank" rel="noopener">open in Jira</a></span>
+        <span>Pulled ${fmtTime(pl.start)}–${fmtTime(pl.end)} (${pl.seconds}s) · <b>${pl.counted_tickets}</b> tickets counted${pl.raw_tickets !== pl.counted_tickets ? ` of ${pl.raw_tickets} pulled` : ""}</span>
+      </div>`;
+
+    const ico = { alert: "▲", warn: "⚑", info: "ℹ" };
+    $("#notices").innerHTML = b.warnings.map(w => `
+      <details class="notice ${w.level}" ${w.level === "alert" ? "open" : ""}>
+        <summary><span class="ico" aria-hidden="true">${ico[w.level]}</span><span>${esc(w.title)}</span></summary>
+        <div class="body">
+          ${w.detail ? `<div>${esc(w.detail)}</div>` : ""}
+          ${w.keys && w.keys.length ? `<div class="keys">${w.keys.map(k => `<a href="${esc(b.site)}/browse/${esc(k)}" target="_blank" rel="noopener">${esc(k)}</a>`).join("")}${w.key_count > w.keys.length ? `<span>+${w.key_count - w.keys.length} more</span>` : ""}</div>` : ""}
+          ${w.url ? `<div><a href="${esc(w.url)}" target="_blank" rel="noopener">Open in Jira</a></div>` : ""}
+        </div>
+      </details>`).join("");
+  }
+
+  function renderControls() {
+    const b = B();
+    const cap = capOf(b), edited = cap !== b.config.capacity_h;
+    const capIn = `<label>Capacity <input type="number" id="capIn" min="0" max="400" step="1" value="${cap}" class="${edited ? "edited" : ""}" aria-label="Capacity hours per person"> h / person</label>`;
+    if (state.tab === "current") {
+      $("#controls").innerHTML = `${capIn}
+        <span class="seg" role="group" aria-label="Measure against capacity">
+          <button data-measure="remaining" aria-pressed="${state.measure === "remaining"}">Remaining</button>
+          <button data-measure="assigned" aria-pressed="${state.measure === "assigned"}">Assigned</button>
+        </span>`;
+    } else {
+      const n = Object.keys(ptoOf(b)).length;
+      $("#controls").innerHTML = `${capIn}${n ? `<button class="btn-link" id="resetPto">Reset ${n} PTO edit${n > 1 ? "s" : ""}</button>` : ""}`;
+    }
+  }
+
+  // ── tab 1: current load ──
+  function renderCurrent() {
+    const b = B(), cap = capOf(b), band = b.config.at_capacity_band_h;
+    const m = state.measure, mLabel = m === "remaining" ? "Remaining" : "Assigned";
+    const val = p => m === "remaining" ? p.remaining_h : p.assigned_h;
+    if (!b.people.length) return `<div class="group"><div class="empty">No tickets counted on this board.</div></div>`;
+
+    const maxV = Math.max(0, ...b.people.map(val));
+    const scale = Math.max(cap * 1.3, Math.min(maxV * 1.04, cap * 3), 1);
+    const over = b.people.filter(p => val(p) - cap > band).length;
+    const tot = sum(b.people, val);
+
+    let html = `<div class="tiles">
+      <div class="tile"><div class="k">People</div><div class="v">${b.people.length}</div></div>
+      <div class="tile"><div class="k">Tickets</div><div class="v">${sum(b.people, p => p.tickets)}</div></div>
+      <div class="tile"><div class="k">${mLabel}</div><div class="v">${h1(tot)}<small>h of ${h1(cap * b.people.length).replace(/\.0$/, "")}h</small></div></div>
+      <div class="tile ${over ? "bad" : ""}"><div class="k">Over capacity</div><div class="v">${over}<small> ${over === 1 ? "person" : "people"}</small></div></div>
+    </div>`;
+    if (m === "assigned") html += `<p class="note">Showing <b>Assigned</b> (original estimate). This is the size of the work handed out, not the work left, so it overstates load once anything has been done. Remaining is the capacity measure.</p>`;
+
+    for (const [disc, rows] of groupsOf(b)) {
+      const gCap = cap * rows.length, gv = sum(rows, val);
+      const gvd = verdict(gv, gCap, band * rows.length);
+      html += `<section class="group">
+        <header class="group-head"><h3>${esc(disc)}<span>${rows.length} ${rows.length === 1 ? "person" : "people"}</span></h3>
+          <span class="sub">${mLabel} ${h1(gv)}h of ${h1(gCap).replace(/\.0$/, "")}h (${rows.length} × ${cap}h) · ${gCap ? Math.round(gv / gCap * 100) : 0}% · ${verdictHtml(gvd)}</span></header>
+        <table class="grid cur"><thead><tr>
+          <th>Person</th><th class="num">Tickets</th><th>${mLabel} vs capacity</th>
+          <th class="num">Assigned</th><th class="num">Spent</th><th class="num">Remaining</th><th>Verdict</th>
+        </tr></thead><tbody>`;
+      for (const p of rows) {
+        const v = val(p), xb = (p.other_boards || []).length > 0;
+        html += `<tr class="row ${xb ? "xb" : ""}">
+          ${nameCell(b, p, true)}
+          <td class="num" data-label="Tickets"><a href="${esc(p.links.person)}" target="_blank" rel="noopener">${p.tickets}</a>${p.no_estimate ? `<a class="sub" href="${esc(p.links.no_estimate)}" target="_blank" rel="noopener" title="Tickets with no original estimate">${p.no_estimate} unestimated</a>` : ""}</td>
+          <td class="c-bar" data-label="${mLabel} vs capacity">${barHtml(v, cap, scale, b, mLabel)}</td>
+          <td class="num" data-label="Assigned"><a href="${esc(p.links.assigned)}" target="_blank" rel="noopener">${h1(p.assigned_h)}</a></td>
+          <td class="num" data-label="Spent"><a href="${esc(p.links.spent)}" target="_blank" rel="noopener">${h1(p.spent_h)}</a></td>
+          <td class="num" data-label="Remaining"><a href="${esc(p.links.remaining)}" target="_blank" rel="noopener">${h1(p.remaining_h)}</a></td>
+          <td class="c-verdict" data-label="Verdict">${verdictHtml(verdict(v, cap, band))}</td>
+        </tr>`;
+      }
+      html += `</tbody><tfoot><tr>
+          <td class="c-name">Subtotal</td>
+          <td class="num" data-label="Tickets">${sum(rows, p => p.tickets)}</td>
+          <td class="c-bar" data-label="${mLabel} vs ${rows.length} × ${cap}h">${barHtml(gv, gCap, Math.max(gCap * 1.3, gv * 1.04, 1), b, mLabel)}</td>
+          <td class="num" data-label="Assigned">${h1(sum(rows, p => p.assigned_h))}</td>
+          <td class="num" data-label="Spent">${h1(sum(rows, p => p.spent_h))}</td>
+          <td class="num" data-label="Remaining">${h1(sum(rows, p => p.remaining_h))}</td>
+          <td class="c-verdict" data-label="Verdict">${verdictHtml(gvd)}</td>
+        </tr></tfoot></table></section>`;
+    }
+    html += crossBoardExplain(b, cap);
+    html += `<p class="note">Capacity is ${cap}h of planned work per person per sprint. A separate ${b.config.unplanned_h}h unplanned allowance sits outside it and is not deducted. The black tick on each bar is the capacity line; “at capacity” means within ±${band}h.</p>`;
+    return html;
+  }
+
+  function crossBoardExplain(b, cap) {
+    const xb = b.people.filter(p => (p.other_boards || []).length);
+    if (!xb.length) return "";
+    return `<div class="explain"><b>Red rows</b> (${xb.map(p => esc(p.name)).join(", ")}) have open work on more than one board.
+      Each board grants them a separate ${cap}-hour capacity, so the verdict here judges only this board's slice. Their real load is the
+      combined figure in the chip. These are usually leads, who hold parent tickets in their own name and open more work than they close,
+      so their numbers tend to grow through the sprint rather than burn down.</div>`;
+  }
+
+  // ── tab 2: next sprint ──
+  function renderNext() {
+    const b = B();
+    if (!b.people.length) return `<div class="group"><div class="empty">No tickets counted on this board.</div></div>`;
+    const calc = new Map(b.people.map(p => [p.account, nextRow(p, personCap(b, p))]));
+    const pto = ptoOf(b);
+    const T = f => sum(b.people, p => f(calc.get(p.account), p));
+    const overN = b.people.filter(p => calc.get(p.account).overflow > 0).length;
+    const inferredN = b.people.filter(p => p.bias.source === "inferred").length;
+
+    let html = `<div class="tiles">
+      <div class="tile"><div class="k">Carryover</div><div class="v">${h1(T((c, p) => p.remaining_h))}<small>h remaining</small></div></div>
+      <div class="tile"><div class="k">True load</div><div class="v">${h1(T(c => c.trueLoad))}<small>h × bias</small></div></div>
+      <div class="tile"><div class="k">Intake</div><div class="v">${h1(T(c => c.intake))}<small>h of estimate</small></div></div>
+      <div class="tile ${overN ? "bad" : ""}"><div class="k">Overflow</div><div class="v">${h1(T(c => c.overflow))}<small>h · ${overN} ${overN === 1 ? "person" : "people"}</small></div></div>
+    </div>
+    <p class="note">Intake is how much new <i>estimated</i> work each person can take next sprint: room = capacity − (carryover × bias); intake = room ÷ bias.
+      Edit a capacity cell for PTO. Work can only be redistributed <b>inside</b> a discipline; a Math overflow cannot be absorbed by Creative room.
+      ${inferredN ? `<b>${inferredN}</b> bias factor${inferredN > 1 ? "s are" : " is"} inferred (⚑), so treat those rows as estimates of an estimate.` : ""}</p>`;
+
+    for (const [disc, rows] of groupsOf(b)) {
+      html += `<section class="group">
+        <header class="group-head"><h3>${esc(disc)}<span>${rows.length} ${rows.length === 1 ? "person" : "people"}</span></h3>
+          <span class="sub">Carryover ${h1(sum(rows, p => p.remaining_h))}h · true load ${h1(sum(rows, p => calc.get(p.account).trueLoad))}h · capacity ${h1(sum(rows, p => personCap(b, p))).replace(/\.0$/, "")}h</span></header>
+        <table class="grid nxt"><thead><tr>
+          <th>Person</th><th class="num">Carryover</th><th>Bias</th><th class="num">True load</th><th class="num">Capacity</th><th>Intake</th>
+        </tr></thead><tbody>`;
+      for (const p of rows) {
+        const c = calc.get(p.account), xb = (p.other_boards || []).length > 0;
+        const capV = personCap(b, p), ed = typeof pto[p.account] === "number";
+        const bs = p.bias.source;
+        const intake = c.room > 0
+          ? `<span class="verdict room"><i aria-hidden="true">○</i>${h1(c.intake)}h</span>`
+          : c.room === 0 ? `<span class="verdict at"><i aria-hidden="true">●</i>0.0h</span>`
+          : `<span class="verdict over"><i aria-hidden="true">▲</i>Over ${h1(c.overflow)}h</span><span class="sub">${h1(c.toMove)}h of estimate must move</span>`;
+        html += `<tr class="row ${xb ? "xb" : ""}">
+          ${nameCell(b, p, false)}
+          <td class="num" data-label="Carryover"><a href="${esc(p.links.remaining)}" target="_blank" rel="noopener">${h1(p.remaining_h)}</a></td>
+          <td data-label="Bias"><span class="bias-num" title="${esc(p.bias.detail)}">${p.bias.factor.toFixed(2)}×</span><span class="badge ${bs}" title="${esc(p.bias.detail)}">${bs === "inferred" ? "⚑ " : ""}${bs}</span>${p.bias_note ? `<span class="sub" title="${esc(p.bias_note)}">⚑ unestimated work inflates this</span>` : ""}</td>
+          <td class="num" data-label="True load">${h1(c.trueLoad)}</td>
+          <td class="num" data-label="Capacity"><input type="number" class="ptoIn ${ed ? "edited" : ""}" data-acct="${esc(p.account)}" min="0" max="400" step="1" value="${capV}" aria-label="Capacity for ${esc(p.name)}"></td>
+          <td class="c-verdict" data-label="Intake">${intake}</td>
+        </tr>`;
+      }
+      html += `</tbody><tfoot><tr>
+          <td class="c-name">Subtotal</td>
+          <td class="num" data-label="Carryover">${h1(sum(rows, p => p.remaining_h))}</td>
+          <td data-label="Bias"></td>
+          <td class="num" data-label="True load">${h1(sum(rows, p => calc.get(p.account).trueLoad))}</td>
+          <td class="num" data-label="Capacity">${h1(sum(rows, p => personCap(b, p)))}</td>
+          <td class="c-verdict" data-label="Intake">${h1(sum(rows, p => calc.get(p.account).intake))}h${sum(rows, p => calc.get(p.account).overflow) > 0 ? ` <span class="verdict over">· over ${h1(sum(rows, p => calc.get(p.account).overflow))}h</span>` : ""}</td>
+        </tr></tfoot></table>
+        ${statement(disc, rows, calc)}
+      </section>`;
+    }
+    html += crossBoardExplain(b, capOf(b));
+    return html;
+  }
+
+  // Can the discipline absorb its own overflow? Compared in hours of ESTIMATE:
+  // an overloaded person sheds toMove = overflow ÷ their bias; a receiver can take
+  // intake = room ÷ their bias. Cross-board people's room is not counted.
+  function statement(disc, rows, calc) {
+    const over = rows.filter(p => calc.get(p.account).overflow > 0);
+    const need = sum(over, p => calc.get(p.account).toMove);
+    const givers = rows.filter(p => calc.get(p.account).intake > 0 && !(p.other_boards || []).length);
+    const xbRoom = rows.filter(p => calc.get(p.account).intake > 0 && (p.other_boards || []).length);
+    const have = sum(givers, p => calc.get(p.account).intake);
+    const levers = "Levers: <b>descope</b>, <b>move the date</b>, or <b>add capacity</b>.";
+    const xbNote = xbRoom.length ? ` Room shown for ${xbRoom.map(p => esc(p.name)).join(", ")} is not counted: they also carry work on another board.` : "";
+    const who = givers.filter(p => calc.get(p.account).intake > 0).sort((a, z) => calc.get(z.account).intake - calc.get(a.account).intake)
+      .map(p => `${esc(p.name)} ${h1(calc.get(p.account).intake)}h`).join(", ");
+    let cls, text;
+    if (!over.length) {
+      cls = "ok"; text = `No overflow in ${esc(disc)}. ${h1(have)}h of estimate can be taken on next sprint${who ? ` (${who})` : ""}.`;
+    } else if (have >= need) {
+      cls = "ok"; text = `${esc(disc)} can absorb its overflow internally: <b>${h1(need)}h</b> of estimate must move off ${over.map(p => esc(p.name)).join(", ")}, and <b>${h1(have)}h</b> of room exists (${who}). Each receiver's own bias is already applied.`;
+    } else if (have > 0) {
+      cls = "part"; text = `${esc(disc)} can only absorb part of its overflow: <b>${h1(need)}h</b> of estimate must move, but there is just <b>${h1(have)}h</b> of room (${who}). <b>${h1(need - have)}h</b> has nowhere to go inside the discipline. ${levers}`;
+    } else {
+      cls = "none"; text = `<b>No internal slack in ${esc(disc)}.</b> ${h1(need)}h of estimate is over capacity and nobody in the discipline has room, so reshuffling will not fix it. ${levers}`;
+    }
+    return `<div class="statement ${cls}"><span class="ico" aria-hidden="true">${cls === "ok" ? "○" : "▲"}</span><div>${text}${xbNote}</div></div>`;
+  }
+
+  function render(focusSel) {
+    renderChrome();
+    renderControls();
+    $("#panel").innerHTML = state.tab === "current" ? renderCurrent() : renderNext();
+    writeHash();
+    if (focusSel) { const el = $(focusSel); if (el) { el.focus(); try { const n = el.value.length; el.setSelectionRange && el.type !== "number" && el.setSelectionRange(n, n); } catch (e) {} } }
+  }
+
+  // ── events ──
+  document.addEventListener("click", e => {
+    const t = e.target.closest("button");
+    if (!t) return;
+    if (t.dataset.slug) { state.slug = t.dataset.slug; render(); }
+    else if (t.dataset.tab) { state.tab = t.dataset.tab; render(); }
+    else if (t.dataset.measure) { state.measure = t.dataset.measure; render(); }
+    else if (t.id === "resetPto") { store.del(skey(B()) + ":pto"); render(); }
+  });
+  document.addEventListener("input", e => {
+    const t = e.target, b = B();
+    if (t.id === "capIn") {
+      const v = parseFloat(t.value);
+      if (!isFinite(v) || v < 0) return;
+      if (v === b.config.capacity_h) store.del(skey(b) + ":cap"); else store.set(skey(b) + ":cap", v);
+      render("#capIn");
+    } else if (t.classList.contains("ptoIn")) {
+      const v = parseFloat(t.value), acct = t.dataset.acct, pto = ptoOf(b);
+      if (!isFinite(v) || v < 0) return;
+      if (v === capOf(b)) delete pto[acct]; else pto[acct] = v;
+      store.set(skey(b) + ":pto", pto);
+      render(`.ptoIn[data-acct="${CSS.escape(acct)}"]`);
+    }
+  });
+  window.addEventListener("hashchange", () => { readHash(); render(); });
+
+  readHash();
+  render();
+})();
+</script>
+</body>
+</html>
