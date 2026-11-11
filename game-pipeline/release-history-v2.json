@@ -116,7 +116,7 @@
    "name": "V2 P2P 16.00",
    "first_seen": "2026-06-09",
    "original_date": "2026-11-16",
-   "current_date": "2026-11-16",
+   "current_date": "2026-11-30",
    "released": false,
    "released_on": null,
    "revisions": [
@@ -125,6 +125,13 @@
      "from": null,
      "to": "2026-11-16",
      "kind": "planned"
+    },
+    {
+     "observed": "2026-11-11",
+     "from": "2026-11-16",
+     "to": "2026-11-30",
+     "kind": "moved",
+     "slip_days": 14
     }
    ]
   },
@@ -481,10 +488,18 @@
    "name": "V2 PT 13.41",
    "first_seen": "2026-11-04",
    "original_date": "2026-11-10",
-   "current_date": "2026-11-10",
+   "current_date": "2026-11-13",
    "released": false,
    "released_on": null,
-   "revisions": []
+   "revisions": [
+    {
+     "observed": "2026-11-11",
+     "from": "2026-11-10",
+     "to": "2026-11-13",
+     "kind": "moved",
+     "slip_days": 3
+    }
+   ]
   }
  },
  "history_from": "2026-06-02",

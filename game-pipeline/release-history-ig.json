@@ -774,10 +774,18 @@
    "name": "ELG 5.40",
    "first_seen": "2026-11-03",
    "original_date": "2026-11-11",
-   "current_date": "2026-11-11",
+   "current_date": "2026-11-16",
    "released": false,
    "released_on": null,
-   "revisions": []
+   "revisions": [
+    {
+     "observed": "2026-11-11",
+     "from": "2026-11-11",
+     "to": "2026-11-16",
+     "kind": "moved",
+     "slip_days": 5
+    }
+   ]
   },
   "ELG 5.50": {
    "name": "ELG 5.50",
