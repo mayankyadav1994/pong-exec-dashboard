@@ -141,7 +141,7 @@
    "name": "PFH Games 3.00",
    "first_seen": "2026-08-26",
    "original_date": "2026-10-15",
-   "current_date": "2026-11-15",
+   "current_date": "2026-11-16",
    "released": false,
    "released_on": null,
    "revisions": [
@@ -157,6 +157,13 @@
      "to": "2026-11-15",
      "kind": "moved",
      "slip_days": 31
+    },
+    {
+     "observed": "2026-11-13",
+     "from": "2026-11-15",
+     "to": "2026-11-16",
+     "kind": "moved",
+     "slip_days": 1
     }
    ]
   },
