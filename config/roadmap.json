@@ -15,16 +15,14 @@
           "match": "^(PFH(?!2? Services)|New Games - (PFH|iGaming)|New Features - iGaming)",
           "projects": ["IG"],
           "lanes": [
-            { "id": "features",   "label": "New Features",    "filter": "features", "color": "violet" },
-            { "id": "games",      "label": "New Games",       "filter": "games",    "color": "blue" },
+            { "id": "releases",   "label": "Releases · Games & Features", "filter": "all", "color": "blue" },
             { "id": "publishing", "label": "Game Publishing", "kind": "publishing", "color": "green" }
           ] },
         { "id": "elg", "label": "ELG",
           "match": "^ELG",
           "projects": ["IG"],
           "lanes": [
-            { "id": "features",   "label": "New Features",    "filter": "features", "color": "violet" },
-            { "id": "games",      "label": "New Games",       "filter": "games",    "color": "blue" },
+            { "id": "releases",   "label": "Releases · Games & Features", "filter": "all", "color": "blue" },
             { "id": "publishing", "label": "Game Publishing", "kind": "publishing", "color": "green" }
           ] },
         { "id": "hp", "label": "Horse Play", "hide_if_empty": true,

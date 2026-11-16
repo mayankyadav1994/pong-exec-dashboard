@@ -393,6 +393,10 @@ def build_space(sid, space, win_start, win_end):
             sname, scat = status_of(jf)
         except Exception:
             sname, scat = "", ""
+        g_lanes = next((g["lanes"] for g in space["groups"] if g["id"] == fc["group"]), [])
+        if fc["lane"] not in {ln["id"] for ln in g_lanes} and g_lanes:
+            fc = {**fc, "lane": lane_for_category([ln for ln in g_lanes if ln.get("kind") != "publishing"],
+                                                  fc["lane"])["id"]}
         key = (fc["group"], fc["lane"])
         unscheduled[key] = [u for u in unscheduled[key]
                             if u.get("key") != fc["key"] and u.get("name") != fc.get("version")]

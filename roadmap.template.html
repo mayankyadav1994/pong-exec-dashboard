@@ -260,7 +260,7 @@ function cardHTML(c, lane, id){
 
   const open = S.expanded.has(id), max = S.print ? 5 : S.maxItems;
   const list = arr => `<ul class="items">${arr.map(i => itemLi(i, c)).join('')}</ul>`;
-  const cats = ['features', 'games', 'gamefix'].filter(k => c.items.some(i => i.cat === k));
+  const cats = ['games', 'features', 'gamefix'].filter(k => c.items.some(i => i.cat === k));
   let body = '', shown = 0, hidden = 0;
   cats.forEach(k => {
     const arr = c.items.filter(i => i.cat === k);
