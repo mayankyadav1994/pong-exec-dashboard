@@ -17,7 +17,7 @@
       "pilotEnd": "2027-02-17",
       "finalEnd": "2027-03-17",
       "totalEstH": 1360,
-      "spentH": 1072
+      "spentH": 1074
     },
     "New Games": {
       "devEnd": "2032-01-06",
@@ -80,7 +80,7 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 12,
-      "spentH": 8
+      "spentH": 10
     },
     "V2 C2 5.30": {
       "devEnd": "2032-03-05",
