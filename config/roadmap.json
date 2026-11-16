@@ -1,0 +1,82 @@
+{
+  "_comment": "Lane rules for the Roadmap pages (roadmap.py). Version names are matched against `match` regexes (first match wins, in the order listed). Dev-owned config; PMO dates live in config/roadmap-pmo.json.",
+  "window": { "months_back": 1, "months_forward": 8 },
+  "bucket_re": "(Backlog|^New Games|^New Features|Features$|R&D|Dev Test|Game Config|Website|Training|Cleanup|Show Prep)",
+  "skip_root_re": "^(Release\\b|Release -|QA Testing|QA testing)|^(CS|V2|PFH2?|ELG)\\b[^:]*\\d+\\.\\d+\\s*$",
+  "spaces": {
+    "igaming": {
+      "title": "iGaming",
+      "file": "roadmap-igaming.html",
+      "projects": ["IG", "CSS"],
+      "history": ["release-history-ig.json", "release-history-igf.json"],
+      "game_re": "^(Gen2\\s*-?\\s*)?Game\\s*:",
+      "groups": [
+        { "id": "pfh", "label": "PFH",
+          "match": "^(PFH(?!2? Services)|New Games - (PFH|iGaming)|New Features - iGaming)",
+          "projects": ["IG"],
+          "lanes": [
+            { "id": "features",   "label": "New Features",    "filter": "features", "color": "violet" },
+            { "id": "games",      "label": "New Games",       "filter": "games",    "color": "blue" },
+            { "id": "publishing", "label": "Game Publishing", "kind": "publishing", "color": "green" }
+          ] },
+        { "id": "elg", "label": "ELG",
+          "match": "^ELG",
+          "projects": ["IG"],
+          "lanes": [
+            { "id": "features",   "label": "New Features",    "filter": "features", "color": "violet" },
+            { "id": "games",      "label": "New Games",       "filter": "games",    "color": "blue" },
+            { "id": "publishing", "label": "Game Publishing", "kind": "publishing", "color": "green" }
+          ] },
+        { "id": "hp", "label": "Horse Play", "hide_if_empty": true,
+          "match": "^Horse Play",
+          "projects": ["IG"],
+          "lanes": [
+            { "id": "all", "label": "Releases", "filter": "all", "color": "rose" }
+          ] },
+        { "id": "kiosk", "label": "Kiosk",
+          "match": "^PFH2? Services",
+          "projects": ["IG", "CSS"],
+          "lanes": [
+            { "id": "all", "label": "Kiosk & Services", "filter": "all", "color": "amber" }
+          ] }
+      ]
+    },
+    "v2": {
+      "title": "V2",
+      "file": "roadmap-v2.html",
+      "projects": ["V2"],
+      "history": ["release-history-v2.json"],
+      "game_re": "^Game\\s*:",
+      "groups": [
+        { "id": "v2", "label": "", "projects": ["V2"],
+          "lanes": [
+            { "id": "p2p",   "label": "P2P",   "match": "^V2 P2P", "filter": "all", "color": "blue" },
+            { "id": "pt",    "label": "PT",    "match": "^V2 PT",  "filter": "all", "color": "violet" },
+            { "id": "sw",    "label": "SW",    "match": "^V2 SW",  "filter": "all", "color": "green" },
+            { "id": "c2",    "label": "C2",    "match": "^V2 C2",  "filter": "all", "color": "amber" },
+            { "id": "hhr",   "label": "HHR",   "match": "^V2 HHR", "filter": "all", "color": "rose" },
+            { "id": "newgames", "label": "New Games", "match": "^New Games", "filter": "all", "color": "blue" },
+            { "id": "other", "label": "Other", "match": ".",       "filter": "all", "color": "grey" }
+          ] }
+      ]
+    },
+    "css": {
+      "title": "Cloud Services",
+      "file": "roadmap-css.html",
+      "projects": ["CSS"],
+      "history": [],
+      "game_re": "^\\b$",
+      "groups": [
+        { "id": "css", "label": "", "projects": ["CSS"],
+          "lanes": [
+            { "id": "vgtc",  "label": "VGTC",          "match": "VGTC",                 "filter": "all", "color": "blue" },
+            { "id": "crm",   "label": "CRM",           "match": "CRM",                  "filter": "all", "color": "violet" },
+            { "id": "th",    "label": "Task Handler",  "match": "\\bTH\\b",             "filter": "all", "color": "green" },
+            { "id": "gcp",   "label": "GCP",           "match": "GCP",                  "filter": "all", "color": "amber" },
+            { "id": "kiosk", "label": "Kiosk / PFH Services", "match": "^PFH2? Services", "filter": "all", "color": "rose" },
+            { "id": "other", "label": "Other",         "match": ".",                    "filter": "all", "color": "grey" }
+          ] }
+      ]
+    }
+  }
+}

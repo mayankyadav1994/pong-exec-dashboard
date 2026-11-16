@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Theme = Game Pipeline (dashboard.css): light, IBM Plex, navy text. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --text-mid:#4a5672;--text-dim:#8a94ad;--card-text:#2a3247;--hair:#e8ecf4;
+  --today:#b91c1c;--today-bg:rgba(239,68,68,.10);--today-bd:rgba(239,68,68,.35);
+  --gold:#b45309;--gold-bg:#fffbeb;--gold-bd:#fcd34d;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#bbf7d0;
+  --rose:#dc2626;--rose-bg:#fef2f2;--rose-bd:#fecaca;
+  --violet:#7c3aed;--violet-bg:#f5f3ff;--violet-bd:#ddd6fe;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+  --grey:#64748b;--grey-bg:#f1f5f9;--grey-bd:#cbd5e1;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{padding:20px 32px 0;overflow-x:hidden;min-height:100vh}
+a{color:inherit}
+
+/* ── top nav (same as the site tabs) ── */
+.nav{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap}
+.nav a{font-size:13px;font-weight:500;text-decoration:none;color:var(--muted);padding:9px 16px;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--text)}
+.nav a.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
+.nav .sep{flex:1}
+.nav .back{font-size:12px}
+
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px}
+.ey{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+h1{font-size:20px;font-weight:600;letter-spacing:-.2px}
+.sub{font-size:12px;color:var(--muted);margin-top:4px}
+.hdr-r{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;
+  color:var(--today);background:var(--today-bg);border:1px solid var(--today-bd)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:11px;padding:6px 12px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  cursor:pointer;font-family:inherit;font-weight:600}
+.btn:hover{background:var(--surf2);color:var(--text)}
+
+.legend{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:8px 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);padding:2px 8px;border-radius:4px;background:var(--surf2)}
+.leg-sep{width:1px;height:16px;background:var(--border);margin:0 3px}
+.sw{width:16px;height:6px;border-radius:2px}
+
+/* ── scroll area: scrollbar on top AND bottom ── */
+.topscroll{overflow-x:auto;overflow-y:hidden;height:14px;margin-bottom:2px}
+.topscroll>div{height:1px}
+.tl{overflow:auto;position:relative;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.canvas{position:relative}
+.gridlines{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1}
+.mline{position:absolute;top:0;bottom:0;width:1px;background:var(--surf3)}
+.tline{position:absolute;top:0;bottom:0;width:2px;z-index:25;background:rgba(185,28,28,.4)}
+
+.ruler{position:sticky;top:0;z-index:50;display:flex;background:var(--surf2);border-bottom:1px solid var(--border2);height:42px}
+.ruler-corner{position:sticky;left:0;z-index:2;background:var(--surf2);flex-shrink:0;border-right:1px solid var(--border);
+  font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;padding-left:12px}
+.ruler-body{position:relative;flex-shrink:0}
+.mcell{position:absolute;top:0;bottom:0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;
+  font-size:11px;font-weight:600;color:var(--muted);border-left:1px solid var(--border)}
+.today-lbl{position:absolute;bottom:3px;transform:translateX(-50%);z-index:3;font-family:var(--mono);font-size:9px;font-weight:700;
+  color:var(--today);background:#fff;padding:1px 6px;border:1px solid var(--today-bd);border-radius:3px;white-space:nowrap}
+
+/* ── groups & lanes ── */
+.grp-hdr{display:flex;align-items:center;padding:14px 0 4px;background:var(--surface)}
+.grp-name{position:sticky;left:0;z-index:30;background:var(--surface);font-size:15px;font-weight:700;color:var(--text);padding:0 12px}
+.grp-line{flex:1;height:1px;background:var(--border)}
+.lane{display:flex;border-bottom:1px solid var(--border)}
+.lane-lbl{position:sticky;left:0;z-index:30;flex-shrink:0;background:var(--surface);padding:12px 12px 8px;
+  text-align:right;border-right:1px solid var(--border)}
+.lane-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;line-height:1.2}
+.tray-btn{margin-top:6px;font-size:10px;font-weight:600;color:var(--muted);background:var(--surf2);border:1px dashed var(--border2);
+  border-radius:4px;padding:2px 7px;cursor:pointer;font-family:inherit}
+.tray-btn:hover{color:var(--text);border-color:var(--muted)}
+.lane-body{position:relative;flex-shrink:0;z-index:5}
+.lane-empty{position:absolute;left:12px;top:14px;font-size:11px;color:var(--sub);font-style:italic}
+.tray{display:none;border-bottom:1px solid var(--border);background:var(--surf2)}
+.tray.open{display:block}
+.tray-in{position:sticky;left:0;padding:10px 12px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.tray-ttl{width:100%;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px}
+.uchip{font-size:11px;color:var(--text);background:var(--surface);border:1px dashed var(--border2);border-radius:5px;padding:4px 8px;text-decoration:none;max-width:320px}
+.uchip small{display:block;font-family:var(--mono);font-size:9px;color:var(--sub)}
+.uchip:hover{border-color:var(--muted)}
+
+/* ── release cards ── */
+.tcard{position:absolute;border-radius:8px;border:1px solid;background:var(--surface);box-shadow:0 1px 2px rgba(26,32,53,.06)}
+.accent{height:4px;border-radius:7px 7px 0 0;margin:-1px -1px 0;position:relative}
+.ms{position:absolute;top:50%;width:10px;height:10px;border-radius:2px;transform:translate(-50%,-50%) rotate(45deg);border:2px solid}
+.card{padding:9px 11px 10px;border-radius:0 0 8px 8px}
+.card-date{font-family:var(--mono);font-size:9.5px;font-weight:500;margin-bottom:3px}
+.card-title{font-size:14px;font-weight:600;line-height:1.25;color:var(--text)}
+.card-desc{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.card-status{display:flex;align-items:center;gap:7px;margin:7px 0 6px;padding-bottom:7px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
+.badge{font-size:9px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px;font-weight:700;border:1px solid;white-space:nowrap}
+.ptrack{flex:1;height:5px;border-radius:3px;background:var(--surf3);overflow:hidden;min-width:40px}
+.pfill{height:100%;border-radius:3px}
+.ppct{font-family:var(--mono);font-size:10px;font-weight:600}
+.slip{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:4px;white-space:nowrap;font-weight:500}
+.slip.late{color:var(--rose);background:var(--rose-bg)}
+.slip.early{color:var(--green);background:var(--green-bg)}
+.cgroup{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:6px 0 2px}
+.items{list-style:none;display:flex;flex-direction:column;gap:3px}
+.items li{font-size:11.5px;color:var(--card-text);display:flex;gap:6px;align-items:baseline;line-height:1.3}
+.items li .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transform:translateY(-1px)}
+.dot.done{background:var(--green)}.dot.indeterminate{background:var(--blue)}.dot.new{background:var(--border2)}
+.ipct{font-family:var(--mono);font-size:9.5px;color:var(--sub);flex-shrink:0}
+.jira{font-family:var(--mono);font-size:9px;padding:0 4px;border-radius:3px;border:1px solid var(--border);
+  background:var(--surf2);text-decoration:none;white-space:nowrap;color:var(--muted)}
+.jira:hover{background:var(--surf3);color:var(--text)}
+.more{display:block;margin-top:5px;font-size:10px;font-weight:600;color:#1e40af;background:none;border:none;cursor:pointer;padding:0;font-family:inherit}
+.more:hover{text-decoration:underline}
+.misc{font-size:10.5px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notes{list-style:none;margin-top:4px}
+.notes li{font-size:11px;color:var(--text-mid);line-height:1.4}
+.ftag{font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:7px;display:inline-block}
+
+/* ── publishing chips ── */
+.pub{position:absolute;display:flex;flex-direction:column}
+.pub-card{border:1px solid var(--green-bd);border-left:3px solid var(--green);background:var(--surface);
+  border-radius:6px;padding:5px 8px 6px;box-shadow:0 1px 2px rgba(26,32,53,.05)}
+.pub.assumed .pub-card{border-style:dashed;border-left-style:dashed;background:var(--surf2)}
+.pub.assumed .pub-title{color:var(--muted)}
+.pub.flag-red .pub-card{border-left-color:var(--rose);background:var(--rose-bg)}
+.pub.flag-amber .pub-card{border-left-color:var(--amber);background:var(--amber-bg)}
+.pub-date{font-family:var(--mono);font-size:9.5px;color:var(--green);font-weight:600}
+.pub-title{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.25;margin-top:1px}
+.pub-note{font-size:10px;color:var(--muted);margin-top:2px}
+.pub-flag{font-size:10px;margin-top:3px;font-weight:600}
+.flag-red .pub-flag{color:var(--rose)}.flag-amber .pub-flag{color:var(--amber)}
+.pub-rel{font-family:var(--mono);font-size:9px;color:var(--sub);margin-top:2px}
+.pub-run{height:3px;border-radius:2px;margin-top:3px;background:linear-gradient(90deg,var(--green),rgba(22,163,74,.12))}
+
+.parked{position:absolute;border:1px dashed var(--amber-bd);border-left:3px solid var(--amber);background:var(--amber-bg);
+  border-radius:6px;padding:6px 9px}
+.pk-tag{font-size:9.5px;color:var(--amber);font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.pk-title{font-size:13px;font-weight:600;line-height:1.2;margin-top:1px}
+.pk-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 2px 16px;font-size:11px;color:var(--sub)}
+
+@media print{
+  @page{size:11in 17in landscape;margin:.35in}
+  .nav,.btns,.topscroll,.tray-btn,.more{display:none!important}
+  body{padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tl{overflow:visible!important;height:auto!important;border:none}
+  .ruler{position:static}
+  .tcard,.pub-card{box-shadow:none!important;break-inside:avoid}
+}
+@media (max-width:700px){body{padding:12px 16px 0}}
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="hdr">
+  <div>
+    <div class="ey">Pong Game Studios · Roadmap</div>
+    <h1 id="title"></h1>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div class="hdr-r">
+    <div class="pill" id="todayPill"></div>
+    <div class="btns">
+      <button class="btn" id="zoomOut" title="Zoom out">−</button>
+      <button class="btn" id="zoomIn" title="Zoom in">+</button>
+      <button class="btn" id="goToday">⌖ Today</button>
+      <button class="btn" id="btnPrint">🖨 Print (11×17)</button>
+    </div>
+  </div>
+</div>
+<div class="legend" id="legend"></div>
+<div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
+<div class="tl" id="tl"><div class="canvas" id="canvas"></div></div>
+<div class="foot" id="foot"></div>
+
+<script>
+const D = {"space": "igaming", "title": "iGaming", "nav": [{"id": "igaming", "title": "iGaming", "file": "roadmap-igaming.html"}, {"id": "v2", "title": "V2", "file": "roadmap-v2.html"}, {"id": "css", "title": "Cloud Services", "file": "roadmap-css.html"}], "generated": "2026-11-16T16:11+00:00", "today": "2026-11-16", "window": {"start": "2026-10-01", "end": "2027-07-31"}, "groups": [{"id": "pfh", "label": "PFH", "lanes": [{"id": "features", "label": "New Features", "color": "violet", "kind": "cards", "count": 21, "unscheduled": [{"kind": "epic", "key": "IG-8218", "name": "ELG Game Master", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-8218"}, {"kind": "epic", "key": "IG-6362", "name": "Ticket optimization", "status": "To Do", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-6362"}, {"kind": "epic", "key": "IG-5582", "name": "Core Game Engine Enhancements", "status": "In Progress", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-5582"}, {"kind": "epic", "key": "IG-3003", "name": "GE2 - Server - Testing Tool", "status": "In Progress", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-3003"}, {"kind": "epic", "key": "IG-9616", "name": "PFH Staging Website GCP Integration - Operator, Currency and Games", "status": "New", "bucket": "New Features - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-9616"}, {"kind": "epic", "key": "IG-7629", "name": "New Game Engine", "status": "In Progress", "bucket": "New Features - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-7629"}, {"kind": "epic", "key": "IG-5999", "name": "Device Finger printing", "status": "In Progress", "bucket": "New Features - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-5999"}, {"kind": "epic", "key": "IG-8608", "name": "Game Menu - Themes", "status": "New", "bucket": "New Games - PFH", "url": "https://ponggamestudios.atlassian.net/browse/IG-8608"}, {"kind": "epic", "key": "IG-6841", "name": "Gen2 - Sentry", "status": "In Progress", "bucket": "New Games - PFH", "url": "https://ponggamestudios.atlassian.net/browse/IG-6841"}]}, {"id": "games", "label": "New Games", "color": "blue", "kind": "cards", "count": 21, "unscheduled": [{"kind": "epic", "key": "IG-9445", "name": "Candy Cascades", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-9445"}, {"kind": "epic", "key": "IG-9106", "name": "Hell's Outlaws", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-9106"}, {"kind": "epic", "key": "IG-9026", "name": "Flaming Skulls Inferno", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-9026"}, {"kind": "epic", "key": "IG-8930", "name": "Hector's Hellfire", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-8930"}, {"kind": "epic", "key": "IG-8834", "name": "Galactic Mariachi Trio", "status": "To Do", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-8834"}, {"kind": "epic", "key": "IG-7683", "name": "Sizzling Deluxe", "status": "In Progress", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-7683"}, {"kind": "epic", "key": "IG-3464", "name": "Moolah Moolah Moolah", "status": "On Hold", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-3464"}, {"kind": "epic", "key": "IG-1518", "name": "Birthday Bash", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-1518"}, {"kind": "epic", "key": "IG-1515", "name": "Fiery 7s", "status": "New", "bucket": "New Games - iGaming", "url": "https://ponggamestudios.atlassian.net/browse/IG-1515"}, {"kind": "epic", "key": "IG-8474", "name": "Fall of Pompeii", "status": "To Do", "bucket": "New Games - PFH", "url": "https://ponggamestudios.atlassian.net/browse/IG-8474"}, {"kind": "epic", "key": "IG-3306", "name": "Fortune of Z", "status": "In Progress", "bucket": "New Games - PFH", "url": "https://ponggamestudios.atlassian.net/browse/IG-3306"}]}, {"id": "publishing", "label": "Game Publishing", "color": "green", "kind": "publishing", "count": 24, "unscheduled": []}]}, {"id": "elg", "label": "ELG", "lanes": [{"id": "features", "label": "New Features", "color": "violet", "kind": "cards", "count": 7, "unscheduled": [{"kind": "version", "name": "ELG 5.60", "desc": "", "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16274/tab/release-report-all-issues"}]}, {"id": "games", "label": "New Games", "color": "blue", "kind": "cards", "count": 4, "unscheduled": []}, {"id": "publishing", "label": "Game Publishing", "color": "green", "kind": "publishing", "count": 2, "unscheduled": []}]}, {"id": "hp", "label": "Horse Play", "lanes": [{"id": "all", "label": "Releases", "color": "rose", "kind": "cards", "count": 1, "unscheduled": [{"kind": "version", "name": "Horse Play 2.00", "desc": "5 more games", "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/15946/tab/release-report-all-issues"}]}]}, {"id": "kiosk", "label": "Kiosk", "lanes": [{"id": "all", "label": "Kiosk & Services", "color": "amber", "kind": "cards", "count": 3, "unscheduled": [{"kind": "version", "name": "PFH Services 3.00", "desc": "", "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/15947/tab/release-report-all-issues"}]}]}], "cards": [{"group": "kiosk", "lane": "all", "source": "version", "title": "PFH Services 3.00", "desc": "Web POS Merge to Kiosk, Quick Connect update, version update on BE", "date": "2026-10-30", "start": "2026-10-23", "released": false, "status": "Overdue", "done": 1, "total": 1, "pct": 100, "slip": {"from": "2026-08-31", "days": 60}, "items": [{"key": "CSS-2860", "summary": "Build QA2 environment for QuickConnect POS", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 1, "name": "Build QA2 environment for QuickConnect POS", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/CSS/versions/16232/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 3.00", "desc": "Lobby and External Progressives", "date": "2026-11-20", "start": "2025-06-20", "released": false, "status": "In progress", "done": 127, "total": 208, "pct": 61, "slip": {"from": "2026-10-15", "days": 36}, "items": [{"key": "IG-4592", "summary": "3rd Party Game Support (TaDa fish and others)", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 33, "done": 8, "name": "3rd Party Game Support (TaDa fish and others)", "pct": 24}, {"key": "IG-3581", "summary": "PFH2 Lobby to display T&C and Promo page in iFrame", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 27, "done": 27, "name": "PFH2 Lobby to display T&C and Promo page in iFrame", "pct": 100}, {"key": "IG-4965", "summary": "Gen2 Games in iFrame", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 25, "done": 17, "name": "Gen2 Games in iFrame", "pct": 68}, {"key": "IG-1509", "summary": "Gen2 Game: Northern Buffalo Fortune [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 19, "done": 16, "name": "Northern Buffalo Fortune", "pct": 84}, {"key": "PFH-28", "summary": "Game Menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 9, "done": 6, "name": "Game Menu", "pct": 67}, {"key": "PFH-31", "summary": "Website", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 8, "done": 8, "name": "Website", "pct": 100}, {"key": "PFH-22653", "summary": "Gen2 - Core Framework", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 7, "done": 0, "name": "Gen2 - Core Framework", "pct": 0}, {"key": "PFH-12766", "summary": "Game: Northern Buffalo HD ", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 6, "done": 3, "name": "Northern Buffalo HD", "pct": 50}, {"key": "IG-4500", "summary": "Gen2 - Sweeps Single Skill Configuration", "type": "Epic", "status": "To Do", "statusCat": "new", "cat": "features", "total": 5, "done": 0, "name": "Gen2 - Sweeps Single Skill Configuration", "pct": 0}, {"key": "IG-7535", "summary": "Support Gen1 games & Fish in iFrame", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 5, "name": "Support Gen1 games & Fish in iFrame", "pct": 100}, {"key": "PFH-24493", "summary": "Gen2 Game: Blue Bird Bonus", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 4, "done": 2, "name": "Blue Bird Bonus", "pct": 50}, {"key": "PFH-14675", "summary": "Game: Emily's Treasure", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 4, "done": 2, "name": "Emily's Treasure", "pct": 50}, {"key": "PFH-11793", "summary": "Game: Yuan Su Dragons", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 4, "done": 3, "name": "Yuan Su Dragons", "pct": 75}, {"key": "PFH-1", "summary": "Game: Amazing 8s", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 3, "done": 3, "name": "Amazing 8s", "pct": 100}, {"key": "PFH-491", "summary": "Game: Double Down Keno", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 3, "done": 3, "name": "Double Down Keno", "pct": 100}, {"key": "IG-1665", "summary": "Gen2 - Game Lobby", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 0, "name": "Gen2 - Game Lobby", "pct": 0}, {"key": "IG-1673", "summary": "Gen2 - Progressives", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 3, "name": "Gen2 - Progressives", "pct": 100}, {"key": "PFH-2954", "summary": "Game: Great Sphinx ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 3, "done": 1, "name": "Great Sphinx", "pct": 33}, {"key": "IG-4687", "summary": "Gen2 Game: Liberty Rising", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 3, "done": 1, "name": "Liberty Rising", "pct": 33}, {"key": "IG-2677", "summary": "Gen2 Game: Pirate’s Rising", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 3, "done": 3, "name": "Pirate’s Rising", "pct": 100}, {"key": "IG-1506", "summary": "Gen2 Game: Flaming Skulls [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 0, "name": "Flaming Skulls", "pct": 0}, {"key": "IG-1508", "summary": "Gen2 Game: Lost Totem", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 1, "name": "Lost Totem", "pct": 50}, {"key": "PFH-26", "summary": "Server", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 2, "done": 1, "name": "Server", "pct": 50}, {"key": "V1-41", "summary": "System", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 2, "done": 0, "name": "System", "pct": 0}, {"key": "IG-5896", "summary": "Gen2 Game: Apollo's Riches - Gods of the Sun", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Apollo's Riches - Gods of the Sun", "pct": 100}, {"key": "CS-4205", "summary": "Big Data", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 1, "name": "Big Data", "pct": 100}, {"key": "PFH-24229", "summary": "Gen2 Game: Blade of Fortune", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Blade of Fortune", "pct": 100}, {"key": "PFH-2", "summary": "Game: Classic Nudge 7s", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Classic Nudge 7s", "pct": 100}, {"key": "PFH-11389", "summary": "Game : Cleopatra’s Dynasty", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Cleopatra’s Dynasty", "pct": 0}, {"key": "IG-1578", "summary": "Gen2 Game: Cleopatra’s Sands of Time", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Cleopatra’s Sands of Time", "pct": 0}, {"key": "PFH-24184", "summary": "Gen2 Game: Devil’s Hot 7s", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Devil’s Hot 7s", "pct": 100}, {"key": "PFH-24266", "summary": "Gen2 Game: Dusty Trail Treasures", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Dusty Trail Treasures", "pct": 100}, {"key": "PFH-22936", "summary": "Gen2 Game - Blazing Mustang - 50 Lines", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 1, "name": "Gen2 Game - Blazing Mustang - 50 Lines", "pct": 100}, {"key": "IG-4853", "summary": "Gen2 Game - Ultimate Goal 10X - PFH", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 1, "name": "Gen2 Game - Ultimate Goal 10X", "pct": 100}, {"key": "IG-1510", "summary": "Gen2 Game: Jewels of Cleopatra", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Jewels of Cleopatra", "pct": 0}, {"key": "PFH-16021", "summary": "Game: Mandarin Madness ", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Mandarin Madness", "pct": 100}, {"key": "PFH-15716", "summary": "Gen2 Game: Mark of Z - Vertical", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Mark of Z - Vertical", "pct": 100}, {"key": "IG-1626", "summary": "Gen2 Game: Mayan Madness", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 1, "name": "Mayan Madness", "pct": 100}, {"key": "V2-20802", "summary": "Game: Mayan Madness", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Mayan Madness", "pct": 100}, {"key": "PFH-30", "summary": "PFH CRM", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 1, "name": "PFH CRM", "pct": 100}, {"key": "IG-6440", "summary": "Quick Connect POS", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Quick Connect POS", "pct": 0}, {"key": "PFH-14028", "summary": "Gen2 Game: Robin's Arrow", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Robin's Arrow", "pct": 0}, {"key": "IG-2453", "summary": "Sentry - Improved Filtering", "type": "Story", "status": "To Do", "statusCat": "new", "cat": "features", "total": 1, "done": 0, "name": "Sentry - Improved Filtering", "pct": 0}, {"key": "CS-803", "summary": "Task Handler", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Task Handler", "pct": 0}, {"key": "PFH-20064", "summary": "Gen2 Game: Tiger Hunt [V]", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Tiger Hunt", "pct": 0}, {"key": "CS-776", "summary": "VGTC", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "VGTC", "pct": 0}, {"key": "IG-3234", "summary": "Gen2 Game: Viking's Voyage of Fortune", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Viking's Voyage of Fortune", "pct": 100}, {"key": "IG-8805", "summary": "Support for Strictly typed API calls", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 0, "done": 0, "name": "Support for Strictly typed API calls", "pct": null}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/14813/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 3.00", "desc": "Lobby and External Progressives", "date": "2026-11-20", "start": "2025-06-20", "released": false, "status": "Ready", "done": 22, "total": 22, "pct": 100, "slip": {"from": "2026-10-15", "days": 36}, "items": [{"key": "IG-4962", "summary": "Gen2 Game: Kandy Land Keno - PFH", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 22, "done": 22, "name": "Kandy Land Keno", "pct": 100}, {"key": "IG-2821", "summary": "Gen2 Game: Northern Buffalo", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "name": "Northern Buffalo", "pct": null}, {"key": "IG-2231", "summary": "Gen2 Game: Yuan Su Dragons", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "name": "Yuan Su Dragons", "pct": null}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/14813/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 2.40", "desc": "New Games - JOC, NBF and Lost Totem", "date": "2026-10-09", "start": "2026-08-17", "released": true, "status": "Delivered", "done": 47, "total": 48, "pct": 98, "slip": {"from": "2026-08-31", "days": 39}, "items": [{"key": "IG-1508", "summary": "Gen2 Game: Lost Totem", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 17, "done": 17, "name": "Lost Totem", "pct": 100}, {"key": "IG-1510", "summary": "Gen2 Game: Jewels of Cleopatra", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 16, "done": 15, "name": "Jewels of Cleopatra", "pct": 94}, {"key": "IG-1509", "summary": "Gen2 Game: Northern Buffalo Fortune [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 15, "done": 15, "name": "Northern Buffalo Fortune", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16075/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 2.40", "desc": "New Games - JOC, NBF and Lost Totem", "date": "2026-10-09", "start": "2026-08-17", "released": true, "status": "Delivered", "done": 5, "total": 6, "pct": 83, "slip": {"from": "2026-08-31", "days": 39}, "items": [{"key": "IG-1506", "summary": "Gen2 Game: Flaming Skulls [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 5, "done": 4, "name": "Flaming Skulls", "pct": 80}, {"key": "V2-19318", "summary": "Game: Tiger Hunt [V]", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Tiger Hunt", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16075/tab/release-report-all-issues"}, {"group": "elg", "lane": "games", "source": "version", "title": "ELG 5.10", "desc": "3 New Games - Fruit Splitter, BBBE, Steampunk", "date": "2026-10-05", "start": "2026-09-01", "released": true, "status": "Delivered", "done": 382, "total": 396, "pct": 96, "slip": {"from": "2026-09-30", "days": 5}, "items": [{"key": "IG-2051", "summary": "Gen2 Game: Fruit Splitter", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 150, "done": 142, "name": "Fruit Splitter", "pct": 95}, {"key": "IG-1511", "summary": "Gen2 Game: Steampunk Fortune", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 142, "done": 138, "name": "Steampunk Fortune", "pct": 97}, {"key": "IG-3034", "summary": "Gen2 Game: Blue Bird Bonus Extreme", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 100, "done": 99, "name": "Blue Bird Bonus Extreme", "pct": 99}, {"key": "IG-1506", "summary": "Gen2 Game: Flaming Skulls [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 4, "done": 3, "name": "Flaming Skulls", "pct": 75}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16118/tab/release-report-all-issues"}, {"group": "elg", "lane": "features", "source": "version", "title": "ELG 5.10", "desc": "3 New Games - Fruit Splitter, BBBE, Steampunk", "date": "2026-10-05", "start": "2026-09-01", "released": true, "status": "Delivered", "done": 1, "total": 1, "pct": 100, "slip": {"from": "2026-09-30", "days": 5}, "items": [{"key": "IG-8268", "summary": "Game Thumbnails", "type": "Epic", "status": "To Do", "statusCat": "new", "cat": "features", "total": 1, "done": 1, "name": "Game Thumbnails", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16118/tab/release-report-all-issues"}, {"group": "elg", "lane": "games", "source": "version", "title": "ELG 5.20", "desc": "Halloween and Thanksgiving games", "date": "2026-10-15", "start": "2026-09-21", "released": true, "status": "Delivered", "done": 78, "total": 98, "pct": 80, "slip": null, "items": [{"key": "IG-6250", "summary": "Gen2 Game: Robin's Arrow - Thanksgiving Feast", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 53, "done": 41, "name": "Robin's Arrow - Thanksgiving Feast", "pct": 77}, {"key": "IG-6199", "summary": "Gen2 Game: Haunted Harvest", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 45, "done": 37, "name": "Haunted Harvest", "pct": 82}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16155/tab/release-report-all-issues"}, {"group": "elg", "lane": "features", "source": "version", "title": "ELG 5.20", "desc": "Halloween and Thanksgiving games", "date": "2026-10-15", "start": "2026-09-21", "released": true, "status": "Delivered", "done": 1, "total": 2, "pct": 50, "slip": null, "items": [{"key": "IG-3034", "summary": "Gen2 Game: Blue Bird Bonus Extreme", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 1, "name": "Blue Bird Bonus Extreme", "pct": 100}, {"key": "IG-3120", "summary": "Gen2 - Sentry", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Gen2 - Sentry", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16155/tab/release-report-all-issues"}, {"group": "elg", "lane": "games", "source": "version", "title": "ELG 5.30", "desc": "2 new games: Pharoah's Quest and 3 Chillies", "date": "2026-10-30", "start": "2026-10-01", "released": true, "status": "Delivered", "done": 202, "total": 202, "pct": 100, "slip": null, "items": [{"key": "IG-1507", "summary": "Gen2 Game: Pharaoh's Quest", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 114, "done": 114, "name": "Pharaoh's Quest", "pct": 100}, {"key": "IG-5593", "summary": "Gen2 Game: 3 Chili Riches", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 88, "done": 88, "name": "3 Chili Riches", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16222/tab/release-report-all-issues"}, {"group": "elg", "lane": "features", "source": "version", "title": "ELG 5.30", "desc": "2 new games: Pharoah's Quest and 3 Chillies", "date": "2026-10-30", "start": "2026-10-01", "released": true, "status": "Delivered", "done": 4, "total": 18, "pct": 22, "slip": null, "items": [{"key": "IG-1506", "summary": "Gen2 Game: Flaming Skulls [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 5, "done": 2, "name": "Flaming Skulls", "pct": 40}, {"key": "IG-2308", "summary": "Gen2 Game: Great Sphinx", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 3, "done": 0, "name": "Great Sphinx", "pct": 0}, {"key": "PFH-1873", "summary": "Game: Panda Shores", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 0, "name": "Panda Shores", "pct": 0}, {"key": "IG-6250", "summary": "Gen2 Game: Robin's Arrow - Thanksgiving Feast", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 2, "done": 1, "name": "Robin's Arrow - Thanksgiving Feast", "pct": 50}, {"key": "IG-3657", "summary": "Gen2 Game: American Wins", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "American Wins", "pct": 0}, {"key": "PFH-24493", "summary": "Gen2 Game: Blue Bird Bonus", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Blue Bird Bonus", "pct": 0}, {"key": "IG-9383", "summary": "Gen2 Game: Flaming Skulls [V] - Free game pools", "type": "Story", "status": "To Do", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Flaming Skulls - Free game pools", "pct": 0}, {"key": "IG-3555", "summary": "Replay", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Replay", "pct": 0}, {"key": "PFH-14028", "summary": "Gen2 Game: Robin's Arrow", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Robin's Arrow", "pct": 100}, {"key": "IG-1511", "summary": "Gen2 Game: Steampunk Fortune", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "Steampunk Fortune", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16222/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 2.50", "desc": "Halloween and Thanksgiving Games", "date": "2026-10-19", "start": "2026-10-01", "released": true, "status": "Delivered", "done": 6, "total": 6, "pct": 100, "slip": {"from": "2026-10-20", "days": -1}, "items": [{"key": "IG-6199", "summary": "Gen2 Game: Haunted Harvest", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 3, "done": 3, "name": "Haunted Harvest", "pct": 100}, {"key": "IG-6250", "summary": "Gen2 Game: Robin's Arrow - Thanksgiving Feast", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 3, "done": 3, "name": "Robin's Arrow - Thanksgiving Feast", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16223/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 2.50", "desc": "Halloween and Thanksgiving Games", "date": "2026-10-19", "start": "2026-10-01", "released": true, "status": "Delivered", "done": 3, "total": 3, "pct": 100, "slip": {"from": "2026-10-20", "days": -1}, "items": [{"key": "IG-1508", "summary": "Gen2 Game: Lost Totem", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 3, "done": 3, "name": "Lost Totem", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16223/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 2.60", "desc": "Viking Voyage and Lanterns Rising", "date": "2026-10-23", "start": "2026-10-01", "released": true, "status": "Delivered", "done": 19, "total": 19, "pct": 100, "slip": null, "items": [{"key": "IG-3234", "summary": "Gen2 Game: Viking's Voyage of Fortune", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 10, "done": 10, "name": "Viking's Voyage of Fortune", "pct": 100}, {"key": "IG-3304", "summary": "Gen2 Game: Lantern's Rising [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 9, "done": 9, "name": "Lantern's Rising", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16224/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 2.60", "desc": "Viking Voyage and Lanterns Rising", "date": "2026-10-23", "start": "2026-10-01", "released": true, "status": "Delivered", "done": 4, "total": 4, "pct": 100, "slip": null, "items": [{"key": "IG-8608", "summary": "Game Menu - Themes", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 2, "done": 2, "name": "Game Menu - Themes", "pct": 100}, {"key": "PFH-24493", "summary": "Gen2 Game: Blue Bird Bonus", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Blue Bird Bonus", "pct": 100}, {"key": "IG-6250", "summary": "Gen2 Game: Robin's Arrow - Thanksgiving Feast", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 1, "name": "Robin's Arrow - Thanksgiving Feast", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16224/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 2.70", "desc": "Blue Bird Bonus Extreme, SteamPunk Fortune and Fruit Splitter", "date": "2026-11-18", "start": "2026-10-01", "released": false, "status": "Ready", "done": 32, "total": 32, "pct": 100, "slip": {"from": "2026-10-30", "days": 19}, "items": [{"key": "IG-3034", "summary": "Gen2 Game: Blue Bird Bonus Extreme", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 13, "done": 13, "name": "Blue Bird Bonus Extreme", "pct": 100}, {"key": "IG-2051", "summary": "Gen2 Game: Fruit Splitter", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 11, "done": 11, "name": "Fruit Splitter", "pct": 100}, {"key": "IG-1511", "summary": "Gen2 Game: Steampunk Fortune", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 8, "done": 8, "name": "Steampunk Fortune", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16225/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 2.70", "desc": "Blue Bird Bonus Extreme, SteamPunk Fortune and Fruit Splitter", "date": "2026-11-18", "start": "2026-10-01", "released": false, "status": "Ready", "done": 5, "total": 5, "pct": 100, "slip": {"from": "2026-10-30", "days": 19}, "items": [{"key": "IG-8608", "summary": "Game Menu - Themes", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 2, "done": 2, "name": "Game Menu - Themes", "pct": 100}, {"key": "IG-9754", "summary": "Thanksgiving/Autumn game lobby theme", "type": "Epic", "status": "To Do", "statusCat": "new", "cat": "features", "total": 2, "done": 2, "name": "Thanksgiving/Autumn game lobby theme", "pct": 100}, {"key": "IG-1506", "summary": "Gen2 Game: Flaming Skulls [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Flaming Skulls", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16225/tab/release-report-all-issues"}, {"group": "elg", "lane": "features", "source": "version", "title": "ELG 5.21", "desc": "IR Fix - Multi threading GE Issue", "date": "2026-10-20", "start": "2026-10-19", "released": true, "status": "Delivered", "done": 2, "total": 2, "pct": 100, "slip": null, "items": [{"key": "PFH-14028", "summary": "Gen2 Game: Robin's Arrow", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 2, "name": "Robin's Arrow", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16226/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 4.00", "desc": "PFH To V1", "date": "2026-12-30", "start": "2026-10-20", "released": false, "status": "In progress", "done": 31, "total": 49, "pct": 63, "slip": {"from": "2026-12-31", "days": -1}, "items": [{"key": "IG-2798", "summary": "Gen2 - Login Screen", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 27, "done": 17, "name": "Gen2 - Login Screen", "pct": 63}, {"key": "IG-6931", "summary": "Location-Based Progressive Display Controller (PDC) ", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 10, "done": 5, "name": "Location-Based Progressive Display Controller (PDC)", "pct": 50}, {"key": "IG-5092", "summary": "Quick Play on Quick connect POS", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 8, "done": 6, "name": "Quick Play on Quick connect POS", "pct": 75}, {"key": "IG-4498", "summary": "Dynamic Terms and Conditions", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 3, "name": "Dynamic Terms and Conditions", "pct": 100}, {"key": "IG-2797", "summary": "Attract Screen [Screen saver or Webpage]", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 0, "name": "Attract Screen [Screen saver or Webpage]", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16227/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 5.00", "desc": "", "date": "2027-02-28", "start": "2026-12-01", "released": false, "status": "In progress", "done": 21, "total": 38, "pct": 55, "slip": {"from": "2026-11-25", "days": 95}, "items": [{"key": "IG-7465", "summary": "Daily Wheel - Daily Promo Streak", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 27, "done": 21, "name": "Daily Wheel - Daily Promo Streak", "pct": 78}, {"key": "PFH-14675", "summary": "Game: Emily's Treasure", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 3, "done": 0, "name": "Emily's Treasure", "pct": 0}, {"key": "IG-4962", "summary": "Gen2 Game: Kandy Land Keno - PFH", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 0, "name": "Kandy Land Keno", "pct": 0}, {"key": "PFH-15360", "summary": "Game: Blade of Fortune", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Blade of Fortune", "pct": 0}, {"key": "PFH-491", "summary": "Game: Double Down Keno", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Double Down Keno", "pct": 0}, {"key": "PFH-16022", "summary": "Game: Dusty Trail Treasures", "type": "Epic", "status": "To Do", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Dusty Trail Treasures", "pct": 0}, {"key": "IG-2051", "summary": "Gen2 Game: Fruit Splitter", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "Fruit Splitter", "pct": 0}, {"key": "PFH-28", "summary": "Game Menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Game Menu", "pct": 0}, {"key": "IG-3581", "summary": "PFH2 Lobby to display T&C and Promo page in iFrame", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "PFH2 Lobby to display T&C and Promo page in iFrame", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16228/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 2.80", "desc": "", "date": "2026-11-17", "start": "2026-11-01", "released": false, "status": "In progress", "done": 2, "total": 10, "pct": 20, "slip": {"from": "2026-11-10", "days": 7}, "items": [{"key": "IG-5593", "summary": "Gen2 Game: 3 Chili Riches", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 5, "done": 0, "name": "3 Chili Riches", "pct": 0}, {"key": "IG-1507", "summary": "Gen2 Game: Pharaoh's Quest", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 5, "done": 2, "name": "Pharaoh's Quest", "pct": 40}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16229/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 2.51", "desc": "Seasonal Lobby Patch", "date": "2026-10-22", "start": "2026-10-22", "released": true, "status": "Delivered", "done": 3, "total": 3, "pct": 100, "slip": null, "items": [{"key": "IG-7534", "summary": "Seasonal Lobby", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 3, "name": "Seasonal Lobby", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16231/tab/release-report-all-issues"}, {"group": "elg", "lane": "features", "source": "version", "title": "ELG 5.40", "desc": "Sentry, Multi language and Multi currency fixes", "date": "2026-11-20", "start": "2026-11-02", "released": false, "status": "In progress", "done": 16, "total": 31, "pct": 52, "slip": {"from": "2026-11-11", "days": 9}, "items": [{"key": "IG-5579", "summary": "Currency Symbol Update", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 12, "done": 8, "name": "Currency Symbol Update", "pct": 67}, {"key": "IG-3005", "summary": "Multilanguage:- AI Translation script", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 2, "name": "Multilanguage:- AI Translation script", "pct": 40}, {"key": "IG-8041", "summary": "QTech Integration - Free Game Update", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 3, "name": "QTech Integration - Free Game Update", "pct": 100}, {"key": "V1-12569", "summary": "Game: Devil's Hot 7 HD", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 1, "name": "Devil's Hot 7 HD", "pct": 50}, {"key": "IG-1506", "summary": "Gen2 Game: Flaming Skulls [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 0, "name": "Flaming Skulls", "pct": 0}, {"key": "IG-3034", "summary": "Gen2 Game: Blue Bird Bonus Extreme", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 1, "name": "Blue Bird Bonus Extreme", "pct": 100}, {"key": "V1-7792", "summary": "Game : Cleopatra’s Dynasty", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Cleopatra’s Dynasty", "pct": 0}, {"key": "IG-1578", "summary": "Gen2 Game: Cleopatra’s Sands of Time", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Cleopatra’s Sands of Time", "pct": 0}, {"key": "IG-9585", "summary": "EveryMatrix Integration: support the stopAutoplay message", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "EveryMatrix Integration: support the stopAutoplay message", "pct": 0}, {"key": "IG-2051", "summary": "Gen2 Game: Fruit Splitter", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "Fruit Splitter", "pct": 0}, {"key": "IG-3120", "summary": "Gen2 - Sentry", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Gen2 - Sentry", "pct": 0}, {"key": "IG-1508", "summary": "Gen2 Game: Lost Totem", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Lost Totem", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16236/tab/release-report-all-issues"}, {"group": "elg", "lane": "games", "source": "version", "title": "ELG 5.50", "desc": "Strike Forge and Snow Bird (Christmas Theme)", "date": "2026-11-30", "start": "2026-11-02", "released": false, "status": "In progress", "done": 88, "total": 150, "pct": 59, "slip": null, "items": [{"key": "IG-4803", "summary": "Gen2 Game: Strike Forge Boost", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 96, "done": 69, "name": "Strike Forge Boost", "pct": 72}, {"key": "IG-8682", "summary": "Gen2 Game: Snow Bird Bonus Extreme", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 54, "done": 19, "name": "Snow Bird Bonus Extreme", "pct": 35}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16240/tab/release-report-all-issues"}, {"group": "elg", "lane": "features", "source": "version", "title": "ELG 5.50", "desc": "Strike Forge and Snow Bird (Christmas Theme)", "date": "2026-11-30", "start": "2026-11-02", "released": false, "status": "In progress", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "IG-3005", "summary": "Multilanguage:- AI Translation script", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 0, "done": 0, "name": "Multilanguage:- AI Translation script", "pct": null}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16240/tab/release-report-all-issues"}, {"group": "pfh", "lane": "features", "source": "version", "title": "PFH Games 3.10", "desc": "Guest to Registered", "date": "2026-12-04", "start": null, "released": false, "status": "In progress", "done": 48, "total": 68, "pct": 71, "slip": null, "items": [{"key": "IG-4649", "summary": "Switching Guest to Registered", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 68, "done": 48, "name": "Switching Guest to Registered", "pct": 71}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16275/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "version", "title": "PFH Games 3.10", "desc": "Guest to Registered", "date": "2026-12-04", "start": null, "released": false, "status": "In progress", "done": 0, "total": 3, "pct": 0, "slip": null, "items": [{"key": "IG-8682", "summary": "Gen2 Game: Snow Bird Bonus Extreme", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 3, "done": 0, "name": "Snow Bird Bonus Extreme", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/IG/versions/16275/tab/release-report-all-issues"}, {"group": "pfh", "lane": "games", "source": "epic-due", "title": "New Games - PFH", "desc": "Epic due dates — no release date yet", "date": "2026-11-30", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "IG-3307", "summary": "Gen2 Game: Amaterasu Rising", "type": "Epic", "name": "Amaterasu Rising", "status": "New", "statusCat": "new", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-11-30"}, {"key": "IG-5708", "summary": "Gen2 Game: Plentiful Bounty", "type": "Epic", "name": "Plentiful Bounty", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-11-30"}], "misc": 0, "url": null}, {"group": "pfh", "lane": "games", "source": "epic-due", "title": "New Games - PFH · New Games - iGaming", "desc": "Epic due dates — no release date yet", "date": "2026-12-31", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "IG-1505", "summary": "Gen2 Game: Firecracker Frenzy", "type": "Epic", "name": "Firecracker Frenzy", "status": "To Do", "statusCat": "new", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-12-31"}, {"key": "IG-1517", "summary": "Gen2 Game: Neon Break", "type": "Epic", "name": "Neon Break", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-12-31"}, {"key": "IG-5005", "summary": "Gen2 Game: Nordic Paws", "type": "Epic", "name": "Nordic Paws", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-12-31"}], "misc": 0, "url": null}, {"group": "pfh", "lane": "games", "source": "epic-due", "title": "New Games - PFH", "desc": "Epic due dates — no release date yet", "date": "2027-02-26", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "IG-5761", "summary": "Gen2 Game: Golden Fortune Grand", "type": "Epic", "name": "Golden Fortune Grand", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2027-02-26"}], "misc": 0, "url": null}, {"group": "pfh", "lane": "features", "source": "epic-due", "title": "Past due · no release yet", "desc": "Due date passed, not in a dated release (New Games - iGaming)", "date": "2026-11-16", "start": null, "released": false, "status": "Overdue", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "IG-7260", "summary": "Slot Battles", "type": "Epic", "name": "Slot Battles", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 0, "done": 0, "pct": null, "due": "2026-10-15"}], "misc": 0, "url": null}, {"group": "pfh", "lane": "features", "source": "pmo", "title": "Loyalty", "label": "PFH 6.00 (PMO)", "desc": "", "date": "2027-03-31", "start": null, "released": false, "status": "To Do", "done": 0, "total": 0, "pct": null, "slip": null, "items": [], "notes": ["Effort — Pong [Portal]: 4 weeks", "Effort — Pong [FE]: 6 weeks", "Requires formal task breakdown and estimation"], "misc": 0, "key": "IG-9391", "url": "https://ponggamestudios.atlassian.net/browse/IG-9391"}, {"group": "pfh", "lane": "features", "source": "pmo", "title": "Tournaments", "label": "PFH 7.00 (PMO)", "desc": "", "date": "2027-05-28", "start": null, "released": false, "status": "New", "done": 0, "total": 0, "pct": null, "slip": null, "items": [], "notes": ["Effort — Blazesoft: 2 days", "Effort — Pong [Portal]: 4 weeks", "Effort — Pong FE [Ben]: 4 weeks", "Requires formal task breakdown and estimation"], "misc": 0, "key": "IG-9777", "url": "https://ponggamestudios.atlassian.net/browse/IG-9777"}, {"group": "kiosk", "lane": "all", "source": "pmo", "title": "Kiosk Lite · Full Web Kiosk", "label": "Dec 2026 (TBC)", "desc": "", "date": "2026-12-31", "start": null, "released": false, "status": "In Progress", "done": 0, "total": 0, "pct": null, "slip": null, "items": [], "notes": [], "misc": 0, "key": "CSS-790", "url": "https://ponggamestudios.atlassian.net/browse/CSS-790"}], "pubs": [{"group": "pfh", "game": "Lantern's Rising", "key": "IG-3304", "golive": "2026-11-02", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.60", "date": "2026-10-23", "released": true}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Robin's Arrow Thanksgiving Feast", "key": "IG-6250", "golive": "2026-11-09", "until": "2026-12-06", "note": "Until ~6 Dec", "assumed": false, "release": {"name": "PFH Games 2.50", "date": "2026-10-19", "released": true}, "flag": null, "flagText": null, "status": "Closed"}, {"group": "pfh", "game": "Ocean King Jackpot [Fish Game]", "key": "IG-4592", "golive": "2026-11-20", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 3.00", "date": "2026-11-20", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Jewels of Cleopatra", "key": "IG-1510", "golive": "2026-11-23", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.40", "date": "2026-10-09", "released": true}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Santa's Gift Hunt", "key": "IG-5961", "golive": "2026-11-30", "until": null, "note": null, "assumed": false, "release": null, "flag": "amber", "flagText": "No PFH release date in Jira", "status": "To Do"}, {"group": "pfh", "game": "Snow Bird Bonus Extreme", "key": "IG-8682", "golive": "2026-11-30", "until": "2027-01-15", "note": "If ready · until 15 Jan", "assumed": false, "release": {"name": "PFH Games 3.10", "date": "2026-12-04", "released": false}, "flag": "red", "flagText": "Go-live before release (PFH Games 3.10 · 2026-12-04)", "status": "In Progress"}, {"group": "pfh", "game": "Pharaoh's Quest", "key": "IG-1507", "golive": "2026-12-14", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.80", "date": "2026-11-17", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Northern Buffalo Fortune", "key": "IG-1509", "golive": "2027-01-04", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.40", "date": "2026-10-09", "released": true}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Blue Bird Bonus Extreme", "key": "IG-3034", "golive": "2027-01-15", "until": null, "note": "Replaces Snow Bird Bonus Extreme", "assumed": false, "release": {"name": "PFH Games 2.70", "date": "2026-11-18", "released": false}, "flag": null, "flagText": null, "status": "Closed"}, {"group": "pfh", "game": "3 Chili Riches", "key": "IG-5593", "golive": "2027-02-01", "until": "2027-03-01", "note": "On its own until 1 Mar", "assumed": false, "release": {"name": "PFH Games 2.80", "date": "2026-11-17", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Viking's Voyage Fortune", "key": "IG-3234", "golive": "2027-03-01", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.60", "date": "2026-10-23", "released": true}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Nordic Paws", "key": "IG-5005", "golive": "2027-03-15", "until": null, "note": null, "assumed": false, "release": {"name": "epic due date", "date": "2026-12-31", "released": false, "estimate": true}, "flag": null, "flagText": null, "status": "In Progress"}, {"group": "pfh", "game": "Steampunk Fortune", "key": "IG-1511", "golive": "2027-03-29", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.70", "date": "2026-11-18", "released": false}, "flag": null, "flagText": null, "status": "Closed"}, {"group": "pfh", "game": "Wildlife Safari Gold", "key": "IG-3305", "golive": "2027-04-09", "until": null, "note": null, "assumed": false, "release": {"name": "epic due date", "date": "2026-12-11", "released": false, "estimate": true}, "flag": null, "flagText": null, "status": "In Progress"}, {"group": "pfh", "game": "Fortune of Z", "key": "IG-3306", "golive": "2027-04-23", "until": null, "note": null, "assumed": false, "release": null, "flag": "amber", "flagText": "No PFH release date in Jira", "status": "In Progress"}, {"group": "pfh", "game": "Neon Break", "key": "IG-1517", "golive": "2027-05-07", "until": null, "note": null, "assumed": false, "release": {"name": "epic due date", "date": "2026-12-31", "released": false, "estimate": true}, "flag": null, "flagText": null, "status": "In Progress"}, {"group": "pfh", "game": "Fruit Splitter", "key": "IG-2051", "golive": "2027-05-21", "until": null, "note": null, "assumed": false, "release": {"name": "PFH Games 2.70", "date": "2026-11-18", "released": false}, "flag": null, "flagText": null, "status": "Closed"}, {"group": "pfh", "game": "Kandy Land Keno", "key": "IG-4962", "golive": "2026-11-20", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "PFH Games 3.00", "date": "2026-11-20", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Northern Buffalo", "key": "IG-2821", "golive": "2026-11-20", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "PFH Games 3.00", "date": "2026-11-20", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Yuan Su Dragons", "key": "IG-2231", "golive": "2026-11-20", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "PFH Games 3.00", "date": "2026-11-20", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "pfh", "game": "Amaterasu Rising", "key": "IG-3307", "golive": "2026-11-30", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "epic due date", "date": "2026-11-30", "released": false}, "flag": null, "flagText": null, "status": "New"}, {"group": "pfh", "game": "Plentiful Bounty", "key": "IG-5708", "golive": "2026-11-30", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "epic due date", "date": "2026-11-30", "released": false}, "flag": null, "flagText": null, "status": "In Progress"}, {"group": "pfh", "game": "Firecracker Frenzy", "key": "IG-1505", "golive": "2026-12-31", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "epic due date", "date": "2026-12-31", "released": false}, "flag": null, "flagText": null, "status": "To Do"}, {"group": "pfh", "game": "Golden Fortune Grand", "key": "IG-5761", "golive": "2027-02-26", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "epic due date", "date": "2027-02-26", "released": false}, "flag": null, "flagText": null, "status": "In Progress"}, {"group": "elg", "game": "Strike Forge Boost", "key": "IG-4803", "golive": "2026-11-30", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "ELG 5.50", "date": "2026-11-30", "released": false}, "flag": null, "flagText": null, "status": "In QA"}, {"group": "elg", "game": "Snow Bird Bonus Extreme", "key": "IG-8682", "golive": "2026-11-30", "until": null, "note": "Go-live not scheduled · assumed = release date", "assumed": true, "release": {"name": "ELG 5.50", "date": "2026-11-30", "released": false}, "flag": null, "flagText": null, "status": "In Progress"}], "parked": [{"space": "igaming", "group": "kiosk", "lane": "all", "since": "Sep 2026", "title": "Kiosk Lite API Integration", "note": "Signed off — parked for now"}], "browse": "https://ponggamestudios.atlassian.net/browse/"};
+const LW = 160, DAY = 864e5;
+const S = { monthPx: 420, cardW: 272, pubW: 184, maxItems: 4, print: false, expanded: new Set(), trays: new Set() };
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ws = dt(D.window.start), we = dt(D.window.end), today = dt(D.today);
+const totalDays = Math.round((we - ws) / DAY) + 1;
+
+function dt(s){ return new Date(s + 'T00:00:00'); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ppd(){ return S.monthPx / 30.44; }
+function TW(){ return Math.round(totalDays * ppd()); }
+function xr(s){ return (dt(s) - ws) / DAY * ppd(); }            // raw x (may be outside)
+function xc(s){ return Math.max(0, Math.min(TW(), xr(s))); }     // clamped x
+function fmt(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
+function fmtS(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()]; }
+function col(c, k){ return `var(--${c}${k ? '-' + k : ''})`; }
+function jl(key){ return key ? `<a class="jira" href="${esc(D.browse + key)}" target="_blank" rel="noopener">${esc(key)} ↗</a>` : ''; }
+
+/* ── header, nav, legend ── */
+function renderChrome(){
+  document.title = D.title + ' Roadmap';
+  document.getElementById('nav').innerHTML =
+    D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('') +
+    `<span class="sep"></span><a class="back" href="index.html">← Release Dashboard</a>`;
+  document.getElementById('title').innerHTML = `🗺️ ${esc(D.title)} Roadmap`;
+  const gen = new Date(D.generated);
+  document.getElementById('sub').textContent =
+    `Live from Jira · refreshed ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ` +
+    `${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()} (rolling)`;
+  document.getElementById('todayPill').textContent = `▼ Today: ${fmt(D.today)}`;
+  const lanes = [], seen = new Set();
+  D.groups.forEach(g => g.lanes.forEach(l => { if (!seen.has(l.label)) { seen.add(l.label); lanes.push(l); } }));
+  document.getElementById('legend').innerHTML =
+    lanes.map(l => `<div class="leg"><span class="sw" style="background:${col(l.color)}"></span>${esc(l.label)}</div>`).join('') +
+    `<div class="leg-sep"></div>
+     <div class="leg"><span class="sw" style="background:var(--text-mid)"></span>◆ Delivered</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--text-mid)"></span>◇ Forecast (Jira date)</div>
+     <div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO forecast</div>` +
+    (D.pubs.length ? `<div class="leg-sep"></div>
+     <div class="leg"><span class="sw" style="background:var(--rose)"></span>Go-live before release</div>
+     <div class="leg"><span class="sw" style="background:var(--amber)"></span>No release in Jira</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--green)"></span>Go-live assumed</div>` : '');
+  const nUns = D.groups.reduce((a, g) => a + g.lanes.reduce((b, l) => b + l.unscheduled.length, 0), 0);
+  document.getElementById('foot').innerHTML =
+    `<span>Source: Jira (read-only) · PMO plan for go-lives &amp; undated forecasts · Jira wins where it has a date · ${nUns} unscheduled item(s) in lane trays</span>
+     <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
+}
+
+/* ── card HTML ── */
+function statusColor(st, lane){
+  return ({Delivered:'green', Ready:'green', Overdue:'rose', 'In progress':lane, Planned:'grey', Forecast:'grey'})[st] || 'grey';
+}
+const CAT_LBL = { features: 'Features', games: 'New games', gamefix: 'Fixes to existing games' };
+function itemLi(it, c){
+  const pct = it.due ? `<span class="ipct">due ${fmtS(it.due)}</span>`
+    : it.pct != null ? `<span class="ipct">${it.pct}%</span>` : '';
+  return `<li title="${esc(it.summary + ' — ' + it.status)}"><span class="dot ${esc(it.statusCat)}"></span>` +
+         `<span class="nm">${esc(it.name)}</span>${jl(it.key)}${pct}</li>`;
+}
+function cardHTML(c, lane, id){
+  const color = lane.color, released = c.released, pmo = c.source === 'pmo';
+  let date;
+  if (released) date = `✓ Released ${fmt(c.date)}`;
+  else if (pmo) date = `PMO forecast · ${esc(c.label || fmt(c.date))}`;
+  else if (c.source === 'epic-due' && c.status === 'Overdue') date = `Past due · as of ${fmt(c.date)}`;
+  else if (c.source === 'epic-due') date = `Due ${fmt(c.date)} · forecast`;
+  else date = `Release ${fmt(c.date)}`;
+  const sc = statusColor(c.status, color);
+  const prog = c.pct != null ? `<div class="ptrack"><div class="pfill" style="width:${c.pct}%;background:${col(color)}"></div></div><span class="ppct" style="color:${col(color)}">${c.pct}%</span>` : '';
+  const slip = c.slip ? `<span class="slip ${c.slip.days > 0 ? 'late' : 'early'}" title="Originally ${fmt(c.slip.from)}">${c.slip.days > 0 ? '▲ moved +' + c.slip.days : '▼ pulled in ' + (-c.slip.days)}d · was ${fmtS(c.slip.from)}</span>` : '';
+  const status = `<div class="card-status"><span class="badge" style="color:${col(sc)};border-color:${col(sc,'bd')};background:${col(sc,'bg')}">${esc(c.status)}</span>${prog}${slip}</div>`;
+
+  const open = S.expanded.has(id), max = S.print ? 5 : S.maxItems;
+  const list = arr => `<ul class="items">${arr.map(i => itemLi(i, c)).join('')}</ul>`;
+  const cats = ['features', 'games', 'gamefix'].filter(k => c.items.some(i => i.cat === k));
+  let body = '', shown = 0, hidden = 0;
+  cats.forEach(k => {
+    const arr = c.items.filter(i => i.cat === k);
+    if (k === 'gamefix' && !open) {
+      const names = arr.map(i => i.name);
+      body += `<div class="misc" title="${esc(names.join(', '))}">🔧 Fixes to ${arr.length} existing game${arr.length > 1 ? 's' : ''}: ${esc(names.slice(0, 3).join(', '))}${arr.length > 3 ? '…' : ''}</div>`;
+      return;
+    }
+    const show = open ? arr : arr.slice(0, Math.max(2, max - shown));
+    shown += show.length; hidden += arr.length - show.length;
+    if (cats.length > 1) body += `<div class="cgroup" style="color:${col(color)}">${CAT_LBL[k]}</div>`;
+    body += list(show);
+  });
+  const expandable = hidden > 0 || cats.includes('gamefix');
+  const more = open ? `<button class="more" data-card="${id}">▴ show less</button>`
+    : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game fixes'}</button>` : '';
+  const misc = c.misc ? `<div class="misc">+ ${c.misc} bugs &amp; fixes</div>` : '';
+  const notes = (c.notes || []).length ? `<ul class="notes">${c.notes.map(n => `<li>· ${esc(n)}</li>`).join('')}</ul>` : '';
+  const ftag = pmo ? `<div class="ftag" style="color:var(--gold);border:1px dotted var(--gold-bd)">◇ PMO forecast — not dated in Jira</div>` : '';
+  const titleLink = c.url ? ` <a class="jira" href="${esc(c.url)}" target="_blank" rel="noopener">${pmo ? esc(c.key) : 'Jira'} ↗</a>` : '';
+  const desc = c.desc ? `<div class="card-desc">${esc(c.desc)}</div>` : '';
+  return `<div class="card">
+      <div class="card-date" style="color:${col(color)}">${date}</div>
+      <div class="card-title">${esc(c.title)}${titleLink}</div>${desc}${status}${body}${more}${misc}${notes}${ftag}</div>`;
+}
+
+/* ── skyline packing: place boxes top-down without overlap ── */
+function pack(boxes, hgap = 10, vgap = 10){
+  boxes.sort((a, b) => a.l - b.l);
+  const placed = [];
+  let bottom = 0;
+  for (const b of boxes) {
+    let y = 0, guard = 0;
+    while (guard++ < 200) {
+      const hit = placed.find(p => p.l < b.r + hgap && b.l < p.r + hgap && p.t < y + b.h + vgap && y < p.t + p.h + vgap);
+      if (!hit) break;
+      y = hit.t + hit.h + vgap;
+    }
+    b.t = y; placed.push(b);
+    b.el.style.top = (y + 10) + 'px';
+    bottom = Math.max(bottom, y + b.h);
+  }
+  return bottom + 22;
+}
+
+/* ── timeline ── */
+function renderTimeline(){
+  const tw = TW(), canvas = document.getElementById('canvas');
+  canvas.style.width = (LW + tw) + 'px';
+  let html = '';
+  // ruler
+  let months = '', lines = '';
+  for (let d = new Date(ws); d <= we; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const s = d.toISOString().slice(0, 10), x0 = xr(isoLocal(d));
+    const nx = new Date(d.getFullYear(), d.getMonth() + 1, 1), x1 = Math.min(tw, xr(isoLocal(nx)));
+    months += `<div class="mcell" style="left:${x0}px;width:${x1 - x0}px">${MON[d.getMonth()]} ${d.getFullYear()}</div>`;
+    lines += `<div class="mline" style="left:${x0}px"></div>`;
+  }
+  const tx = xc(D.today);
+  html += `<div class="ruler"><div class="ruler-corner" style="width:${LW}px">${esc(D.title)}</div>
+           <div class="ruler-body" style="width:${tw}px">${months}<div class="today-lbl" style="left:${tx}px">▼ TODAY</div></div></div>`;
+  html += `<div class="gridlines" style="left:${LW}px;width:${tw}px">${lines}<div class="tline" style="left:${tx}px"></div></div>`;
+  // groups
+  D.groups.forEach(g => {
+    if (g.label) html += `<div class="grp-hdr"><div class="grp-name" style="width:${LW}px;text-align:right">${esc(g.label)}</div><div class="grp-line"></div></div>`;
+    g.lanes.forEach(l => {
+      const lid = g.id + '__' + l.id, n = l.unscheduled.length;
+      html += `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
+          <div class="lane-name" style="color:${col(l.color)}">${esc(l.label)}</div>
+          ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
+        </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
+      if (n) html += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
+          <div class="tray-ttl">Unscheduled · ${esc(l.label)} — no release or due date in Jira</div>
+          ${l.unscheduled.map(u => `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small></a>`).join('')}
+        </div></div>`;
+    });
+  });
+  canvas.innerHTML = html;
+
+  // populate lanes
+  D.groups.forEach(g => g.lanes.forEach(l => {
+    const body = document.getElementById(`lb-${g.id}__${l.id}`), boxes = [];
+    if (l.kind === 'publishing') {
+      D.pubs.filter(p => p.group === g.id).forEach(p => {
+        const x = xc(p.golive), xe = p.until ? xc(p.until) : x;
+        const el = document.createElement('div');
+        el.className = 'pub' + (p.assumed ? ' assumed' : '') + (p.flag ? ' flag-' + p.flag : '');
+        el.style.left = x + 'px';
+        const rel = p.release && !p.assumed
+          ? `<div class="pub-rel">Release: ${esc(p.release.name)} ${p.release.released ? '✓' : '·'} ${fmtS(p.release.date)}${shelf(p)}</div>` : '';
+        el.innerHTML = `<div class="pub-card" style="width:${S.pubW}px"><div class="pub-date">${p.assumed ? '≈ ' : ''}${fmtS(p.golive)}</div>
+            <div class="pub-title">${esc(p.game)} ${jl(p.key)}</div>
+            ${p.note ? `<div class="pub-note">${esc(p.note)}</div>` : ''}
+            ${p.flagText ? `<div class="pub-flag">⚠ ${esc(p.flagText)}</div>` : ''}${rel}</div>` +
+          (p.until ? `<div class="pub-run" style="width:${Math.max(xe - x, 4)}px"></div>` : '');
+        body.appendChild(el);
+        boxes.push({ el, l: x, r: Math.max(x + S.pubW, xe) });
+      });
+    } else {
+      D.cards.forEach((c, i) => {
+        if (c.group !== g.id || c.lane !== l.id) return;
+        const id = 'c' + i, x = xc(c.date), w = S.cardW, left = Math.max(0, x - w);
+        const el = document.createElement('div');
+        el.className = 'tcard';
+        el.style.cssText = `left:${left}px;width:${w}px;border-color:${col(l.color,'bd')};` +
+          (c.source === 'pmo' ? 'border-style:dotted;border-color:var(--gold-bd);' : '');
+        const accent = c.released ? `background:${col(l.color)}`
+          : `background:repeating-linear-gradient(90deg,${col(c.source === 'pmo' ? 'gold' : l.color)} 0 6px,transparent 6px 11px)`;
+        el.innerHTML = `<div class="accent" style="${accent}"><span class="ms" style="left:${x - left}px;background:${c.released ? col(l.color) : 'var(--surface)'};border-color:${col(l.color)}"></span></div>` + cardHTML(c, l, id);
+        body.appendChild(el);
+        boxes.push({ el, l: left, r: left + w });
+      });
+      D.parked.filter(p => p.group === g.id && p.lane === l.id).forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'parked'; el.style.left = '0px'; el.style.width = '220px';
+        el.innerHTML = `<div class="pk-tag">⏸ Parked · ${esc(p.since)}</div><div class="pk-title">${esc(p.title)}</div><div class="pk-sub">${esc(p.note)}</div>`;
+        body.appendChild(el);
+        boxes.push({ el, l: 0, r: 220 });
+      });
+    }
+    boxes.forEach(b => b.h = b.el.offsetHeight || 120);
+    if (!boxes.length) body.innerHTML = `<div class="lane-empty">Nothing dated in this window</div>`;
+    body.style.height = (boxes.length ? pack(boxes) : 44) + 'px';
+  }));
+  document.getElementById('topScrollInner').style.width = (LW + tw) + 'px';
+  sizeScroller();
+}
+function shelf(p){
+  if (!p.release) return '';
+  const days = Math.round((dt(p.golive) - dt(p.release.date)) / DAY);
+  return days > 0 ? ` · ${days}d on shelf` : '';
+}
+function isoLocal(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+/* ── scrolling: synced top + bottom bars ── */
+const tl = document.getElementById('tl'), top_ = document.getElementById('topScroll');
+let syncing = false;
+tl.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; top_.scrollLeft = tl.scrollLeft; });
+top_.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; tl.scrollLeft = top_.scrollLeft; });
+function sizeScroller(){
+  if (S.print) return;
+  const h = window.innerHeight - tl.getBoundingClientRect().top - 44;
+  tl.style.height = Math.max(420, h) + 'px';
+}
+function scrollToToday(){ tl.scrollLeft = Math.max(0, xc(D.today) - (tl.clientWidth - LW) * 0.3); }
+
+/* ── controls ── */
+function zoom(f){
+  const keep = (tl.scrollLeft + tl.clientWidth / 2 - LW) / TW();
+  S.monthPx = Math.max(200, Math.min(900, Math.round(S.monthPx * f)));
+  renderTimeline();
+  tl.scrollLeft = keep * TW() + LW - tl.clientWidth / 2;
+}
+const saved = { monthPx: 0, cardW: 0 };
+function beforePrint(){
+  if (S.print) return;
+  saved.monthPx = S.monthPx; saved.cardW = S.cardW;
+  S.print = true;
+  S.monthPx = (16.3 * 96 - LW) / (totalDays / 30.44);
+  S.cardW = Math.min(230, S.cardW);
+  renderTimeline();
+}
+function afterPrint(){
+  if (!S.print) return;
+  S.print = false; S.monthPx = saved.monthPx; S.cardW = saved.cardW;
+  renderTimeline(); sizeScroller();
+}
+document.getElementById('btnPrint').onclick = () => { beforePrint(); window.print(); };
+document.getElementById('zoomIn').onclick = () => zoom(1.25);
+document.getElementById('zoomOut').onclick = () => zoom(0.8);
+document.getElementById('goToday').onclick = scrollToToday;
+window.addEventListener('beforeprint', beforePrint);
+window.addEventListener('afterprint', afterPrint);
+window.addEventListener('resize', sizeScroller);
+document.addEventListener('click', e => {
+  const m = e.target.closest('.more');
+  if (m) { const id = m.dataset.card; S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id); keepScroll(renderTimeline); return; }
+  const t = e.target.closest('.tray-btn');
+  if (t) { const id = t.dataset.tray; S.trays.has(id) ? S.trays.delete(id) : S.trays.add(id);
+           document.getElementById('tray-' + id).classList.toggle('open', S.trays.has(id)); }
+});
+function keepScroll(fn){ const l = tl.scrollLeft, t = tl.scrollTop; fn(); tl.scrollLeft = l; tl.scrollTop = t; }
+
+renderChrome();
+renderTimeline();
+scrollToToday();
+</script>
+</body>
+</html>

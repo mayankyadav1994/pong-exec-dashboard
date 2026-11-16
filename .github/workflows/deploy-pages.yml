@@ -25,6 +25,7 @@ on:
       - "iGaming Timeline"
       - "Refresh Team Board Data"
       - "Refresh Game Pipeline Dashboard"
+      - "Roadmap"
     types: [completed]
   workflow_dispatch:
 

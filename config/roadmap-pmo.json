@@ -1,0 +1,40 @@
+{
+  "_comment": "PMO plan for the Roadmap pages. Read-only overlay: NOTHING here is written to Jira. Jira wins wherever it has a date; these fill the gaps. Seeded 2026-11-16 from Simon's PFH Roadmap HTML. Phase 2: edited from a Publishing Board instead of by hand.",
+  "publishing": {
+    "igaming": {
+      "pfh": [
+        { "game": "Lantern's Rising",                 "key": "IG-3304", "golive": "2026-11-02" },
+        { "game": "Robin's Arrow Thanksgiving Feast", "key": "IG-6250", "golive": "2026-11-09", "until": "2026-12-06", "note": "Until ~6 Dec" },
+        { "game": "Ocean King Jackpot [Fish Game]",   "key": "IG-4592", "golive": "2026-11-20" },
+        { "game": "Jewels of Cleopatra",              "key": "IG-1510", "golive": "2026-11-23" },
+        { "game": "Santa's Gift Hunt",                "key": "IG-5961", "golive": "2026-11-30" },
+        { "game": "Snow Bird Bonus Extreme",          "key": "IG-8682", "golive": "2026-11-30", "until": "2027-01-15", "note": "If ready · until 15 Jan" },
+        { "game": "Pharaoh's Quest",                  "key": "IG-1507", "golive": "2026-12-14" },
+        { "game": "Northern Buffalo Fortune",         "key": "IG-1509", "golive": "2027-01-04" },
+        { "game": "Blue Bird Bonus Extreme",          "key": "IG-3034", "golive": "2027-01-15", "note": "Replaces Snow Bird Bonus Extreme" },
+        { "game": "3 Chili Riches",                   "key": "IG-5593", "golive": "2027-02-01", "until": "2027-03-01", "note": "On its own until 1 Mar" },
+        { "game": "Viking's Voyage Fortune",          "key": "IG-3234", "golive": "2027-03-01" },
+        { "game": "Nordic Paws",                      "key": "IG-5005", "golive": "2027-03-15" },
+        { "game": "Steampunk Fortune",                "key": "IG-1511", "golive": "2027-03-29" },
+        { "game": "Wildlife Safari Gold",             "key": "IG-3305", "golive": "2027-04-09" },
+        { "game": "Fortune of Z",                     "key": "IG-3306", "golive": "2027-04-23" },
+        { "game": "Neon Break",                       "key": "IG-1517", "golive": "2027-05-07" },
+        { "game": "Fruit Splitter",                   "key": "IG-2051", "golive": "2027-05-21" }
+      ]
+    }
+  },
+  "forecasts": [
+    { "space": "igaming", "group": "pfh", "lane": "features", "key": "IG-9391", "date": "2027-03-31",
+      "title": "Loyalty", "label": "PFH 6.00 (PMO)",
+      "notes": ["Effort — Pong [Portal]: 4 weeks", "Effort — Pong [FE]: 6 weeks", "Requires formal task breakdown and estimation"] },
+    { "space": "igaming", "group": "pfh", "lane": "features", "key": "IG-9777", "date": "2027-05-28",
+      "title": "Tournaments", "label": "PFH 7.00 (PMO)",
+      "notes": ["Effort — Blazesoft: 2 days", "Effort — Pong [Portal]: 4 weeks", "Effort — Pong FE [Ben]: 4 weeks", "Requires formal task breakdown and estimation"] },
+    { "space": "igaming", "group": "kiosk", "lane": "all", "key": "CSS-790", "version": "PFH2 Services 5.00", "date": "2026-12-31",
+      "title": "Kiosk Lite · Full Web Kiosk", "label": "Dec 2026 (TBC)" }
+  ],
+  "parked": [
+    { "space": "igaming", "group": "kiosk", "lane": "all", "since": "Sep 2026",
+      "title": "Kiosk Lite API Integration", "note": "Signed off — parked for now" }
+  ]
+}

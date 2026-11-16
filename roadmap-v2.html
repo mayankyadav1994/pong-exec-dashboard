@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Theme = Game Pipeline (dashboard.css): light, IBM Plex, navy text. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --text-mid:#4a5672;--text-dim:#8a94ad;--card-text:#2a3247;--hair:#e8ecf4;
+  --today:#b91c1c;--today-bg:rgba(239,68,68,.10);--today-bd:rgba(239,68,68,.35);
+  --gold:#b45309;--gold-bg:#fffbeb;--gold-bd:#fcd34d;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#bbf7d0;
+  --rose:#dc2626;--rose-bg:#fef2f2;--rose-bd:#fecaca;
+  --violet:#7c3aed;--violet-bg:#f5f3ff;--violet-bd:#ddd6fe;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+  --grey:#64748b;--grey-bg:#f1f5f9;--grey-bd:#cbd5e1;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{padding:20px 32px 0;overflow-x:hidden;min-height:100vh}
+a{color:inherit}
+
+/* ── top nav (same as the site tabs) ── */
+.nav{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap}
+.nav a{font-size:13px;font-weight:500;text-decoration:none;color:var(--muted);padding:9px 16px;border-bottom:2px solid transparent}
+.nav a:hover{color:var(--text)}
+.nav a.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
+.nav .sep{flex:1}
+.nav .back{font-size:12px}
+
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px}
+.ey{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
+h1{font-size:20px;font-weight:600;letter-spacing:-.2px}
+.sub{font-size:12px;color:var(--muted);margin-top:4px}
+.hdr-r{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;
+  color:var(--today);background:var(--today-bg);border:1px solid var(--today-bd)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:11px;padding:6px 12px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  cursor:pointer;font-family:inherit;font-weight:600}
+.btn:hover{background:var(--surf2);color:var(--text)}
+
+.legend{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:8px 12px;
+  background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);padding:2px 8px;border-radius:4px;background:var(--surf2)}
+.leg-sep{width:1px;height:16px;background:var(--border);margin:0 3px}
+.sw{width:16px;height:6px;border-radius:2px}
+
+/* ── scroll area: scrollbar on top AND bottom ── */
+.topscroll{overflow-x:auto;overflow-y:hidden;height:14px;margin-bottom:2px}
+.topscroll>div{height:1px}
+.tl{overflow:auto;position:relative;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.canvas{position:relative}
+.gridlines{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1}
+.mline{position:absolute;top:0;bottom:0;width:1px;background:var(--surf3)}
+.tline{position:absolute;top:0;bottom:0;width:2px;z-index:25;background:rgba(185,28,28,.4)}
+
+.ruler{position:sticky;top:0;z-index:50;display:flex;background:var(--surf2);border-bottom:1px solid var(--border2);height:42px}
+.ruler-corner{position:sticky;left:0;z-index:2;background:var(--surf2);flex-shrink:0;border-right:1px solid var(--border);
+  font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;padding-left:12px}
+.ruler-body{position:relative;flex-shrink:0}
+.mcell{position:absolute;top:0;bottom:0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;
+  font-size:11px;font-weight:600;color:var(--muted);border-left:1px solid var(--border)}
+.today-lbl{position:absolute;bottom:3px;transform:translateX(-50%);z-index:3;font-family:var(--mono);font-size:9px;font-weight:700;
+  color:var(--today);background:#fff;padding:1px 6px;border:1px solid var(--today-bd);border-radius:3px;white-space:nowrap}
+
+/* ── groups & lanes ── */
+.grp-hdr{display:flex;align-items:center;padding:14px 0 4px;background:var(--surface)}
+.grp-name{position:sticky;left:0;z-index:30;background:var(--surface);font-size:15px;font-weight:700;color:var(--text);padding:0 12px}
+.grp-line{flex:1;height:1px;background:var(--border)}
+.lane{display:flex;border-bottom:1px solid var(--border)}
+.lane-lbl{position:sticky;left:0;z-index:30;flex-shrink:0;background:var(--surface);padding:12px 12px 8px;
+  text-align:right;border-right:1px solid var(--border)}
+.lane-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;line-height:1.2}
+.tray-btn{margin-top:6px;font-size:10px;font-weight:600;color:var(--muted);background:var(--surf2);border:1px dashed var(--border2);
+  border-radius:4px;padding:2px 7px;cursor:pointer;font-family:inherit}
+.tray-btn:hover{color:var(--text);border-color:var(--muted)}
+.lane-body{position:relative;flex-shrink:0;z-index:5}
+.lane-empty{position:absolute;left:12px;top:14px;font-size:11px;color:var(--sub);font-style:italic}
+.tray{display:none;border-bottom:1px solid var(--border);background:var(--surf2)}
+.tray.open{display:block}
+.tray-in{position:sticky;left:0;padding:10px 12px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.tray-ttl{width:100%;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px}
+.uchip{font-size:11px;color:var(--text);background:var(--surface);border:1px dashed var(--border2);border-radius:5px;padding:4px 8px;text-decoration:none;max-width:320px}
+.uchip small{display:block;font-family:var(--mono);font-size:9px;color:var(--sub)}
+.uchip:hover{border-color:var(--muted)}
+
+/* ── release cards ── */
+.tcard{position:absolute;border-radius:8px;border:1px solid;background:var(--surface);box-shadow:0 1px 2px rgba(26,32,53,.06)}
+.accent{height:4px;border-radius:7px 7px 0 0;margin:-1px -1px 0;position:relative}
+.ms{position:absolute;top:50%;width:10px;height:10px;border-radius:2px;transform:translate(-50%,-50%) rotate(45deg);border:2px solid}
+.card{padding:9px 11px 10px;border-radius:0 0 8px 8px}
+.card-date{font-family:var(--mono);font-size:9.5px;font-weight:500;margin-bottom:3px}
+.card-title{font-size:14px;font-weight:600;line-height:1.25;color:var(--text)}
+.card-desc{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.card-status{display:flex;align-items:center;gap:7px;margin:7px 0 6px;padding-bottom:7px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
+.badge{font-size:9px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px;font-weight:700;border:1px solid;white-space:nowrap}
+.ptrack{flex:1;height:5px;border-radius:3px;background:var(--surf3);overflow:hidden;min-width:40px}
+.pfill{height:100%;border-radius:3px}
+.ppct{font-family:var(--mono);font-size:10px;font-weight:600}
+.slip{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:4px;white-space:nowrap;font-weight:500}
+.slip.late{color:var(--rose);background:var(--rose-bg)}
+.slip.early{color:var(--green);background:var(--green-bg)}
+.cgroup{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:6px 0 2px}
+.items{list-style:none;display:flex;flex-direction:column;gap:3px}
+.items li{font-size:11.5px;color:var(--card-text);display:flex;gap:6px;align-items:baseline;line-height:1.3}
+.items li .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transform:translateY(-1px)}
+.dot.done{background:var(--green)}.dot.indeterminate{background:var(--blue)}.dot.new{background:var(--border2)}
+.ipct{font-family:var(--mono);font-size:9.5px;color:var(--sub);flex-shrink:0}
+.jira{font-family:var(--mono);font-size:9px;padding:0 4px;border-radius:3px;border:1px solid var(--border);
+  background:var(--surf2);text-decoration:none;white-space:nowrap;color:var(--muted)}
+.jira:hover{background:var(--surf3);color:var(--text)}
+.more{display:block;margin-top:5px;font-size:10px;font-weight:600;color:#1e40af;background:none;border:none;cursor:pointer;padding:0;font-family:inherit}
+.more:hover{text-decoration:underline}
+.misc{font-size:10.5px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notes{list-style:none;margin-top:4px}
+.notes li{font-size:11px;color:var(--text-mid);line-height:1.4}
+.ftag{font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:7px;display:inline-block}
+
+/* ── publishing chips ── */
+.pub{position:absolute;display:flex;flex-direction:column}
+.pub-card{border:1px solid var(--green-bd);border-left:3px solid var(--green);background:var(--surface);
+  border-radius:6px;padding:5px 8px 6px;box-shadow:0 1px 2px rgba(26,32,53,.05)}
+.pub.assumed .pub-card{border-style:dashed;border-left-style:dashed;background:var(--surf2)}
+.pub.assumed .pub-title{color:var(--muted)}
+.pub.flag-red .pub-card{border-left-color:var(--rose);background:var(--rose-bg)}
+.pub.flag-amber .pub-card{border-left-color:var(--amber);background:var(--amber-bg)}
+.pub-date{font-family:var(--mono);font-size:9.5px;color:var(--green);font-weight:600}
+.pub-title{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.25;margin-top:1px}
+.pub-note{font-size:10px;color:var(--muted);margin-top:2px}
+.pub-flag{font-size:10px;margin-top:3px;font-weight:600}
+.flag-red .pub-flag{color:var(--rose)}.flag-amber .pub-flag{color:var(--amber)}
+.pub-rel{font-family:var(--mono);font-size:9px;color:var(--sub);margin-top:2px}
+.pub-run{height:3px;border-radius:2px;margin-top:3px;background:linear-gradient(90deg,var(--green),rgba(22,163,74,.12))}
+
+.parked{position:absolute;border:1px dashed var(--amber-bd);border-left:3px solid var(--amber);background:var(--amber-bg);
+  border-radius:6px;padding:6px 9px}
+.pk-tag{font-size:9.5px;color:var(--amber);font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.pk-title{font-size:13px;font-weight:600;line-height:1.2;margin-top:1px}
+.pk-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 2px 16px;font-size:11px;color:var(--sub)}
+
+@media print{
+  @page{size:11in 17in landscape;margin:.35in}
+  .nav,.btns,.topscroll,.tray-btn,.more{display:none!important}
+  body{padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tl{overflow:visible!important;height:auto!important;border:none}
+  .ruler{position:static}
+  .tcard,.pub-card{box-shadow:none!important;break-inside:avoid}
+}
+@media (max-width:700px){body{padding:12px 16px 0}}
+</style>
+</head>
+<body>
+<nav class="nav" id="nav"></nav>
+<div class="hdr">
+  <div>
+    <div class="ey">Pong Game Studios · Roadmap</div>
+    <h1 id="title"></h1>
+    <div class="sub" id="sub"></div>
+  </div>
+  <div class="hdr-r">
+    <div class="pill" id="todayPill"></div>
+    <div class="btns">
+      <button class="btn" id="zoomOut" title="Zoom out">−</button>
+      <button class="btn" id="zoomIn" title="Zoom in">+</button>
+      <button class="btn" id="goToday">⌖ Today</button>
+      <button class="btn" id="btnPrint">🖨 Print (11×17)</button>
+    </div>
+  </div>
+</div>
+<div class="legend" id="legend"></div>
+<div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
+<div class="tl" id="tl"><div class="canvas" id="canvas"></div></div>
+<div class="foot" id="foot"></div>
+
+<script>
+const D = {"space": "v2", "title": "V2", "nav": [{"id": "igaming", "title": "iGaming", "file": "roadmap-igaming.html"}, {"id": "v2", "title": "V2", "file": "roadmap-v2.html"}, {"id": "css", "title": "Cloud Services", "file": "roadmap-css.html"}], "generated": "2026-11-16T16:11+00:00", "today": "2026-11-16", "window": {"start": "2026-10-01", "end": "2027-07-31"}, "groups": [{"id": "v2", "label": "", "lanes": [{"id": "p2p", "label": "P2P", "color": "blue", "kind": "cards", "count": 1, "unscheduled": []}, {"id": "pt", "label": "PT", "color": "violet", "kind": "cards", "count": 3, "unscheduled": []}, {"id": "sw", "label": "SW", "color": "green", "kind": "cards", "count": 1, "unscheduled": []}, {"id": "c2", "label": "C2", "color": "amber", "kind": "cards", "count": 2, "unscheduled": []}, {"id": "hhr", "label": "HHR", "color": "rose", "kind": "cards", "count": 2, "unscheduled": []}, {"id": "newgames", "label": "New Games", "color": "blue", "kind": "cards", "count": 20, "unscheduled": [{"kind": "epic", "key": "V2-32879", "name": "Sizzling Deluxe", "status": "New", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-32879"}, {"kind": "epic", "key": "V2-32769", "name": "Snow Bird Bonus Extreme", "status": "To Do", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-32769"}, {"kind": "epic", "key": "V2-32655", "name": "Strike Forge Boost", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-32655"}, {"kind": "epic", "key": "V2-32440", "name": "Diamond Factory", "status": "New", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-32440"}, {"kind": "epic", "key": "V2-31779", "name": "Blue Bird Bonus Extreme", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-31779"}, {"kind": "epic", "key": "V2-31091", "name": "Hell's Outlaw", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-31091"}, {"kind": "epic", "key": "V2-25742", "name": "Viking Blox 2", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-25742"}, {"kind": "epic", "key": "V2-23411", "name": "Fangs of Fortune", "status": "New", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-23411"}, {"kind": "epic", "key": "V2-23329", "name": "Viking Blox", "status": "New", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-23329"}, {"kind": "epic", "key": "V2-23042", "name": "Golden Bank Safe", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-23042"}, {"kind": "epic", "key": "V2-19318", "name": "Tiger Hunt", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-19318"}, {"kind": "epic", "key": "V2-18699", "name": "Canada Eh", "status": "New", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-18699"}, {"kind": "epic", "key": "V2-16983", "name": "Lantern's Rising- Vertical", "status": "In Progress", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-16983"}, {"kind": "epic", "key": "V2-16942", "name": "Northern Buffalo", "status": "To Do", "bucket": "New Games", "url": "https://ponggamestudios.atlassian.net/browse/V2-16942"}]}, {"id": "other", "label": "Other", "color": "grey", "kind": "cards", "count": 0, "unscheduled": []}]}], "cards": [{"group": "v2", "lane": "c2", "source": "version", "title": "V2 C2 5.30", "desc": "4 Games C2 Conversions", "date": "2026-12-31", "start": "2026-08-21", "released": false, "status": "In progress", "done": 6, "total": 59, "pct": 10, "slip": null, "items": [{"key": "V2-16002", "summary": "Game: Blue Bird Bonus", "type": "Epic", "status": "New", "statusCat": "new", "cat": "games", "total": 12, "done": 1, "name": "Blue Bird Bonus", "pct": 8}, {"key": "V2-17197", "summary": "Game: Day of the Dead [V]", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 12, "done": 1, "name": "Day of the Dead", "pct": 8}, {"key": "V2-7996", "summary": "Game: Plenty O' Coins ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "games", "total": 12, "done": 1, "name": "Plenty O' Coins", "pct": 8}, {"key": "V2-20802", "summary": "Game: Mayan Madness", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 10, "done": 0, "name": "Mayan Madness", "pct": 0}, {"key": "V2-10888", "summary": "Game: Chain Lock 7s Refueled", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 3, "done": 2, "name": "Chain Lock 7s Refueled", "pct": 67}, {"key": "V2-25802", "summary": "Game: Mayan Madness - PT", "type": "Story", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 2, "done": 1, "name": "Mayan Madness", "pct": 50}, {"key": "V2-484", "summary": "Server", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 0, "name": "Server", "pct": 0}, {"key": "V2-5911", "summary": "Game: Arctic Buffalo", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Arctic Buffalo", "pct": 0}, {"key": "V2-12352", "summary": "Game: Bugs to Riches Diamond link", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Bugs to Riches Diamond link", "pct": 0}, {"key": "V2-462", "summary": "Game Menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Game Menu", "pct": 0}, {"key": "V2-31951", "summary": "Game: Northern Buffalo Fortune 2 [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Northern Buffalo Fortune 2", "pct": 0}, {"key": "V2-20335", "summary": "Game: Quick Win's Diamond 7s - [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Quick Win's Diamond 7s", "pct": 0}, {"key": "V2-12459", "summary": "Game: Ruby X", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Ruby X", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/13747/tab/release-report-all-issues"}, {"group": "v2", "lane": "p2p", "source": "version", "title": "V2 P2P 16.00", "desc": "Nebraska and Georgia", "date": "2026-11-30", "start": "2025-11-26", "released": false, "status": "In progress", "done": 245, "total": 330, "pct": 74, "slip": {"from": "2026-11-16", "days": 14}, "items": [{"key": "V2-29399", "summary": "Win payout based on Hand Count / Average Win logic", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 34, "done": 28, "name": "Win payout based on Hand Count / Average Win logic", "pct": 82}, {"key": "V2-29172", "summary": "Fixed Redemption Amounts for Cash Sessions", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 29, "done": 28, "name": "Fixed Redemption Amounts for Cash Sessions", "pct": 97}, {"key": "V2-32215", "summary": "Game enhancements - Unify Common popup and Common help pages", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 27, "done": 23, "name": "Game enhancements - Unify Common popup and Common help pages", "pct": 85}, {"key": "V2-31256", "summary": "SAS deficiency tasks for Georgia", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 21, "done": 20, "name": "SAS deficiency tasks for Georgia", "pct": 95}, {"key": "V2-29114", "summary": "System Mechanical Meters (including MM changes)  control board Mechanical meters ", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 14, "done": 8, "name": "System Mechanical Meters (including MM changes) control board Mechanical meters", "pct": 57}, {"key": "V2-29398", "summary": "Task Handler Revision 7.00", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 10, "done": 10, "name": "Task Handler Revision 7.00", "pct": 100}, {"key": "V2-29962", "summary": "Quixant - QXi-7000 Lite [Orange]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 9, "done": 4, "name": "Quixant - QXi-7000 Lite [Orange]", "pct": 44}, {"key": "V2-621", "summary": "System ", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 9, "done": 6, "name": "System", "pct": 67}, {"key": "V2-29434", "summary": "Add Volume Control Button to Bonus Screens", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 8, "done": 8, "name": "Add Volume Control Button to Bonus Screens", "pct": 100}, {"key": "V2-462", "summary": "Game Menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 8, "done": 2, "name": "Game Menu", "pct": 25}, {"key": "V2-464", "summary": "Game Updates", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 8, "done": 6, "name": "Game Updates", "pct": 75}, {"key": "V2-31246", "summary": "SAS RTP Correction", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 7, "done": 3, "name": "SAS RTP Correction", "pct": 43}, {"key": "V2-32292", "summary": "Georgia Skill Rush - Horizontal Series 1 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 6, "done": 4, "name": "Georgia Skill Rush - Horizontal Series 1 Game List", "pct": 67}, {"key": "V2-32291", "summary": "Nebraska Skill Rush - Vertical Series 1 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 6, "done": 5, "name": "Nebraska Skill Rush - Vertical Series 1 Game List", "pct": 83}, {"key": "V2-484", "summary": "Server", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 6, "done": 5, "name": "Server", "pct": 83}, {"key": "V2-30247", "summary": "Terminal Volume Default & Reset Controls", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 6, "done": 5, "name": "Terminal Volume Default & Reset Controls", "pct": 83}, {"key": "V2-32341", "summary": "Georgia Skill Rush - Horizontal Series 2 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 3, "name": "Georgia Skill Rush - Horizontal Series 2 Game List", "pct": 60}, {"key": "V2-32324", "summary": "Georgia Skill Rush - Vertical Series 1 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 4, "name": "Georgia Skill Rush - Vertical Series 1 Game List", "pct": 80}, {"key": "V2-32330", "summary": "Georgia Skill Rush - Vertical Series 2 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 4, "name": "Georgia Skill Rush - Vertical Series 2 Game List", "pct": 80}, {"key": "V2-32336", "summary": "Georgia Skill Rush - Vertical Series 3 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 4, "name": "Georgia Skill Rush - Vertical Series 3 Game List", "pct": 80}, {"key": "V2-32313", "summary": "Nebraska Skill Rush - Vertical Series 2 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 4, "name": "Nebraska Skill Rush - Vertical Series 2 Game List", "pct": 80}, {"key": "V2-32318", "summary": "Nebraska Skill Rush - Vertical Series 3 Game List", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 5, "done": 4, "name": "Nebraska Skill Rush - Vertical Series 3 Game List", "pct": 80}, {"key": "V2-29176", "summary": "Pay It Forward (PIF) Configurable Threshold", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "features", "total": 5, "done": 5, "name": "Pay It Forward (PIF) Configurable Threshold", "pct": 100}, {"key": "V2-23083", "summary": "Game: Pharaoh's Quest", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 5, "done": 3, "name": "Pharaoh's Quest", "pct": 60}, {"key": "V2-76", "summary": "Game: Bank IT ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 4, "done": 4, "name": "Bank IT", "pct": 100}, {"key": "V2-12937", "summary": "Game: Quick Wins Diamond", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 4, "done": 2, "name": "Quick Wins Diamond", "pct": 50}, {"key": "V2-31340", "summary": "Support for SAS Secured Enhanced validation mode.", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 4, "done": 3, "name": "Support for SAS Secured Enhanced validation mode.", "pct": 75}, {"key": "V2-22948", "summary": "Game: Blade of Fortune", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 3, "done": 2, "name": "Blade of Fortune", "pct": 67}, {"key": "V2-32634", "summary": "GBA GV1 Bill validator - 0627 Firmware support with ID003 interface ", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 1, "name": "GBA GV1 Bill validator - 0627 Firmware support with ID003 interface", "pct": 33}, {"key": "V2-32636", "summary": "Phoenix and Pegasus Series Board configuration", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 2, "name": "Phoenix and Pegasus Series Board configuration", "pct": 67}, {"key": "V2-29431", "summary": "Server VM Changes", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 1, "name": "Server VM Changes", "pct": 33}, {"key": "V2-5911", "summary": "Game: Arctic Buffalo", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 2, "name": "Arctic Buffalo", "pct": 100}, {"key": "V2-77", "summary": "Game: Bank IT 2 ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 2, "name": "Bank IT 2", "pct": 100}, {"key": "V2-32347", "summary": "Dynamic Attract Video Playback for Enabled Games", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 0, "name": "Dynamic Attract Video Playback for Enabled Games", "pct": 0}, {"key": "V2-18385", "summary": "Game: Fruit Splitter", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 1, "name": "Fruit Splitter", "pct": 50}, {"key": "V2-32350", "summary": "Game Loading Video and Static loading screen updates.", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 1, "name": "Game Loading Video and Static loading screen updates.", "pct": 50}, {"key": "V2-25649", "summary": "Game: Hollow Graves of Riches", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 2, "done": 2, "name": "Hollow Graves of Riches", "pct": 100}, {"key": "V2-12210", "summary": "Game: Mega Fireball Link - Great Sphinx", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 2, "name": "Mega Fireball Link - Great Sphinx", "pct": 100}, {"key": "V2-468", "summary": "Game: Pink Diamond 7's Nudge ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 2, "name": "Pink Diamond 7's Nudge", "pct": 100}, {"key": "V2-7996", "summary": "Game: Plenty O' Coins ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 1, "name": "Plenty O' Coins", "pct": 50}, {"key": "PFH-18346", "summary": "Game: Quick Wins Diamond 7s", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 2, "name": "Quick Wins Diamond 7s", "pct": 100}, {"key": "V2-75", "summary": "Game: Real Reels", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 2, "name": "Real Reels", "pct": 100}, {"key": "V2-18304", "summary": "Game: Steampunk Fortune", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 2, "done": 2, "name": "Steampunk Fortune", "pct": 100}, {"key": "V2-2960", "summary": "Game: Sword of Z", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 2, "done": 1, "name": "Sword of Z", "pct": 50}, {"key": "V2-14001", "summary": "Game: Amaterasu’s Rising - Gods of the Sun", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Amaterasu’s Rising - Gods of the Sun", "pct": 0}, {"key": "V2-14388", "summary": "Game: Apollo's Riches - Gods of the Sun", "type": "Epic", "status": "To Do", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Apollo's Riches - Gods of the Sun", "pct": 0}, {"key": "V2-5307", "summary": "Game: Beating Drums Nudge - Vertical", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Beating Drums Nudge - Vertical", "pct": 0}, {"key": "V2-5134", "summary": "Game: Diamond 10x ", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 1, "name": "Diamond 10x", "pct": 100}, {"key": "V2-9328", "summary": "Game: Enchantress of the Forest", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Enchantress of the Forest", "pct": 100}, {"key": "V2-29929", "summary": "Flaming Skulls : PullTab cover reveal animations sound is missing", "type": "Bug", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 1, "name": "Flaming Skulls : PullTab cover reveal animations sound is missing", "pct": 100}, {"key": "V2-29960", "summary": "Flaming Skulls : Red skull is missing the gold chain animation on the Respin pop-up.", "type": "Bug", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 0, "name": "Flaming Skulls : Red skull is missing the gold chain animation on the Respin pop-up.", "pct": 0}, {"key": "V2-29966", "summary": "Flaming Skulls: Feature name displayed as “Extra Spins” instead of “Extra Spin”", "type": "Bug", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 0, "name": "Flaming Skulls: Feature name displayed as “Extra Spins” instead of “Extra Spin”", "pct": 0}, {"key": "V2-4190", "summary": "Game: Golden Fortune Grand [V]", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Golden Fortune Grand", "pct": 100}, {"key": "V2-12458", "summary": "Game: Grand Prosperity", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "Grand Prosperity", "pct": 0}, {"key": "V2-14752", "summary": "Game: Inti’s Glory - Gods of the Sun", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Inti’s Glory - Gods of the Sun", "pct": 0}, {"key": "V2-6748", "summary": "Game: Jewels of Athena Vertical", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "Jewels of Athena Vertical", "pct": 0}, {"key": "V2-18305", "summary": "Game: Jewels of Cleopatra", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "gamefix", "total": 1, "done": 0, "name": "Jewels of Cleopatra", "pct": 0}, {"key": "V2-21436", "summary": "Game: Lost Totem", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Lost Totem", "pct": 100}, {"key": "V2-470", "summary": "Game: Lucky Bell's Nudge ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Lucky Bell's Nudge", "pct": 0}, {"key": "V2-19411", "summary": "Math Sheet Verification", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Math Sheet Verification", "pct": 0}, {"key": "V2-12211", "summary": "Game: Mega Fireball Link - Luck N' Clovers", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Mega Fireball Link - Luck N' Clovers", "pct": 100}, {"key": "V2-12212", "summary": "Game: Mega Fireball Link - Qian Gun Qian", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Mega Fireball Link - Qian Gun Qian", "pct": 100}, {"key": "V2-63", "summary": "Game: Melwyn's Magic", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Melwyn's Magic", "pct": 100}, {"key": "V2-32094", "summary": "Northern Buffalo Fortune - Replace Flat Math Pools (9221, 9222 and 9223) with 9224.", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 1, "name": "Northern Buffalo Fortune - Replace Flat Math Pools (9221, 9222 and 9223) with 9224.", "pct": 100}, {"key": "V2-31573", "summary": "Nudge Game Metadata", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 0, "name": "Nudge Game Metadata", "pct": 0}, {"key": "V2-5296", "summary": "Game: Panda Shores", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Panda Shores", "pct": 0}, {"key": "V2-6660", "summary": "Game: Panda Shores Extreme Vertical ", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Panda Shores Extreme Vertical", "pct": 0}, {"key": "V2-6324", "summary": "Game: Pinata Mexicana Nudge [V]", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Pinata Mexicana Nudge", "pct": 0}, {"key": "V2-10871", "summary": "Game: Plentiful Bounty [V]", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Plentiful Bounty", "pct": 0}, {"key": "V2-6252", "summary": "Recharge Station", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 1, "name": "Recharge Station", "pct": 100}, {"key": "V2-5184", "summary": "Game: Robin's Arrow", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Robin's Arrow", "pct": 100}, {"key": "V2-29395", "summary": "Server-POS API Code Improvement Part 2 (POST APIs)", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 0, "name": "Server-POS API Code Improvement Part 2 (POST APIs)", "pct": 0}, {"key": "V2-30579", "summary": "System - EFCO - Investigate / Implement the logic using TPM module instead of the Odometer. ", "type": "Story", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 1, "name": "System - EFCO - Investigate / Implement the logic using TPM module instead of the Odometer.", "pct": 100}, {"key": "V2-7155", "summary": "Game: Venomous Apple 2", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Venomous Apple 2", "pct": 100}, {"key": "V2-29714", "summary": "Viking's Voyage of Fortune: Top screen theme mismatch in free spins", "type": "Bug", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 1, "name": "Viking's Voyage of Fortune: Top screen theme mismatch in free spins", "pct": 100}, {"key": "V2-9105", "summary": "Game: Zora Unmasked [V]", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 0, "name": "Zora Unmasked", "pct": 0}, {"key": "V2-30967", "summary": "Server - Sword of Z - Enable $5 bet by Default.", "type": "Story", "status": "Closed", "statusCat": "done", "cat": "features", "total": 0, "done": 0, "name": "Server - Sword of Z - Enable $5 bet by Default.", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/13680/tab/release-report-all-issues"}, {"group": "v2", "lane": "hhr", "source": "version", "title": "V2 HHR 3.20", "desc": "POS work", "date": "2026-10-30", "start": null, "released": false, "status": "Overdue", "done": 2, "total": 9, "pct": 22, "slip": null, "items": [{"key": "V2-29556", "summary": "POS User Role restrictions", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 9, "done": 2, "name": "POS User Role restrictions", "pct": 22}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/15606/tab/release-report-all-issues"}, {"group": "v2", "lane": "pt", "source": "version", "title": "V2 PT 14.00", "desc": "Ohio  - Central Server & Big Data 1.00", "date": "2026-12-31", "start": "2026-04-07", "released": false, "status": "In progress", "done": 133, "total": 179, "pct": 74, "slip": {"from": "2026-08-14", "days": 139}, "items": [{"key": "V2-29209", "summary": "Centralized Server", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 108, "done": 88, "name": "Centralized Server", "pct": 81}, {"key": "V2-29553", "summary": "Big Data 1.00", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 27, "done": 27, "name": "Big Data 1.00", "pct": 100}, {"key": "V2-29470", "summary": "Add Volume Control Button to Bonus Screens - PT", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 8, "done": 4, "name": "Add Volume Control Button to Bonus Screens", "pct": 50}, {"key": "V2-29396", "summary": "Server VM Upgrade (JDK, RabbitMQ, Disk → 100GB)", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 7, "done": 7, "name": "Server VM Upgrade (JDK, RabbitMQ, Disk → 100GB)", "pct": 100}, {"key": "V2-29917", "summary": "Show game volatility in game menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 7, "done": 3, "name": "Show game volatility in game menu", "pct": 43}, {"key": "V2-33096", "summary": "Task Handler - Spec REVISION 8.00", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 4, "done": 0, "name": "Task Handler - Spec REVISION 8.00", "pct": 0}, {"key": "V2-32951", "summary": "Ticket Scan required with Ticket Slip", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 3, "done": 0, "name": "Ticket Scan required with Ticket Slip", "pct": 0}, {"key": "V2-29028", "summary": "Disabling Receipt printer in ticket slip mode", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 0, "name": "Disabling Receipt printer in ticket slip mode", "pct": 0}, {"key": "V2-30416", "summary": "Electronic Seal Update for Ohio", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 2, "name": "Electronic Seal Update for Ohio", "pct": 100}, {"key": "V2-462", "summary": "Game Menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 0, "name": "Game Menu", "pct": 0}, {"key": "V2-29400", "summary": "Ohio Central Server", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "features", "total": 2, "done": 2, "name": "Ohio Central Server", "pct": 100}, {"key": "V2-484", "summary": "Server", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 0, "name": "Server", "pct": 0}, {"key": "V2-621", "summary": "System ", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 0, "name": "System", "pct": 0}, {"key": "V2-5911", "summary": "Game: Arctic Buffalo", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Arctic Buffalo", "pct": 0}, {"key": "V2-21436", "summary": "Game: Lost Totem", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Lost Totem", "pct": 0}, {"key": "V2-17515", "summary": "Game: Viking’s Voyage of Fortune", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 0, "name": "Viking’s Voyage of Fortune", "pct": 0}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/15639/tab/release-report-all-issues"}, {"group": "v2", "lane": "sw", "source": "version", "title": "V2 SW 16.10", "desc": "Games", "date": "2026-10-28", "start": "2026-08-17", "released": true, "status": "Delivered", "done": 177, "total": 179, "pct": 99, "slip": {"from": "2026-09-30", "days": 28}, "items": [{"key": "V2-18385", "summary": "Game: Fruit Splitter", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 33, "done": 32, "name": "Fruit Splitter", "pct": 97}, {"key": "V2-23083", "summary": "Game: Pharaoh's Quest", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 22, "done": 22, "name": "Pharaoh's Quest", "pct": 100}, {"key": "V2-22948", "summary": "Game: Blade of Fortune", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 20, "done": 19, "name": "Blade of Fortune", "pct": 95}, {"key": "V2-22766", "summary": "Game: Canada Eh Part Deux", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 19, "done": 19, "name": "Canada Eh Part Deux", "pct": 100}, {"key": "V2-6443", "summary": "Game: Sword of Z Nudge", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 18, "done": 18, "name": "Sword of Z Nudge", "pct": 100}, {"key": "V2-24986", "summary": "Game: Nordic Paws", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 17, "done": 17, "name": "Nordic Paws", "pct": 100}, {"key": "V2-25649", "summary": "Game: Hollow Graves of Riches", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 13, "done": 13, "name": "Hollow Graves of Riches", "pct": 100}, {"key": "V2-12458", "summary": "Game: Grand Prosperity", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 10, "done": 10, "name": "Grand Prosperity", "pct": 100}, {"key": "V2-18305", "summary": "Game: Jewels of Cleopatra", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "games", "total": 10, "done": 10, "name": "Jewels of Cleopatra", "pct": 100}, {"key": "V2-484", "summary": "Server", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 4, "done": 4, "name": "Server", "pct": 100}, {"key": "V2-462", "summary": "Game Menu", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 2, "name": "Game Menu", "pct": 100}, {"key": "V2-32094", "summary": "Northern Buffalo Fortune - Replace Flat Math Pools (9221, 9222 and 9223) with 9224.", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "features", "total": 2, "done": 2, "name": "Northern Buffalo Fortune - Replace Flat Math Pools (9221, 9222 and 9223) with 9224.", "pct": 100}, {"key": "V2-563", "summary": "POS", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 2, "name": "POS", "pct": 100}, {"key": "V2-32112", "summary": "EFCO BIOS Support for Enabling Secure Boot Mode", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 1, "name": "EFCO BIOS Support for Enabling Secure Boot Mode", "pct": 100}, {"key": "V2-4190", "summary": "Game: Golden Fortune Grand [V]", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Golden Fortune Grand", "pct": 100}, {"key": "V2-4500", "summary": "Game: Mark of Z Vertical", "type": "Epic", "status": "New", "statusCat": "new", "cat": "gamefix", "total": 1, "done": 1, "name": "Mark of Z Vertical", "pct": 100}, {"key": "V2-19411", "summary": "Math Sheet Verification", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 1, "name": "Math Sheet Verification", "pct": 100}, {"key": "V2-19297", "summary": "PGS Bootstrap", "type": "Epic", "status": "New", "statusCat": "new", "cat": "features", "total": 1, "done": 1, "name": "PGS Bootstrap", "pct": 100}, {"key": "V2-29431", "summary": "Server VM Changes", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 1, "name": "Server VM Changes", "pct": 100}, {"key": "V2-17515", "summary": "Game: Viking’s Voyage of Fortune", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "gamefix", "total": 1, "done": 1, "name": "Viking’s Voyage of Fortune", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/16074/tab/release-report-all-issues"}, {"group": "v2", "lane": "hhr", "source": "version", "title": "V2 HHR 3.11", "desc": "NBF HHR RTP IR - Patch release", "date": "2026-10-01", "start": "2026-09-25", "released": true, "status": "Delivered", "done": 3, "total": 3, "pct": 100, "slip": {"from": "2026-09-30", "days": 1}, "items": [{"key": "V2-484", "summary": "Server", "type": "Epic", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 2, "done": 2, "name": "Server", "pct": 100}, {"key": "V2-32094", "summary": "Northern Buffalo Fortune - Replace Flat Math Pools (9221, 9222 and 9223) with 9224.", "type": "Epic", "status": "Closed", "statusCat": "done", "cat": "features", "total": 1, "done": 1, "name": "Northern Buffalo Fortune - Replace Flat Math Pools (9221, 9222 and 9223) with 9224.", "pct": 100}, {"key": "V2-32057", "summary": "Northern Buffalo Fortune IR", "type": "Math Task", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "total": 0, "done": 0, "name": "Northern Buffalo Fortune IR", "pct": null}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/16188/tab/release-report-all-issues"}, {"group": "v2", "lane": "c2", "source": "version", "title": "V2 C2 5.20", "desc": "Northern Buffalo Fortune II for C2", "date": "2026-10-30", "start": "2026-10-23", "released": true, "status": "Delivered", "done": 9, "total": 9, "pct": 100, "slip": {"from": "2026-11-06", "days": -7}, "items": [{"key": "V2-31951", "summary": "Game: Northern Buffalo Fortune 2 [V]", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 8, "done": 8, "name": "Northern Buffalo Fortune 2", "pct": 100}, {"key": "V2-32641", "summary": "Retire Northern Buffalo Fortune C2 game.", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 1, "done": 1, "name": "Retire Northern Buffalo Fortune C2 game.", "pct": 100}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/16233/tab/release-report-all-issues"}, {"group": "v2", "lane": "pt", "source": "version", "title": "V2 PT 13.41", "desc": "Barcode Ticket Scan", "date": "2026-11-12", "start": "2026-11-02", "released": true, "status": "Delivered", "done": 13, "total": 14, "pct": 93, "slip": null, "items": [{"key": "V2-32951", "summary": "Ticket Scan required with Ticket Slip", "type": "Epic", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "total": 14, "done": 13, "name": "Ticket Scan required with Ticket Slip", "pct": 93}], "misc": 0, "url": "https://ponggamestudios.atlassian.net/projects/V2/versions/16238/tab/release-report-all-issues"}, {"group": "v2", "lane": "newgames", "source": "epic-due", "title": "New Games", "desc": "Epic due dates — no release date yet", "date": "2026-11-27", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-22849", "summary": "Game: Monster Cake Smash", "type": "Epic", "name": "Monster Cake Smash", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-11-27"}], "misc": 0, "url": null}, {"group": "v2", "lane": "newgames", "source": "epic-due", "title": "New Games", "desc": "Epic due dates — no release date yet", "date": "2026-12-31", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-29633", "summary": "Game: TinkerBots Treasure [V]", "type": "Epic", "name": "TinkerBots Treasure", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-12-31"}], "misc": 0, "url": null}, {"group": "v2", "lane": "newgames", "source": "epic-due", "title": "New Games", "desc": "Epic due dates — no release date yet", "date": "2027-01-25", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-30536", "summary": "Game: Fall of Pompeii: Triple Link", "type": "Epic", "name": "Fall of Pompeii: Triple Link", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2027-01-25"}], "misc": 0, "url": null}, {"group": "v2", "lane": "newgames", "source": "epic-due", "title": "New Games", "desc": "Epic due dates — no release date yet", "date": "2027-02-25", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-31129", "summary": "Game: Devil's Mischief", "type": "Epic", "name": "Devil's Mischief", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2027-02-25"}], "misc": 0, "url": null}, {"group": "v2", "lane": "newgames", "source": "epic-due", "title": "New Games", "desc": "Epic due dates — no release date yet", "date": "2027-04-30", "start": null, "released": false, "status": "Forecast", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-23288", "summary": "Game: Western Grand Express", "type": "Epic", "name": "Western Grand Express", "status": "New", "statusCat": "new", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2027-04-30"}], "misc": 0, "url": null}, {"group": "v2", "lane": "pt", "source": "epic-due", "title": "Past due · no release yet", "desc": "Due date passed, not in a dated release (V2 PT Backlog)", "date": "2026-11-16", "start": null, "released": false, "status": "Overdue", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-18304", "summary": "Game: Steampunk Fortune", "type": "Epic", "name": "Steampunk Fortune", "status": "In QA", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-08-31"}], "misc": 0, "url": null}, {"group": "v2", "lane": "newgames", "source": "epic-due", "title": "Past due · no release yet", "desc": "Due date passed, not in a dated release (New Games)", "date": "2026-11-16", "start": null, "released": false, "status": "Overdue", "done": 0, "total": 0, "pct": null, "slip": null, "items": [{"key": "V2-22890", "summary": "Game: Wildlife Safari Gold", "type": "Epic", "name": "Wildlife Safari Gold", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-08-28"}, {"key": "V2-22634", "summary": "Game: Enchanted East [V]", "type": "Epic", "name": "Enchanted East", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-09-04"}, {"key": "V2-25990", "summary": "Game: Birthday Bash [V]", "type": "Epic", "name": "Birthday Bash", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-10-30"}, {"key": "V2-30826", "summary": "Game: Steampunk Fortune 2", "type": "Epic", "name": "Steampunk Fortune 2", "status": "In Progress", "statusCat": "indeterminate", "cat": "games", "total": 0, "done": 0, "pct": null, "due": "2026-10-31"}], "misc": 0, "url": null}], "pubs": [], "parked": [], "browse": "https://ponggamestudios.atlassian.net/browse/"};
+const LW = 160, DAY = 864e5;
+const S = { monthPx: 420, cardW: 272, pubW: 184, maxItems: 4, print: false, expanded: new Set(), trays: new Set() };
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ws = dt(D.window.start), we = dt(D.window.end), today = dt(D.today);
+const totalDays = Math.round((we - ws) / DAY) + 1;
+
+function dt(s){ return new Date(s + 'T00:00:00'); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ppd(){ return S.monthPx / 30.44; }
+function TW(){ return Math.round(totalDays * ppd()); }
+function xr(s){ return (dt(s) - ws) / DAY * ppd(); }            // raw x (may be outside)
+function xc(s){ return Math.max(0, Math.min(TW(), xr(s))); }     // clamped x
+function fmt(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
+function fmtS(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()]; }
+function col(c, k){ return `var(--${c}${k ? '-' + k : ''})`; }
+function jl(key){ return key ? `<a class="jira" href="${esc(D.browse + key)}" target="_blank" rel="noopener">${esc(key)} ↗</a>` : ''; }
+
+/* ── header, nav, legend ── */
+function renderChrome(){
+  document.title = D.title + ' Roadmap';
+  document.getElementById('nav').innerHTML =
+    D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('') +
+    `<span class="sep"></span><a class="back" href="index.html">← Release Dashboard</a>`;
+  document.getElementById('title').innerHTML = `🗺️ ${esc(D.title)} Roadmap`;
+  const gen = new Date(D.generated);
+  document.getElementById('sub').textContent =
+    `Live from Jira · refreshed ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ` +
+    `${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()} (rolling)`;
+  document.getElementById('todayPill').textContent = `▼ Today: ${fmt(D.today)}`;
+  const lanes = [], seen = new Set();
+  D.groups.forEach(g => g.lanes.forEach(l => { if (!seen.has(l.label)) { seen.add(l.label); lanes.push(l); } }));
+  document.getElementById('legend').innerHTML =
+    lanes.map(l => `<div class="leg"><span class="sw" style="background:${col(l.color)}"></span>${esc(l.label)}</div>`).join('') +
+    `<div class="leg-sep"></div>
+     <div class="leg"><span class="sw" style="background:var(--text-mid)"></span>◆ Delivered</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--text-mid)"></span>◇ Forecast (Jira date)</div>
+     <div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO forecast</div>` +
+    (D.pubs.length ? `<div class="leg-sep"></div>
+     <div class="leg"><span class="sw" style="background:var(--rose)"></span>Go-live before release</div>
+     <div class="leg"><span class="sw" style="background:var(--amber)"></span>No release in Jira</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--green)"></span>Go-live assumed</div>` : '');
+  const nUns = D.groups.reduce((a, g) => a + g.lanes.reduce((b, l) => b + l.unscheduled.length, 0), 0);
+  document.getElementById('foot').innerHTML =
+    `<span>Source: Jira (read-only) · PMO plan for go-lives &amp; undated forecasts · Jira wins where it has a date · ${nUns} unscheduled item(s) in lane trays</span>
+     <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
+}
+
+/* ── card HTML ── */
+function statusColor(st, lane){
+  return ({Delivered:'green', Ready:'green', Overdue:'rose', 'In progress':lane, Planned:'grey', Forecast:'grey'})[st] || 'grey';
+}
+const CAT_LBL = { features: 'Features', games: 'New games', gamefix: 'Fixes to existing games' };
+function itemLi(it, c){
+  const pct = it.due ? `<span class="ipct">due ${fmtS(it.due)}</span>`
+    : it.pct != null ? `<span class="ipct">${it.pct}%</span>` : '';
+  return `<li title="${esc(it.summary + ' — ' + it.status)}"><span class="dot ${esc(it.statusCat)}"></span>` +
+         `<span class="nm">${esc(it.name)}</span>${jl(it.key)}${pct}</li>`;
+}
+function cardHTML(c, lane, id){
+  const color = lane.color, released = c.released, pmo = c.source === 'pmo';
+  let date;
+  if (released) date = `✓ Released ${fmt(c.date)}`;
+  else if (pmo) date = `PMO forecast · ${esc(c.label || fmt(c.date))}`;
+  else if (c.source === 'epic-due' && c.status === 'Overdue') date = `Past due · as of ${fmt(c.date)}`;
+  else if (c.source === 'epic-due') date = `Due ${fmt(c.date)} · forecast`;
+  else date = `Release ${fmt(c.date)}`;
+  const sc = statusColor(c.status, color);
+  const prog = c.pct != null ? `<div class="ptrack"><div class="pfill" style="width:${c.pct}%;background:${col(color)}"></div></div><span class="ppct" style="color:${col(color)}">${c.pct}%</span>` : '';
+  const slip = c.slip ? `<span class="slip ${c.slip.days > 0 ? 'late' : 'early'}" title="Originally ${fmt(c.slip.from)}">${c.slip.days > 0 ? '▲ moved +' + c.slip.days : '▼ pulled in ' + (-c.slip.days)}d · was ${fmtS(c.slip.from)}</span>` : '';
+  const status = `<div class="card-status"><span class="badge" style="color:${col(sc)};border-color:${col(sc,'bd')};background:${col(sc,'bg')}">${esc(c.status)}</span>${prog}${slip}</div>`;
+
+  const open = S.expanded.has(id), max = S.print ? 5 : S.maxItems;
+  const list = arr => `<ul class="items">${arr.map(i => itemLi(i, c)).join('')}</ul>`;
+  const cats = ['features', 'games', 'gamefix'].filter(k => c.items.some(i => i.cat === k));
+  let body = '', shown = 0, hidden = 0;
+  cats.forEach(k => {
+    const arr = c.items.filter(i => i.cat === k);
+    if (k === 'gamefix' && !open) {
+      const names = arr.map(i => i.name);
+      body += `<div class="misc" title="${esc(names.join(', '))}">🔧 Fixes to ${arr.length} existing game${arr.length > 1 ? 's' : ''}: ${esc(names.slice(0, 3).join(', '))}${arr.length > 3 ? '…' : ''}</div>`;
+      return;
+    }
+    const show = open ? arr : arr.slice(0, Math.max(2, max - shown));
+    shown += show.length; hidden += arr.length - show.length;
+    if (cats.length > 1) body += `<div class="cgroup" style="color:${col(color)}">${CAT_LBL[k]}</div>`;
+    body += list(show);
+  });
+  const expandable = hidden > 0 || cats.includes('gamefix');
+  const more = open ? `<button class="more" data-card="${id}">▴ show less</button>`
+    : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game fixes'}</button>` : '';
+  const misc = c.misc ? `<div class="misc">+ ${c.misc} bugs &amp; fixes</div>` : '';
+  const notes = (c.notes || []).length ? `<ul class="notes">${c.notes.map(n => `<li>· ${esc(n)}</li>`).join('')}</ul>` : '';
+  const ftag = pmo ? `<div class="ftag" style="color:var(--gold);border:1px dotted var(--gold-bd)">◇ PMO forecast — not dated in Jira</div>` : '';
+  const titleLink = c.url ? ` <a class="jira" href="${esc(c.url)}" target="_blank" rel="noopener">${pmo ? esc(c.key) : 'Jira'} ↗</a>` : '';
+  const desc = c.desc ? `<div class="card-desc">${esc(c.desc)}</div>` : '';
+  return `<div class="card">
+      <div class="card-date" style="color:${col(color)}">${date}</div>
+      <div class="card-title">${esc(c.title)}${titleLink}</div>${desc}${status}${body}${more}${misc}${notes}${ftag}</div>`;
+}
+
+/* ── skyline packing: place boxes top-down without overlap ── */
+function pack(boxes, hgap = 10, vgap = 10){
+  boxes.sort((a, b) => a.l - b.l);
+  const placed = [];
+  let bottom = 0;
+  for (const b of boxes) {
+    let y = 0, guard = 0;
+    while (guard++ < 200) {
+      const hit = placed.find(p => p.l < b.r + hgap && b.l < p.r + hgap && p.t < y + b.h + vgap && y < p.t + p.h + vgap);
+      if (!hit) break;
+      y = hit.t + hit.h + vgap;
+    }
+    b.t = y; placed.push(b);
+    b.el.style.top = (y + 10) + 'px';
+    bottom = Math.max(bottom, y + b.h);
+  }
+  return bottom + 22;
+}
+
+/* ── timeline ── */
+function renderTimeline(){
+  const tw = TW(), canvas = document.getElementById('canvas');
+  canvas.style.width = (LW + tw) + 'px';
+  let html = '';
+  // ruler
+  let months = '', lines = '';
+  for (let d = new Date(ws); d <= we; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const s = d.toISOString().slice(0, 10), x0 = xr(isoLocal(d));
+    const nx = new Date(d.getFullYear(), d.getMonth() + 1, 1), x1 = Math.min(tw, xr(isoLocal(nx)));
+    months += `<div class="mcell" style="left:${x0}px;width:${x1 - x0}px">${MON[d.getMonth()]} ${d.getFullYear()}</div>`;
+    lines += `<div class="mline" style="left:${x0}px"></div>`;
+  }
+  const tx = xc(D.today);
+  html += `<div class="ruler"><div class="ruler-corner" style="width:${LW}px">${esc(D.title)}</div>
+           <div class="ruler-body" style="width:${tw}px">${months}<div class="today-lbl" style="left:${tx}px">▼ TODAY</div></div></div>`;
+  html += `<div class="gridlines" style="left:${LW}px;width:${tw}px">${lines}<div class="tline" style="left:${tx}px"></div></div>`;
+  // groups
+  D.groups.forEach(g => {
+    if (g.label) html += `<div class="grp-hdr"><div class="grp-name" style="width:${LW}px;text-align:right">${esc(g.label)}</div><div class="grp-line"></div></div>`;
+    g.lanes.forEach(l => {
+      const lid = g.id + '__' + l.id, n = l.unscheduled.length;
+      html += `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
+          <div class="lane-name" style="color:${col(l.color)}">${esc(l.label)}</div>
+          ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
+        </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
+      if (n) html += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
+          <div class="tray-ttl">Unscheduled · ${esc(l.label)} — no release or due date in Jira</div>
+          ${l.unscheduled.map(u => `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small></a>`).join('')}
+        </div></div>`;
+    });
+  });
+  canvas.innerHTML = html;
+
+  // populate lanes
+  D.groups.forEach(g => g.lanes.forEach(l => {
+    const body = document.getElementById(`lb-${g.id}__${l.id}`), boxes = [];
+    if (l.kind === 'publishing') {
+      D.pubs.filter(p => p.group === g.id).forEach(p => {
+        const x = xc(p.golive), xe = p.until ? xc(p.until) : x;
+        const el = document.createElement('div');
+        el.className = 'pub' + (p.assumed ? ' assumed' : '') + (p.flag ? ' flag-' + p.flag : '');
+        el.style.left = x + 'px';
+        const rel = p.release && !p.assumed
+          ? `<div class="pub-rel">Release: ${esc(p.release.name)} ${p.release.released ? '✓' : '·'} ${fmtS(p.release.date)}${shelf(p)}</div>` : '';
+        el.innerHTML = `<div class="pub-card" style="width:${S.pubW}px"><div class="pub-date">${p.assumed ? '≈ ' : ''}${fmtS(p.golive)}</div>
+            <div class="pub-title">${esc(p.game)} ${jl(p.key)}</div>
+            ${p.note ? `<div class="pub-note">${esc(p.note)}</div>` : ''}
+            ${p.flagText ? `<div class="pub-flag">⚠ ${esc(p.flagText)}</div>` : ''}${rel}</div>` +
+          (p.until ? `<div class="pub-run" style="width:${Math.max(xe - x, 4)}px"></div>` : '');
+        body.appendChild(el);
+        boxes.push({ el, l: x, r: Math.max(x + S.pubW, xe) });
+      });
+    } else {
+      D.cards.forEach((c, i) => {
+        if (c.group !== g.id || c.lane !== l.id) return;
+        const id = 'c' + i, x = xc(c.date), w = S.cardW, left = Math.max(0, x - w);
+        const el = document.createElement('div');
+        el.className = 'tcard';
+        el.style.cssText = `left:${left}px;width:${w}px;border-color:${col(l.color,'bd')};` +
+          (c.source === 'pmo' ? 'border-style:dotted;border-color:var(--gold-bd);' : '');
+        const accent = c.released ? `background:${col(l.color)}`
+          : `background:repeating-linear-gradient(90deg,${col(c.source === 'pmo' ? 'gold' : l.color)} 0 6px,transparent 6px 11px)`;
+        el.innerHTML = `<div class="accent" style="${accent}"><span class="ms" style="left:${x - left}px;background:${c.released ? col(l.color) : 'var(--surface)'};border-color:${col(l.color)}"></span></div>` + cardHTML(c, l, id);
+        body.appendChild(el);
+        boxes.push({ el, l: left, r: left + w });
+      });
+      D.parked.filter(p => p.group === g.id && p.lane === l.id).forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'parked'; el.style.left = '0px'; el.style.width = '220px';
+        el.innerHTML = `<div class="pk-tag">⏸ Parked · ${esc(p.since)}</div><div class="pk-title">${esc(p.title)}</div><div class="pk-sub">${esc(p.note)}</div>`;
+        body.appendChild(el);
+        boxes.push({ el, l: 0, r: 220 });
+      });
+    }
+    boxes.forEach(b => b.h = b.el.offsetHeight || 120);
+    if (!boxes.length) body.innerHTML = `<div class="lane-empty">Nothing dated in this window</div>`;
+    body.style.height = (boxes.length ? pack(boxes) : 44) + 'px';
+  }));
+  document.getElementById('topScrollInner').style.width = (LW + tw) + 'px';
+  sizeScroller();
+}
+function shelf(p){
+  if (!p.release) return '';
+  const days = Math.round((dt(p.golive) - dt(p.release.date)) / DAY);
+  return days > 0 ? ` · ${days}d on shelf` : '';
+}
+function isoLocal(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+/* ── scrolling: synced top + bottom bars ── */
+const tl = document.getElementById('tl'), top_ = document.getElementById('topScroll');
+let syncing = false;
+tl.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; top_.scrollLeft = tl.scrollLeft; });
+top_.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; tl.scrollLeft = top_.scrollLeft; });
+function sizeScroller(){
+  if (S.print) return;
+  const h = window.innerHeight - tl.getBoundingClientRect().top - 44;
+  tl.style.height = Math.max(420, h) + 'px';
+}
+function scrollToToday(){ tl.scrollLeft = Math.max(0, xc(D.today) - (tl.clientWidth - LW) * 0.3); }
+
+/* ── controls ── */
+function zoom(f){
+  const keep = (tl.scrollLeft + tl.clientWidth / 2 - LW) / TW();
+  S.monthPx = Math.max(200, Math.min(900, Math.round(S.monthPx * f)));
+  renderTimeline();
+  tl.scrollLeft = keep * TW() + LW - tl.clientWidth / 2;
+}
+const saved = { monthPx: 0, cardW: 0 };
+function beforePrint(){
+  if (S.print) return;
+  saved.monthPx = S.monthPx; saved.cardW = S.cardW;
+  S.print = true;
+  S.monthPx = (16.3 * 96 - LW) / (totalDays / 30.44);
+  S.cardW = Math.min(230, S.cardW);
+  renderTimeline();
+}
+function afterPrint(){
+  if (!S.print) return;
+  S.print = false; S.monthPx = saved.monthPx; S.cardW = saved.cardW;
+  renderTimeline(); sizeScroller();
+}
+document.getElementById('btnPrint').onclick = () => { beforePrint(); window.print(); };
+document.getElementById('zoomIn').onclick = () => zoom(1.25);
+document.getElementById('zoomOut').onclick = () => zoom(0.8);
+document.getElementById('goToday').onclick = scrollToToday;
+window.addEventListener('beforeprint', beforePrint);
+window.addEventListener('afterprint', afterPrint);
+window.addEventListener('resize', sizeScroller);
+document.addEventListener('click', e => {
+  const m = e.target.closest('.more');
+  if (m) { const id = m.dataset.card; S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id); keepScroll(renderTimeline); return; }
+  const t = e.target.closest('.tray-btn');
+  if (t) { const id = t.dataset.tray; S.trays.has(id) ? S.trays.delete(id) : S.trays.add(id);
+           document.getElementById('tray-' + id).classList.toggle('open', S.trays.has(id)); }
+});
+function keepScroll(fn){ const l = tl.scrollLeft, t = tl.scrollTop; fn(); tl.scrollLeft = l; tl.scrollTop = t; }
+
+renderChrome();
+renderTimeline();
+scrollToToday();
+</script>
+</body>
+</html>

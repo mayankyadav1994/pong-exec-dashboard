@@ -1,0 +1,77 @@
+name: Roadmap
+
+on:
+  schedule:
+    # 06:45 UTC — after the exec dashboard (06:00), V2 timeline (06:15) and
+    # iGaming timeline (06:30). Shares their concurrency group so the commits
+    # serialize cleanly.
+    - cron: "45 6 * * *"
+  workflow_dispatch:
+  push:
+    # Rebuild straight away when the lane rules, PMO plan, template or builder
+    # change, so edits don't wait for the next morning.
+    branches: [main]
+    paths:
+      - "config/roadmap.json"
+      - "config/roadmap-pmo.json"
+      - "roadmap.template.html"
+      - "roadmap.py"
+
+concurrency:
+  group: refresh-dashboards
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Push identity = @mayankyadav1994 (bypass actor on the main-branch
+          # ruleset). See v2_timeline.yml for the full rationale.
+          token: ${{ secrets.PUSH_PAT }}
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build roadmap pages (iGaming, V2, Cloud Services)
+        env:
+          JIRA_EMAIL:     ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: python roadmap.py all
+
+      # Fails the run (before commit) on any uncaught JS error, too few cards,
+      # or broken expand / tray / zoom controls.
+      - name: Set up Node for smoke test
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Smoke-test roadmap pages
+        run: |
+          npm install --no-save --silent jsdom
+          node tools/smoke-roadmap.js roadmap-igaming.html roadmap-v2.html roadmap-css.html
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add roadmap-igaming.html roadmap-v2.html roadmap-css.html roadmap-history.json || true
+          if git diff --staged --quiet; then
+            echo "No roadmap changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: roadmap refresh $(date -u +%Y-%m-%d)"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push

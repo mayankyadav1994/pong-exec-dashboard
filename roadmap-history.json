@@ -1,0 +1,198 @@
+{
+ "CSS": {
+  "BLZ Training": {
+   "current": "2026-10-15",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-15"
+  },
+  "CS CRM 8.10": {
+   "current": "2026-10-19",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-19"
+  },
+  "CS GCP 2.00": {
+   "current": "2026-10-01",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-01"
+  },
+  "CS GCP 2.10": {
+   "current": "2026-10-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-30"
+  },
+  "CS GCP 2.20": {
+   "current": "2026-08-31",
+   "first_seen": "2026-11-16",
+   "original": "2026-08-31"
+  },
+  "CS GCP 2.30": {
+   "current": "2026-11-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-30"
+  },
+  "CS GCP 2.40": {
+   "current": "2026-12-31",
+   "first_seen": "2026-11-16",
+   "original": "2026-12-31"
+  },
+  "CS TH 7.10": {
+   "current": "2026-10-19",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-19"
+  },
+  "CS VGTC 7.10": {
+   "current": "2026-10-19",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-19"
+  },
+  "CS VGTC 7.11": {
+   "current": "2026-11-24",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-24"
+  },
+  "Central Server 1.00": {
+   "current": "2026-11-16",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-16"
+  },
+  "GCP Cleanup": {
+   "current": "2026-09-04",
+   "first_seen": "2026-11-16",
+   "original": "2026-09-04"
+  },
+  "NSPEC 1.00": {
+   "current": "2026-10-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-30"
+  },
+  "PFH Services 3.00": {
+   "current": "2026-10-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-08-31"
+  }
+ },
+ "IG": {
+  "ELG 5.10": {
+   "current": "2026-10-05",
+   "first_seen": "2026-11-16",
+   "original": "2026-09-30"
+  },
+  "ELG 5.20": {
+   "current": "2026-10-15",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-15"
+  },
+  "ELG 5.21": {
+   "current": "2026-10-20",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-20"
+  },
+  "ELG 5.30": {
+   "current": "2026-10-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-30"
+  },
+  "ELG 5.40": {
+   "current": "2026-11-20",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-11"
+  },
+  "ELG 5.50": {
+   "current": "2026-11-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-30"
+  },
+  "PFH Games 2.40": {
+   "current": "2026-10-09",
+   "first_seen": "2026-11-16",
+   "original": "2026-08-31"
+  },
+  "PFH Games 2.50": {
+   "current": "2026-10-19",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-20"
+  },
+  "PFH Games 2.51": {
+   "current": "2026-10-22",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-22"
+  },
+  "PFH Games 2.60": {
+   "current": "2026-10-23",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-23"
+  },
+  "PFH Games 2.70": {
+   "current": "2026-11-18",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-30"
+  },
+  "PFH Games 2.80": {
+   "current": "2026-11-17",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-10"
+  },
+  "PFH Games 3.00": {
+   "current": "2026-11-20",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-15"
+  },
+  "PFH Games 3.10": {
+   "current": "2026-12-04",
+   "first_seen": "2026-11-16",
+   "original": "2026-12-04"
+  },
+  "PFH Games 4.00": {
+   "current": "2026-12-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-12-31"
+  },
+  "PFH Games 5.00": {
+   "current": "2027-02-28",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-25"
+  }
+ },
+ "V2": {
+  "V2 C2 5.20": {
+   "current": "2026-10-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-06"
+  },
+  "V2 C2 5.30": {
+   "current": "2026-12-31",
+   "first_seen": "2026-11-16",
+   "original": "2026-12-31"
+  },
+  "V2 HHR 3.11": {
+   "current": "2026-10-01",
+   "first_seen": "2026-11-16",
+   "original": "2026-09-30"
+  },
+  "V2 HHR 3.20": {
+   "current": "2026-10-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-10-30"
+  },
+  "V2 P2P 16.00": {
+   "current": "2026-11-30",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-16"
+  },
+  "V2 PT 13.41": {
+   "current": "2026-11-12",
+   "first_seen": "2026-11-16",
+   "original": "2026-11-12"
+  },
+  "V2 PT 14.00": {
+   "current": "2026-12-31",
+   "first_seen": "2026-11-16",
+   "original": "2026-08-14"
+  },
+  "V2 SW 16.10": {
+   "current": "2026-10-28",
+   "first_seen": "2026-11-16",
+   "original": "2026-09-30"
+  }
+ }
+}
