@@ -24,35 +24,31 @@
   --sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
 }
 html,body{background:var(--bg);color:var(--text);font-family:var(--sans)}
-body{padding:20px 32px 0;overflow-x:hidden;min-height:100vh}
+body{padding:12px 24px 0;overflow-x:hidden;min-height:100vh}
 a{color:inherit}
 
-/* ── top nav (same as the site tabs) ── */
-.nav{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap}
-.nav a{font-size:13px;font-weight:500;text-decoration:none;color:var(--muted);padding:9px 16px;border-bottom:2px solid transparent}
+/* ── one-line header bar: title · space tabs · refreshed · legend · today · controls ── */
+.bar{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;padding:0 2px 8px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+.nav{display:flex;align-items:center;gap:2px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:2px}
+.nav a{font-size:12px;font-weight:500;text-decoration:none;color:var(--muted);padding:3px 10px;border-radius:4px;white-space:nowrap}
 .nav a:hover{color:var(--text)}
-.nav a.active{color:#4F46E5;border-bottom-color:#4F46E5;font-weight:600}
-.nav .sep{flex:1}
-.nav .back{font-size:12px}
-
-.hdr{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;
-  border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:14px}
-.ey{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--sub);margin-bottom:4px}
-h1{font-size:20px;font-weight:600;letter-spacing:-.2px}
-.sub{font-size:12px;color:var(--muted);margin-top:4px}
-.hdr-r{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
-.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;
+.nav a.active{color:#fff;background:#4F46E5;font-weight:600}
+.sub{font-size:11px;color:var(--sub);white-space:nowrap}
+.legend{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.leg-sep{width:1px;height:14px;background:var(--border)}
+.sw{width:14px;height:5px;border-radius:2px}
+.grow{flex:1}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;
   color:var(--today);background:var(--today-bg);border:1px solid var(--today-bd)}
-.btns{display:flex;gap:8px;flex-wrap:wrap}
-.btn{font-size:11px;padding:6px 12px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);
+.pill:hover{background:rgba(239,68,68,.18)}
+.btns{display:flex;gap:4px}
+.btn{font-size:12px;line-height:1;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);
   cursor:pointer;font-family:inherit;font-weight:600}
 .btn:hover{background:var(--surf2);color:var(--text)}
-
-.legend{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:8px 12px;
-  background:var(--surface);border:1px solid var(--border);border-radius:8px}
-.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);padding:2px 8px;border-radius:4px;background:var(--surf2)}
-.leg-sep{width:1px;height:16px;background:var(--border);margin:0 3px}
-.sw{width:16px;height:6px;border-radius:2px}
+.back{font-size:12px;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap}
+.back:hover{color:var(--text)}
 
 /* ── scroll area: scrollbar on top AND bottom ── */
 .topscroll{overflow-x:auto;overflow-y:hidden;height:14px;margin-bottom:2px}
@@ -152,7 +148,8 @@ h1{font-size:20px;font-weight:600;letter-spacing:-.2px}
 
 @media print{
   @page{size:11in 17in landscape;margin:.35in}
-  .nav,.btns,.topscroll,.tray-btn,.more{display:none!important}
+  .nav,.btns,.back,.topscroll,.tray-btn,.more{display:none!important}
+  .pill{cursor:default}
   body{padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .tl{overflow:visible!important;height:auto!important;border:none}
   .ruler{position:static}
@@ -162,24 +159,21 @@ h1{font-size:20px;font-weight:600;letter-spacing:-.2px}
 </style>
 </head>
 <body>
-<nav class="nav" id="nav"></nav>
-<div class="hdr">
-  <div>
-    <div class="ey">Pong Game Studios · Roadmap</div>
-    <h1 id="title"></h1>
-    <div class="sub" id="sub"></div>
+<header class="bar">
+  <h1 id="title"></h1>
+  <nav class="nav" id="nav"></nav>
+  <span class="sub" id="sub"></span>
+  <span class="leg-sep"></span>
+  <div class="legend" id="legend"></div>
+  <span class="grow"></span>
+  <button class="pill" id="goToday" title="Scroll to today"></button>
+  <div class="btns">
+    <button class="btn" id="zoomOut" title="Zoom out">−</button>
+    <button class="btn" id="zoomIn" title="Zoom in">+</button>
+    <button class="btn" id="btnPrint" title="Print (11×17 landscape)">🖨</button>
   </div>
-  <div class="hdr-r">
-    <div class="pill" id="todayPill"></div>
-    <div class="btns">
-      <button class="btn" id="zoomOut" title="Zoom out">−</button>
-      <button class="btn" id="zoomIn" title="Zoom in">+</button>
-      <button class="btn" id="goToday">⌖ Today</button>
-      <button class="btn" id="btnPrint">🖨 Print (11×17)</button>
-    </div>
-  </div>
-</div>
-<div class="legend" id="legend"></div>
+  <a class="back" href="index.html">← Release Dashboard</a>
+</header>
 <div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
 <div class="tl" id="tl"><div class="canvas" id="canvas"></div></div>
 <div class="foot" id="foot"></div>
@@ -207,23 +201,21 @@ function jl(key){ return key ? `<a class="jira" href="${esc(D.browse + key)}" ta
 function renderChrome(){
   document.title = D.title + ' Roadmap';
   document.getElementById('nav').innerHTML =
-    D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('') +
-    `<span class="sep"></span><a class="back" href="index.html">← Release Dashboard</a>`;
+    D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('');
   document.getElementById('title').innerHTML = `🗺️ ${esc(D.title)} Roadmap`;
-  const gen = new Date(D.generated);
-  document.getElementById('sub').textContent =
-    `Live from Jira · refreshed ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ` +
-    `${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()} (rolling)`;
-  document.getElementById('todayPill').textContent = `▼ Today: ${fmt(D.today)}`;
+  const gen = new Date(D.generated), sub = document.getElementById('sub');
+  sub.textContent = `Jira · ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`;
+  sub.title = `Live from Jira, refreshed ${gen.toLocaleString()} · rolling window ${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()}`;
+  document.getElementById('goToday').textContent = `▼ Today ${fmt(D.today)}`;
   document.getElementById('legend').innerHTML =
-    `<div class="leg"><span class="sw" style="background:var(--green)"></span>◆ Released</div>
-     <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>◇ Upcoming (Jira date)</div>
+    `<div class="leg"><span class="sw" style="background:var(--green)"></span>Released</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>Upcoming</div>
      <div class="leg"><span class="sw" style="border:1.5px dashed var(--rose)"></span>Overdue</div>
      <div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO forecast</div>` +
-    (D.pubs.length ? `<div class="leg-sep"></div>
-     <div class="leg"><span class="sw" style="background:var(--rose)"></span>Go-live before release</div>
-     <div class="leg"><span class="sw" style="background:var(--amber)"></span>No release in Jira</div>
-     <div class="leg"><span class="sw" style="border:1.5px dashed var(--green)"></span>Go-live assumed</div>` : '');
+    (D.pubs.length ? `<span class="leg-sep"></span>
+     <div class="leg" title="Go-live date is before the release ships"><span class="sw" style="background:var(--rose)"></span>Go-live &lt; release</div>
+     <div class="leg" title="No release with a date in Jira"><span class="sw" style="background:var(--amber)"></span>No release</div>
+     <div class="leg" title="No PMO go-live; assumed = release date"><span class="sw" style="border:1.5px dashed var(--green)"></span>Assumed go-live</div>` : '');
   const nUns = D.groups.reduce((a, g) => a + g.lanes.reduce((b, l) => b + l.unscheduled.length, 0), 0);
   document.getElementById('foot').innerHTML =
     `<span>Source: Jira (read-only) · PMO plan for go-lives &amp; undated forecasts · Jira wins where it has a date · ${nUns} unscheduled item(s) in lane trays</span>
