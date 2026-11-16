@@ -108,7 +108,10 @@ def classify(vname, proj, space):
 
 
 def lane_for_category(lanes, cat):
-    """Pick the lane an item of category 'games'/'features' belongs to."""
+    """Pick the lane an item of category 'games'/'gamefix'/'features' belongs to.
+    Updates to existing games are game releases too, so they share the Games lane."""
+    if cat == "gamefix":
+        cat = "games"
     for ln in lanes:
         if ln.get("filter") == cat:
             return ln
@@ -216,6 +219,26 @@ def rollup(issues, allmap, game_re, vid):
     return out, misc
 
 
+def desc_lane(desc, per_lane, lanes):
+    """A version split across lanes keeps its Jira description on one card only:
+    the lane whose item names the description mentions most (e.g. "Viking Voyage
+    and Lanterns Rising" -> Games). Ties go to the Games lane if the text says
+    "game", else the Features/first lane."""
+    if len(per_lane) < 2 or not desc:
+        return next(iter(per_lane))
+    norm = lambda t: re.sub(r"[^a-z0-9 ]", "", t.lower().replace("’", "'").replace("'", ""))
+    words = [w for w in norm(desc).split() if len(w) >= 4 and w not in ("with", "and", "fixes", "new", "games")]
+    lane_filter = {ln["id"]: ln.get("filter") for ln in lanes}
+    def score(lid):
+        names = " ".join(norm(i["name"]) for i in per_lane[lid])
+        sc = sum(w in names for w in words)
+        if lane_filter.get(lid) == "games" and re.search(r"games?", desc, re.I):
+            sc += 1
+        return sc
+    order = sorted(per_lane, key=lambda lid: (-score(lid), lane_filter.get(lid) != "features"))
+    return order[0]
+
+
 def card_status(released, rd, done, total, any_wip):
     if released:
         return "Delivered"
@@ -290,6 +313,7 @@ def build_space(sid, space, win_start, win_end):
         # Misc bugs/fixes go to the features (or only) card of this version.
         misc_lane = next((ln["id"] for ln in r["lanes"] if ln["id"] in per_lane
                           and ln.get("filter") in ("features", "all")), next(iter(per_lane)))
+        dlane = desc_lane(v.get("description") or "", per_lane, r["lanes"])
         for lane_id, its in per_lane.items():
             m = misc if lane_id == misc_lane else {"total": 0, "done": 0}
             total = sum(i["total"] for i in its) + m["total"]
@@ -297,7 +321,7 @@ def build_space(sid, space, win_start, win_end):
             wip = any(i["statusCat"] == "indeterminate" for i in its)
             cards.append({
                 "group": r["group"]["id"], "lane": lane_id, "source": "version",
-                "title": v["name"], "desc": v.get("description") or "",
+                "title": v["name"], "desc": (v.get("description") or "") if lane_id == dlane else "",
                 "date": rd.isoformat(), "start": v.get("startDate"),
                 "released": bool(v.get("released")),
                 "status": card_status(v.get("released"), rd, done, total, wip),

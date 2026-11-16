@@ -79,7 +79,7 @@ h1{font-size:20px;font-weight:600;letter-spacing:-.2px}
 .lane{display:flex;border-bottom:1px solid var(--border)}
 .lane-lbl{position:sticky;left:0;z-index:30;flex-shrink:0;background:var(--surface);padding:12px 12px 8px;
   text-align:right;border-right:1px solid var(--border)}
-.lane-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;line-height:1.2}
+.lane-name{color:var(--text-mid);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;line-height:1.2}
 .tray-btn{margin-top:6px;font-size:10px;font-weight:600;color:var(--muted);background:var(--surf2);border:1px dashed var(--border2);
   border-radius:4px;padding:2px 7px;cursor:pointer;font-family:inherit}
 .tray-btn:hover{color:var(--text);border-color:var(--muted)}
@@ -215,13 +215,10 @@ function renderChrome(){
     `Live from Jira · refreshed ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})} · ` +
     `${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()} (rolling)`;
   document.getElementById('todayPill').textContent = `▼ Today: ${fmt(D.today)}`;
-  const lanes = [], seen = new Set();
-  D.groups.forEach(g => g.lanes.forEach(l => { if (!seen.has(l.label)) { seen.add(l.label); lanes.push(l); } }));
   document.getElementById('legend').innerHTML =
-    lanes.map(l => `<div class="leg"><span class="sw" style="background:${col(l.color)}"></span>${esc(l.label)}</div>`).join('') +
-    `<div class="leg-sep"></div>
-     <div class="leg"><span class="sw" style="background:var(--text-mid)"></span>◆ Delivered</div>
-     <div class="leg"><span class="sw" style="border:1.5px dashed var(--text-mid)"></span>◇ Forecast (Jira date)</div>
+    `<div class="leg"><span class="sw" style="background:var(--green)"></span>◆ Released</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>◇ Upcoming (Jira date)</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--rose)"></span>Overdue</div>
      <div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO forecast</div>` +
     (D.pubs.length ? `<div class="leg-sep"></div>
      <div class="leg"><span class="sw" style="background:var(--rose)"></span>Go-live before release</div>
@@ -234,10 +231,14 @@ function renderChrome(){
 }
 
 /* ── card HTML ── */
-function statusColor(st, lane){
-  return ({Delivered:'green', Ready:'green', Overdue:'rose', 'In progress':lane, Planned:'grey', Forecast:'grey'})[st] || 'grey';
+function statusColor(st){
+  return ({Delivered:'green', Ready:'green', Overdue:'rose', 'In progress':'blue', Planned:'grey', Forecast:'grey'})[st] || 'grey';
 }
-const CAT_LBL = { features: 'Features', games: 'New games', gamefix: 'Fixes to existing games' };
+/* Colour = release state, never lane/market: released green, overdue rose, PMO gold, else blue. */
+function cardColor(c){
+  return c.released ? 'green' : c.source === 'pmo' ? 'gold' : c.status === 'Overdue' ? 'rose' : 'blue';
+}
+const CAT_LBL = { features: 'Features', games: 'New games', gamefix: 'Updates to existing games' };
 function itemLi(it, c){
   const pct = it.due ? `<span class="ipct">due ${fmtS(it.due)}</span>`
     : it.pct != null ? `<span class="ipct">${it.pct}%</span>` : '';
@@ -245,14 +246,14 @@ function itemLi(it, c){
          `<span class="nm">${esc(it.name)}</span>${jl(it.key)}${pct}</li>`;
 }
 function cardHTML(c, lane, id){
-  const color = lane.color, released = c.released, pmo = c.source === 'pmo';
+  const color = cardColor(c), released = c.released, pmo = c.source === 'pmo';
   let date;
   if (released) date = `✓ Released ${fmt(c.date)}`;
   else if (pmo) date = `PMO forecast · ${esc(c.label || fmt(c.date))}`;
   else if (c.source === 'epic-due' && c.status === 'Overdue') date = `Past due · as of ${fmt(c.date)}`;
   else if (c.source === 'epic-due') date = `Due ${fmt(c.date)} · forecast`;
   else date = `Release ${fmt(c.date)}`;
-  const sc = statusColor(c.status, color);
+  const sc = statusColor(c.status);
   const prog = c.pct != null ? `<div class="ptrack"><div class="pfill" style="width:${c.pct}%;background:${col(color)}"></div></div><span class="ppct" style="color:${col(color)}">${c.pct}%</span>` : '';
   const slip = c.slip ? `<span class="slip ${c.slip.days > 0 ? 'late' : 'early'}" title="Originally ${fmt(c.slip.from)}">${c.slip.days > 0 ? '▲ moved +' + c.slip.days : '▼ pulled in ' + (-c.slip.days)}d · was ${fmtS(c.slip.from)}</span>` : '';
   const status = `<div class="card-status"><span class="badge" style="color:${col(sc)};border-color:${col(sc,'bd')};background:${col(sc,'bg')}">${esc(c.status)}</span>${prog}${slip}</div>`;
@@ -265,7 +266,7 @@ function cardHTML(c, lane, id){
     const arr = c.items.filter(i => i.cat === k);
     if (k === 'gamefix' && !open) {
       const names = arr.map(i => i.name);
-      body += `<div class="misc" title="${esc(names.join(', '))}">🔧 Fixes to ${arr.length} existing game${arr.length > 1 ? 's' : ''}: ${esc(names.slice(0, 3).join(', '))}${arr.length > 3 ? '…' : ''}</div>`;
+      body += `<div class="misc" title="${esc(names.join(', '))}">🔧 Updates to ${arr.length} existing game${arr.length > 1 ? 's' : ''}: ${esc(names.slice(0, 3).join(', '))}${arr.length > 3 ? '…' : ''}</div>`;
       return;
     }
     const show = open ? arr : arr.slice(0, Math.max(2, max - shown));
@@ -275,7 +276,7 @@ function cardHTML(c, lane, id){
   });
   const expandable = hidden > 0 || cats.includes('gamefix');
   const more = open ? `<button class="more" data-card="${id}">▴ show less</button>`
-    : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game fixes'}</button>` : '';
+    : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game updates'}</button>` : '';
   const misc = c.misc ? `<div class="misc">+ ${c.misc} bugs &amp; fixes</div>` : '';
   const notes = (c.notes || []).length ? `<ul class="notes">${c.notes.map(n => `<li>· ${esc(n)}</li>`).join('')}</ul>` : '';
   const ftag = pmo ? `<div class="ftag" style="color:var(--gold);border:1px dotted var(--gold-bd)">◇ PMO forecast — not dated in Jira</div>` : '';
@@ -328,7 +329,7 @@ function renderTimeline(){
     g.lanes.forEach(l => {
       const lid = g.id + '__' + l.id, n = l.unscheduled.length;
       html += `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
-          <div class="lane-name" style="color:${col(l.color)}">${esc(l.label)}</div>
+          <div class="lane-name">${esc(l.label)}</div>
           ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
         </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
       if (n) html += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
@@ -364,11 +365,12 @@ function renderTimeline(){
         const id = 'c' + i, x = xc(c.date), w = S.cardW, left = Math.max(0, x - w);
         const el = document.createElement('div');
         el.className = 'tcard';
-        el.style.cssText = `left:${left}px;width:${w}px;border-color:${col(l.color,'bd')};` +
-          (c.source === 'pmo' ? 'border-style:dotted;border-color:var(--gold-bd);' : '');
-        const accent = c.released ? `background:${col(l.color)}`
-          : `background:repeating-linear-gradient(90deg,${col(c.source === 'pmo' ? 'gold' : l.color)} 0 6px,transparent 6px 11px)`;
-        el.innerHTML = `<div class="accent" style="${accent}"><span class="ms" style="left:${x - left}px;background:${c.released ? col(l.color) : 'var(--surface)'};border-color:${col(l.color)}"></span></div>` + cardHTML(c, l, id);
+        const cc = cardColor(c);
+        el.style.cssText = `left:${left}px;width:${w}px;border-color:${col(cc,'bd')};` +
+          (c.source === 'pmo' ? 'border-style:dotted;' : '');
+        const accent = c.released ? `background:${col(cc)}`
+          : `background:repeating-linear-gradient(90deg,${col(cc)} 0 6px,transparent 6px 11px)`;
+        el.innerHTML = `<div class="accent" style="${accent}"><span class="ms" style="left:${x - left}px;background:${c.released ? col(cc) : 'var(--surface)'};border-color:${col(cc)}"></span></div>` + cardHTML(c, l, id);
         body.appendChild(el);
         boxes.push({ el, l: left, r: left + w });
       });

@@ -9,7 +9,7 @@
       "file": "roadmap-igaming.html",
       "projects": ["IG", "CSS"],
       "history": ["release-history-ig.json", "release-history-igf.json"],
-      "game_re": "^(Gen2\\s*-?\\s*)?Game\\s*:",
+      "game_re": "^(Gen2\\s*-?\\s*)?Game\\s*(:|\\s-\\s)",
       "groups": [
         { "id": "pfh", "label": "PFH",
           "match": "^(PFH(?!2? Services)|New Games - (PFH|iGaming)|New Features - iGaming)",
