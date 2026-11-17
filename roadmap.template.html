@@ -211,7 +211,8 @@ function renderChrome(){
     `<div class="leg"><span class="sw" style="background:var(--green)"></span>Released</div>
      <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>Upcoming</div>
      <div class="leg"><span class="sw" style="border:1.5px dashed var(--rose)"></span>Overdue</div>
-     <div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO forecast</div>` +
+     <div class="leg" title="PMO plan or epic due date — no market release in Jira yet"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO date</div>` +
+    ((D.awaits || []).length ? `<div class="leg" title="Game launched in a sister market, no release here yet"><span class="sw" style="border:1.5px dashed var(--amber)"></span>Awaiting market version</div>` : '') +
     (D.pubs.length ? `<span class="leg-sep"></span>
      <div class="leg" title="Go-live date is before the release ships"><span class="sw" style="background:var(--rose)"></span>Go-live &lt; release</div>
      <div class="leg" title="No release with a date in Jira"><span class="sw" style="background:var(--amber)"></span>No release</div>
@@ -228,7 +229,10 @@ function statusColor(st){
 }
 /* Colour = release state, never lane/market: released green, overdue rose, PMO gold, else blue. */
 function cardColor(c){
-  return c.released ? 'green' : c.source === 'pmo' ? 'gold' : c.status === 'Overdue' ? 'rose' : 'blue';
+  if (c.released) return 'green';
+  if (c.status === 'Overdue') return 'rose';
+  // PMO dates: PMO-plan forecasts and epic due dates with no market release yet.
+  return (c.source === 'pmo' || c.source === 'epic-due') ? 'gold' : 'blue';
 }
 const CAT_LBL = { features: 'Features', games: 'New games', gamefix: 'Updates to existing games' };
 function itemLi(it, c){
@@ -243,7 +247,7 @@ function cardHTML(c, lane, id){
   if (released) date = `✓ Released ${fmt(c.date)}`;
   else if (pmo) date = `PMO forecast · ${esc(c.label || fmt(c.date))}`;
   else if (c.source === 'epic-due' && c.status === 'Overdue') date = `Past due · as of ${fmt(c.date)}`;
-  else if (c.source === 'epic-due') date = `Due ${fmt(c.date)} · forecast`;
+  else if (c.source === 'epic-due') date = `PMO date · by ${fmt(c.date)}`;
   else date = `Release ${fmt(c.date)}`;
   const sc = statusColor(c.status);
   const prog = c.pct != null ? `<div class="ptrack"><div class="pfill" style="width:${c.pct}%;background:${col(color)}"></div></div><span class="ppct" style="color:${col(color)}">${c.pct}%</span>` : '';
@@ -359,7 +363,7 @@ function renderTimeline(){
         el.className = 'tcard';
         const cc = cardColor(c);
         el.style.cssText = `left:${left}px;width:${w}px;border-color:${col(cc,'bd')};` +
-          (c.source === 'pmo' ? 'border-style:dotted;' : '');
+          (cc === 'gold' ? 'border-style:dotted;' : '');
         const accent = c.released ? `background:${col(cc)}`
           : `background:repeating-linear-gradient(90deg,${col(cc)} 0 6px,transparent 6px 11px)`;
         el.innerHTML = `<div class="accent" style="${accent}"><span class="ms" style="left:${x - left}px;background:${c.released ? col(cc) : 'var(--surface)'};border-color:${col(cc)}"></span></div>` + cardHTML(c, l, id);
@@ -372,6 +376,17 @@ function renderTimeline(){
         el.innerHTML = `<div class="pk-tag">⏸ Parked · ${esc(p.since)}</div><div class="pk-title">${esc(p.title)}</div><div class="pk-sub">${esc(p.note)}</div>`;
         body.appendChild(el);
         boxes.push({ el, l: 0, r: 220 });
+      });
+      // Game launched in a sister market with no release here yet (e.g. ELG -> PFH).
+      (D.awaits || []).filter(a => a.group === g.id && a.lane === l.id).forEach(a => {
+        const x = xc(a.date), w = 210, left = Math.max(0, x - w);
+        const el = document.createElement('div');
+        el.className = 'parked await'; el.style.left = left + 'px'; el.style.width = w + 'px';
+        el.innerHTML = `<div class="pk-tag">⚠ Awaiting ${esc(g.label)} version</div>` +
+          `<div class="pk-title">${esc(a.game)} ${jl(a.key)}</div>` +
+          `<div class="pk-sub">${esc(a.text)} · on ${esc(a.from)} ${fmtS(a.date)}</div>`;
+        body.appendChild(el);
+        boxes.push({ el, l: left, r: left + w });
       });
     }
     boxes.forEach(b => b.h = b.el.offsetHeight || 120);

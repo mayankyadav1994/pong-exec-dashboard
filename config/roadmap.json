@@ -10,16 +10,20 @@
       "projects": ["IG", "CSS"],
       "history": ["release-history-ig.json", "release-history-igf.json"],
       "game_re": "^(Gen2\\s*-?\\s*)?Game\\s*(:|\\s-\\s)",
+      "_markets": "Game markets = the pfh / elg / hp groups. 'New Games - iGaming' holds ELG-bound games, 'New Games - PFH' PFH-bound ones.",
+      "game_projects": ["IG"],
+      "non_markets": ["kiosk"],
+      "awaiting": [ { "from": "elg", "to": "pfh", "skip_re": "-\\s*ELG\\s*$" } ],
       "groups": [
         { "id": "pfh", "label": "PFH",
-          "match": "^(PFH(?!2? Services)|New Games - (PFH|iGaming)|New Features - iGaming)",
+          "match": "^(PFH(?!2? Services)|New Games - PFH|New Features - iGaming)",
           "projects": ["IG"],
           "lanes": [
             { "id": "releases",   "label": "Releases · Games & Features", "filter": "all", "color": "blue" },
             { "id": "publishing", "label": "Game Publishing", "kind": "publishing", "color": "green" }
           ] },
         { "id": "elg", "label": "ELG",
-          "match": "^ELG",
+          "match": "^(ELG|New Games - iGaming)",
           "projects": ["IG"],
           "lanes": [
             { "id": "releases",   "label": "Releases · Games & Features", "filter": "all", "color": "blue" },
@@ -45,6 +49,10 @@
       "projects": ["V2"],
       "history": ["release-history-v2.json"],
       "game_re": "^Game\\s*:",
+      "_markets": "Game markets = the P2P / PT / SW / C2 / HHR lanes. Games with a due date but no market version go to 'No market assigned'.",
+      "game_projects": ["V2"],
+      "non_markets": ["newgames", "other"],
+      "unassigned_games": { "group": "v2", "lane": "newgames" },
       "groups": [
         { "id": "v2", "label": "", "projects": ["V2"],
           "lanes": [
@@ -53,7 +61,7 @@
             { "id": "sw",    "label": "SW",    "match": "^V2 SW",  "filter": "all", "color": "green" },
             { "id": "c2",    "label": "C2",    "match": "^V2 C2",  "filter": "all", "color": "amber" },
             { "id": "hhr",   "label": "HHR",   "match": "^V2 HHR", "filter": "all", "color": "rose" },
-            { "id": "newgames", "label": "New Games", "match": "^New Games", "filter": "all", "color": "blue" },
+            { "id": "newgames", "label": "New Games · No market assigned", "match": "^New Games", "filter": "all", "color": "blue" },
             { "id": "other", "label": "Other", "match": ".",       "filter": "all", "color": "grey" }
           ] }
       ]

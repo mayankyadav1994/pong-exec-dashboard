@@ -15,6 +15,15 @@ Data rules (decided with PMO 2026-11-16):
     config/roadmap-pmo.json fills the gaps: PMO forecasts for undated items
     and the game go-live (publishing) schedule, which is not tracked in Jira.
   * Lane rules: config/roadmap.json.
+  * Games are market-centric (PMO 2026-11-17): a numbered market version on a
+    game epic or any of its stories = the game ships to that market on that
+    release date (iGaming markets = ELG / PFH / Horse Play rows, V2 markets =
+    P2P / PT / SW / C2 / HHR lanes). The first such release in a market is the
+    launch; later ones are updates. A game with a due date but no dated market
+    release yet is PMO-dated: shown at its due date in the market row(s) of its
+    holding version ("New Games - iGaming" -> ELG, "New Games - PFH" -> PFH,
+    V2 "New Games" / none -> "No market assigned"). A game launched on ELG with
+    no PFH version gets an amber "awaiting PFH version" flag.
 
 Usage:  python roadmap.py [igaming|v2|css|all] [--today YYYY-MM-DD]
 """
@@ -91,6 +100,22 @@ def version_url(proj, vid):
 
 
 # ── lane classification ──────────────────────────────────────────────────────
+SERIES_RE = re.compile(r"\d+\.\d+")
+
+
+def market_of(vname, proj, space):
+    """Market a NUMBERED release version belongs to: the group id where groups
+    have their own match (iGaming: elg / pfh / hp), else the lane id (V2: p2p /
+    pt / ...). None for buckets, unnumbered versions and non-markets."""
+    if BUCKET_RE.search(vname) or not SERIES_RE.search(vname):
+        return None
+    g, lanes = classify(vname, proj, space)
+    if not g:
+        return None
+    m = g["id"] if g.get("match") else (lanes[0]["id"] if lanes else None)
+    return None if m in space.get("non_markets", []) else m
+
+
 def classify(vname, proj, space):
     """Return (group, [lanes]) a version contributes cards to, or (None, [])."""
     for g in space["groups"]:
@@ -171,12 +196,12 @@ def root_of(issue, allmap):
     return cur["key"], cur["fields"]
 
 
-def rollup(issues, allmap, game_re, vid):
+def rollup(issues, allmap, game_re, vid, launch=None):
     """Group a version's issues into items. Returns (items, misc_counts).
 
-    Item categories: 'games' = a game whose epic is itself in this release (a
-    new game shipping); 'gamefix' = an existing game that only gets fixes in
-    this release; 'features' = everything else.
+    Item categories: 'games' = a game launching in this release's market (its
+    first release there, per `launch(epic_key, version_id)`); 'gamefix' = a game
+    already in that market getting an update; 'features' = everything else.
     """
     items = {}
     misc = {"total": 0, "done": 0}
@@ -195,17 +220,15 @@ def rollup(issues, allmap, game_re, vid):
         sname, scat = status_of(rf)
         if rk not in items:
             is_game = bool(re.search(game_re, rsum, re.I))
-            in_version = rk in allmap and any(
-                fv["id"] == vid for fv in allmap[rk]["fields"].get("fixVersions") or [])
-            cat = ("games" if in_version else "gamefix") if is_game else "features"
+            if launch is not None:
+                new = launch(rk, vid)
+            else:
+                new = rk in allmap and any(
+                    fv["id"] == vid for fv in allmap[rk]["fields"].get("fixVersions") or [])
+            cat = ("games" if new else "gamefix") if is_game else "features"
             items[rk] = {"key": rk, "summary": rsum, "type": rtype, "status": sname,
                          "statusCat": scat, "cat": cat, "total": 0, "done": 0}
         item = items[rk]
-        # A game-named story inside the release (e.g. "Game: Blue Bird Bonus - C2"
-        # under an older game epic) means that game IS shipping here (a port).
-        if item["cat"] == "gamefix" and it["key"] != rk and re.search(game_re, f.get("summary", ""), re.I) \
-                and f["issuetype"]["name"] not in MISC_TYPES and "Subtask" not in f["issuetype"]["name"]:
-            item["cat"] = "games"
         if it["key"] != rk:
             item["total"] += 1
             item["done"] += cat_key == "done"
@@ -216,7 +239,20 @@ def rollup(issues, allmap, game_re, vid):
             100 if item["statusCat"] == "done" else None)
         out.append(item)
     out.sort(key=lambda x: (-x["total"], x["name"]))
-    return out, misc
+    # Same game under two epics (e.g. an IG and a V2 "Mayan Madness"): list once.
+    # A launch beats an update when both epics land in the same release.
+    seen = {i["name"].lower() for i in out if i["cat"] == "games"}
+    dedup = []
+    for item in out:
+        if item["cat"] == "gamefix" and item["name"].lower() in seen:
+            continue
+        if item["cat"] != "features":
+            if any(d is not item and d["cat"] == item["cat"] and d["name"].lower() == item["name"].lower()
+                   for d in dedup):
+                continue
+            seen.add(item["name"].lower())
+        dedup.append(item)
+    return dedup, misc
 
 
 def desc_lane(desc, per_lane, lanes):
@@ -299,10 +335,58 @@ def build_space(sid, space, win_start, win_end):
 
     dated_epics = {k for k, it in allmap.items() if it["fields"]["issuetype"]["name"] == "Epic"}
 
+    # 2b. Game market index: every version on each game epic and its stories.
+    vindex = {v["id"]: (v, proj) for proj in projects for v in project_versions(proj)}
+    game_projects = space.get("game_projects", [])
+    game_keys = set()
+    for it in allmap.values():
+        rk, rf = root_of(it, allmap)
+        if re.search(game_re, rf.get("summary", ""), re.I):
+            game_keys.add(rk)
+    pmo_games = []
+    if game_projects:
+        pmo_games = [e for e in jira_jql(
+            f'project in ({",".join(game_projects)}) AND issuetype = Epic '
+            f'AND statusCategory != Done AND duedate is not EMPTY', FIELDS)
+            if re.search(game_re, e["fields"]["summary"], re.I)]
+        game_keys |= {e["key"] for e in pmo_games}
+    game_vids = defaultdict(set)
+    keys = sorted(game_keys)
+    for i in range(0, len(keys), 40):
+        chunk = keys[i:i + 40]
+        for it in jira_jql(f"key in ({','.join(chunk)}) OR parent in ({','.join(chunk)})",
+                           ["fixVersions", "parent", "issuetype"]):
+            owner = it["key"] if it["key"] in game_keys else (it["fields"].get("parent") or {}).get("key")
+            if owner in game_keys:
+                game_vids[owner] |= {fv["id"] for fv in it["fields"].get("fixVersions") or []}
+
+    def markets(gkey):
+        """market -> sorted [(date|None, version name, released)] of numbered versions."""
+        out = defaultdict(list)
+        for vid in game_vids.get(gkey, ()):
+            if vid not in vindex:
+                continue
+            v, proj = vindex[vid]
+            m = market_of(v["name"], proj, space)
+            if m:
+                out[m].append((pd(v.get("releaseDate")), v["name"], bool(v.get("released"))))
+        for m in out:
+            out[m].sort(key=lambda t: (t[0] is None, t[0] or date.max))
+        return out
+
+    def launch(gkey, vid):
+        if gkey not in game_vids or vid not in vindex:
+            return False
+        v, proj = vindex[vid]
+        m = market_of(v["name"], proj, space)
+        rd = pd(v.get("releaseDate"))
+        firsts = [d for d, _, _ in markets(gkey).get(m, []) if d]
+        return bool(m and rd and firsts and rd <= min(firsts))
+
     # 3. Version cards.
     for r in card_versions:
         v, rd = r["v"], r["rd"]
-        items, misc = rollup(by_version.get(v["id"], []), allmap, game_re, v["id"])
+        items, misc = rollup(by_version.get(v["id"], []), allmap, game_re, v["id"], launch)
         slip = slip_for(hist, seed, r["proj"], v["name"], rd)
         per_lane = defaultdict(list)
         for it in items:
@@ -336,6 +420,43 @@ def build_space(sid, space, win_start, win_end):
     pmo_keys = {f["key"] for f in pmo_fc}
     bucket_epic_due = {}
     groups_of = defaultdict(list)
+
+    # 4a. PMO-dated games: due date, but no dated market release yet. Placed in
+    # the row(s) of their holding versions; none -> the "no market" lane.
+    unassigned = space.get("unassigned_games")
+    for e in pmo_games:
+        mk = markets(e["key"])
+        if any(d for rows in mk.values() for d, _, _ in rows):
+            continue  # already in a dated market release -> shown there
+        f = e["fields"]
+        due = pd(f["duedate"])
+        rows = {}
+        for vid in game_vids.get(e["key"], ()):
+            if vid not in vindex:
+                continue
+            v, proj = vindex[vid]
+            g, lanes = classify(v["name"], proj, space)
+            if not g or not (BUCKET_RE.search(v["name"]) or market_of(v["name"], proj, space)):
+                continue
+            ln = lane_for_category(lanes, "games")
+            if ln["id"] in space.get("non_markets", []) and ln["id"] != (unassigned or {}).get("lane"):
+                continue
+            rows[(g["id"], ln["id"])] = v["name"]
+        if not rows and unassigned:
+            rows[(unassigned["group"], unassigned["lane"])] = "No market assigned"
+        if not rows:
+            print(f"  [{sid}] PMO game {e['key']} has no market row — skipped")
+            continue
+        sname, scat = status_of(f)
+        bucket_epic_due[e["key"]] = due
+        for (gid, lid), bname in rows.items():
+            item = {"key": e["key"], "summary": f["summary"], "type": "Epic",
+                    "name": clean_name(f["summary"], game_re), "status": sname,
+                    "statusCat": scat, "cat": "games", "total": 0, "done": 0,
+                    "pct": None, "due": due.isoformat()}
+            month = "overdue" if due < TODAY else due.strftime("%Y-%m")
+            groups_of[(gid, lid, month)].append((bname, item))
+
     for r in bucket_versions:
         epics = jira_jql(f'project = {r["proj"]} AND fixVersion = {r["v"]["id"]} '
                          f'AND issuetype = Epic AND statusCategory != Done', FIELDS)
@@ -344,6 +465,8 @@ def build_space(sid, space, win_start, win_end):
                 continue
             f = e["fields"]
             cat = "games" if re.search(game_re, f["summary"], re.I) else "features"
+            if cat == "games" and f.get("duedate"):
+                continue  # PMO-dated game: placed by step 4a
             ln = lane_for_category(r["lanes"], cat)
             due = pd(f.get("duedate"))
             sname, scat = status_of(f)
@@ -371,7 +494,7 @@ def build_space(sid, space, win_start, win_end):
             "group": gid, "lane": lid, "source": "epic-due",
             "title": "Past due · no release yet" if overdue else buckets,
             "desc": (f"Due date passed, not in a dated release ({buckets})" if overdue
-                     else "Epic due dates — no release date yet"),
+                     else "PMO dates (epic due dates) — no market release yet"),
             "date": TODAY.isoformat() if overdue else max(i["due"] for i in its),
             "start": None, "released": False,
             "status": "Overdue" if overdue else "Forecast",
@@ -411,6 +534,32 @@ def build_space(sid, space, win_start, win_end):
     for pk in PMO.get("parked", []):
         if pk["space"] == sid:
             parked.append(pk)
+
+    # 5b. "Awaiting market version": a game launched in one market (e.g. ELG)
+    # with no dated release in its sister market (PFH) yet.
+    awaits, seen_aw = [], set()
+    for rule in space.get("awaiting", []):
+        to_g = next(g for g in space["groups"] if g["id"] == rule["to"])
+        to_lane = lane_for_category([ln for ln in to_g["lanes"] if ln.get("kind") != "publishing"], "games")
+        for c in sorted((c for c in cards if c["group"] == rule["from"] and c["source"] == "version"),
+                        key=lambda c: c["date"]):
+            for it in c["items"]:
+                # Only the space's own game epics: legacy PFH-/V1- epics keep their
+                # PFH history in other projects' versions, which we can't see here.
+                if it["type"] != "Epic" or it["key"].split("-")[0] not in game_projects:
+                    continue
+                if it["cat"] != "games" or it["key"] in seen_aw or \
+                        re.search(rule.get("skip_re", r"^\b$"), it["summary"], re.I):
+                    continue
+                target = markets(it["key"]).get(rule["to"], [])
+                if any(d for d, _, _ in target):
+                    continue
+                seen_aw.add(it["key"])
+                undated = next((n for d, n, _ in target if not d), None)
+                awaits.append({"group": rule["to"], "lane": to_lane["id"], "date": c["date"],
+                               "game": it["name"], "key": it["key"], "from": c["title"],
+                               "text": (f"{undated} has no release date" if undated
+                                        else f"No {to_g['label']} version yet")})
 
     # 6. Publishing (go-live) — PMO schedule + "assumed = release date" fallback.
     for g in space["groups"]:
@@ -488,7 +637,7 @@ def build_space(sid, space, win_start, win_end):
         "generated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "today": TODAY.isoformat(),
         "window": {"start": win_start.isoformat(), "end": win_end.isoformat()},
-        "groups": groups_out, "cards": cards, "pubs": pubs, "parked": parked,
+        "groups": groups_out, "cards": cards, "pubs": pubs, "parked": parked, "awaits": awaits,
         "browse": f"{SITE}/browse/",
     }
 
