@@ -488,9 +488,9 @@
    "name": "V2 PT 13.41",
    "first_seen": "2026-11-04",
    "original_date": "2026-11-10",
-   "current_date": "2026-11-13",
-   "released": false,
-   "released_on": null,
+   "current_date": "2026-11-12",
+   "released": true,
+   "released_on": "2026-11-12",
    "revisions": [
     {
      "observed": "2026-11-11",
@@ -498,6 +498,18 @@
      "to": "2026-11-13",
      "kind": "moved",
      "slip_days": 3
+    },
+    {
+     "observed": "2026-11-17",
+     "from": "2026-11-13",
+     "to": "2026-11-12",
+     "kind": "moved",
+     "slip_days": -1
+    },
+    {
+     "observed": "2026-11-17",
+     "to": "2026-11-12",
+     "kind": "released"
     }
    ]
   }
