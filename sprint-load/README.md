@@ -8,7 +8,7 @@ python sprint_load.py --seed     # first run only: seed bias.json from last clos
 python sprint_load.py --allow-empty   # build even if a board has zero tickets (between sprints)
 ```
 
-Needs Python 3.11+ and `requests`. Credentials come from the environment: `JIRA_EMAIL` and `JIRA_TOKEN` (an Atlassian API token). `JIRA_API_TOKEN` is accepted as a fallback because the other Pong dashboards use that name.
+Needs Python 3.11+ and `requests` (plus `tzdata` on Windows, which has no built-in time-zone database). Credentials come from the environment: `JIRA_EMAIL` and `JIRA_TOKEN` (an Atlassian API token). `JIRA_API_TOKEN` is accepted as a fallback because the other Pong dashboards use that name.
 
 Files beside the script:
 
@@ -55,13 +55,24 @@ Each row is one person on one board, grouped by discipline. Every group ends wit
 | **Load bar** | Remaining (or Assigned) against capacity. The black tick is the capacity line. Blue = under 85%, amber = 85% up to the line, red = over. | |
 | **Verdict** | *Over by N h (×multiple)*, *At capacity* (within ±3.5h), or *Room for N h* | |
 
-Every figure links to the Jira issue navigator, scoped to that person and board plus the matching predicate (`originalEstimate > 0`, `timeSpent > 0`, `remainingEstimate > 0`, `originalEstimate IS EMPTY`). The Remaining link also excludes Closed tickets so it matches the number.
+Every figure links to the Jira issue navigator, scoped to that person and board plus the matching predicate (`originalEstimate > 0`, `timeSpent > 0`, `remainingEstimate > 0`, `originalEstimate IS EMPTY`). The Remaining link also excludes Closed tickets so it matches the number. Every link also leaves out tickets that were already Closed when the sprint started (see below).
 
 ### Why Remaining, not Assigned
 
-Assigned is the size of the work handed out. It never goes down. A person who has finished 200h of a 250h load still shows 250h assigned. On top of that, closed tickets stay attached to the open sprint, so Assigned counts work completed in past sprints too (see *Known limits*). Remaining is the estimate of work still to do, which is what has to fit into the time left. The toggle exists so you can see how much was handed out, but the verdict only means something on Remaining.
+Assigned is the size of the work handed out. It never goes down. A person who has finished 200h of a 250h load still shows 250h assigned. Remaining is the estimate of work still to do, which is what has to fit into the time left. The toggle exists so you can see how much was handed out, but the verdict only means something on Remaining.
 
 **Closed tickets count as 0 remaining.** Some Closed tickets still carry a remaining estimate. No work is left on them, so those hours are excluded. The row gets a ⚑ chip and the board gets a warning that lists the keys, so someone can zero them in Jira.
+
+### Tickets already Closed when the sprint started are left out
+
+Some tickets sit in the open sprint even though they were Closed before it began. They aren't this sprint's work, so they are dropped from **every** figure (Tickets, Assigned, Spent and estimate bias) and listed in a notice on each board. There are two causes:
+
+- **Subtasks of an unfinished parent.** Jira always keeps a subtask in its parent's sprint. When a Story rolls over, all of its subtasks roll with it, including the ones closed months ago. A Story that has rolled through seven sprints drags its closed subtasks through all seven. The fix in Jira is to close or split long-running Stories rather than letting them roll.
+- **Standard tickets moved into a sprint before it started.** For example, when an earlier sprint is completed, its open tickets get moved into a sprint two ahead. They are finished in the meantime and are already Closed when that sprint starts. The fix is to move unfinished work into the next sprint, or remove Closed tickets from a sprint before starting it.
+
+The test is the ticket's status history: `status WAS "Closed" ON "<sprint start>"`. It deliberately does **not** use the resolution date. In this Jira, Resolution is set when Dev moves a ticket to *Ready*, well before QA closes it. A resolution-date test would therefore drop genuine carryover: tickets that were in Ready For QA when the sprint rolled over and were closed during the current sprint.
+
+JQL reads that date in the viewer's Jira time zone. The script converts each sprint start to the token user's time zone, so the figures and the links agree for that user. For someone in another time zone, the links can differ only for tickets closed within a few hours of the sprint starting.
 
 ### Capacity model
 
@@ -90,7 +101,7 @@ Intake is divided by bias because new work arrives as *estimates*. Someone with 
 
 ### Estimate bias
 
-`bias = closed spent ÷ closed estimate`, from that person's tickets in status **Closed** on this board. 1.0 means estimates are accurate, and 1.4 means work takes 40% longer than estimated. Each row records which of three sources it used:
+`bias = closed spent ÷ closed estimate`, from that person's tickets on this board that were **Closed during this sprint**. Tickets that were already Closed when the sprint started don't count. 1.0 means estimates are accurate, and 1.4 means work takes 40% longer than estimated. Each row records which of three sources it used:
 
 | Source | When | Meaning |
 |---|---|---|
@@ -108,12 +119,13 @@ Checks on bias:
 
 ### Discipline governs redistribution
 
-Each person's discipline is the majority vote of their tickets' issue types on that board:
+How each person's discipline is decided:
 
-- **DAMS:** prefix match: Math / Sound / Creative / Design. Bug, Story and Live Issue don't vote.
-- **Project boards:** Dev (Dev Task, Dev Subtask, Story, Bug, Enhancement, CR, Live Issue), QA (QA Task, QA Subtask), Release (Release, Release Subtask), plus DAMS types by prefix if they appear.
+- **Project boards: Jira group first.** Membership of **QA Team** means QA, and **Development** means Dev (`DISCIPLINE_GROUPS` in the script). Ticket types are a poor signal here. QA verify and close Bugs, so a tester's open-sprint tickets are mostly Bugs, which would otherwise vote Dev. A notice lists everyone whose group overrode their ticket types.
+- **Fallback: majority vote of issue types.** This applies to anyone in both groups or neither, such as admins and PMs. Dev covers Dev Task, Dev Subtask, Story, Bug, Enhancement, CR and Live Issue. QA covers QA Task and QA Subtask. Release covers Release and Release Subtask. DAMS types are matched by prefix if they appear. These rows carry a ⚑ *discipline from tickets* chip.
+- **DAMS:** issue-type prefix match only: Math / Sound / Creative / Design. Bug, Story and Live Issue don't vote. The Jira groups don't separate Math from Creative.
 
-Ties are broken in the fixed order Math → Sound → Creative → Design → Dev → QA → Release and flagged. A person with no classifiable type goes into *Unclassified* with a bias of 1.0, also flagged.
+Ties in the vote are broken in the fixed order Math → Sound → Creative → Design → Dev → QA → Release and flagged. A person with no group and no classifiable type goes into *Unclassified* with a bias of 1.0, also flagged.
 
 Work can only move between people who can do it. Spare Creative hours don't help an overloaded Math designer. So each discipline gets a plain statement:
 
@@ -144,7 +156,8 @@ Each run prints tickets pulled per board, then per board: people, tickets, total
 | A board with zero tickets (Jira returns an empty 200 for an unknown project key or issue type) | fatal, unless `--allow-empty` |
 | Missing credentials, missing template, any non-200 from Jira, runaway paging | fatal |
 | Closed tickets carrying remaining hours | warn |
-| Tickets already Closed before the sprint started | warn |
+| Tickets already Closed when the sprint started (left out of every figure) | info |
+| Discipline set by Jira group over ticket types, or from ticket types because the groups are ambiguous | info |
 | Done-category statuses other than `Closed` | warn |
 | Remaining above 3× capacity for one person | warn |
 | Roster members with no DAMS tickets | warn |
@@ -158,7 +171,7 @@ A fatal error writes nothing. `dashboard.html` and `bias.json` are only replaced
 ## Known limits
 
 - **Hours follow the current assignee.** Jira stores estimate, spent and remaining on the ticket, not per person. When a ticket is reassigned (for example handed to a reviewer at Review), all of its hours, including time the previous owner logged, move to the new assignee. The original worker's load and bias are understated and the reviewer's are overstated.
-- **Closed tickets ride along between sprints.** Many tickets that closed in earlier sprints are still attached to the open sprint. This inflates Tickets, Assigned and Spent, and feeds bias with older history. It doesn't touch Remaining, verdicts or intake. Each board shows a warning with the count.
+- **Bias carried in `bias.json` from before 2026-11-18 includes stale tickets.** Earlier runs measured bias on every Closed ticket in the sprint, including ones that had closed in earlier sprints. A *carried* factor written before that date can still reflect that older mix until the person closes 40h of work in a sprint and is re-measured.
 - **A pull is a smear, not an instant.** The four boards are fetched one after another, and a full run can take a few minutes on a busy day. A ticket that changes mid-pull can be seen in its old state on one board and its new state on another. The page shows each board's pull window.
 - **Bias is noisy where closed history is thin.** 40h of closed estimate is a few tickets. One badly logged ticket can swing a factor a long way. Treat inferred factors as estimates of an estimate. Remember that bias is measured from the current assignee's closed tickets, so the reassignment problem above leaks into it too.
 - **Parent estimates count alongside subtask estimates.** Per-issue fields are summed, not the aggregate fields. In this Jira, parent estimates are mostly independent of their subtasks' estimates (not roll-ups), so this isn't double counting. But if a team starts typing roll-ups onto parents, Assigned will double.

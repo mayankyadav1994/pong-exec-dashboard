@@ -334,6 +334,7 @@ tr.xb .name { color: var(--crit-ink); }
     }
     if (withChips && p.closed_rem.count) chips.push(`<a class="chip flag" href="${esc(p.links.closed_rem)}" target="_blank" rel="noopener" title="${esc(p.closed_rem.keys.join(", "))}">⚑ ${p.closed_rem.count} Closed w/ ${h1(p.closed_rem.hours)}h rem — counted as 0</a>`);
     if (withChips && p.discipline_tie) chips.push(`<span class="chip flag" title="${esc(JSON.stringify(p.discipline_votes))}">⚑ discipline tie</span>`);
+    if (withChips && p.discipline_note) chips.push(`<span class="chip flag" title="Jira groups: ${esc(p.discipline_note)}. Discipline taken from ticket types: ${esc(JSON.stringify(p.issue_types))}">⚑ discipline from tickets</span>`);
     return `<td class="c-name"><a class="name" href="${esc(p.links.person)}" target="_blank" rel="noopener">${esc(p.name)}</a>${chips.length ? `<div class="chips">${chips.join("")}</div>` : ""}</td>`;
   }
 

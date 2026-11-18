@@ -31,6 +31,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 
@@ -108,6 +109,13 @@ PROJECT_DISCIPLINE_TYPES: dict[str, tuple[str, ...]] = {
     "Release": ("Release", "Release Subtask"),
 }
 DISCIPLINE_ORDER = ["Math", "Sound", "Creative", "Design", "Dev", "QA", "Release", "Unclassified"]
+
+# On the project boards, discipline comes from Jira group membership first.
+# Issue types mislead there: QA verify and close Bugs, so a tester's open-sprint
+# tickets are mostly Bugs, which vote Dev. Someone in exactly one of these groups
+# gets that discipline; anyone in both or neither falls back to the issue-type
+# vote (and is listed in a notice). DAMS keeps its issue-type prefixes.
+DISCIPLINE_GROUPS: dict[str, str] = {"QA Team": "QA", "Development": "Dev"}
 
 # ── Paging guard ────────────────────────────────────────────────────────────
 PAGE_SIZE = 100       # Jira's cap for /search/jql
@@ -225,6 +233,8 @@ class Jira:
         self.s = requests.Session()
         self.s.auth = (email, token)
         self.s.headers.update({"Accept": "application/json"})
+        self._groups: dict[str, list[str]] = {}
+        self._tz: ZoneInfo | None = None
 
     def _req(self, method: str, url: str, **kw) -> dict:
         for attempt in range(4):
@@ -267,6 +277,24 @@ class Jira:
     def user(self, account_id: str) -> dict:
         return self._req("GET", f"{SITE}/rest/api/3/user", params={"accountId": account_id})
 
+    def groups(self, account_id: str) -> list[str]:
+        """Jira group names for a person (cached - people recur across boards)."""
+        if account_id not in self._groups:
+            d = self._req("GET", f"{SITE}/rest/api/3/user/groups", params={"accountId": account_id})
+            self._groups[account_id] = [g.get("name") or "" for g in (d or [])]
+        return self._groups[account_id]
+
+    def tz(self) -> ZoneInfo:
+        """The token user's Jira time zone. JQL date literals are read in it."""
+        if self._tz is None:
+            name = self._req("GET", f"{SITE}/rest/api/3/myself").get("timeZone") or "UTC"
+            try:
+                self._tz = ZoneInfo(name)
+            except ZoneInfoNotFoundError as e:
+                raise BuildError(f"Python has no time-zone data for '{name}' (Jira profile time zone). "
+                                 "On Windows: pip install tzdata") from e
+        return self._tz
+
     def closed_sprints(self, board_id: int) -> list[dict]:
         out, start = [], 0
         for _ in range(MAX_PAGES):
@@ -292,15 +320,41 @@ def board_jql(board: dict, sprint_clause: str = "sprint IN openSprints()") -> st
             f"AND assignee IS NOT EMPTY AND assignee NOT IN ({jql_ids(ROSTER)})")
 
 
+# Per board: a JQL clause matching tickets that were already Closed when their
+# sprint started. Set by build_board(); every link excludes it so the links
+# match the figures.
+STALE_CLAUSES: dict[str, str] = {}
+
+
+def stale_clause(jira: Jira, sprints: list[dict]) -> str | None:
+    """`status WAS Closed ON <sprint start>` per active sprint. JQL reads the
+    date in the token user's time zone, so the start is converted to it."""
+    tz, parts = None, []
+    for s in sprints:
+        start = parse_ts(s.get("start"))
+        if not (s.get("id") and start):
+            continue
+        tz = tz or jira.tz()
+        on = start.astimezone(tz).strftime("%Y-%m-%d %H:%M")
+        parts.append(f'(sprint = {s["id"]} AND status = "{CLOSED_STATUS}" AND status WAS "{CLOSED_STATUS}" ON "{on}")')
+    return " OR ".join(parts) or None
+
+
+def _not_stale(board: dict) -> list[str]:
+    c = STALE_CLAUSES.get(board["slug"])
+    return [f"NOT ({c})"] if c else []
+
+
 def scope_jql(board: dict) -> str:
     """What the board counts, as one JQL (for the board-level link)."""
     if board["slug"] == "dams":
-        return board_jql(board) + f" AND issuetype IN ({jql_strs(DAMS_ISSUE_TYPES)})"
-    excl = BOARD_EXCLUSIONS.get(board["slug"])
-    base = board_jql(board)
-    if excl:
-        base = base.replace(f"NOT IN ({jql_ids(ROSTER)})", f"NOT IN ({jql_ids(list(ROSTER) + list(excl))})")
-    return base
+        base = board_jql(board) + f" AND issuetype IN ({jql_strs(DAMS_ISSUE_TYPES)})"
+    else:
+        excl = BOARD_EXCLUSIONS.get(board["slug"])
+        base = board_jql(board)
+        if excl:
+            base = base.replace(f"NOT IN ({jql_ids(ROSTER)})", f"NOT IN ({jql_ids(list(ROSTER) + list(excl))})")
+    return " AND ".join([base, *_not_stale(board)])
 
 
 def person_jql(board: dict, acct: str, predicate: str | None = None) -> str:
@@ -310,6 +364,7 @@ def person_jql(board: dict, acct: str, predicate: str | None = None) -> str:
     else:
         parts = [f"project = {board['project']}", "sprint IN openSprints()"]
     parts.append(f'assignee = "{acct}"')
+    parts += _not_stale(board)
     if predicate:
         parts.append(predicate)
     return " AND ".join(parts)
@@ -491,6 +546,33 @@ def build_board(jira: Jira, board: dict) -> dict:
             "; ".join(f"{e['name']} ({e['tickets']} tickets, {e['remaining_h']}h remaining)" for e in excluded_info)
             + ". They belong to other teams and still appear on their own boards."))
 
+    # ── tickets already Closed when the sprint started ──────────────────────
+    # Not this sprint's work: dropped from every figure, bias included. Decided
+    # from status history (`status WAS Closed ON <start>`), NOT resolutiondate -
+    # this Jira sets Resolution when Dev moves a ticket to Ready, long before
+    # QA closes it, so resolutiondate would wrongly drop real carryover.
+    clause = stale_clause(jira, sprint_summary(issues))
+    stale: list[dict] = []
+    if clause:
+        STALE_CLAUSES[slug] = clause
+        hits = {x["key"]: x for x in jira.search(f"{board_jql(board)} AND ({clause})", ["issuetype"])}
+        stale = [i for i in issues if i["key"] in hits]
+        issues = [i for i in issues if i["key"] not in hits]
+    if stale:
+        n_sub = sum(1 for i in stale
+                    if ((hits[i["key"]].get("fields") or {}).get("issuetype") or {}).get("subtask"))
+        n_other = len(stale) - n_sub
+        pos = board_jql(board) + (f" AND issuetype IN ({jql_strs(DAMS_ISSUE_TYPES)})" if slug == "dams" else "")
+        warnings.append(warn(
+            "info", f"{len(stale)} ticket(s) left out: already Closed when the sprint started",
+            f"{r1(sum(hours(i['orig_s']) for i in stale))}h estimate / {r1(sum(hours(i['spent_s']) for i in stale))}h spent, "
+            "excluded from every figure on this page, including estimate bias. "
+            + (f"{n_sub} are subtasks whose parent was still open when the sprint started: Jira keeps a subtask "
+               "in its parent's sprint, so closed subtasks roll over with an unfinished parent. " if n_sub else "")
+            + (f"{n_other} are standard tickets that were already in this sprint before it started "
+               "(e.g. moved there when an earlier sprint was completed) and were closed before it began." if n_other else ""),
+            [i["key"] for i in stale], nav(f"{pos} AND ({clause})")))
+
     # ── data-quality checks ─────────────────────────────────────────────────
     cr = [i for i in issues if i["status"] == CLOSED_STATUS and (i["rem_s"] or 0) > 0]
     if cr:
@@ -508,21 +590,6 @@ def build_board(jira: Jira, board: dict) -> dict:
             "Statuses: " + ", ".join(f"{s} ×{n}" for s, n in sts.items())
             + f". Only \"{CLOSED_STATUS}\" counts as closed for estimate bias, so these are left out of it; "
               "their remaining still counts toward load.", [i["key"] for i in done_other]))
-
-    def closed_before_start(i: dict) -> bool:
-        starts = [parse_ts(s.get("startDate")) for s in i["active_sprints"]]
-        starts = [s for s in starts if s]
-        res = parse_ts(i["resolved"])
-        return i["status"] == CLOSED_STATUS and bool(res) and bool(starts) and res < min(starts)
-    stale = [i for i in issues if closed_before_start(i)]
-    if stale:
-        warnings.append(warn(
-            "warn", f"{len(stale)} ticket(s) were already Closed before this sprint started",
-            f"{r1(sum(hours(i['orig_s']) for i in stale))}h estimate / {r1(sum(hours(i['spent_s']) for i in stale))}h spent. "
-            "They are still attached to the open sprint, so they inflate Tickets, Assigned and Spent and they feed "
-            "estimate bias. Remaining, verdicts and intake are unaffected (closed remaining counts as 0). "
-            "Likely cause: closed tickets are carried from sprint to sprint instead of staying in the sprint they closed in.",
-            [i["key"] for i in stale]))
 
     no_sprint = [i["key"] for i in issues if not i["active_sprints"]]
     multi = [i["key"] for i in issues if len(i["active_sprints"]) > 1]
@@ -547,6 +614,29 @@ def build_board(jira: Jira, board: dict) -> dict:
                                  f"Ends: {', '.join(ends)}. The 70h capacity assumes one sprint window."))
 
     people = aggregate(board, issues)
+
+    # ── discipline from Jira groups (project boards) ────────────────────────
+    overridden, fallback = [], []
+    for p in people.values():
+        p["discipline_source"] = "issue types"
+        if slug == "dams":
+            continue
+        hit = sorted({DISCIPLINE_GROUPS[g] for g in jira.groups(p["account"]) if g in DISCIPLINE_GROUPS})
+        if len(hit) == 1:
+            if p["discipline_votes"] and p["discipline"] != hit[0]:
+                overridden.append(f"{p['name']} → {hit[0]} (tickets: "
+                                  + ", ".join(f"{t} ×{n}" for t, n in p["issue_types"].items()) + ")")
+            p["discipline"], p["discipline_tie"], p["discipline_source"] = hit[0], False, "group"
+        else:
+            p["discipline_note"] = ("in both " if hit else "in neither ") + " / ".join(DISCIPLINE_GROUPS)
+            fallback.append(f"{p['name']} → {p['discipline']} ({p['discipline_note']})")
+    if overridden:
+        warnings.append(warn("info", f"{len(overridden)} discipline(s) set by Jira group, not by ticket types",
+                             "; ".join(overridden) + ". Bugs vote Dev, but QA verify and close bugs, so the group "
+                             "is the better signal."))
+    if fallback:
+        warnings.append(warn("info", f"{len(fallback)} discipline(s) from ticket types (Jira groups ambiguous)",
+                             "; ".join(fallback) + "."))
 
     if slug == "dams":
         idle = [nm for acct, nm in ROSTER.items() if acct not in people]
@@ -595,7 +685,7 @@ def build_board(jira: Jira, board: dict) -> dict:
                        + (f" and {len(excl)} board-specific exclusions" if excl else "")),
         "scope_url": nav(scope_jql(board)),
         "pulled": {"start": pulled_start, "end": pulled_end, "seconds": round(secs, 1),
-                   "raw_tickets": pulled, "counted_tickets": len(issues)},
+                   "raw_tickets": pulled, "counted_tickets": len(issues), "stale_tickets": len(stale)},
         "sprints": sprints,
         "tripwire": tripwire,
         "excluded": excluded_info,
@@ -647,7 +737,7 @@ def resolve_bias(boards: list[dict], store: dict) -> tuple[list[dict], int]:
         if f is not None:
             p["bias"] = {"factor": round(f, 3), "source": "measured",
                          "detail": f"{p['closed_spent_h']}h spent ÷ {p['closed_est_h']}h estimate on "
-                                   f"{p['closed_tickets']} Closed tickets attached to the open sprint"}
+                                   f"{p['closed_tickets']} tickets Closed during this sprint"}
             persist.append({"account": p["account"], "name": p["name"], "board": b["slug"], "factor": round(f, 4),
                             "closed_est_h": p["closed_est_h"], "closed_spent_h": p["closed_spent_h"],
                             "sprint": " + ".join(s["name"] for s in b["sprints"]),
@@ -843,7 +933,9 @@ def main() -> int:
         snap = build_board(jira, b)
         boards.append(snap)
         p = snap["pulled"]
-        extra = f"  ({p['raw_tickets'] - p['counted_tickets']} not counted)" if p["raw_tickets"] != p["counted_tickets"] else ""
+        other = p["raw_tickets"] - p["counted_tickets"] - p["stale_tickets"]
+        extra = "".join([f"  {p['stale_tickets']} Closed before sprint start" if p["stale_tickets"] else "",
+                         f"  {other} filtered/excluded" if other else ""])
         print(f"  {b['label']:<22} {p['raw_tickets']:>5} pulled  {p['counted_tickets']:>5} counted  {p['seconds']:>5.1f}s{extra}")
 
     # Jira also answers an unknown project / issue type with 200 + zero issues.
