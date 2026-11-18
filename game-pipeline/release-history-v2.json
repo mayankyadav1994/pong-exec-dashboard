@@ -139,7 +139,7 @@
    "name": "V2 PT 14.00",
    "first_seen": "2026-06-09",
    "original_date": "2026-08-14",
-   "current_date": "2026-12-31",
+   "current_date": "2027-01-29",
    "released": false,
    "released_on": null,
    "revisions": [
@@ -149,6 +149,13 @@
      "to": "2026-12-31",
      "kind": "moved",
      "slip_days": 139
+    },
+    {
+     "observed": "2026-11-18",
+     "from": "2026-12-31",
+     "to": "2027-01-29",
+     "kind": "moved",
+     "slip_days": 29
     }
    ]
   },

@@ -691,8 +691,8 @@
    "first_seen": "2026-10-16",
    "original_date": "2026-10-30",
    "current_date": "2026-11-18",
-   "released": false,
-   "released_on": null,
+   "released": true,
+   "released_on": "2026-11-18",
    "revisions": [
     {
      "observed": "2026-11-17",
@@ -700,6 +700,11 @@
      "to": "2026-11-18",
      "kind": "moved",
      "slip_days": 19
+    },
+    {
+     "observed": "2026-11-18",
+     "to": "2026-11-18",
+     "kind": "released"
     }
    ]
   },
