@@ -280,8 +280,8 @@
    "first_seen": "2026-11-03",
    "original_date": "2026-11-11",
    "current_date": "2026-11-20",
-   "released": false,
-   "released_on": null,
+   "released": true,
+   "released_on": "2026-11-20",
    "revisions": [
     {
      "observed": "2026-11-11",
@@ -296,6 +296,11 @@
      "to": "2026-11-20",
      "kind": "moved",
      "slip_days": 4
+    },
+    {
+     "observed": "2026-11-21",
+     "to": "2026-11-20",
+     "kind": "released"
     }
    ]
   },
