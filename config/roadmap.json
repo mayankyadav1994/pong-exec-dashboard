@@ -1,13 +1,17 @@
 {
   "_comment": "Lane rules for the Roadmap pages (roadmap.py). Version names are matched against `match` regexes (first match wins, in the order listed). Dev-owned config; PMO dates live in config/roadmap-pmo.json.",
-  "window": { "months_back": 1, "months_forward": 8 },
+  "window": { "months_back": 1, "months_forward": 8, "from_year_start": true,
+              "_comment": "from_year_start: data starts 1 Jan of this year (Jan-Mar: last year) so you can scroll back; the page still opens on Today." },
+  "scope": { "container_age_months": 12,
+             "_comment": "A feature epic is listed on a release card if the epic itself carries that fix version, or it has new stories there and was created within container_age_months. Older untagged epics are long-running containers (Game Menu / Server / System / Website ...) and are only counted." },
   "extra_nav": [ { "id": "people", "title": "People", "file": "people.html",
                    "_comment": "Built by people.py (who works on what, week by week)." } ],
-  "bucket_re": "(Backlog|^New Games|^New Features|Features$|R&D|Dev Test|Game Config|Website|Training|Cleanup|Show Prep)",
+  "bucket_re":"(Backlog|^New Games|^New Features|Features$|R&D|Dev Test|Game Config|Website|Training|Cleanup|Show Prep)",
   "skip_root_re": "^(Release\\b|Release -|QA Testing|QA testing)|^(CS|V2|PFH2?|ELG)\\b[^:]*\\d+\\.\\d+\\s*$",
   "spaces": {
     "igaming": {
       "title": "iGaming",
+      "pipeline": "ig",
       "file": "roadmap-igaming.html",
       "projects": ["IG", "CSS"],
       "history": ["release-history-ig.json", "release-history-igf.json"],
@@ -24,7 +28,7 @@
             { "id": "releases",   "label": "Releases · Games & Features", "filter": "all", "color": "blue" },
             { "id": "publishing", "label": "Game Publishing", "kind": "publishing", "color": "green" }
           ] },
-        { "id": "elg", "label": "ELG",
+        { "id": "elg", "label": "ELG", "golive_from_release": true,
           "match": "^(ELG|New Games - iGaming)",
           "projects": ["IG"],
           "lanes": [
@@ -47,6 +51,7 @@
     },
     "v2": {
       "title": "V2",
+      "pipeline": "v2",
       "file": "roadmap-v2.html",
       "projects": ["V2"],
       "history": ["release-history-v2.json"],
@@ -63,7 +68,7 @@
             { "id": "sw",    "label": "SW",    "match": "^V2 SW",  "filter": "all", "color": "green" },
             { "id": "c2",    "label": "C2",    "match": "^V2 C2",  "filter": "all", "color": "amber" },
             { "id": "hhr",   "label": "HHR",   "match": "^V2 HHR", "filter": "all", "color": "rose" },
-            { "id": "newgames", "label": "New Games · No market assigned", "match": "^New Games", "filter": "all", "color": "blue" },
+            { "id": "newgames", "label": "Games · No market assigned", "match": "^New Games", "filter": "all", "color": "blue" },
             { "id": "other", "label": "Other", "match": ".",       "filter": "all", "color": "grey" }
           ] }
       ]

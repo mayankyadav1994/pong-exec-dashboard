@@ -172,6 +172,7 @@ h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
     <button class="btn" id="zoomIn" title="Zoom in">+</button>
     <button class="btn" id="btnPrint" title="Print (11×17 landscape)">🖨</button>
   </div>
+  <a class="back" id="gpLink" hidden>Game Pipeline →</a>
   <a class="back" href="index.html">← Release Dashboard</a>
 </header>
 <div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
@@ -181,7 +182,7 @@ h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
 <script>
 const D = /*__ROADMAP_DATA__*/null;
 const LW = 160, DAY = 864e5;
-const S = { monthPx: 420, cardW: 272, pubW: 184, maxItems: 4, print: false, expanded: new Set(), trays: new Set() };
+const S = { monthPx: 420, cardW: 272, pubW: 184, maxItems: 8, print: false, expanded: new Set(), trays: new Set() };
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const ws = dt(D.window.start), we = dt(D.window.end), today = dt(D.today);
 const totalDays = Math.round((we - ws) / DAY) + 1;
@@ -200,6 +201,7 @@ function jl(key){ return key ? `<a class="jira" href="${esc(D.browse + key)}" ta
 /* ── header, nav, legend ── */
 function renderChrome(){
   document.title = D.title + ' Roadmap';
+  if (D.pipeline) { const gp = document.getElementById('gpLink'); gp.href = 'game-pipeline.html?project=' + encodeURIComponent(D.pipeline); gp.hidden = false; }
   document.getElementById('nav').innerHTML =
     D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('');
   document.getElementById('title').innerHTML = `🗺️ ${esc(D.title)} Roadmap`;
@@ -234,7 +236,7 @@ function cardColor(c){
   // PMO dates: PMO-plan forecasts and epic due dates with no market release yet.
   return (c.source === 'pmo' || c.source === 'epic-due') ? 'gold' : 'blue';
 }
-const CAT_LBL = { features: 'Features', games: 'New games', gamefix: 'Updates to existing games' };
+const CAT_LBL = { features: 'Features', games: 'Games', gamefix: 'Updates to existing games' };
 function itemLi(it, c){
   const pct = it.due ? `<span class="ipct">due ${fmtS(it.due)}</span>`
     : it.pct != null ? `<span class="ipct">${it.pct}%</span>` : '';
@@ -273,7 +275,7 @@ function cardHTML(c, lane, id){
   const expandable = hidden > 0 || cats.includes('gamefix');
   const more = open ? `<button class="more" data-card="${id}">▴ show less</button>`
     : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game updates'}</button>` : '';
-  const misc = c.misc ? `<div class="misc">+ ${c.misc} bugs &amp; fixes</div>` : '';
+  const misc = c.misc ? `<div class="misc" title="Bug fixes, CRs, updates to existing games and long-running epics (Game Menu, Server, System …)">+ ${c.misc} bugs, CRs &amp; maintenance tickets</div>` : '';
   const notes = (c.notes || []).length ? `<ul class="notes">${c.notes.map(n => `<li>· ${esc(n)}</li>`).join('')}</ul>` : '';
   const ftag = pmo ? `<div class="ftag" style="color:var(--gold);border:1px dotted var(--gold-bd)">◇ PMO forecast — not dated in Jira</div>` : '';
   const titleLink = c.url ? ` <a class="jira" href="${esc(c.url)}" target="_blank" rel="noopener">${pmo ? esc(c.key) : 'Jira'} ↗</a>` : '';
@@ -320,20 +322,32 @@ function renderTimeline(){
            <div class="ruler-body" style="width:${tw}px">${months}<div class="today-lbl" style="left:${tx}px">▼ TODAY</div></div></div>`;
   html += `<div class="gridlines" style="left:${LW}px;width:${tw}px">${lines}<div class="tline" style="left:${tx}px"></div></div>`;
   // groups
+  const grpHdr = label => `<div class="grp-hdr"><div class="grp-name" style="width:${LW}px;text-align:right">${esc(label)}</div><div class="grp-line"></div></div>`;
+  const laneHTML = (g, l, label) => {
+    const lid = g.id + '__' + l.id, n = l.unscheduled.length;
+    let h = `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
+        <div class="lane-name">${esc(label)}</div>
+        ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
+      </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
+    if (n) h += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
+        <div class="tray-ttl">Unscheduled · ${esc(label)} — no release or due date in Jira</div>
+        ${l.unscheduled.map(u => `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small></a>`).join('')}
+      </div></div>`;
+    return h;
+  };
+  // Development (releases) first, per group …
   D.groups.forEach(g => {
-    if (g.label) html += `<div class="grp-hdr"><div class="grp-name" style="width:${LW}px;text-align:right">${esc(g.label)}</div><div class="grp-line"></div></div>`;
-    g.lanes.forEach(l => {
-      const lid = g.id + '__' + l.id, n = l.unscheduled.length;
-      html += `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
-          <div class="lane-name">${esc(l.label)}</div>
-          ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
-        </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
-      if (n) html += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
-          <div class="tray-ttl">Unscheduled · ${esc(l.label)} — no release or due date in Jira</div>
-          ${l.unscheduled.map(u => `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small></a>`).join('')}
-        </div></div>`;
-    });
+    const dev = g.lanes.filter(l => l.kind !== 'publishing');
+    if (!dev.length) return;
+    if (g.label) html += grpHdr(g.label);
+    dev.forEach(l => html += laneHTML(g, l, l.label));
   });
+  // … then one Game Publishing section at the bottom, one go-live lane per market.
+  const pubLanes = D.groups.flatMap(g => g.lanes.filter(l => l.kind === 'publishing').map(l => [g, l]));
+  if (pubLanes.length) {
+    html += grpHdr('Game Publishing');
+    pubLanes.forEach(([g, l]) => html += laneHTML(g, l, `${g.label} go-lives`));
+  }
   canvas.innerHTML = html;
 
   // populate lanes

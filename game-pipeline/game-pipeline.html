@@ -48,6 +48,8 @@
     });
     var initial = 'v2';
     try { initial = localStorage.getItem('gp_active_project') || 'v2'; } catch (e) {}
+    var q = new URLSearchParams(location.search).get('project');
+    if (q) initial = q;
     if (!window.GP_DATA || !window.GP_DATA[initial]) initial = 'v2';
     show(initial);
   }

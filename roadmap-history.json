@@ -5,10 +5,25 @@
    "first_seen": "2026-11-16",
    "original": "2026-10-15"
   },
+  "CS CRM 7.90": {
+   "current": "2026-05-05",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-05"
+  },
+  "CS CRM 8.00": {
+   "current": "2026-05-06",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-06"
+  },
   "CS CRM 8.10": {
    "current": "2026-10-19",
    "first_seen": "2026-11-16",
    "original": "2026-10-19"
+  },
+  "CS GCP 1.00": {
+   "current": "2026-07-01",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-01"
   },
   "CS GCP 2.00": {
    "current": "2026-10-01",
@@ -39,6 +54,11 @@
    "current": "2026-10-19",
    "first_seen": "2026-11-16",
    "original": "2026-10-19"
+  },
+  "CS VGTC 7.00": {
+   "current": "2026-05-06",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-06"
   },
   "CS VGTC 7.10": {
    "current": "2026-10-19",
@@ -74,9 +94,109 @@
    "current": "2026-11-30",
    "first_seen": "2026-11-16",
    "original": "2026-08-31"
+  },
+  "PFH2 Services 2.00": {
+   "current": "2026-04-30",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-30"
   }
  },
  "IG": {
+  "ELG 3.20": {
+   "current": "2026-04-10",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-10"
+  },
+  "ELG 3.21": {
+   "current": "2026-04-15",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-15"
+  },
+  "ELG 3.22": {
+   "current": "2026-04-16",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-16"
+  },
+  "ELG 3.23": {
+   "current": "2026-04-21",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-21"
+  },
+  "ELG 3.24": {
+   "current": "2026-04-24",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-24"
+  },
+  "ELG 3.30": {
+   "current": "2026-04-30",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-30"
+  },
+  "ELG 4.00": {
+   "current": "2026-05-28",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-28"
+  },
+  "ELG 4.01": {
+   "current": "2026-06-23",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-23"
+  },
+  "ELG 4.10": {
+   "current": "2026-06-22",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-22"
+  },
+  "ELG 4.20": {
+   "current": "2026-06-30",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-30"
+  },
+  "ELG 4.30": {
+   "current": "2026-07-01",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-01"
+  },
+  "ELG 4.31": {
+   "current": "2026-07-06",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-08"
+  },
+  "ELG 4.40": {
+   "current": "2026-07-17",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-17"
+  },
+  "ELG 4.41": {
+   "current": "2026-07-31",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-31"
+  },
+  "ELG 4.50": {
+   "current": "2026-07-31",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-31"
+  },
+  "ELG 4.51": {
+   "current": "2026-08-18",
+   "first_seen": "2026-11-17",
+   "original": "2026-08-18"
+  },
+  "ELG 4.70": {
+   "current": "2026-08-28",
+   "first_seen": "2026-11-17",
+   "original": "2026-08-31"
+  },
+  "ELG 4.71": {
+   "current": "2026-09-14",
+   "first_seen": "2026-11-17",
+   "original": "2026-09-14"
+  },
+  "ELG 5.00": {
+   "current": "2026-09-25",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-31"
+  },
   "ELG 5.10": {
    "current": "2026-10-05",
    "first_seen": "2026-11-16",
@@ -109,8 +229,33 @@
   },
   "ELG 5.60": {
    "current": "2026-12-11",
-   "first_seen": "2026-11-20",
+   "first_seen": "2026-11-23",
    "original": "2026-12-11"
+  },
+  "Horse Play 1.00": {
+   "current": "2026-09-28",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-29"
+  },
+  "PFH Games 2.10": {
+   "current": "2026-06-12",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-12"
+  },
+  "PFH Games 2.11": {
+   "current": "2026-06-12",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-12"
+  },
+  "PFH Games 2.20": {
+   "current": "2026-06-30",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-19"
+  },
+  "PFH Games 2.30": {
+   "current": "2026-09-03",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-30"
   },
   "PFH Games 2.40": {
    "current": "2026-10-09",
@@ -161,9 +306,44 @@
    "current": "2027-02-28",
    "first_seen": "2026-11-16",
    "original": "2026-11-25"
+  },
+  "PFH Services 1.11": {
+   "current": "2026-06-09",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-09"
+  },
+  "PFH2 Games 2.00": {
+   "current": "2026-05-19",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-19"
   }
  },
  "V2": {
+  "Cancelled Games ": {
+   "current": "2026-03-04",
+   "first_seen": "2026-11-17",
+   "original": "2026-03-04"
+  },
+  "G2E Show Prep 2026": {
+   "current": "2026-09-30",
+   "first_seen": "2026-11-17",
+   "original": "2026-09-30"
+  },
+  "V2  Show Prep": {
+   "current": "2026-06-10",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-10"
+  },
+  "V2 C2 5.00": {
+   "current": "2026-04-24",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-24"
+  },
+  "V2 C2 5.10": {
+   "current": "2026-09-11",
+   "first_seen": "2026-11-17",
+   "original": "2026-09-11"
+  },
   "V2 C2 5.20": {
    "current": "2026-10-30",
    "first_seen": "2026-11-16",
@@ -173,6 +353,36 @@
    "current": "2027-02-26",
    "first_seen": "2026-11-16",
    "original": "2026-12-31"
+  },
+  "V2 Georgia Show Release - 2026": {
+   "current": "2026-08-03",
+   "first_seen": "2026-11-17",
+   "original": "2026-08-03"
+  },
+  "V2 HHR 1.02": {
+   "current": "2026-02-19",
+   "first_seen": "2026-11-17",
+   "original": "2026-02-19"
+  },
+  "V2 HHR 1.03": {
+   "current": "2026-03-09",
+   "first_seen": "2026-11-17",
+   "original": "2026-03-09"
+  },
+  "V2 HHR 2.00": {
+   "current": "2026-05-15",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-15"
+  },
+  "V2 HHR 3.00": {
+   "current": "2026-07-10",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-10"
+  },
+  "V2 HHR 3.10": {
+   "current": "2026-07-31",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-15"
   },
   "V2 HHR 3.11": {
    "current": "2026-10-01",
@@ -184,6 +394,41 @@
    "first_seen": "2026-11-16",
    "original": "2026-10-30"
   },
+  "V2 P2P 14.30": {
+   "current": "2026-02-10",
+   "first_seen": "2026-11-17",
+   "original": "2026-02-10"
+  },
+  "V2 P2P 15.00": {
+   "current": "2026-03-06",
+   "first_seen": "2026-11-17",
+   "original": "2026-03-06"
+  },
+  "V2 P2P 15.10": {
+   "current": "2026-04-18",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-18"
+  },
+  "V2 P2P 15.20": {
+   "current": "2026-07-03",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-03"
+  },
+  "V2 P2P 15.30": {
+   "current": "2026-08-05",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-01"
+  },
+  "V2 P2P 15.40": {
+   "current": "2026-08-21",
+   "first_seen": "2026-11-17",
+   "original": "2026-08-31"
+  },
+  "V2 P2P 15.41": {
+   "current": "2026-08-31",
+   "first_seen": "2026-11-17",
+   "original": "2026-08-27"
+  },
   "V2 P2P 16.00": {
    "current": "2026-11-30",
    "first_seen": "2026-11-16",
@@ -191,8 +436,48 @@
   },
   "V2 P2P 16.10": {
    "current": "2026-12-31",
-   "first_seen": "2026-11-19",
+   "first_seen": "2026-11-23",
    "original": "2026-12-31"
+  },
+  "V2 PT 12.00": {
+   "current": "2026-01-09",
+   "first_seen": "2026-11-17",
+   "original": "2026-01-09"
+  },
+  "V2 PT 12.10": {
+   "current": "2026-01-09",
+   "first_seen": "2026-11-17",
+   "original": "2026-01-09"
+  },
+  "V2 PT 13.01": {
+   "current": "2026-01-09",
+   "first_seen": "2026-11-17",
+   "original": "2026-01-09"
+  },
+  "V2 PT 13.02": {
+   "current": "2026-03-18",
+   "first_seen": "2026-11-17",
+   "original": "2026-03-18"
+  },
+  "V2 PT 13.10": {
+   "current": "2026-03-30",
+   "first_seen": "2026-11-17",
+   "original": "2026-03-30"
+  },
+  "V2 PT 13.20": {
+   "current": "2026-04-17",
+   "first_seen": "2026-11-17",
+   "original": "2026-04-17"
+  },
+  "V2 PT 13.30": {
+   "current": "2026-07-21",
+   "first_seen": "2026-11-17",
+   "original": "2026-07-21"
+  },
+  "V2 PT 13.40": {
+   "current": "2026-09-04",
+   "first_seen": "2026-11-17",
+   "original": "2026-09-04"
   },
   "V2 PT 13.41": {
    "current": "2026-11-12",
@@ -204,10 +489,30 @@
    "first_seen": "2026-11-16",
    "original": "2026-08-14"
   },
+  "V2 SW 15.00": {
+   "current": "2026-06-11",
+   "first_seen": "2026-11-17",
+   "original": "2026-05-30"
+  },
+  "V2 SW 16.00": {
+   "current": "2026-09-23",
+   "first_seen": "2026-11-17",
+   "original": "2026-06-30"
+  },
   "V2 SW 16.10": {
    "current": "2026-10-28",
    "first_seen": "2026-11-16",
    "original": "2026-09-30"
+  },
+  "V2 work for EdgeLabs": {
+   "current": "2026-02-04",
+   "first_seen": "2026-11-17",
+   "original": "2026-02-04"
+  },
+  "[Temp] V2 SW  - Port V1 top games - on Hold": {
+   "current": "2026-03-04",
+   "first_seen": "2026-11-17",
+   "original": "2026-03-04"
   }
  }
 }

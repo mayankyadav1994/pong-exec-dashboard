@@ -226,12 +226,18 @@ def rollup(issues, allmap, game_re, vid, launch=None):
                 new = rk in allmap and any(
                     fv["id"] == vid for fv in allmap[rk]["fields"].get("fixVersions") or [])
             cat = ("games" if new else "gamefix") if is_game else "features"
+            tagged = rk in allmap and any(
+                fv["id"] == vid for fv in allmap[rk]["fields"].get("fixVersions") or [])
             items[rk] = {"key": rk, "summary": rsum, "type": rtype, "status": sname,
-                         "statusCat": scat, "cat": cat, "total": 0, "done": 0}
+                         "statusCat": scat, "cat": cat, "total": 0, "done": 0,
+                         "work": 0, "tagged": tagged}
         item = items[rk]
         if it["key"] != rk:
             item["total"] += 1
             item["done"] += cat_key == "done"
+            t = f["issuetype"]["name"]
+            if t not in MISC_TYPES and "ubtask" not in t and t != "Epic":
+                item["work"] += 1  # new stories/tasks, not bugs/CRs
     out = []
     for item in items.values():
         item["name"] = clean_name(item["summary"], game_re if item["cat"] != "features" else None)
@@ -335,6 +341,31 @@ def build_space(sid, space, win_start, win_end):
 
     dated_epics = {k for k, it in allmap.items() if it["fields"]["issuetype"]["name"] == "Epic"}
 
+    # 2a. Epic age. Long-running container epics (Game Menu, Server, System,
+    # Website, VGTC, Task Handler ...) are years old and never carry a release
+    # fix version themselves; real requirements are either tagged or recent.
+    roots = {root_of(it, allmap)[0] for it in allmap.values()}
+    epic_created = {}
+    rk_list = sorted(roots)
+    for i in range(0, len(rk_list), 50):
+        for it in jira_jql(f"key in ({','.join(rk_list[i:i + 50])})", ["created"]):
+            epic_created[it["key"]] = pd(it["fields"].get("created"))
+    max_age = CONFIG.get("scope", {}).get("container_age_months", 12)
+    recent_cut = month_add(TODAY.replace(day=1), -max_age)
+
+    def in_scope(it):
+        """Card scope (agreed with PMO 2026-11-23): games launching in this
+        market; features whose epic carries this release, or that have new
+        stories here and are recent (created within container_age_months).
+        Everything else (bugs/CRs only, game updates, old container epics) is
+        counted on the card, not listed."""
+        if it["cat"] == "games":
+            return True
+        if it["cat"] == "gamefix":
+            return False
+        created = epic_created.get(it["key"])
+        return it["tagged"] or (it["work"] > 0 and created is not None and created >= recent_cut)
+
     # 2b. Game market index: every version on each game epic and its stories.
     vindex = {v["id"]: (v, proj) for proj in projects for v in project_versions(proj)}
     game_projects = space.get("game_projects", [])
@@ -387,6 +418,15 @@ def build_space(sid, space, win_start, win_end):
     for r in card_versions:
         v, rd = r["v"], r["rd"]
         items, misc = rollup(by_version.get(v["id"], []), allmap, game_re, v["id"], launch)
+        touched = sorted({i["name"] for i in items if i["cat"] != "features"})
+        kept = []
+        for it in items:
+            if in_scope(it):
+                kept.append(it)
+            else:
+                misc["total"] += max(it["total"], 1)
+                misc["done"] += it["done"]
+        items = kept
         slip = slip_for(hist, seed, r["proj"], v["name"], rd)
         per_lane = defaultdict(list)
         for it in items:
@@ -411,7 +451,7 @@ def build_space(sid, space, win_start, win_end):
                 "status": card_status(v.get("released"), rd, done, total, wip),
                 "done": done, "total": total,
                 "pct": round(100 * done / total) if total else None,
-                "slip": slip, "items": its, "misc": m["total"],
+                "slip": slip, "items": its, "misc": m["total"], "touched": touched,
                 "url": version_url(r["proj"], v["id"]),
             })
 
@@ -538,8 +578,17 @@ def build_space(sid, space, win_start, win_end):
     # 5b. "Awaiting market version": a game launched in one market (e.g. ELG)
     # with no dated release in its sister market (PFH) yet.
     awaits, seen_aw = [], set()
+
+    def game_norm(name):
+        # Same game, per-market epics: "Kandy Land Keno - PFH", "Northern Buffalo HD".
+        n = re.sub(r"\s+(HD|-\s*(PFH2?|ELG|Vertical))\s*$", "", name.strip(), flags=re.I)
+        return re.sub(r"[^a-z0-9]", "", n.lower())
+
     for rule in space.get("awaiting", []):
         to_g = next(g for g in space["groups"] if g["id"] == rule["to"])
+        in_target = {game_norm(n) for c in cards
+                     if c["group"] == rule["to"] and c["source"] == "version"
+                     for n in c.get("touched", [])}
         to_lane = lane_for_category([ln for ln in to_g["lanes"] if ln.get("kind") != "publishing"], "games")
         for c in sorted((c for c in cards if c["group"] == rule["from"] and c["source"] == "version"),
                         key=lambda c: c["date"]):
@@ -552,7 +601,7 @@ def build_space(sid, space, win_start, win_end):
                         re.search(rule.get("skip_re", r"^\b$"), it["summary"], re.I):
                     continue
                 target = markets(it["key"]).get(rule["to"], [])
-                if any(d for d, _, _ in target):
+                if any(d for d, _, _ in target) or game_norm(it["name"]) in in_target:
                     continue
                 seen_aw.add(it["key"])
                 undated = next((n for d, n, _ in target if not d), None)
@@ -595,6 +644,21 @@ def build_space(sid, space, win_start, win_end):
                          "golive": e["golive"], "until": e.get("until"), "note": e.get("note"),
                          "assumed": False, "release": rel, "flag": flag, "flagText": flag_text,
                          "status": status_of(f)[0] if f else ""})
+        # Markets whose go-live IS the release date (ELG): every game launch.
+        if g.get("golive_from_release"):
+            for c in sorted((c for c in cards if c["group"] == g["id"] and c["source"] == "version"),
+                            key=lambda c: c["date"]):
+                for it in c["items"]:
+                    if it["cat"] != "games" or it["key"] in covered:
+                        continue
+                    covered.add(it["key"])
+                    pubs.append({"group": g["id"], "game": it["name"], "key": it["key"],
+                                 "golive": c["date"], "until": None,
+                                 "note": "Go-live = release date",
+                                 "assumed": False,
+                                 "release": {"name": c["title"], "date": c["date"],
+                                             "released": c["released"]},
+                                 "flag": None, "flagText": None, "status": it["status"]})
         # Fallback: UPCOMING new games (unreleased release or future epic due
         # date) with no PMO go-live yet -> assumed go-live = release date.
         # Already-released games without a PMO entry are assumed live; skipped.
@@ -632,7 +696,7 @@ def build_space(sid, space, win_start, win_end):
         groups_out.append({"id": g["id"], "label": g["label"], "lanes": lanes_out})
 
     return {
-        "space": sid, "title": space["title"],
+        "space": sid, "title": space["title"], "pipeline": space.get("pipeline"),
         "nav": [{"id": k, "title": s["title"], "file": s["file"]} for k, s in CONFIG["spaces"].items()]
                + CONFIG.get("extra_nav", []),
         "generated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
@@ -654,6 +718,9 @@ def main():
     w = CONFIG["window"]
     first = TODAY.replace(day=1)
     win_start = month_add(first, -w["months_back"])
+    if w.get("from_year_start"):
+        # Scroll back to January: this year's, or last year's while in Q1.
+        win_start = min(win_start, date(TODAY.year - (1 if TODAY.month <= 3 else 0), 1, 1))
     win_end = month_add(first, w["months_forward"] + 1) - timedelta(days=1)
     tpl = TEMPLATE.read_text(encoding="utf-8")
 
