@@ -519,6 +519,15 @@
      "kind": "released"
     }
    ]
+  },
+  "V2 P2P 16.20": {
+   "name": "V2 P2P 16.20",
+   "first_seen": "2026-11-23",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
   }
  },
  "history_from": "2026-06-02",
