@@ -2,17 +2,14 @@
   "order": [
     "Gen2 Game: Northern Buffalo Fortune [V]",
     "Gen2 Game: Jewels of Cleopatra",
-    "Gen2 Game: Lost Totem",
     "Gen2 Game: Viking's Voyage of Fortune",
-    "Gen2 Game: Lantern's Rising [V]",
     "Gen2 Game: Blue Bird Bonus Extreme",
     "Gen2 Game: Steampunk Fortune",
     "Gen2 Game: Fruit Splitter",
-    "Gen2 Game: Haunted Harvest",
-    "Gen2 Game: Robin's Arrow - Thanksgiving Feast",
     "Gen2 Game: 3 Chili Riches",
     "Gen2 Game: Pharaoh's Quest",
     "Gen2 Game: Strike Forge Boost",
+    "Gen2 Game: Snow Bird Bonus Extreme",
     "Gen2 Game: Amaterasu Rising",
     "Gen2 Game: Firecracker Frenzy",
     "Gen2 Game: Nordic Paws",
@@ -21,7 +18,6 @@
     "Gen2 - Game: Quick Wins Diamond Wild",
     "Gen2 Game: Golden Fortune Grand",
     "Gen2 Game: Great Sphinx",
-    "Gen2 Game: Northern Buffalo",
     "Gen2 Game: Yuan Su Dragons",
     "Gen2 Game: Chain Lock 7 Refueled",
     "Gen2 Game: Plentiful Bounty",
@@ -33,21 +29,24 @@
     "Gen2 Game: Kandy Land Keno - PFH",
     "Gen2 Game: Flaming Skulls [V]",
     "Gen2 Game: Fall of Pompeii",
-    "Gen2 Game: Snow Bird Bonus Extreme",
-    "Gen2 Game: Fortune of Z"
+    "Gen2 Game: Fortune of Z",
+    "Gen2 Game: Galactic Mariachi Trio",
+    "Gen2 Game: Flaming Skulls Inferno",
+    "Gen2 Game: Hell's Outlaws",
+    "Gen2 Game: Hector's Hellfire",
+    "Gen2 Game: Candy Cascades",
+    "Gen2 Game: Diamond's 7 Quest",
+    "Gen2 Game: Monster's Lab",
+    "Gen2 Game: Diamond Volt Strike"
   ],
   "status": {
-    "Gen2 Game: Strike Forge Boost": "In Progress",
     "Gen2 Game: Nordic Paws": "In Review",
-    "Gen2 Game: Sizzling Deluxe": "In Progress",
     "Gen2 - Game: Quick Wins Diamond Wild": "On Hold",
     "Gen2 Game: Birthday Bash [V]": "In Progress"
   },
   "stage": {
-    "Gen2 Game: Strike Forge Boost": "math",
     "Gen2 Game: Amaterasu Rising": "dev",
     "Gen2 Game: Nordic Paws": "dev",
-    "Gen2 Game: Sizzling Deluxe": "art",
     "Gen2 Game: Chain Lock 7 Refueled": "art",
     "Gen2 Game: Plentiful Bounty": "dev",
     "Gen2 Game: Birthday Bash [V]": "art"
@@ -282,5 +281,5 @@
     "velocities": {}
   },
   "updated_by": "mayankyadav1994",
-  "updated_at": "2026-10-23 15:03"
+  "updated_at": "2026-11-23 21:33"
 }
