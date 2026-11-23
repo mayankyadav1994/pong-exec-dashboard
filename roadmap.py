@@ -633,7 +633,8 @@ def build_space(sid, space, win_start, win_end):
 
     return {
         "space": sid, "title": space["title"],
-        "nav": [{"id": k, "title": s["title"], "file": s["file"]} for k, s in CONFIG["spaces"].items()],
+        "nav": [{"id": k, "title": s["title"], "file": s["file"]} for k, s in CONFIG["spaces"].items()]
+               + CONFIG.get("extra_nav", []),
         "generated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "today": TODAY.isoformat(),
         "window": {"start": win_start.isoformat(), "end": win_end.isoformat()},

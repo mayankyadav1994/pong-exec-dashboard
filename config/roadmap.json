@@ -1,6 +1,8 @@
 {
   "_comment": "Lane rules for the Roadmap pages (roadmap.py). Version names are matched against `match` regexes (first match wins, in the order listed). Dev-owned config; PMO dates live in config/roadmap-pmo.json.",
   "window": { "months_back": 1, "months_forward": 8 },
+  "extra_nav": [ { "id": "people", "title": "People", "file": "people.html",
+                   "_comment": "Built by people.py (who works on what, week by week)." } ],
   "bucket_re": "(Backlog|^New Games|^New Features|Features$|R&D|Dev Test|Game Config|Website|Training|Cleanup|Show Prep)",
   "skip_root_re": "^(Release\\b|Release -|QA Testing|QA testing)|^(CS|V2|PFH2?|ELG)\\b[^:]*\\d+\\.\\d+\\s*$",
   "spaces": {

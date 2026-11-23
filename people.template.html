@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>People Timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Theme = Game Pipeline (dashboard.css) / Roadmap: light, IBM Plex, navy text. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --text-mid:#4a5672;--hair:#e8ecf4;
+  --today:#b91c1c;--today-bg:rgba(239,68,68,.10);--today-bd:rgba(239,68,68,.35);
+  --gold:#b45309;--gold-bg:#fffbeb;--gold-bd:#fcd34d;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#bbf7d0;
+  --rose:#dc2626;--rose-bg:#fef2f2;--rose-bd:#fecaca;
+  --violet:#7c3aed;--violet-bg:#f5f3ff;--violet-bd:#ddd6fe;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+  --grey:#64748b;--grey-bg:#f1f5f9;--grey-bd:#cbd5e1;
+  --teal:#0d9488;--teal-bg:#f0fdfa;--teal-bd:#99f6e4;
+  --pink:#db2777;--pink-bg:#fdf2f8;--pink-bd:#fbcfe8;
+  --done:#16a34a;--plan-bar:#6366f1;--future-tint:#fafbff;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{padding:12px 24px 0;overflow-x:hidden;min-height:100vh}
+a{color:inherit}
+button{font-family:inherit}
+
+/* ── one header row: nav · view · filters | today · zoom · legend · back ── */
+.bar{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:0 2px 8px;margin-bottom:6px;border-bottom:1px solid var(--border)}
+.right{display:flex;align-items:center;gap:6px 10px;margin-left:auto}
+h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+.print-only{display:none}
+.nav{display:flex;align-items:center;gap:2px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:2px}
+.nav a{font-size:12px;font-weight:500;text-decoration:none;color:var(--muted);padding:3px 10px;border-radius:4px;white-space:nowrap}
+.nav a:hover{color:var(--text)}
+.nav a.active{color:#fff;background:#4F46E5;font-weight:600}
+.sub{font-size:11px;color:var(--sub);white-space:nowrap}
+.grow{flex:1}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;
+  color:var(--today);background:var(--today-bg);border:1px solid var(--today-bd)}
+.pill:hover{background:rgba(239,68,68,.18)}
+.btns{display:flex;gap:4px}
+.btn{font-size:12px;line-height:1;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  cursor:pointer;font-weight:600}
+.btn:hover{background:var(--surf2);color:var(--text)}
+.back{font-size:12px;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap}
+.back:hover{color:var(--text)}
+
+/* ── view · team · discipline · search ── */
+.seg{display:flex;gap:2px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:2px}
+.seg button{font-size:11.5px;font-weight:500;color:var(--muted);background:none;border:none;padding:3px 9px;border-radius:4px;cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(26,32,53,.08)}
+.seg button small{font-family:var(--mono);font-size:9.5px;color:var(--sub);margin-left:3px}
+select,input[type=search]{font-family:inherit;font-size:12px;color:var(--text);background:var(--surface);border:1px solid var(--border);
+  border-radius:5px;padding:4px 7px}
+input[type=search]{width:170px}
+.chk{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--muted);white-space:nowrap;cursor:pointer}
+
+/* ── legend: dropdown at the far right ── */
+.legwrap{position:relative}
+.btn.on{background:var(--surf2);color:var(--text)}
+.legpop{position:absolute;right:0;top:calc(100% + 6px);z-index:300;width:310px;background:var(--surface);border:1px solid var(--border2);
+  border-radius:8px;box-shadow:0 8px 24px rgba(26,32,53,.16);padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.legpop[hidden]{display:none}
+.lg-h{font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.lg-sec{display:flex;flex-direction:column;gap:4px}
+.lg-cols{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
+.leg{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-mid);white-space:nowrap}
+.leg small{color:var(--sub);font-size:10.5px}
+.sw{width:16px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0}
+.lg-foot{font-size:10.5px;color:var(--sub);border-top:1px solid var(--hair);padding-top:8px;line-height:1.45;white-space:normal}
+
+/* ── scroll area: scrollbar on top AND bottom ── */
+.topscroll{overflow-x:auto;overflow-y:hidden;height:14px;margin-bottom:2px}
+.topscroll>div{height:1px}
+.tl{overflow:auto;position:relative;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.canvas{position:relative}
+.gridlines{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1}
+.future{position:absolute;top:0;bottom:0;right:0;background:var(--future-tint)}
+.mline{position:absolute;top:0;bottom:0;width:1px;background:var(--surf3)}
+.tline{position:absolute;top:0;bottom:0;width:2px;z-index:25;background:rgba(185,28,28,.4)}
+
+.ruler{position:sticky;top:0;z-index:50;display:flex;background:var(--surf2);border-bottom:1px solid var(--border2);height:42px}
+.ruler-corner{position:sticky;left:0;z-index:2;background:var(--surf2);flex-shrink:0;border-right:1px solid var(--border);
+  font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;padding-left:12px}
+.ruler-body{position:relative;flex-shrink:0}
+.mcell{position:absolute;top:0;height:22px;display:flex;align-items:center;padding-left:6px;
+  font-size:11px;font-weight:600;color:var(--muted);border-left:1px solid var(--border);white-space:nowrap;overflow:hidden}
+.wcell{position:absolute;top:22px;height:20px;font-family:var(--mono);font-size:9px;color:var(--sub);text-align:center;line-height:20px;border-left:1px solid var(--hair)}
+.today-lbl{position:absolute;bottom:2px;transform:translateX(-50%);z-index:3;font-family:var(--mono);font-size:9px;font-weight:700;
+  color:var(--today);background:#fff;padding:1px 6px;border:1px solid var(--today-bd);border-radius:3px;white-space:nowrap}
+
+/* ── groups & rows ── */
+.grp{display:flex;align-items:center;padding:14px 0 4px;position:relative;z-index:5}
+.grp-name{position:sticky;left:0;z-index:30;background:var(--surface);font-size:14px;font-weight:700;color:var(--text);padding:0 12px;white-space:nowrap}
+.grp-name small{font-size:11px;font-weight:500;color:var(--sub);margin-left:6px}
+.grp-line{flex:1;height:1px;background:var(--border)}
+.row{display:flex;border-bottom:1px solid var(--hair);position:relative;z-index:5}
+.row:hover .lbl{background:var(--surf2)}
+.lbl{position:sticky;left:0;z-index:30;flex-shrink:0;background:var(--surface);padding:5px 10px 5px 8px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;justify-content:center;min-width:0}
+.lbl-top{display:flex;align-items:center;gap:6px;min-width:0}
+.caret{width:14px;flex-shrink:0;font-size:9px;color:var(--sub);cursor:pointer;background:none;border:none;padding:0}
+.nm{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.disc{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);background:var(--surf2);
+  border:1px solid var(--border);border-radius:3px;padding:0 4px;white-space:nowrap;flex-shrink:0}
+.multi{color:var(--rose);border-color:var(--rose-bd);background:var(--rose-bg)}
+.meta{font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:20px;margin-top:1px}
+.meta b{font-weight:600;color:var(--text-mid)}
+.body{position:relative;flex-shrink:0}
+.band{position:absolute;left:0;right:0;top:6px;height:20px}
+.seg-b{position:absolute;top:0;height:20px;border-radius:4px;font-size:10.5px;font-weight:600;line-height:18px;padding:0 5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid;border-left-width:3px;color:var(--text)}
+.spark{position:absolute;left:0;top:29px;height:16px;display:block}
+.inactive .nm{color:var(--muted);font-weight:500}
+
+.subrow{display:flex;border-bottom:1px solid var(--hair);position:relative;z-index:5;background:#fcfdff}
+.subrow .lbl{background:#fcfdff;padding:3px 10px 3px 28px;flex-direction:row;align-items:center;gap:6px}
+.subrow:hover .lbl{background:var(--surf2)}
+.ldot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.inm{font-size:11.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.ih{font-family:var(--mono);font-size:9.5px;color:var(--sub);white-space:nowrap;flex-shrink:0}
+.jira{font-family:var(--mono);font-size:9px;padding:0 4px;border-radius:3px;border:1px solid var(--border);
+  background:var(--surf2);text-decoration:none;white-space:nowrap;color:var(--muted);flex-shrink:0}
+.jira:hover{background:var(--surf3);color:var(--text)}
+.wp{position:absolute;top:5px;height:14px;border-radius:7px;font-family:var(--mono);font-size:8.5px;font-weight:600;line-height:12px;
+  text-align:center;overflow:hidden;color:#fff;border:1px solid transparent}
+.mk{position:absolute;top:50%;width:9px;height:9px;transform:translate(-50%,-50%) rotate(45deg);border:2px solid;background:#fff;z-index:3;border-radius:1px}
+.mk.ship{transform:translate(-50%,-50%);border-radius:50%;border-style:dashed}
+.tray-row{display:flex;border-bottom:1px solid var(--hair);background:var(--surf2);position:relative;z-index:5}
+.tray-in{position:sticky;left:0;padding:8px 12px 10px 28px;display:flex;flex-wrap:wrap;gap:5px;align-items:flex-start}
+.tray-ttl{width:100%;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px}
+.uchip{font-size:11px;color:var(--text);background:var(--surface);border:1px dashed var(--border2);border-radius:5px;padding:3px 7px;text-decoration:none}
+.uchip small{font-family:var(--mono);font-size:9.5px;color:var(--sub);margin-left:4px}
+a.uchip:hover{border-color:var(--muted)}
+.tray-btn{font-size:9.5px;font-weight:600;color:var(--muted);background:var(--surf2);border:1px dashed var(--border2);
+  border-radius:4px;padding:0 5px;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tray-btn:hover{color:var(--text);border-color:var(--muted)}
+.unst{font-size:9.5px;font-weight:600;color:var(--amber);white-space:nowrap;flex-shrink:0}
+.older{display:flex;position:relative;z-index:5}
+.older button{position:sticky;left:0;margin:6px 0 6px 28px;font-size:10.5px;font-weight:600;color:#1e40af;background:none;border:none;cursor:pointer;padding:0}
+.older button:hover{text-decoration:underline}
+.empty{padding:40px;text-align:center;color:var(--sub);font-size:13px;position:sticky;left:0}
+
+.tip{position:fixed;z-index:200;pointer-events:none;background:var(--surface);border:1px solid var(--border2);border-radius:7px;
+  box-shadow:0 6px 18px rgba(26,32,53,.14);padding:8px 10px;font-size:11.5px;max-width:330px;display:none}
+.tip h4{font-size:11.5px;font-weight:700;margin-bottom:3px}
+.tip .tsub{font-family:var(--mono);font-size:10px;color:var(--sub);margin-bottom:5px}
+.tip table{border-collapse:collapse;width:100%}
+.tip td{padding:1px 0;vertical-align:top}
+.tip td.h{font-family:var(--mono);font-size:10.5px;text-align:right;padding-left:10px;white-space:nowrap}
+.tip .tag{font-size:9px;color:var(--sub);margin-left:4px}
+
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 2px 16px;font-size:11px;color:var(--sub);line-height:1.5}
+.foot span:first-child{max-width:1100px}
+
+@media print{
+  @page{size:11in 17in landscape;margin:.35in}
+  .nav,.btns,.back,.topscroll,.seg,select,input,.chk,#expandAll,#legBtn,.tray-btn,.older{display:none!important}
+  .print-only{display:block}
+  .legpop{display:flex!important;flex-direction:row;position:static;width:auto;box-shadow:none;border:none;padding:0;gap:18px}
+  .lg-foot{display:none}
+  .pill{cursor:default}
+  body{padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tl{overflow:visible!important;height:auto!important;border:none}
+  .ruler{position:static}
+  .row,.subrow{break-inside:avoid}
+}
+@media (max-width:700px){body{padding:12px 16px 0}input[type=search]{width:140px}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 class="print-only">👥 People <span class="sub" id="printSub"></span></h1>
+  <nav class="nav" id="nav"></nav>
+  <div class="seg" id="viewSeg">
+    <button data-view="person">By person</button>
+    <button data-view="project">By project</button>
+  </div>
+  <div class="seg" id="teamSeg"></div>
+  <select id="discSel" title="Discipline (from Sprint Load)"></select>
+  <input type="search" id="q" placeholder="Search person or project…">
+  <label class="chk"><input type="checkbox" id="inactive"> <span id="inactiveLbl">Show inactive</span></label>
+  <button class="btn" id="expandAll">Expand all</button>
+  <div class="right">
+    <button class="pill" id="goToday" title="Scroll to today"></button>
+    <div class="btns">
+      <button class="btn" id="zoomOut" title="Zoom out">−</button>
+      <button class="btn" id="zoomIn" title="Zoom in">+</button>
+      <button class="btn" id="btnPrint" title="Print (11×17 landscape)">🖨</button>
+    </div>
+    <div class="legwrap">
+      <button class="btn" id="legBtn" aria-expanded="false" aria-controls="legend">Legend ▾</button>
+      <div class="legpop" id="legend" hidden></div>
+    </div>
+    <a class="back" href="index.html">← Release Dashboard</a>
+  </div>
+</header>
+<div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
+<div class="tl" id="tl"><div class="canvas" id="canvas"></div></div>
+<div class="foot" id="foot"></div>
+<div class="tip" id="tip"></div>
+
+<script>
+const D = /*__PEOPLE_DATA__*/null;
+const LW = 260, DAY = 864e5, WK = 7 * DAY;
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const LINE_ORDER = ['ig', 'v2', 'css', 'internal', 'away', 'other'];
+const S = { view: 'person', wk: 26, team: 'All', disc: 'All', q: '', inactive: false, print: false,
+            open: new Set(), trays: new Set(), older: new Set() };
+try { const v = JSON.parse(localStorage.getItem('people_view') || '{}');
+      if (v.view === 'person' || v.view === 'project') S.view = v.view;
+      if (v.wk >= 10 && v.wk <= 72) S.wk = v.wk; } catch (e) {}
+function saveView(){ try { localStorage.setItem('people_view', JSON.stringify({ view: S.view, wk: S.wk })); } catch (e) {} }
+
+const W0 = dt(D.window.start), NW = D.weeks.length, CUR = D.cur_wi, CAP = D.cap_week;
+function dt(s){ return new Date(s + 'T00:00:00'); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
+function fmtS(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()]; }
+function TW(){ return NW * S.wk; }
+function xd(iso){ return (dt(iso) - W0) / WK * S.wk; }
+function hrs(h){ return h >= 100 ? Math.round(h).toLocaleString() : (Math.round(h * 10) / 10).toString(); }
+function line(id){ return D.lines[id] || D.lines.other; }
+function cv(c, k){ return `var(--${c}${k ? '-' + k : ''})`; }
+function itemOf(id){ return D.items[id] || { n: id, l: 'other', k: 'other' }; }
+function itemUrl(it){
+  if (it.key) return D.browse + it.key;
+  if (it.jql) return D.site + '/issues/?jql=' + encodeURIComponent(it.jql);
+  return null;
+}
+function jl(it){ const u = itemUrl(it); return u ? `<a class="jira" href="${esc(u)}" target="_blank" rel="noopener">${esc(it.key || 'Jira')} ↗</a>` : ''; }
+
+/* ── derived data ── */
+const PEOPLE = D.people.map(p => {
+  const A = {}, P = {}, items = {};
+  p.a.forEach(([w, i, h]) => {
+    (A[w] = A[w] || {})[i] = h;
+    const it = items[i] = items[i] || { a: 0, p: 0, w: {} };
+    it.a += h; (it.w[w] = it.w[w] || [0, 0, null])[0] += h;
+  });
+  p.p.forEach(([w, i, h, k]) => {
+    (P[w] = P[w] || {})[i] = [h, k];
+    const it = items[i] = items[i] || { a: 0, p: 0, w: {} };
+    it.p += h; const c = (it.w[w] = it.w[w] || [0, 0, null]); c[1] += h; c[2] = k;
+  });
+  const tot = w => {
+    let a = 0, pl = 0;
+    if (A[w]) for (const i in A[w]) a += A[w][i];
+    if (P[w] && w >= CUR) for (const i in P[w]) pl += P[w][i][0];
+    return [a, pl];
+  };
+  const weekTot = Array.from({ length: NW }, (_, w) => tot(w));
+  const trayH = p.tray.reduce((s, t) => s + t[1], 0);
+  return { ...p, A, P, items, weekTot, trayH };
+});
+// item -> { people: {pid: weeks{w:[a,p,k]}}, w: {w:[a,p,k,n]} }
+const ITEMS = {};
+PEOPLE.forEach(p => {
+  for (const i in p.items) {
+    const it = ITEMS[i] = ITEMS[i] || { people: {}, w: {}, a: 0, p: 0, recent: 0 };
+    it.people[p.id] = p.items[i].w;
+    for (const w in p.items[i].w) {
+      const [a, pl, k] = p.items[i].w[w], c = (it.w[w] = it.w[w] || [0, 0, null, 0]);
+      c[0] += a; c[1] += pl; if (k) c[2] = k === 'f' || c[2] === 'f' ? 'f' : k; c[3]++;
+      it.a += a; it.p += pl;
+      if (+w >= CUR - 8) it.recent += a + pl;
+    }
+  }
+});
+const PBYID = Object.fromEntries(PEOPLE.map(p => [p.id, p]));
+
+/* ── header, toolbar, legend ── */
+function renderChrome(){
+  document.getElementById('nav').innerHTML =
+    D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === 'people' ? 'active' : ''}">${esc(n.title)}</a>`).join('');
+  const gen = new Date(D.generated);
+  const genTxt = gen.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  document.getElementById('printSub').textContent = `· Tempo + Jira · ${genTxt}`;
+  document.getElementById('goToday').textContent = `▼ Today ${fmt(D.today)}`;
+  const sw = (c, kind) => kind === 'a' ? `background:${cv(c)}`
+    : kind === 's' ? `background:repeating-linear-gradient(135deg,${cv(c)} 0 3px,${cv(c,'bg')} 3px 6px)`
+    : `background:${cv(c,'bg')};border:1.5px dashed ${cv(c)}`;
+  const mkd = `<span class="mk" style="position:static;transform:rotate(45deg);border-color:var(--blue);display:inline-block;margin:0 3px"></span>`;
+  const mks = `<span class="mk ship" style="position:static;transform:none;border-color:var(--muted);display:inline-block;margin:0 3px"></span>`;
+  document.getElementById('legend').innerHTML =
+    `<div class="lg-sec"><div class="lg-h">Bars</div>
+       <div class="leg"><span class="sw" style="background:var(--done)"></span>Done <small>hours logged in Tempo</small></div>
+       <div class="leg"><span class="sw" style="${sw('grey','s')}"></span>Sprint <small>active or next sprint</small></div>
+       <div class="leg"><span class="sw" style="${sw('grey','f')}"></span>Velocity forecast <small>Game Pipeline end date</small></div>
+       <div class="leg"><span style="font-weight:700;width:16px;text-align:center">◌</span>Unscheduled hours <small>click the chip</small></div>
+     </div>
+     <div class="lg-sec"><div class="lg-h">Hours per week · under each name</div>
+       <div class="leg"><span class="sw" style="background:var(--done);opacity:.6"></span>Logged</div>
+       <div class="leg"><span class="sw" style="background:var(--plan-bar);opacity:.75"></span>Planned <small>sprint + forecast</small></div>
+     </div>
+     <div class="lg-sec"><div class="lg-h">Markers</div>
+       <div class="leg">${mkd}Roadmap date <small>green = released</small></div>
+       <div class="leg">${mks}Game Pipeline finish</div>
+     </div>
+     <div class="lg-sec"><div class="lg-h">Projects</div><div class="lg-cols">` +
+    LINE_ORDER.map(l => `<div class="leg"><span class="sw" style="background:${cv(line(l).color)}"></span>${esc(line(l).label)}</div>`).join('') +
+    `</div></div>
+     <div class="lg-foot">Logged hours from Tempo, open work from Jira, refreshed ${esc(genTxt)}.
+       Teams and disciplines from Sprint Load (${esc((D.sprint_load_at || '').slice(0, 10))}).</div>`;
+  const st = D.stats, pl = st.planned || {};
+  document.getElementById('foot').innerHTML =
+    `<span><b>Logged</b> = Tempo worklogs (real author), rolled up to each ticket's epic; Pong Internal splits into Internal and Time off.
+     <b>Plan</b> = open Jira work with a remaining estimate. Epics on a Game Pipeline board get the pipeline's own velocity forecast
+     (remaining ÷ that discipline's hours per sprint, lanes in parallel from the next sprint), and each person's remaining is spread to their discipline's projected end.
+     Other work sits in its active or next sprint; anything else is in the person's <i>unscheduled</i> tray, not on the chart.
+     Teams and disciplines from Sprint Load.
+     · ${hrs(st.logged_h)}h logged (${Math.round(st.epic_share * 100)}% on epics) · placed: ${hrs(pl['velocity forecast'] || 0)}h forecast, ${hrs(pl['sprint'] || 0)}h sprint, ${hrs(pl['unscheduled tray'] || 0)}h unscheduled
+     · ${hrs(st.unstaffed_h)}h planned work unassigned · ${st.unestimated} planned tickets with no estimate</span>
+     <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
+}
+function renderTools(){
+  document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === S.view));
+  const teams = ['All', ...D.teams.filter(t => PEOPLE.some(p => p.team === t))];
+  document.getElementById('teamSeg').innerHTML = teams.map(t => {
+    const n = t === 'All' ? visiblePeople(true).length : visiblePeople(true).filter(p => p.team === t).length;
+    return `<button data-team="${esc(t)}" class="${S.team === t ? 'on' : ''}">${esc(t)}<small>${n}</small></button>`;
+  }).join('');
+  const discs = ['All', ...D.disciplines.filter(d => PEOPLE.some(p => p.disc === d))];
+  document.getElementById('discSel').innerHTML = discs.map(d => `<option value="${esc(d)}" ${S.disc === d ? 'selected' : ''}>${d === 'All' ? 'All disciplines' : esc(d)}</option>`).join('');
+  const nIn = PEOPLE.filter(p => !p.active).length;
+  document.getElementById('inactiveLbl').textContent = `Show inactive (${nIn})`;
+}
+
+/* ── filtering ── */
+function visiblePeople(ignoreTeam){
+  const q = S.q.trim().toLowerCase();
+  return PEOPLE.filter(p => (S.inactive || p.active)
+    && (ignoreTeam || S.team === 'All' || p.team === S.team)
+    && (S.disc === 'All' || p.disc === S.disc)
+    && (!q || p.n.toLowerCase().includes(q) || Object.keys(p.items).some(i => itemOf(i).n.toLowerCase().includes(q))));
+}
+
+/* ── ruler + grid ── */
+function rulerHTML(corner){
+  const tw = TW();
+  let months = '', weeks = '', lines = '';
+  const end = new Date(W0.getTime() + NW * WK);
+  for (let d = new Date(W0.getFullYear(), W0.getMonth(), 1); d < end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const nx = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    const x0 = Math.max(0, (d - W0) / WK * S.wk), x1 = Math.min(tw, (nx - W0) / WK * S.wk);
+    if (x1 <= 0) continue;
+    months += `<div class="mcell" style="left:${x0}px;width:${x1 - x0}px">${MON[d.getMonth()]} ${d.getFullYear()}</div>`;
+    lines += `<div class="mline" style="left:${x0}px"></div>`;
+  }
+  if (S.wk >= 18) D.weeks.forEach((w, i) => { weeks += `<div class="wcell" style="left:${i * S.wk}px;width:${S.wk}px">${dt(w).getDate()}</div>`; });
+  const tx = xd(D.today);
+  return { ruler: `<div class="ruler"><div class="ruler-corner" style="width:${LW}px">${corner}</div>
+             <div class="ruler-body" style="width:${tw}px">${months}${weeks}<div class="today-lbl" style="left:${tx}px">▼ TODAY</div></div></div>`,
+           grid: `<div class="gridlines" style="left:${LW}px;width:${tw}px"><div class="future" style="left:${CUR * S.wk}px"></div>${lines}<div class="tline" style="left:${tx}px"></div></div>` };
+}
+
+/* ── person view ── */
+// Main project per week -> merged, labelled segments ("where are they").
+// Neighbouring weeks count half so the band doesn't flicker week to week;
+// Internal / Time off only wins a week when it is most of it (≥60%).
+function weekMix(p, w){
+  const m = {};
+  if (w < 0 || w >= NW) return m;
+  if (p.A[w]) for (const i in p.A[w]) m[i] = (m[i] || 0) + p.A[w][i];
+  if (w >= CUR && p.P[w]) for (const i in p.P[w]) m[i] = (m[i] || 0) + p.P[w][i][0];
+  return m;
+}
+function bandSegments(p){
+  const segs = [];
+  for (let w = 0; w < NW; w++) {
+    const m = weekMix(p, w);
+    let tot = 0, pi = 0;
+    for (const i in m) { tot += m[i]; if (i.startsWith('PI:')) pi += m[i]; }
+    if (tot < 2) continue;
+    let best = null;
+    if (pi >= 0.6 * tot) best = (m['PI:away'] || 0) >= (m['PI:internal'] || 0) ? 'PI:away' : 'PI:internal';
+    else {
+      const tense = w < CUR, sc = {};
+      for (const i in m) if (!i.startsWith('PI:')) sc[i] = m[i];
+      [w - 1, w + 1].forEach(n => { if ((n < CUR) === tense) { const mm = weekMix(p, n); for (const i in sc) sc[i] += 0.5 * (mm[i] || 0); } });
+      best = Object.keys(sc).sort((x, y) => sc[y] - sc[x])[0];
+    }
+    let kind = 'a';
+    if (w > CUR || (w === CUR && !(p.A[w] && p.A[w][best]))) kind = (p.P[w] && p.P[w][best]) ? p.P[w][best][1] : 'a';
+    const last = segs[segs.length - 1];
+    if (last && last.i === best && last.k === kind && last.w1 === w - 1) last.w1 = w;
+    else segs.push({ i: best, k: kind, w0: w, w1: w });
+  }
+  // A one-week blip between two runs of the same project joins the run.
+  for (let j = 1; j < segs.length - 1; j++) {
+    const a = segs[j - 1], b = segs[j], c = segs[j + 1];
+    if (b.w0 === b.w1 && a.i === c.i && a.k === c.k && a.w1 === b.w0 - 1 && c.w0 === b.w1 + 1) {
+      a.w1 = c.w1; segs.splice(j, 2); j--;
+    }
+  }
+  return segs;
+}
+function segStyle(c, k){
+  if (k === 'a') return `background:${cv(c,'bg')};border-color:${cv(c,'bd')};border-left-color:${cv(c)}`;
+  if (k === 's') return `background:repeating-linear-gradient(135deg,${cv(c,'bg')} 0 5px,#fff 5px 9px);border-color:${cv(c,'bd')};border-left-color:${cv(c)}`;
+  return `background:#fff;border:1.5px dashed ${cv(c)};color:${cv(c)}`;
+}
+// Hours per week under each name: logged (green) then planned (indigo).
+// No capacity line or over/under colouring — the forecast spreads work by
+// pipeline velocity, not per person, so a capacity % would be misleading
+// (that belongs on Sprint Load).
+function sparkSVG(p){
+  const H = 16, max = 56;
+  let bars = '';
+  p.weekTot.forEach(([a, pl], w) => {
+    const h = w < CUR ? a : w === CUR ? a + pl : pl;
+    if (h < 0.25) return;
+    const bh = Math.max(1.5, Math.min(h, max) / max * H);
+    const past = w < CUR || (w === CUR && pl < 0.25);
+    bars += `<rect x="${w * S.wk + 2}" y="${H - bh}" width="${Math.max(2, S.wk - 4)}" height="${bh}" rx="1" fill="${past ? 'var(--done)' : 'var(--plan-bar)'}" opacity="${past ? .6 : .75}"/>`;
+  });
+  return `<svg class="spark" width="${TW()}" height="${H}" viewBox="0 0 ${TW()} ${H}">${bars}</svg>`;
+}
+function nowItem(p){
+  for (const w of [CUR, CUR + 1]) {
+    const m = {};
+    if (p.A[w]) for (const i in p.A[w]) m[i] = (m[i] || 0) + p.A[w][i];
+    if (p.P[w]) for (const i in p.P[w]) m[i] = (m[i] || 0) + p.P[w][i][0];
+    const best = Object.keys(m).filter(i => !i.startsWith('PI:')).sort((x, y) => m[y] - m[x])[0];
+    if (best) return best;
+  }
+  return null;
+}
+function personRow(p){
+  const segs = bandSegments(p).map(s => {
+    const it = itemOf(s.i), c = line(it.l).color, w = (s.w1 - s.w0 + 1) * S.wk - 2;
+    return `<div class="seg-b" style="left:${s.w0 * S.wk + 1}px;width:${w}px;${segStyle(c, s.k)}">${w > 34 ? esc(it.n) : ''}</div>`;
+  }).join('');
+  const now = nowItem(p);
+  const meta = [now ? `<b>${esc(itemOf(now).n)}</b>` : (p.last ? `last logged ${fmtS(p.last)}` : ''),
+                p.p.length ? '' : 'nothing planned',
+                p.unest ? `${p.unest} unestimated` : ''].filter(Boolean).join(' · ');
+  const multi = (p.boards || []).length > 1 ? `<span class="disc multi" title="On ${p.boards.length} Sprint Load boards: ${esc(p.boards.join(', '))}">${p.boards.length} boards</span>` : '';
+  const tray = p.trayH >= 1 ? `<button class="tray-btn" data-tray="${esc(p.id)}" title="Unscheduled: open work with a remaining estimate but no sprint and no pipeline forecast. Click to list.">◌${hrs(p.trayH)}h</button>` : '';
+  const open = S.open.has(p.id);
+  let html = `<div class="row ${p.active ? '' : 'inactive'}" data-p="${esc(p.id)}" style="height:50px">
+    <div class="lbl" style="width:${LW}px">
+      <div class="lbl-top"><button class="caret" data-open="${esc(p.id)}">${open ? '▼' : '▶'}</button>
+        <span class="nm" data-open="${esc(p.id)}" title="${esc(p.n)} · ${esc(p.src)}">${esc(p.n)}</span>
+        <span class="disc" title="${esc(p.src)}">${esc(p.disc)}</span>${multi}<span class="grow"></span>${tray}</div>
+      <div class="meta">${meta}</div>
+    </div>
+    <div class="body" style="width:${TW()}px" data-ptip="${esc(p.id)}"><div class="band">${segs}</div>${sparkSVG(p)}</div></div>`;
+  if (S.trays.has(p.id)) html += trayRow(p);
+  // Planned work first (soonest first), then everything else by hours logged.
+  if (open) html += Object.keys(p.items)
+      .sort((x, y) => planWeek(p.items[x]) - planWeek(p.items[y]) || (p.items[y].a + p.items[y].p) - (p.items[x].a + p.items[x].p))
+      .map(i => subRow(i, p.items[i].w, p.id, itemLabel(i, p.items[i]), 'subrow', true)).join('');
+  return html;
+}
+function planWeek(x){ const ws = Object.keys(x.w).map(Number).filter(w => w >= CUR && x.w[w][1] > 0); return ws.length ? Math.min(...ws) : 1e9; }
+function itemLabel(i, x){
+  const it = itemOf(i), c = line(it.l).color;
+  return `<span class="ldot" style="background:${cv(c)}"></span><span class="inm" title="${esc(it.n)}${it.st ? ' · ' + esc(it.st) : ''}">${esc(it.n)}</span>
+          <span class="ih" title="Logged · planned">${hrs(x.a)}h${x.p >= 0.5 ? ' · ' + hrs(x.p) + 'h' : ''}</span>${jl(it)}`;
+}
+// One project line: weekly pills (solid logged, hatched sprint, dashed forecast) + roadmap markers.
+function subRow(i, weeks, pid, label, cls = 'subrow', upcomingOnly = false){
+  const it = itemOf(i), c = line(it.l).color;
+  let pills = '';
+  for (const w in weeks) {
+    const [a, pl, k] = weeks[w], wi = +w, fut = wi > CUR || (wi === CUR && pl > 0 && a < 0.05);
+    const h = wi < CUR ? a : a + pl;
+    if (h < 0.05) continue;
+    const kind = fut ? (k || 's') : 'a', op = (0.35 + 0.65 * Math.min(1, h / CAP)).toFixed(2);
+    const st = kind === 'a' ? `background:var(--done);opacity:${op}`
+      : kind === 's' ? `background:repeating-linear-gradient(135deg,${cv(c)} 0 3px,${cv(c,'bg')} 3px 6px);opacity:${op};color:var(--text)`
+      : `background:${cv(c,'bg')};border:1.5px dashed ${cv(c)};color:${cv(c)}`;
+    pills += `<div class="wp" style="left:${wi * S.wk + 1.5}px;width:${S.wk - 3}px;${st}">${S.wk >= 30 ? hrs(h) : ''}</div>`;
+  }
+  return `<div class="${cls}" style="height:24px"><div class="lbl" style="width:${LW}px">${label}</div>
+    <div class="body" style="width:${TW()}px" data-stip="${esc(i)}|${esc(pid || '')}">${pills}${markers(it, upcomingOnly)}</div></div>`;
+}
+function markers(it, upcomingOnly){
+  let m = '';
+  (it.cards || []).forEach(c => {
+    if (upcomingOnly && c.d < D.today) return;
+    const x = xd(c.d); if (x < 0 || x > TW()) return;
+    const col = c.src === 'golive' ? 'var(--green)' : c.r ? 'var(--green)' : (c.src === 'pmo' || c.src === 'epic-due') ? 'var(--gold)' : 'var(--blue)';
+    m += `<span class="mk" style="left:${x}px;border-color:${col};${c.r ? 'background:' + col : ''}" data-mk="1"></span>`;
+  });
+  if (it.fc && it.fc.ship) { const x = xd(it.fc.ship); if (x >= 0 && x <= TW()) m += `<span class="mk ship" style="left:${x}px;border-color:var(--muted)"></span>`; }
+  return m;
+}
+function trayRow(p){
+  return `<div class="tray-row"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
+      <div class="tray-ttl">Unscheduled · ${esc(p.n)} — remaining estimate with no sprint and no pipeline forecast (not drawn)</div>
+      ${p.tray.map(([i, h]) => { const it = itemOf(i), u = itemUrl(it);
+        return `<${u ? 'a' : 'span'} class="uchip" ${u ? `href="${esc(u)}" target="_blank" rel="noopener"` : ''}>${esc(it.n)}<small>${hrs(h)}h</small></${u ? 'a' : 'span'}>`; }).join('')}
+    </div></div>`;
+}
+function renderPersonView(){
+  const ppl = visiblePeople();
+  if (!ppl.length) return `<div class="empty" style="width:min(100%, calc(100vw - 80px))">No one matches these filters.</div>`;
+  let html = '';
+  D.teams.forEach(t => {
+    const grp = ppl.filter(p => p.team === t);
+    if (!grp.length) return;
+    html += `<div class="grp"><div class="grp-name" style="min-width:${LW}px">${esc(t)}<small>${grp.length} ${grp.length === 1 ? 'person' : 'people'}</small></div><div class="grp-line"></div></div>`;
+    html += grp.map(personRow).join('');
+  });
+  return html;
+}
+
+/* ── project view ── */
+function renderProjectView(){
+  const ppl = new Set(visiblePeople(false).map(p => p.id));
+  const q = S.q.trim().toLowerCase();
+  let html = '';
+  LINE_ORDER.forEach(l => {
+    const ids = Object.keys(ITEMS).filter(i => itemOf(i).l === l)
+      .filter(i => Object.keys(ITEMS[i].people).some(pid => ppl.has(pid)))
+      .filter(i => !q || itemOf(i).n.toLowerCase().includes(q) || Object.keys(ITEMS[i].people).some(pid => PBYID[pid].n.toLowerCase().includes(q)))
+      .sort((x, y) => nowCount(y) - nowCount(x) || ITEMS[y].recent - ITEMS[x].recent);
+    if (!ids.length) return;
+    const live = ids.filter(i => ITEMS[i].recent >= 0.5), old = ids.filter(i => ITEMS[i].recent < 0.5);
+    html += `<div class="grp"><div class="grp-name" style="min-width:${LW}px"><span class="ldot" style="display:inline-block;margin-right:6px;background:${cv(line(l).color)}"></span>${esc(line(l).label)}<small>${live.length} active · ${old.length} earlier</small></div><div class="grp-line"></div></div>`;
+    const showOld = S.older.has(l) || !!q;
+    (showOld ? [...live, ...old] : live).forEach(i => html += itemRow(i, ppl));
+    if (old.length && !q) html += `<div class="older"><button data-older="${l}">${showOld ? '▴ hide' : '▾ show'} ${old.length} item(s) with no work in the last 8 weeks or ahead</button></div>`;
+  });
+  return html || `<div class="empty" style="width:min(100%, calc(100vw - 80px))">Nothing matches these filters.</div>`;
+}
+// People on a project this week or next (logged or planned).
+function nowCount(i){ const x = ITEMS[i]; return Object.values(x.people).filter(w => w[CUR] || w[CUR + 1]).length; }
+function itemRow(i, ppl){
+  const it = itemOf(i), x = ITEMS[i], c = line(it.l).color, open = S.open.has('i:' + i);
+  const pids = Object.keys(x.people).filter(pid => ppl.has(pid));
+  const now = pids.filter(pid => { const w = x.people[pid]; return (w[CUR] || w[CUR + 1]); }).length;
+  const next = (it.cards || []).find(cd => cd.d >= D.today);
+  const cardTxt = next ? ` · ${esc(next.t === 'Go-live' ? 'go-live' : next.t)} ${fmtS(next.d)}` : '';
+  const fcTxt = it.fc ? ` · ≈ ${fmtS(it.fc.ship)}` : '';
+  const unst = it.unstaffed ? `<span class="unst" title="Remaining estimate on planned tickets with no assignee">⚠ ${hrs(it.unstaffed)}h unassigned</span>` : '';
+  let pills = '';
+  for (const w in x.w) {
+    const [a, pl, k, n] = x.w[w], wi = +w, fut = wi > CUR || (wi === CUR && pl > 0 && a < 0.05), h = wi < CUR ? a : a + pl;
+    if (h < 0.05) continue;
+    const kind = fut ? (k || 's') : 'a', op = (0.35 + 0.65 * Math.min(1, h / (CAP * 2))).toFixed(2);
+    const st = kind === 'a' ? `background:var(--done);opacity:${op}`
+      : kind === 's' ? `background:repeating-linear-gradient(135deg,${cv(c)} 0 3px,${cv(c,'bg')} 3px 6px);opacity:${op};color:var(--text)`
+      : `background:${cv(c,'bg')};border:1.5px dashed ${cv(c)};color:${cv(c)}`;
+    pills += `<div class="wp" style="left:${wi * S.wk + 1.5}px;width:${S.wk - 3}px;top:13px;height:16px;line-height:14px;${st}">${S.wk >= 22 ? n : ''}</div>`;
+  }
+  let html = `<div class="row" style="height:42px">
+    <div class="lbl" style="width:${LW}px">
+      <div class="lbl-top"><button class="caret" data-open="i:${esc(i)}">${open ? '▼' : '▶'}</button>
+        <span class="nm" data-open="i:${esc(i)}" title="${esc(it.n)}${it.st ? ' · ' + esc(it.st) : ''}">${esc(it.n)}</span>${jl(it)}<span class="grow"></span>${unst}</div>
+      <div class="meta">${pids.length} ${pids.length === 1 ? 'person' : 'people'}${now ? ` · <b>${now} now</b>` : ''}${cardTxt}${fcTxt}</div>
+    </div>
+    <div class="body" style="width:${TW()}px" data-itip="${esc(i)}">${pills}${markers(it)}</div></div>`;
+  if (open) html += pids.sort((a, b) => PBYID[a].n.localeCompare(PBYID[b].n)).map(pid => {
+    const p = PBYID[pid], sx = p.items[i];
+    return subRow(i, x.people[pid], pid, `<span class="inm" title="${esc(p.n)}">${esc(p.n)}</span><span class="disc">${esc(p.disc)}</span><span class="ih">${hrs(sx.a)}h${sx.p >= 0.5 ? ' · ' + hrs(sx.p) + 'h' : ''}</span>`);
+  }).join('');
+  return html;
+}
+
+/* ── render ── */
+function render(){
+  const tw = TW(), canvas = document.getElementById('canvas');
+  canvas.style.width = (LW + tw) + 'px';
+  const { ruler, grid } = rulerHTML(S.view === 'person' ? 'Person · week of' : 'Project · week of');
+  canvas.innerHTML = ruler + grid + (S.view === 'person' ? renderPersonView() : renderProjectView());
+  document.getElementById('topScrollInner').style.width = (LW + tw) + 'px';
+  document.getElementById('expandAll').textContent = S.open.size ? 'Collapse all' : 'Expand all';
+  sizeScroller();
+}
+function rerender(){ const l = tl.scrollLeft, t = tl.scrollTop; renderTools(); render(); tl.scrollLeft = l; tl.scrollTop = t; }
+
+/* ── tooltips ── */
+const tip = document.getElementById('tip');
+function weekLabel(w){ const d = dt(D.weeks[w]); const e = new Date(d.getTime() + 4 * DAY); return `Week of ${d.getDate()} ${MON[d.getMonth()]} – ${e.getDate()} ${MON[e.getMonth()]} ${e.getFullYear()}`; }
+function kindTag(k){ return k === 'f' ? '<span class="tag">forecast</span>' : k === 's' ? '<span class="tag">sprint</span>' : ''; }
+function personTip(p, w){
+  const rows = [];
+  if (p.A[w]) for (const i in p.A[w]) rows.push([i, p.A[w][i], 'a']);
+  if (w >= CUR && p.P[w]) for (const i in p.P[w]) rows.push([i, p.P[w][i][0], p.P[w][i][1]]);
+  if (!rows.length) return `<h4>${esc(p.n)}</h4><div class="tsub">${weekLabel(w)}</div>${w > CUR ? 'Nothing planned' : 'No time logged'}`;
+  rows.sort((x, y) => y[1] - x[1]);
+  const [a, pl] = p.weekTot[w];
+  return `<h4>${esc(p.n)}</h4><div class="tsub">${weekLabel(w)} · ${a >= 0.05 ? hrs(a) + 'h logged' : ''}${a >= 0.05 && pl >= 0.05 && w >= CUR ? ' · ' : ''}${pl >= 0.05 && w >= CUR ? hrs(pl) + 'h planned' : ''}</div>
+    <table>${rows.slice(0, 8).map(([i, h, k]) => `<tr><td><span class="ldot" style="display:inline-block;margin-right:5px;background:${cv(line(itemOf(i).l).color)}"></span>${esc(itemOf(i).n)}${kindTag(k)}</td><td class="h">${hrs(h)}h</td></tr>`).join('')}
+    ${rows.length > 8 ? `<tr><td class="tag">+${rows.length - 8} more</td><td></td></tr>` : ''}</table>`;
+}
+function itemTip(i, w){
+  const it = itemOf(i), x = ITEMS[i], rows = [];
+  for (const pid in x.people) { const c = x.people[pid][w]; if (c) { const h = w < CUR ? c[0] : c[0] + c[1]; if (h >= 0.05) rows.push([PBYID[pid].n, h, w >= CUR && c[1] > 0 ? c[2] : 'a']); } }
+  rows.sort((a, b) => b[1] - a[1]);
+  const tot = rows.reduce((s, r) => s + r[1], 0);
+  return `<h4>${esc(it.n)}</h4><div class="tsub">${weekLabel(w)}${tot ? ' · ' + hrs(tot) + 'h' : ''}</div>` +
+    (rows.length ? `<table>${rows.slice(0, 10).map(([n, h, k]) => `<tr><td>${esc(n)}${kindTag(k)}</td><td class="h">${hrs(h)}h</td></tr>`).join('')}</table>` : 'No one this week') +
+    itemNotes(it);
+}
+function itemNotes(it){
+  let s = '';
+  const cards = (it.cards || []).filter(c => c.d >= D.window.start);
+  if (cards.length) s += `<div class="tsub" style="margin-top:6px">${cards.slice(0, 4).map(c => `◆ ${esc(c.s)}${c.g ? ' ' + esc(c.g) : ''} · ${esc(c.t)} · ${fmtS(c.d)}${c.r ? ' ✓' : ''}`).join('<br>')}</div>`;
+  if (it.fc) s += `<div class="tsub">◌ Game Pipeline velocity forecast: done by ${fmtS(it.fc.ship)}${it.fc.hidden ? ' (hidden on the board)' : ''}</div>`;
+  if (it.sub) s += `<div class="tsub">${esc(it.sub.join(' · '))}</div>`;
+  return s;
+}
+document.getElementById('canvas').addEventListener('mousemove', e => {
+  const b = e.target.closest('[data-ptip],[data-itip],[data-stip]');
+  if (!b) { tip.style.display = 'none'; return; }
+  const w = Math.floor((e.clientX - b.getBoundingClientRect().left) / S.wk);
+  if (w < 0 || w >= NW) { tip.style.display = 'none'; return; }
+  let h = '';
+  if (b.dataset.ptip) h = personTip(PBYID[b.dataset.ptip], w);
+  else if (b.dataset.itip) h = itemTip(b.dataset.itip, w);
+  else {
+    const [i, pid] = b.dataset.stip.split('|'), p = PBYID[pid], c = (p && p.items[i] && p.items[i].w[w]) || [0, 0, null];
+    const h0 = w < CUR ? c[0] : c[0] + c[1];
+    h = `<h4>${esc(itemOf(i).n)}</h4><div class="tsub">${esc(p ? p.n : '')} · ${weekLabel(w)}</div>${h0 >= 0.05 ? hrs(h0) + 'h' + (w >= CUR && c[1] > 0 ? kindTag(c[2]) : ' logged') : 'Nothing this week'}${itemNotes(itemOf(i))}`;
+  }
+  tip.innerHTML = h; tip.style.display = 'block';
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(e.clientX + 14, window.innerWidth - r.width - 8) + 'px';
+  tip.style.top = (e.clientY + 16 + r.height > window.innerHeight ? e.clientY - r.height - 10 : e.clientY + 16) + 'px';
+});
+document.getElementById('canvas').addEventListener('mouseleave', () => tip.style.display = 'none');
+
+/* ── scrolling: synced top + bottom bars ── */
+const tl = document.getElementById('tl'), top_ = document.getElementById('topScroll');
+let syncing = false;
+tl.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; top_.scrollLeft = tl.scrollLeft; });
+top_.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; tl.scrollLeft = top_.scrollLeft; });
+function sizeScroller(){
+  if (S.print) return;
+  const h = window.innerHeight - tl.getBoundingClientRect().top - 44;
+  tl.style.height = Math.max(420, h) + 'px';
+}
+function scrollToToday(){ tl.scrollLeft = Math.max(0, xd(D.today) - (tl.clientWidth - LW) * 0.4); }
+
+/* ── controls ── */
+function zoom(f){
+  const keep = (tl.scrollLeft + tl.clientWidth / 2 - LW) / TW();
+  S.wk = Math.max(10, Math.min(72, Math.round(S.wk * f)));
+  saveView(); render();
+  tl.scrollLeft = keep * TW() + LW - tl.clientWidth / 2;
+}
+let savedWk = 0;
+function beforePrint(){ if (S.print) return; savedWk = S.wk; S.print = true; S.wk = (16.3 * 96 - LW) / NW; render(); }
+function afterPrint(){ if (!S.print) return; S.print = false; S.wk = savedWk; render(); }
+document.getElementById('btnPrint').onclick = () => { beforePrint(); window.print(); };
+document.getElementById('zoomIn').onclick = () => zoom(1.25);
+document.getElementById('zoomOut').onclick = () => zoom(0.8);
+document.getElementById('goToday').onclick = scrollToToday;
+window.addEventListener('beforeprint', beforePrint);
+window.addEventListener('afterprint', afterPrint);
+window.addEventListener('resize', sizeScroller);
+document.getElementById('viewSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.view = b.dataset.view; S.open.clear(); saveView(); rerender(); };
+document.getElementById('teamSeg').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.team = b.dataset.team; rerender(); };
+document.getElementById('discSel').onchange = e => { S.disc = e.target.value; rerender(); };
+let qT = null;
+document.getElementById('q').oninput = e => { clearTimeout(qT); qT = setTimeout(() => { S.q = e.target.value; rerender(); }, 150); };
+document.getElementById('inactive').onchange = e => { S.inactive = e.target.checked; rerender(); };
+document.getElementById('expandAll').onclick = () => {
+  if (S.open.size) S.open.clear();
+  else if (S.view === 'person') visiblePeople().forEach(p => S.open.add(p.id));
+  else document.querySelectorAll('[data-open^="i:"]').forEach(el => S.open.add(el.dataset.open));
+  rerender();
+};
+// Legend dropdown: toggle on the button, close on outside click or Esc.
+const legBtn = document.getElementById('legBtn'), legPop = document.getElementById('legend');
+function legend(open){ legPop.hidden = !open; legBtn.classList.toggle('on', open); legBtn.setAttribute('aria-expanded', open); }
+legBtn.onclick = e => { e.stopPropagation(); legend(legPop.hidden); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') legend(false); });
+document.addEventListener('click', e => {
+  if (!legPop.hidden && !e.target.closest('.legwrap')) legend(false);
+  const o = e.target.closest('[data-open]');
+  if (o) { const id = o.dataset.open; S.open.has(id) ? S.open.delete(id) : S.open.add(id); rerender(); return; }
+  const t = e.target.closest('[data-tray]');
+  if (t) { const id = t.dataset.tray; S.trays.has(id) ? S.trays.delete(id) : S.trays.add(id); rerender(); return; }
+  const ol = e.target.closest('[data-older]');
+  if (ol) { const id = ol.dataset.older; S.older.has(id) ? S.older.delete(id) : S.older.add(id); rerender(); }
+});
+
+// Shareable state in the URL hash: #view=project&team=V2&q=steampunk&expand=1
+const H = new URLSearchParams(location.hash.slice(1));
+if (H.get('view') === 'person' || H.get('view') === 'project') S.view = H.get('view');
+if (H.get('team')) S.team = H.get('team');
+if (H.get('q')) { S.q = H.get('q'); document.getElementById('q').value = S.q; }
+renderChrome();
+renderTools();
+render();
+if (H.get('expand') === '1') document.getElementById('expandAll').click();
+scrollToToday();
+</script>
+</body>
+</html>
