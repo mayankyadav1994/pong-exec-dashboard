@@ -1,0 +1,122 @@
+{
+  "date": "2026-11-24",
+  "fvs": {
+    "V2 P2P 16.00": {
+      "devEnd": "2026-11-27",
+      "qaEnd": "2026-12-18",
+      "lab1End": "2027-01-20",
+      "pilotEnd": "2027-02-03",
+      "finalEnd": "2027-03-04",
+      "totalEstH": 1506,
+      "spentH": 1425
+    },
+    "V2 PT 14.00": {
+      "devEnd": "2026-12-01",
+      "qaEnd": "2026-12-31",
+      "lab1End": "2027-01-29",
+      "pilotEnd": "2027-02-12",
+      "finalEnd": "2027-03-15",
+      "totalEstH": 1370,
+      "spentH": 1141
+    },
+    "New Games": {
+      "devEnd": "2032-01-15",
+      "qaEnd": "2032-01-29",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 25761,
+      "spentH": 12124
+    },
+    "V2 C2 Backlog": {
+      "devEnd": "2032-01-15",
+      "qaEnd": "2032-01-29",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 685,
+      "spentH": 625
+    },
+    "V2 P2P Backlog": {
+      "devEnd": "2032-02-18",
+      "qaEnd": "2032-03-03",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 1981,
+      "spentH": 2516
+    },
+    "V2 PT Backlog": {
+      "devEnd": "2026-11-24",
+      "qaEnd": "2026-12-08",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 152,
+      "spentH": 214
+    },
+    "V2 SW Backlog": {
+      "devEnd": "2032-02-18",
+      "qaEnd": "2032-03-03",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 68,
+      "spentH": 81
+    },
+    "V2 HHR 3.20": {
+      "devEnd": "2032-03-15",
+      "qaEnd": "2032-03-29",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 128,
+      "spentH": 49
+    },
+    "Dev Test": {
+      "devEnd": "2026-11-24",
+      "qaEnd": "2026-12-08",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 25,
+      "spentH": 20
+    },
+    "V2 P2P 16.10": {
+      "devEnd": "2032-03-15",
+      "qaEnd": "2032-03-29",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 40,
+      "spentH": 51
+    },
+    "V2 C2 5.30": {
+      "devEnd": "2032-03-15",
+      "qaEnd": "2032-03-29",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 174,
+      "spentH": 26
+    },
+    "V2 P2P 16.20": {
+      "devEnd": "2026-11-24",
+      "qaEnd": "2026-12-08",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 26,
+      "spentH": 13
+    },
+    "V2 PT 13.50": {
+      "devEnd": "2026-12-07",
+      "qaEnd": "2026-12-21",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": null,
+      "totalEstH": 40,
+      "spentH": 0
+    }
+  }
+}
