@@ -874,6 +874,35 @@ Plus the Python script needs its own `load_config()` reading the new JSON file, 
 
 ---
 
+## 22.11 Release Milestones (M1 PMO · M2/M3 auto · M4+ PMO)
+
+Every release follows a numbered milestone ladder, drawn as a **milestone line under each row's bars** (below any Creative/Math/Sound rows; below the Sales Trip tag on regulated rows). Replaces the free-form pins of §22.3/22.4 for new work — legacy pins still render and stay editable under "PINS (LEGACY)" when an FV has any.
+
+| # | Milestone | Reached when | Forecast |
+|---|---|---|---|
+| M1 | Dev testing started | **PMO enters the Done date** — never automatic (releases mix games + features, so it's a judgment call) | PMO plan date |
+| M2 | Dev complete | Jira: every dev task (Story / Dev Task / Dev Subtask, release-admin excluded) is closed → date of the last `resolutiondate` | Dev-end projection (same as the dev bar) |
+| M3 | QA complete | Jira: every `QA Testing R<n> - <FV>` subtask is closed → date the last one closed | QA-end projection (same as the QA bar) |
+| M4…M12 | Anything (lab submission, go-live, sales trip, per-game…) | PMO enters the Done date | PMO plan date |
+
+A PMO Done date on M2/M3 overrides the Jira date. Marking M1 done fills any empty M2/M3 **plan** with that day's forecast, so slip is measured from when dev testing started.
+
+**Visuals.** ◆ filled green = reached · ◇ hollow = forecast/planned (blue on/ahead of plan, red behind or past an unmarked plan date) · grey tick = plan date, joined to the forecast by a red/green connector with a `+Nd` / `-Nd` working-day badge. Labels stack onto a second line when they'd collide. Dates outside the chart window get a year and a ▶/◀ edge marker. The label panel shows a chip for the next unreached milestone; the detail panel's **◆ MILESTONES** tab lists plan / forecast / reached / vs plan / source plus the Jira evidence PMO reads before marking M1 (dev tasks & hours closed, epics In QA, QA Dev Test start, builds sent R1…Rn, QA round status).
+
+**Jira evidence** comes from the per-FV release template — QA Task "Release <FV>" with QA Subtasks "QA Dev Test …" and "QA Testing R1..Rn …", and the Release ticket whose subtasks "Release <FV> [<build> - R<n>]" are the QA builds. `compute_milestone_signals()` in `v2_timeline.py` emits it as `fv.msSignals`.
+
+**Config.** `fv_meta[<FV>].release_milestones` in `config/v2.json`, edited in ⚙ Edit Plan → Fix Versions → ▾ → MILESTONES (M# dropdown · name · Plan · Done) and published with Save-as-default. No Jira writes.
+
+```json
+"release_milestones": {
+  "M1": {"planned": "2026-10-15", "done": "2026-10-20"},
+  "M2": {"planned": "2026-11-27"},
+  "M4": {"label": "Lab 1 submission", "planned": "2027-01-08"}
+}
+```
+
+---
+
 ## 23. File Reference
 
 | File | Description |

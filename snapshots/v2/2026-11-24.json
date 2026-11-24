@@ -25,8 +25,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 25761,
-      "spentH": 12124
+      "totalEstH": 25765,
+      "spentH": 12132
     },
     "V2 C2 Backlog": {
       "devEnd": "2032-01-15",
@@ -79,8 +79,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
-      "totalEstH": 25,
-      "spentH": 20
+      "totalEstH": 28,
+      "spentH": 22
     },
     "V2 P2P 16.10": {
       "devEnd": "2032-03-15",

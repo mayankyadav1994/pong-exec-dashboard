@@ -393,7 +393,8 @@ def fetch_release_tickets(fv_name):
     keys = ",".join(p["key"] for p in parents)
     children = jira_jql(
         jql=f"parent in ({keys})",
-        fields=["summary", "status", "parent"],
+        # `created` dates each round's build — milestone evidence (R1 sent).
+        fields=["summary", "status", "parent", "created"],
     )
     by_parent = {p["key"]: [] for p in parents}
     for c in children:
@@ -486,6 +487,87 @@ def compute_qa_progress(fv_name):
     }
 
 
+# ── Release milestones (M1 PMO-declared, M2/M3 auto) ───────────────────────
+# Every V2 release carries the same Jira template: a QA Task "Release <FV>"
+# with QA Subtasks "QA Dev Test - …" and "QA Testing R1..Rn - <FV>", plus a
+# Release ticket whose subtasks "Release <FV> [<build> - R<n>]" are the builds
+# handed to QA. Unused rounds get closed, so "every round closed" is a clean
+# QA-complete signal. M1 (Dev testing started) is PMO's call — the signals
+# below are only evidence shown next to it; nothing here marks M1.
+
+_QA_ROUND_RE = re.compile(r'\bQA\s+Testing\s+R(\d+)\b', re.IGNORECASE)
+_QA_DEV_TEST_RE = re.compile(r'\bQA\s+Dev\s+Test', re.IGNORECASE)
+_SCOPE_DEV_DONE = {"In QA", "Closed", "Done"}
+
+
+def fetch_qa_template(fv_name):
+    """QA Task / QA Subtask tickets for an FV (round tickets + QA Dev Test)."""
+    return jira_jql(
+        jql=f'project = V2 AND fixVersion = "{fv_name}" '
+            f'AND issuetype in ("QA Task", "QA Subtask")',
+        fields=["summary", "status", "created", "resolutiondate"],
+    )
+
+
+def _status_done(fields):
+    st = fields.get("status") or {}
+    return ((st.get("statusCategory") or {}).get("key") == "done"
+            or st.get("name") in ("Closed", "Done"))
+
+
+def compute_milestone_signals(dev_people, release_tickets, qa_items, scope):
+    """Jira facts behind the milestone line. M2 actual = day the last dev task
+    closed (only once none are open); M3 actual = day the last QA Testing
+    round closed (only once every round is closed)."""
+    dev_tasks = [t for p in dev_people for t in p["tasks"]]
+    open_dev = [t for t in dev_tasks if not is_done(t["status"])]
+    tot_h = sum(t.get("origH") or 0 for t in dev_tasks)
+    done_h = sum(t.get("origH") or 0 for t in dev_tasks if is_done(t["status"]))
+    resolved = [t["resolved"] for t in dev_tasks if is_done(t["status"]) and t.get("resolved")]
+
+    builds = []
+    for p in release_tickets:
+        for c in p.get("_children", []):
+            cf = c.get("fields") or {}
+            r = _extract_round(cf.get("summary", ""))
+            if r:
+                builds.append({"round": r, "key": c["key"],
+                               "date": (cf.get("created") or "")[:10] or None})
+    builds.sort(key=lambda b: (b["date"] or "", int(b["round"][1:])))
+
+    rounds, dev_tests = [], []
+    for q in qa_items:
+        f = q.get("fields") or {}
+        s = f.get("summary", "")
+        m = _QA_ROUND_RE.search(s)
+        if m:
+            rounds.append({"round": f"R{m.group(1)}", "key": q["key"],
+                           "status": (f.get("status") or {}).get("name", ""),
+                           "done": _status_done(f),
+                           "resolved": (f.get("resolutiondate") or "")[:10] or None})
+        elif _QA_DEV_TEST_RE.search(s):
+            dev_tests.append({"key": q["key"], "summary": s,
+                              "date": (f.get("created") or "")[:10] or None})
+    rounds.sort(key=lambda r: int(r["round"][1:]))
+    dev_tests.sort(key=lambda d: d["date"] or "")
+
+    rounds_done = bool(rounds) and all(r["done"] for r in rounds)
+    epics = [e for e in scope if e.get("key")]
+    return {
+        "devOpenN":      len(open_dev),
+        "devTotalN":     len(dev_tasks),
+        "devHoursPct":   round(done_h / tot_h * 100) if tot_h else None,
+        "devClosedDate": max(resolved) if dev_tasks and not open_dev and resolved else None,
+        "builds":        builds,
+        "qaDevTest":     dev_tests[0] if dev_tests else None,
+        "rounds":        rounds,
+        "qaRoundsClosedDate": (max(r["resolved"] for r in rounds if r["resolved"])
+                               if rounds_done and any(r["resolved"] for r in rounds) else None),
+        "epicsDevDone":  sum(1 for e in epics if e.get("status") in _SCOPE_DEV_DONE),
+        "epicsTotal":    len(epics),
+    }
+
+
 def fetch_fv_tasks(fv_name, types):
     """Knowledge base §3.3 / §12.2 JQL template."""
     types_jql = ", ".join(f'"{t}"' for t in types)
@@ -500,7 +582,9 @@ def fetch_fv_tasks(fv_name, types):
               # `created` powers the scope-added markers on the dev timeline:
               # compute_scope_delta uses it to pin each added ticket to the day
               # scope grew, so the chart can show when batches landed.
-              "created"]
+              "created",
+              # `resolutiondate` dates M2 (Dev complete) = last dev task closed.
+              "resolutiondate"]
     return jira_jql(jql, fields)
 
 
@@ -534,6 +618,7 @@ def group_by_assignee(issues, fv_name):
             # ISO timestamp; _ticket_created_date trims to YYYY-MM-DD when
             # the scope-delta pass pins each added ticket to a chart marker.
             "created": fields.get("created"),
+            "resolved": (fields.get("resolutiondate") or "")[:10] or None,
         }
         if status == "In Progress" and hours == 0:
             print(f"  ⚠ {fv_name} :: {task['key']} ({name}) — In Progress with 0h estimate")
@@ -1221,6 +1306,16 @@ def build_fv(cfg):
     }
     if qa_progress:
         fv["qaProgress"] = qa_progress
+    # Release milestones: Jira evidence + PMO-entered plan/done dates
+    # (config fv_meta[fv].release_milestones, keyed "M1".."M12").
+    fv["msSignals"] = compute_milestone_signals(
+        dev_people, release_tickets, fetch_qa_template(cfg["key"]), scope)
+    fv["releaseMilestones"] = cfg.get("release_milestones") or {}
+    sig = fv["msSignals"]
+    print(f"  milestones: dev open {sig['devOpenN']}/{sig['devTotalN']}"
+          f" · dev closed {sig['devClosedDate'] or '—'}"
+          f" · rounds {sum(r['done'] for r in sig['rounds'])}/{len(sig['rounds'])} closed"
+          f" · QA closed {sig['qaRoundsClosedDate'] or '—'}")
     # Target date for the right-side summary panel: config override wins over
     # Jira's releaseDate, which wins over None (shown as "TBD" in the UI).
     target = cfg.get("target_date") or cfg.get("jira_release_date")
