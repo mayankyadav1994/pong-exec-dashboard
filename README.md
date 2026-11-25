@@ -23,7 +23,8 @@ Each refresh runs from `.github/workflows/` and commits the rebuilt page back in
 
 Each space (V2, iGaming, Cloud Services) is three linked pages: **Releases** (its timeline,
 with each release's games and features nested under it), **Games** and **Features** (its
-boards in the Game & Feature Pipeline). Cloud Services has no games.
+boards in the Game & Feature Pipeline). Cloud Services has no games. The nested games & features layer
+is one shared piece of code for all three timelines: `timelines/pipeline_layer.py` / `.js` / `.css`.
 
 ## Shared folders
 

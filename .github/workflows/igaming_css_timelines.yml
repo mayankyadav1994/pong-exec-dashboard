@@ -23,6 +23,7 @@ on:
       - "config/css.json"
       - "timelines/timeline.template.html"
       - "timelines/timeline.py"
+      - "timelines/pipeline_layer.*"   # games & features layer, shared with V2
 
 concurrency:
   group: refresh-dashboards

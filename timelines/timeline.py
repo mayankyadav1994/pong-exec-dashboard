@@ -28,6 +28,7 @@ HERE = Path(__file__).resolve().parent     # timelines/ — template, page, snap
 REPO = HERE.parent                         # repo root — config/, shared/
 sys.path.insert(0, str(REPO / "shared"))   # shared/jira_client.py
 from jira_client import agile_get, jira_get, jira_jql  # noqa: E402
+import pipeline_layer  # noqa: E402  (timelines/pipeline_layer.py: games & features layer)
 
 # Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
 # default cp1252 stdout encoding can't handle them. No-op on Linux CI.
@@ -1301,7 +1302,8 @@ def main():
     # Drift snapshot — compute today's projections, persist, then load the
     # recent history. The template uses these for the ghost bar + HISTORY tab.
     print("  Tagging games & features …")
-    n_games, n_feats = annotate_pipeline(fv_list)
+    n_games, n_feats = pipeline_layer.annotate(fv_list, jira_jql, P.get("game_re"),
+                                               P.get("games_feed"), P.get("features_feed"))
     print(f"    {n_games} game card(s), {n_feats} feature card(s) across {len(fv_list)} releases")
 
     today_snap = compute_snapshot(fv_list)
@@ -1317,7 +1319,7 @@ def main():
         print(f"  scope baseline: {n_with_delta} FV(s) show a deviation vs baseline")
 
     template_path = HERE / "timeline.template.html"
-    template = template_path.read_text(encoding="utf-8")
+    template = pipeline_layer.inline(template_path.read_text(encoding="utf-8"))
     dash = {"key": DASH_KEY, "title": P["title"], "sprintPrefix": P["sprint_prefix"],
             "configPath": f"config/{P['config']}", "ls": P["ls_prefix"]}
     rendered = (template
@@ -1358,70 +1360,6 @@ def main():
         raise SystemExit(f"unfilled template placeholders: {leftover}")
     (HERE / P["page"]).write_text(rendered, encoding="utf-8")
     print(f"\n✅ {P['page']} written")
-
-
-# ── Games & features layer ────────────────────────────────────────────────────
-# Each release's Scope cards (its epics, Stories rolled up) become the nested
-# rows under the release. Python only labels them; the page forecasts each one
-# with the release bar's own rule, so the layer always adds up to the release.
-_RELEASE_EPIC_RE = re.compile(r"^\s*release\b", re.I)
-
-
-def annotate_pipeline(fv_list):
-    """Tag every scope card with kind (game / feature / release / other), the
-    epic's Jira due date and a display label. Returns (games, features)."""
-    keys = sorted({s["key"] for fv in fv_list for s in fv.get("scope") or [] if s.get("key")})
-    info = {}
-    for i in range(0, len(keys), 80):
-        for e in jira_jql(f"key in ({','.join(keys[i:i + 80])})",
-                          fields=["duedate", "issuetype"]):
-            f = e.get("fields") or {}
-            info[e["key"]] = {"due": f.get("duedate"),
-                              "type": (f.get("issuetype") or {}).get("name")}
-    game_re = re.compile(P["game_re"], re.I) if P.get("game_re") else None
-    boards = {kind: _pipeline_board(P.get(f"{kind}s_feed")) for kind in ("game", "feature")}
-    n_games = n_feats = 0
-    for fv in fv_list:
-        for s in fv.get("scope") or []:
-            name = s.get("name") or ""
-            meta = info.get(s.get("key")) or {}
-            if not s.get("key"):
-                kind = "other"
-            elif _RELEASE_EPIC_RE.search(name):
-                kind = "release"
-            elif game_re and game_re.search(name):
-                kind = "game"
-            else:
-                kind = "feature"
-            s["kind"] = kind
-            s["due"] = meta.get("due")
-            s["itype"] = meta.get("type")
-            s["label"] = (game_re.sub("", name).strip(" :-") or name) if kind == "game" else name
-            feed, on_board = boards.get(kind, (None, set()))
-            if feed and s.get("key") in on_board:
-                s["pipe"] = feed          # link target: game-pipeline.html?project=<feed>&focus=<key>
-            n_games += kind == "game"
-            n_feats += kind == "feature"
-    return n_games, n_feats
-
-
-def _pipeline_board(feed):
-    """(feed, epic keys on that Game & Feature Pipeline board): its default roster
-    plus anything the PMO added. Read from the committed pipeline data, so the
-    links match what the board shows."""
-    if not feed:
-        return None, set()
-    gp = REPO / "game-pipeline"
-    try:
-        games = json.loads((gp / f"data-{feed}.json").read_text(encoding="utf-8")).get("games") or []
-    except (OSError, json.JSONDecodeError):
-        return feed, set()
-    keys = {g.get("jira") for g in games if g.get("in_roster") is not False}
-    try:
-        keys |= set(json.loads((gp / f"plan-{feed}.json").read_text(encoding="utf-8")).get("added") or [])
-    except (OSError, json.JSONDecodeError):
-        pass
-    return feed, keys
 
 
 def space_nav():

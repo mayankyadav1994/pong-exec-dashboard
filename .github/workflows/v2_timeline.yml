@@ -17,6 +17,7 @@ on:
       - "config/v2.json"
       - "timelines/v2-timeline.template.html"
       - "timelines/v2_timeline.py"
+      - "timelines/pipeline_layer.*"   # games & features layer, shared with iGaming + CSS
 
 # Serialize against exec_dashboard so the two pushes can't race.
 concurrency:

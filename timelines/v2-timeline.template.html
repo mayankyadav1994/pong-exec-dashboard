@@ -639,14 +639,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
   @page{size:landscape;margin:12mm;}
 }
 
-/* Space switch: Releases (this page) · Games · Features (pipeline boards) */
-.space-nav{display:inline-flex;gap:2px;padding:3px;margin-bottom:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
-.space-nav a{font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 14px;border-radius:7px}
-.space-nav a:hover{background:var(--surf2);color:var(--text)}
-.space-nav a.on{background:#1a2035;color:#fff}
-.space-nav a.ext::after{content:' ↗';font-size:10px;opacity:.7}
-.pl-pipe{color:#4338ca;text-decoration:none;font-weight:600}
-.pl-pipe:hover{text-decoration:underline}
+/*__PIPELINE_CSS__*/
 </style>
 </head>
 <body>
@@ -1993,6 +1986,8 @@ function buildHistoryBody(fv){
 const rowsEl=document.getElementById('rows');
 let dragSrcIdx=null;
 
+/*__PIPELINE_JS__*/
+
 function buildRows(){
   // Clear registries + DOM
   rowsEl.innerHTML='';
@@ -2103,6 +2098,7 @@ ordered.forEach((fv,idx)=>{
     ${effectiveFv.isLab?'<div class="fv-regulated">🔬 Regulated · Lab Required</div>':''}
     ${!effectiveFv.isScenario&&countUnlogged(effectiveFv)>0?`<div style="margin-top:4px"><span class="unlogged-badge">⚠ ${countUnlogged(effectiveFv)} tasks 0h logged</span></div>`:''}
     ${chips.length ? `<div class="fv-meta-chips">${chips.join('')}</div>` : ''}`;
+  const plNest = plMount(lbl, effectiveFv, idx, devEnd, qaEnd);   // games & features layer (pipeline_layer.js)
 
   const track=document.createElement('div');track.className='fv-track';track.style.minHeight=minH+'px';track.style.width=trackPxWidth()+'px';
 
@@ -2500,7 +2496,9 @@ ordered.forEach((fv,idx)=>{
     showToast(`↕ ${src.key} reprioritized to #${idx+1} · queued hours recalculated`);
   });
 
-  item.appendChild(row);item.appendChild(panel);
+  item.appendChild(row);
+  if(plNest) item.appendChild(plNest);
+  item.appendChild(panel);
   rowsEl.appendChild(item);
 });
 } // end buildRows

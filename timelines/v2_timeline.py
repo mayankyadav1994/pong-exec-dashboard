@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent     # timelines/ — template, page, snap
 REPO = HERE.parent                         # repo root — config/, shared/
 sys.path.insert(0, str(REPO / "shared"))   # shared/jira_client.py
 from jira_client import agile_get, jira_get, jira_jql  # noqa: E402
+import pipeline_layer  # noqa: E402  (timelines/pipeline_layer.py: games & features layer)
 
 # Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
 # default cp1252 stdout encoding can't handle them. No-op on Linux CI.
@@ -1403,6 +1404,11 @@ def main():
 
     # Drift snapshot — compute today's projections, persist, then load the
     # recent history. The template uses these for the ghost bar + HISTORY tab.
+    print("  Tagging games & features …")
+    # V2 games are "Game: <name>" epics (same pattern as the V2 roadmap).
+    n_games, n_feats = pipeline_layer.annotate(fvs, jira_jql, r"^Game\s*:", "v2", "v2f")
+    print(f"    {n_games} game card(s), {n_feats} feature card(s) across {len(fvs)} releases")
+
     today_snap = compute_snapshot(fvs)
     write_snapshot("v2", today_snap)
     snapshots = load_snapshots("v2", n=30)
@@ -1416,7 +1422,7 @@ def main():
     if n_with_delta:
         print(f"  scope baseline: {n_with_delta} FV(s) show a deviation vs baseline")
 
-    template = (HERE / "v2-timeline.template.html").read_text(encoding="utf-8")
+    template = pipeline_layer.inline((HERE / "v2-timeline.template.html").read_text(encoding="utf-8"))
     rendered = (template
         .replace("__TODAY__",         TODAY.isoformat())
         .replace("__FV_DATA__",       json.dumps(fvs, ensure_ascii=False))
