@@ -119,13 +119,13 @@
       "spentH": 30
     },
     "PFH2 Services 5.00": {
-      "devEnd": "2026-11-30",
-      "qaEnd": "2026-12-14",
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
       "lab1End": null,
       "pilotEnd": null,
-      "finalEnd": "2026-12-14",
+      "finalEnd": "2026-12-10",
       "totalEstH": 1639,
-      "spentH": 1759
+      "spentH": 1762
     }
   }
 }
