@@ -34,7 +34,7 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2028-06-02",
-      "totalEstH": 9005,
+      "totalEstH": 9053,
       "spentH": 1516
     },
     "ELG 5.50": {
@@ -44,7 +44,7 @@
       "pilotEnd": null,
       "finalEnd": "2026-12-10",
       "totalEstH": 1101,
-      "spentH": 1250
+      "spentH": 1264
     },
     "PFH Games 3.00": {
       "devEnd": "2026-11-30",
@@ -116,7 +116,7 @@
       "pilotEnd": null,
       "finalEnd": "2027-01-15",
       "totalEstH": 2174,
-      "spentH": 1017
+      "spentH": 1024
     },
     "PFH - Features": {
       "devEnd": "2026-11-25",
