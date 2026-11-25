@@ -663,6 +663,43 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
   .fv-scroll,.ax-scroll{overflow:hidden !important;}   /* no printed scrollbar; clip in landscape */
   @page{size:landscape;margin:12mm;}
 }
+
+/* ── GAMES & FEATURES LAYER (nested under each release) ── */
+.pl-toggle{margin-top:6px;align-self:flex-start;font:inherit;font-size:10.5px;font-weight:600;color:#334155;background:#f1f5f9;border:1px solid var(--border2);border-radius:12px;padding:2px 9px;cursor:pointer;white-space:nowrap}
+.pl-toggle:hover{background:#e2e8f0;color:var(--text)}
+.pl-toggle.open{background:#eef2ff;border-color:#a5b4fc;color:#3730a3}
+.pl-nest{margin:-4px 0 8px 0;border-left:3px solid var(--rc,#cbd5e1);border-radius:0 0 8px 8px;background:#fafbfd}
+.pl-group{display:flex;align-items:center;gap:8px;padding:6px 12px 3px 30px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
+.pl-group .n{font-weight:600;color:#94a3b8;letter-spacing:0}
+.pl-row{display:flex;align-items:stretch;border-top:1px solid #eef1f6;min-height:38px}
+.pl-gutter{width:18px;flex-shrink:0}
+.pl-label{width:196px;flex-shrink:0;padding:6px 10px 6px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;justify-content:center;min-width:0}
+.pl-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-name a{color:inherit;text-decoration:none}.pl-name a:hover{text-decoration:underline}
+.pl-meta{display:flex;align-items:center;gap:5px;margin-top:3px;font-size:9.5px;color:var(--sub);white-space:nowrap;overflow:hidden}
+.pl-kind{font-size:11px}
+.pl-stage{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:1px 6px;border-radius:9px;border:1px solid;line-height:1.4}
+.pl-track{position:relative;padding:0}
+.pl-lane{position:absolute;height:6px;border-radius:3px}
+.pl-lane.past{opacity:.28}
+.pl-lane.fin{background:var(--done) !important;opacity:.55}
+.pl-end{position:absolute;font-size:9.5px;font-weight:600;color:#334155;white-space:nowrap;transform:translateY(-3px);padding-left:5px}
+.pl-due{position:absolute;top:3px;bottom:3px;width:0;border-left:2px dashed #94a3b8}
+.pl-due.late{border-left-color:#dc2626}
+.pl-summary{width:148px;flex-shrink:0;border-left:1px solid var(--border);padding:5px 10px;display:flex;flex-direction:column;justify-content:center;font-size:10px;color:var(--sub);gap:1px}
+.pl-summary b{color:var(--text);font-size:11.5px}
+.pl-summary .late{color:#b91c1c;font-weight:600}.pl-summary .early{color:#15803d;font-weight:600}
+.pl-legend{display:flex;gap:10px;align-items:center;padding:5px 12px 7px 30px;font-size:9.5px;color:var(--sub);border-top:1px solid #eef1f6}
+.pl-legend i{display:inline-block;width:14px;height:6px;border-radius:3px;margin-right:4px;vertical-align:middle}
+
+/* Space switch: Releases (this page) · Games · Features (pipeline boards) */
+.space-nav{display:inline-flex;gap:2px;padding:3px;margin-bottom:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
+.space-nav a{font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 14px;border-radius:7px}
+.space-nav a:hover{background:var(--surf2);color:var(--text)}
+.space-nav a.on{background:#1a2035;color:#fff}
+.space-nav a.ext::after{content:' ↗';font-size:10px;opacity:.7}
+.pl-pipe{color:#4338ca;text-decoration:none;font-weight:600}
+.pl-pipe:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -681,6 +718,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div class="share-banner" id="shareBanner" style="display:none"></div>
 <div class="hdr">
   <div>
+    <nav class="space-nav" aria-label="This space">__SPACE_NAV__</nav>
     <h1>__TITLE__ — Fix Version Delivery Forecast</h1>
     <p>Pong Game Studios · __LINES__ · Click any row to drill in · Adjust per-person buffers inline</p>
     <div class="refresh-meta"><div class="refresh-dot"></div>Last refreshed from Jira: <strong>__REFRESH_LABEL__</strong>&nbsp;·&nbsp;__SPRINT_HEADER__</div>
@@ -1994,6 +2032,172 @@ function restoreFv(key){
   showToast(`↩ ${key} restored`);
 }
 
+
+// ─── GAMES & FEATURES LAYER ─────────────────────────────────────────────────
+// Each release's Scope cards (epics; Stories rolled up) as nested rows, split
+// into games and features, with a forecast per discipline lane. Same rule as
+// the release bar (calcDevEnd / calcTypeEnd): every person works through their
+// open hours at hpd() from today; dev people first finish their dated work in
+// higher-priority releases (getDynamicQueued). Inside the release a person
+// takes its games/features in the order shown (due date, games before
+// features), so the last item each person finishes lands exactly on the
+// release's dev end: the layer always adds up to the release bar (checked in
+// plRender; a mismatch shows on the toggle as ⚠).
+const PL_LANES=[
+  {k:'design',lbl:'Design',type:'Design',  color:'#0891b2'},
+  {k:'art',   lbl:'Art',   type:'Creative',color:'#7c3aed'},
+  {k:'math',  lbl:'Math',  type:'Math',    color:'#0d9488'},
+  {k:'dev',   lbl:'Dev',   type:null,      color:'#2563eb'},
+  {k:'sound', lbl:'Sound', type:'Sound',   color:'#db2777'},
+];
+const PL_KIND={game:{o:0,icon:'🎮',grp:'Games'},feature:{o:1,icon:'◆',grp:'Features'},
+  release:{o:2,icon:'⚙',grp:'Release prep'},other:{o:3,icon:'·',grp:'Other work'},scenario:{o:4,icon:'⚡',grp:'Scenario'}};
+const PL_KEY=DASH.ls+'pipe_open';
+let PL_OPEN=new Set();
+try{PL_OPEN=new Set(JSON.parse(localStorage.getItem(PL_KEY)||'[]'));}catch(e){}
+function plSave(){try{localStorage.setItem(PL_KEY,JSON.stringify([...PL_OPEN]));}catch(e){}}
+function plLaneOf(p){
+  if(!p.type) return 'dev';
+  const l=PL_LANES.find(x=>x.type&&p.type.startsWith(x.type));
+  return l?l.k:null;
+}
+function plCounts(fv){
+  const c={game:0,feature:0};
+  (fv.scope||[]).forEach(s=>{if(s.kind==='game')c.game++;else if(s.kind==='feature')c.feature++;});
+  return c;
+}
+function plAdd(it,lane,p,tasks,cum,rate){
+  const L=it.lanes[lane]||(it.lanes[lane]={n:0,done:0,openN:0,openH:0,spentH:0,people:new Set(),start:null,end:null,firstC:null,lastR:null});
+  for(const t of tasks){
+    L.n++; L.spentH+=t.spentH||0;
+    if(t.created&&(!L.firstC||t.created<L.firstC))L.firstC=t.created;
+    if(isDone(t.status)){L.done++;if(t.resolved&&(!L.lastR||t.resolved>L.lastR))L.lastR=t.resolved;}
+  }
+  const open=tasks.filter(t=>!isDone(t.status));
+  if(!open.length) return cum;
+  L.people.add(p.name); L.openN+=open.length;
+  const h=open.reduce((s,t)=>s+t.hours,0);
+  L.openH+=h;
+  const st=addWD(TODAY,cum,rate); cum+=h; const en=addWD(TODAY,cum,rate);
+  if(!L.start||st<L.start)L.start=st;
+  if(!L.end||en>L.end)L.end=en;
+  return cum;
+}
+function plItems(fv,fvIdx){
+  const items=(fv.scope||[]).map(s=>({key:s.key,name:s.label||s.name,kind:s.kind||(s.key?'feature':'other'),
+    due:s.due||null,epicStatus:s.status,pipe:s.pipe||null,keys:new Set(s.taskKeys||[]),lanes:{}}));
+  items.sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')
+    ||PL_KIND[a.kind].o-PL_KIND[b.kind].o||String(a.name).localeCompare(String(b.name)));
+  const scen={key:null,name:'Scenario work',kind:'scenario',due:null,keys:new Set(),lanes:{}};
+  const people=[...(fv.devPeople||[]).map(p=>({p,lane:'dev'})),
+                ...(fv.otherPeople||[]).map(p=>({p,lane:plLaneOf(p)}))].filter(x=>x.lane);
+  for(const {p,lane} of people){
+    const rate=hpd(fv.key,p.name);
+    let cum=lane==='dev'?getDynamicQueued(fvIdx,p.name):0;
+    const seen=new Set();
+    for(const it of items){
+      const ts=p.tasks.filter(t=>it.keys.has(t.key));
+      if(!ts.length) continue;
+      ts.forEach(t=>seen.add(t));
+      cum=plAdd(it,lane,p,ts,cum,rate);
+    }
+    const rest=p.tasks.filter(t=>!seen.has(t));
+    if(rest.length) cum=plAdd(scen,lane,p,rest,cum,rate);
+  }
+  if(Object.keys(scen.lanes).length) items.push(scen);
+  return items.filter(it=>Object.keys(it.lanes).length);
+}
+function plStage(it,fv){
+  for(const l of PL_LANES){const L=it.lanes[l.k];if(L&&L.openN)return{lbl:l.lbl,color:l.color};}
+  if(/^(closed|done)$/i.test(it.epicStatus||'')) return {lbl:'Done',color:'#16a34a'};
+  if(/^In QA/.test(fv.statusLabel||'')) return {lbl:'QA · release',color:'#d97706'};
+  return {lbl:'Built',color:'#16a34a'};
+}
+function plRender(nest,fv,fvIdx,devEnd,qaEnd){
+  nest.innerHTML='';
+  const items=plItems(fv,fvIdx);
+  // Adds-up check: the latest dev-lane end must equal the release's dev end.
+  const devEnds=items.map(it=>it.lanes.dev&&it.lanes.dev.end).filter(Boolean);
+  const maxDev=devEnds.length?new Date(Math.max(...devEnds.map(d=>+d))):null;
+  const expect=maxDev&&maxDev>TODAY?maxDev:new Date(TODAY);
+  const consistent=!maxDev||expect.toDateString()===new Date(devEnd).toDateString();
+  nest.dataset.consistent=String(!!consistent);
+  // Forecast ran in due-date order; display groups by kind, keeping that order.
+  const openHOf=it=>Object.values(it.lanes).reduce((s,L)=>s+L.openH,0);
+  const shown=items.map((it,i)=>({it,i})).sort((a,b)=>PL_KIND[a.it.kind].o-PL_KIND[b.it.kind].o||a.i-b.i).map(x=>x.it);
+  let lastKind=null;
+  for(const it of shown){
+    if(it.kind!==lastKind){
+      const grp=shown.filter(x=>x.kind===it.kind);
+      const gh=grp.reduce((s,x)=>s+openHOf(x),0);
+      const g=document.createElement('div');g.className='pl-group';
+      g.innerHTML=`${PL_KIND[it.kind].icon} ${PL_KIND[it.kind].grp} <span class="n">${grp.length} · ${gh.toFixed(gh<10?1:0)}h left</span>`;
+      nest.appendChild(g); lastKind=it.kind;
+    }
+    const lanes=PL_LANES.filter(l=>it.lanes[l.k]);
+    const all=lanes.map(l=>it.lanes[l.k]);
+    const openH=all.reduce((s,L)=>s+L.openH,0), spentH=all.reduce((s,L)=>s+L.spentH,0);
+    const n=all.reduce((s,L)=>s+L.n,0), done=all.reduce((s,L)=>s+L.done,0);
+    const pctDone=spentH+openH>0?Math.round(spentH/(spentH+openH)*100):(n?Math.round(done/n*100):0);
+    const ends=all.map(L=>L.end).filter(Boolean);
+    const end=ends.length?new Date(Math.max(...ends.map(d=>+d))):null;
+    const ppl=new Set();all.forEach(L=>L.people.forEach(x=>ppl.add(x)));
+    const stg=plStage(it,fv);
+    const row=document.createElement('div');row.className='pl-row';
+    const nameHtml=it.key?`<a href="${BASE}${it.key}" target="_blank" onclick="event.stopPropagation()">${msEsc(it.name)}</a>`:msEsc(it.name);
+    row.innerHTML=`<div class="pl-gutter"></div>
+      <div class="pl-label"><div class="pl-name" title="${msEsc(it.name)}">${nameHtml}</div>
+        <div class="pl-meta"><span class="pl-stage" style="color:${stg.color};border-color:${stg.color}55;background:${stg.color}14">${stg.lbl}</span>
+        ${it.key?`<span>${it.key}</span>`:''}${ppl.size?`<span>· 👥 ${ppl.size}</span>`:''}${it.pipe?`<a class="pl-pipe" href="game-pipeline.html?project=${it.pipe}&focus=${encodeURIComponent(it.key)}" onclick="event.stopPropagation()" title="Open in the ${it.kind==='game'?'game':'feature'} pipeline">· pipeline ↗</a>`:''}</div></div>`;
+    const track=document.createElement('div');track.className='fv-track pl-track';
+    track.style.width=trackPxWidth()+'px';
+    track.style.minHeight=Math.max(38,10+lanes.length*9)+'px';
+    SPRINTS.forEach(s=>{const l=document.createElement('div');l.className='sp-line';l.style.left=pct(s.start)+'%';track.appendChild(l);});
+    const tl=document.createElement('div');tl.className='today-line';tl.style.left=pct(TODAY)+'%';track.appendChild(tl);
+    const top0=Math.max(6,(Math.max(38,10+lanes.length*9)-lanes.length*9)/2);
+    lanes.forEach((l,i)=>{
+      const L=it.lanes[l.k], top=top0+i*9;
+      const tip=`${l.lbl}: ${L.done}/${L.n} done · ${L.openH.toFixed(1)}h left`+(L.people.size?` · ${[...L.people].join(', ')}`:'')+(L.end?` · forecast ${msFmt(L.end)}`:'');
+      if(L.firstC&&!L.openN){   // finished lane: green, first ticket created → last resolved
+        const a0=D(L.firstC.slice(0,10)), a=a0<CHART_START?CHART_START:a0;
+        const b=L.lastR?D(L.lastR.slice(0,10)):new Date(TODAY);
+        if(b>a){const s=document.createElement('div');s.className='pl-lane fin';
+          s.style.cssText=`top:${top}px;left:${pct(a)}%;width:${Math.max(+pct(b)-(+pct(a)),.2)}%;background:${l.color}`;s.title=tip;track.appendChild(s);}
+      }
+      if(L.openN&&L.start&&L.end){
+        const s=document.createElement('div');s.className='pl-lane';
+        s.style.cssText=`top:${top}px;left:${pct(L.start)}%;width:${Math.max(+pct(L.end)-(+pct(L.start)),.35)}%;background:${l.color}`;
+        s.title=tip;track.appendChild(s);
+      }
+    });
+    if(end&&openH>=0&&all.some(L=>L.openN)){
+      const e=document.createElement('div');e.className='pl-end';e.style.left=pct(end)+'%';
+      e.style.top=(top0+((lanes.length-1)*9)/2)+'px';e.textContent=`→ ${msFmt(end)}`;track.appendChild(e);
+    }
+    let dueHtml='';
+    if(it.due){
+      const due=D(it.due), late=end&&end>due;
+      const m=document.createElement('div');m.className='pl-due'+(late?' late':'');m.style.left=pct(due)+'%';
+      m.title=`Due ${msFmt(due)} (Jira due date)`;track.appendChild(m);
+      const dd=end?wdDiff(end.toISOString().slice(0,10),it.due):null;
+      dueHtml=`<div>Due ${msFmt(due)}${dd===null||dd===0?'':dd>0?` · <span class="late">+${dd}d</span>`:` · <span class="early">${-dd}d early</span>`}</div>`;
+    }
+    const scroll=document.createElement('div');scroll.className='fv-scroll';scroll.appendChild(track);
+    const sum=document.createElement('div');sum.className='pl-summary';
+    const noEst=all.reduce((s,L)=>s+L.openN,0)&&openH===0;
+    sum.innerHTML=`<div><b>${openH.toFixed(openH<10?1:0)}h</b> left · ${pctDone}%</div>${noEst?`<div class="late">⚠ open, no estimate</div>`:''}
+      <div>${end&&all.some(L=>L.openN)?`Done ~${msFmt(end)}`:stg.lbl==='QA · release'?`QA → ${msFmt(qaEnd)}`:'No open work'}</div>${dueHtml}`;
+    row.appendChild(scroll); row.appendChild(sum);
+    nest.appendChild(row);
+    registerScroller(scroll);
+  }
+  const lg=document.createElement('div');lg.className='pl-legend';
+  lg.innerHTML=PL_LANES.map(l=>`<span><i style="background:${l.color}"></i>${l.lbl}</span>`).join('')
+    +`<span><i style="background:var(--done);opacity:.55"></i>finished</span><span><i style="border-left:2px dashed #94a3b8;width:0;height:10px"></i>due date</span>`
+    +`<span style="margin-left:auto">Forecast = the release bar's rule, item by item. QA happens in the release's QA rounds.</span>`;
+  nest.appendChild(lg);
+}
+
 function buildRows(){
   rowsEl.innerHTML='';
   Object.keys(barEls).forEach(k=>delete barEls[k]);
@@ -2097,6 +2301,17 @@ function buildRows(){
         : `<span class="fv-badge" style="${effectiveFv.statusStyle}">${_badgeText}</span>`}
       ${!effectiveFv.isScenario&&countUnlogged(effectiveFv)>0?`<div style="margin-top:4px"><span class="unlogged-badge">⚠ ${countUnlogged(effectiveFv)} tasks 0h logged</span></div>`:''}
       ${chips.length ? `<div class="fv-meta-chips">${chips.join('')}</div>` : ''}`;
+    const _plc = plCounts(effectiveFv);
+    let plBtn = null;
+    if(!effectiveFv.isScenario && (_plc.game || _plc.feature)){
+      plBtn = document.createElement('button');
+      plBtn.type = 'button';
+      plBtn.className = 'pl-toggle';
+      const _plTxt = [_plc.game ? `${_plc.game} game${_plc.game>1?'s':''}` : '',
+                      _plc.feature ? `${_plc.feature} feature${_plc.feature>1?'s':''}` : ''].filter(Boolean).join(' · ');
+      plBtn.dataset.txt = _plTxt;
+      lbl.appendChild(plBtn);
+    }
 
     const track=document.createElement('div');track.className='fv-track';track.style.minHeight=minH+'px';track.style.width=trackPxWidth()+'px';
 
@@ -2439,7 +2654,29 @@ function buildRows(){
       showToast(`✓ ${src.key} reprioritized to #${idx+1} · queued hours recalculated`);
     });
 
-    item.appendChild(row);item.appendChild(panel);
+    item.appendChild(row);
+    if(plBtn){
+      const nest = document.createElement('div');
+      nest.className = 'pl-nest';
+      nest.style.setProperty('--rc', effectiveFv.color);
+      const fvRef = effectiveFv, idxRef = idx, devRef = devEnd, qaRef = qaEnd;
+      const setOpen = open => {
+        plBtn.classList.toggle('open', open);
+        nest.style.display = open ? '' : 'none';
+        if(open && !nest.dataset.built){ plRender(nest, fvRef, idxRef, devRef, qaRef); nest.dataset.built = '1'; }
+        const warn = nest.dataset.consistent === 'false' ? ' ⚠' : '';
+        plBtn.textContent = `${open ? '▾' : '▸'} ${plBtn.dataset.txt}${warn}`;
+      };
+      plBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        const open = !PL_OPEN.has(fvRef.key);
+        open ? PL_OPEN.add(fvRef.key) : PL_OPEN.delete(fvRef.key);
+        plSave(); setOpen(open);
+      });
+      setOpen(PL_OPEN.has(fvRef.key));
+      item.appendChild(nest);
+    }
+    item.appendChild(panel);
     rowsEl.appendChild(item);
   });
 }

@@ -1,0 +1,61 @@
+{
+ "schema_version": 1,
+ "feed": "v2f",
+ "jira_project": "V2",
+ "releases": {
+  "V2 C2 Backlog": {
+   "name": "V2 C2 Backlog",
+   "first_seen": "2026-11-25",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 HHR 3.20": {
+   "name": "V2 HHR 3.20",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-10-30",
+   "current_date": "2026-10-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 P2P 16.00": {
+   "name": "V2 P2P 16.00",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-11-30",
+   "current_date": "2026-11-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 P2P 16.20": {
+   "name": "V2 P2P 16.20",
+   "first_seen": "2026-11-25",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "V2 PT 13.41": {
+   "name": "V2 PT 13.41",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-11-12",
+   "current_date": "2026-11-12",
+   "released": true,
+   "released_on": "2026-11-12",
+   "revisions": []
+  },
+  "V2 PT 14.00": {
+   "name": "V2 PT 14.00",
+   "first_seen": "2026-11-25",
+   "original_date": "2027-01-29",
+   "current_date": "2027-01-29",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  }
+ }
+}

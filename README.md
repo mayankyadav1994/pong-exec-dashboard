@@ -13,13 +13,17 @@ Live site: <https://mayankyadav1994.github.io/pong-exec-dashboard/>
 | Cloud Services release timeline | `timelines/` | `/css-timeline.html` | `timeline.py css` (same engine as iGaming) | daily 06:30 UTC + on plan save |
 | Roadmaps (iGaming, V2, Cloud Services) | `roadmap/` | `/roadmap-igaming.html`, `/roadmap-v2.html`, `/roadmap-css.html` | `roadmap.py all` | daily 06:45 UTC |
 | People | `people/` | `/people.html` | `people.py` | daily 07:15 UTC |
-| Game Pipeline + CEO Summary | `game-pipeline/` | `/game-pipeline.html`, `/ceo-summary.html` | `build_jira_data.py --project both` | daily 06:00 UTC |
+| Game & Feature Pipeline + CEO Summary | `game-pipeline/` | `/game-pipeline.html?project=` `v2` · `v2f` · `ig` · `igf` · `cssf` (games / features per space), `/ceo-summary.html` | `build_jira_data.py --project both` (all boards) | daily 06:00 UTC |
 | Team Board | `team-board/` | `/team-board.html` | `team_board.py` (Jira writes: `apply_plan.py`) | daily 06:00 UTC |
 | Sprint Load | `sprint-load/` | `/sprint-load/dashboard.html` | `sprint_load.py` | by hand (no workflow yet) |
 | ELG cost model, Net-new vs port | `elg-cost-model/` | `/elg-cost-model.html`, `/netnew-vs-port.html` | `elg_cost_page.py`, `netnew_page.py` | by hand |
 | Weekly Executive Release Dashboard | private repo `release-dashboard` | Confluence page | `release_dashboard_refresh.py` | Mon + Thu 13:00 UTC |
 
 Each refresh runs from `.github/workflows/` and commits the rebuilt page back into the dashboard's folder.
+
+Each space (V2, iGaming, Cloud Services) is three linked pages: **Releases** (its timeline,
+with each release's games and features nested under it), **Games** and **Features** (its
+boards in the Game & Feature Pipeline). Cloud Services has no games.
 
 ## Shared folders
 

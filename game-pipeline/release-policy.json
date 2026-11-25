@@ -8,11 +8,12 @@
     "config container, staging queue or platform workstream. Versions listed here",
     "never set a due date and never make a game 'late'. Everything NOT listed is",
     "treated as a committed release when it carries a release date.",
-    "Published deliberately: exclusions are visible, not hidden build logic."
+    "Published deliberately: exclusions are visible, not hidden build logic.",
+    "\"games_only\": true = a platform/services workstream: not a game release train, but a real release for FEATURE boards."
   ],
   "excluded": {
     "IG": [
-      { "name": "PFH Services 3.00",      "reason": "Services workstream, not a game release train" },
+      { "name": "PFH Services 3.00",      "reason": "Services workstream, not a game release train", "games_only": true },
       { "name": "PFH Games 5.00",         "reason": "iFrame issue bucket - dated but not a delivery commitment" },
       { "name": "PFH Games 4.00",         "reason": "Gen2 change bucket, undated" },
       { "name": "PFH Games Backlog",      "reason": "Backlog container" },
@@ -25,9 +26,9 @@
       { "name": "iGaming - R&D",          "reason": "Research container, no delivery commitment" }
     ],
     "V2": [
-      { "name": "V2 HHR 3.20",    "reason": "POS workstream, not a game release train" },
-      { "name": "V2 P2P 16.00",   "reason": "Platform workstream (Georgia), not games" },
-      { "name": "V2 PT 14.00",    "reason": "Platform workstream (Ohio central server), not games" },
+      { "name": "V2 HHR 3.20",    "reason": "POS workstream, not a game release train", "games_only": true },
+      { "name": "V2 P2P 16.00",   "reason": "Platform workstream (Georgia), not games", "games_only": true },
+      { "name": "V2 PT 14.00",    "reason": "Platform workstream (Ohio central server), not games", "games_only": true },
       { "name": "V2 C2 Backlog",  "reason": "Backlog container" },
       { "name": "V2 PT Backlog",  "reason": "Backlog container" },
       { "name": "V2 P2P Backlog", "reason": "Backlog container" },

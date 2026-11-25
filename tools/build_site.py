@@ -38,13 +38,13 @@ SITE_ROOT: dict[str, list[str]] = {
                    "team-board-write.js"],
     "game-pipeline": [
         "game-pipeline.html", "ceo-summary.html", "dashboard.js", "dashboard.css",
-        "dashboard-data-v2.js", "dashboard-data-ig.js", "dashboard-data-igf.js",
-        "data-v2.json", "data-ig.json", "data-igf.json",
+        # One set per board (v2, ig, igf, v2f, cssf …). Globs: a board's files
+        # appear as soon as the builder or a plan save creates them.
+        "dashboard-data-*.js", "data-*.json", "release-history-*.json",
         # Saved from the page through the GitHub API (repo path game-pipeline/…),
         # read back by the page from the site root.
-        "plan-v2.json", "plan-ig.json", "plan-igf.json", "editors.json", "ceo-review.json",
+        "plan-*.json", "editors.json", "ceo-review.json",
         "release-policy.json", "alerts.json",
-        "release-history-v2.json", "release-history-ig.json", "release-history-igf.json",
     ],
     "elg-cost-model": ["elg-cost-model.html", "netnew-vs-port.html"],
     "shared": ["site-nav.js"],
@@ -76,7 +76,13 @@ def build() -> int:
 
     missing, placed = [], 0
     for folder, files in SITE_ROOT.items():
+        names = []
         for name in files:
+            if "*" in name:      # glob: any number of matches, none required
+                names += sorted(p.name for p in (REPO / folder).glob(name) if p.is_file())
+            else:
+                names.append(name)
+        for name in names:
             src = REPO / folder / name
             if not src.is_file():
                 missing.append(f"{folder}/{name}")
@@ -92,7 +98,7 @@ def build() -> int:
         print("error: missing published files:\n  " + "\n  ".join(missing), file=sys.stderr)
         return 1
 
-    pages = [n for files in SITE_ROOT.values() for n in files if n.endswith(".html")]
+    pages = [n for files in SITE_ROOT.values() for n in files if n.endswith(".html") and "*" not in n]
     for rel in pages + NAV_EXTRA_PAGES:
         if not add_site_nav(OUT / rel, rel):
             return 1

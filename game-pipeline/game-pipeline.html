@@ -2,27 +2,44 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Game Pipeline — Pong Game Studios</title>
+<title>Game &amp; Feature Pipeline — Pong Game Studios</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="dashboard.css?v=76">
 </head>
 <body>
 
-<!-- Standalone Game Pipeline dashboard: its own page with a V2 / iGaming toggle.
-     Intentionally NOT linked into the exec/release-timeline dashboard nav. -->
+<!-- Game & feature pipelines for every space. Each space's Releases link goes
+     back to its release timeline; the timelines link here with ?project=. -->
 <div class="gp-pagehead" style="display:flex;justify-content:space-between;align-items:center;gap:16px">
   <div>
-    <h1>🎮 Game Pipeline 2026</h1>
-    <p>Pong Game Studios · game-epic lifecycle roadmap · V2 + iGaming + Features</p>
+    <h1>🎮 Game &amp; Feature Pipeline 2026</h1>
+    <p>Pong Game Studios · game and feature lifecycle · V2 · iGaming · Cloud Services</p>
   </div>
   <a href="ceo-summary.html" style="flex-shrink:0;font-size:12px;font-weight:600;text-decoration:none;color:#fff;background:#1a2035;border:1px solid #1a2035;border-radius:7px;padding:9px 16px;white-space:nowrap">📅 CEO Summary →</a>
 </div>
 
-<div class="gp-subtabs" id="gpSubtabs">
-  <button class="gp-subtab active" data-project="v2"><span class="gp-dot"></span>V2</button>
-  <button class="gp-subtab" data-project="ig"><span class="gp-dot"></span>iGaming</button>
-  <button class="gp-subtab" data-project="igf"><span class="gp-dot"></span>iGaming Features</button>
+<div class="gp-subtabs gp-spaces" id="gpSubtabs">
+  <div class="gp-space"><span class="gp-space-name">V2</span>
+    <a class="gp-space-rel" href="v2-timeline.html" title="V2 release timeline">Releases</a>
+    <button class="gp-subtab active" data-project="v2"><span class="gp-dot"></span>Games</button>
+    <button class="gp-subtab" data-project="v2f"><span class="gp-dot"></span>Features</button></div>
+  <div class="gp-space"><span class="gp-space-name">iGaming</span>
+    <a class="gp-space-rel" href="igaming-timeline.html" title="iGaming release timeline">Releases</a>
+    <button class="gp-subtab" data-project="ig"><span class="gp-dot"></span>Games</button>
+    <button class="gp-subtab" data-project="igf"><span class="gp-dot"></span>Features</button></div>
+  <div class="gp-space"><span class="gp-space-name">Cloud Services</span>
+    <a class="gp-space-rel" href="css-timeline.html" title="Cloud Services release timeline">Releases</a>
+    <button class="gp-subtab" data-project="cssf"><span class="gp-dot"></span>Features</button></div>
 </div>
+<style>
+.gp-spaces{flex-wrap:wrap;gap:10px}
+.gp-space{display:flex;align-items:center;gap:4px;padding:4px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
+.gp-space-name{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--sub);padding:0 6px 0 4px}
+.gp-space .gp-subtab{padding:6px 12px;border-color:transparent}
+.gp-space-rel{font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:7px}
+.gp-space-rel:hover{background:var(--surf2);color:var(--text)}
+.gp-space-rel::after{content:' ↗';font-size:10px}
+</style>
 
 <div id="gp-app"></div>
 
@@ -30,7 +47,9 @@
 <script src="dashboard-data-v2.js"></script>
 <script src="dashboard-data-ig.js"></script>
 <script src="dashboard-data-igf.js"></script>
-<script src="dashboard.js?v=83"></script>
+<script src="dashboard-data-v2f.js"></script>
+<script src="dashboard-data-cssf.js"></script>
+<script src="dashboard.js?v=84"></script>
 <script>
 (function () {
   function start() {
@@ -41,6 +60,14 @@
       for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].dataset.project === key);
       window.GamePipeline.mount(key, app);
       try { localStorage.setItem('gp_active_project', key); } catch (e) {}
+      // Keep ?project= in the address so links, bookmarks and the sidebar match.
+      try {
+        var u = new URL(location.href);
+        if (u.searchParams.get('project') !== key) {
+          u.searchParams.set('project', key); u.searchParams.delete('focus');
+          history.replaceState(null, '', u);
+        }
+      } catch (e) {}
     }
     tabs.addEventListener('click', function (e) {
       var b = e.target.closest('.gp-subtab');

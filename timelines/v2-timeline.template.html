@@ -638,6 +638,15 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
   .fv-scroll,.ax-scroll{overflow:hidden !important;}   /* no printed scrollbar; clip in landscape */
   @page{size:landscape;margin:12mm;}
 }
+
+/* Space switch: Releases (this page) · Games · Features (pipeline boards) */
+.space-nav{display:inline-flex;gap:2px;padding:3px;margin-bottom:10px;border:1px solid var(--border);border-radius:9px;background:var(--surface)}
+.space-nav a{font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 14px;border-radius:7px}
+.space-nav a:hover{background:var(--surf2);color:var(--text)}
+.space-nav a.on{background:#1a2035;color:#fff}
+.space-nav a.ext::after{content:' ↗';font-size:10px;opacity:.7}
+.pl-pipe{color:#4338ca;text-decoration:none;font-weight:600}
+.pl-pipe:hover{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -660,6 +669,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div class="share-banner" id="shareBanner" style="display:none"></div>
 <div class="hdr">
   <div>
+    <nav class="space-nav" aria-label="This space"><a class="on" href="v2-timeline.html">Releases</a><a class="ext" href="game-pipeline.html?project=v2">Games</a><a class="ext" href="game-pipeline.html?project=v2f">Features</a></nav>
     <h1>V2 Release Timeline — Fix Version Delivery Forecast</h1>
     <p>Pong Game Studios · Click any row to drill in · Adjust per-person buffers inline</p>
     <div class="refresh-meta"><div class="refresh-dot"></div>Last refreshed from Jira: <strong>__REFRESH_LABEL__</strong>&nbsp;·&nbsp;Sprint __SPRINT_HEADER__</div>

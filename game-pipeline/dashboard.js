@@ -51,9 +51,15 @@ const PROJECT_META = {
   ig: { key: 'ig', title: 'iGaming Game Pipeline',
         subtitle: 'Pong Game Studios · iGaming game-epic lifecycle dashboard',
         jira_project: 'IG', ls_prefix: 'gp_ig_' },
-  igf: { key: 'igf', title: 'iGaming Features',
-        subtitle: 'Pong Game Studios · iGaming feature pipeline · add features from the Edit ▸ search',
+  igf: { key: 'igf', title: 'iGaming Features', features: true,
+        subtitle: 'Pong Game Studios · iGaming feature pipeline · features in dated releases, plus any added from the Edit ▸ search',
         jira_project: 'IG', ls_prefix: 'gp_igf_' },
+  v2f: { key: 'v2f', title: 'V2 Features', features: true,
+        subtitle: 'Pong Game Studios · V2 feature pipeline · features in dated releases, plus any added from the Edit ▸ search',
+        jira_project: 'V2', ls_prefix: 'gp_v2f_' },
+  cssf: { key: 'cssf', title: 'Cloud Services Features', features: true,
+        subtitle: 'Pong Game Studios · Cloud Services feature pipeline · features in dated releases, plus any added from the Edit ▸ search',
+        jira_project: 'CSS', ls_prefix: 'gp_cssf_' },
 };
 
 const DEFAULT_CONFIG = {
@@ -536,9 +542,9 @@ function buildSkeleton() {
     <button class="fb-chip" id="exportBtn" title="Export the games table (respects current filters)">⬇ Export</button>
   </div>
   <div id="emptyState" class="empty-state" style="display:none">
-    ${PROJECT.key === 'igf'
+    ${PROJECT.features
       ? `<h2>No features on the board yet</h2>
-         <p>Open <b>✎ Edit Plan</b> and use the <b>search box</b> to add iGaming features to this board.<br>
+         <p>No feature is in a dated release. Open <b>✎ Edit Plan</b> and use the <b>search box</b> to add features to this board.<br>
          <span style="color:var(--sub)">Sign in first to save the board for everyone.</span></p>`
       : `<h2>No data yet</h2>
          <p>No games to show for ${PROJECT.jira_project}. Run the Jira builder:<br>
@@ -2252,6 +2258,20 @@ function mount(projectKey, container) {
   document.getElementById('hdrCount').textContent = visibleGames().length;
   buildFilterBar(); wireControls(); renderKPI(); renderAxis(); renderRows(); renderShareBanner(); renderPromoteBanner();
   centerToday();   // land with today centred (#69)
+  applyFocusParam();
+}
+
+// Deep link from a release timeline's games & features layer:
+// game-pipeline.html?project=ig&focus=IG-4803 → board filtered to that epic.
+function applyFocusParam() {
+  const key = new URLSearchParams(location.search).get('focus');
+  if (!key) return;
+  const g = RAW_GAMES.find(x => x.jira === key);
+  const box = document.getElementById('fbSearch');
+  if (!g || !box) return;
+  box.value = g.name;
+  activeFilters.search = g.name;
+  renderRows();
 }
 
 // ============================================================

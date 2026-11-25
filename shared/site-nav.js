@@ -19,16 +19,25 @@
       { href: "index.html",          label: "Exec overview",   desc: "Every release's health and progress" },
       { href: "ceo-summary.html",    label: "CEO summary",     desc: "Game reviews and decisions for the CEO" },
     ]},
-    { title: "Releases", items: [
-      { href: "v2-timeline.html",      label: "V2 release timeline",      desc: "Dev and QA forecast per release" },
-      { href: "igaming-timeline.html", label: "iGaming release timeline", desc: "Dev and QA forecast per release" },
-      { href: "css-timeline.html",     label: "Cloud Services release timeline", desc: "Dev and QA forecast per release" },
-      { href: "roadmap-igaming.html",  label: "Roadmap: iGaming",         desc: "Dated releases and go-lives" },
-      { href: "roadmap-v2.html",       label: "Roadmap: V2",              desc: "Dated releases and go-lives" },
-      { href: "roadmap-css.html",      label: "Roadmap: Cloud Services",  desc: "Dated releases" },
+    // One group per space: its releases, then the games and features inside them.
+    { title: "V2", items: [
+      { href: "v2-timeline.html",                 label: "Releases",  desc: "Dev and QA forecast per release" },
+      { href: "game-pipeline.html?project=v2",    label: "Games",     desc: "Every game's lifecycle" },
+      { href: "game-pipeline.html?project=v2f",   label: "Features",  desc: "Every feature's lifecycle" },
+      { href: "roadmap-v2.html",                  label: "Roadmap",   desc: "Dated releases and go-lives" },
     ]},
-    { title: "Games", items: [
-      { href: "game-pipeline.html",  label: "Game pipeline",   desc: "Every game's lifecycle, V2 and iGaming" },
+    { title: "iGaming", items: [
+      { href: "igaming-timeline.html",            label: "Releases",  desc: "Dev and QA forecast per release" },
+      { href: "game-pipeline.html?project=ig",    label: "Games",     desc: "Every game's lifecycle" },
+      { href: "game-pipeline.html?project=igf",   label: "Features",  desc: "Every feature's lifecycle" },
+      { href: "roadmap-igaming.html",             label: "Roadmap",   desc: "Dated releases and go-lives" },
+    ]},
+    { title: "Cloud Services", items: [
+      { href: "css-timeline.html",                label: "Releases",  desc: "Dev and QA forecast per release" },
+      { href: "game-pipeline.html?project=cssf",  label: "Features",  desc: "Every feature's lifecycle" },
+      { href: "roadmap-css.html",                 label: "Roadmap",   desc: "Dated releases" },
+    ]},
+    { title: "Costs", items: [
       { href: "elg-cost-model.html", label: "ELG cost model",  desc: "Cost per ELG game from Jira hours" },
       { href: "netnew-vs-port.html", label: "Net-new vs port", desc: "What new games cost against ports" },
     ]},
@@ -98,6 +107,15 @@
 
   // "…/pong-exec-dashboard/" and "…/index.html" are the same page.
   function norm(path) { return path.replace(/\/index\.html$/, "/"); }
+  function isCurrent(href) {
+    var u = new URL(href, location.href);
+    if (norm(u.pathname) !== norm(location.pathname)) return false;
+    var want = u.searchParams.get("project");
+    if (!want) return true;
+    var have = new URLSearchParams(location.search).get("project");
+    if (!have) { try { have = localStorage.getItem("gp_active_project"); } catch (e) {} }
+    return want === (have || "v2");
+  }
 
   function mount() {
     var here = norm(location.pathname);
@@ -108,7 +126,7 @@
     var groups = GROUPS.map(function (g) {
       var links = g.items.map(function (it) {
         var url = new URL(it.href, BASE || location.href);
-        var cur = norm(url.pathname) === here;
+        var cur = isCurrent(url.href);
         return '<a href="' + esc(url.href) + '"' + (cur ? ' class="cur" aria-current="page"' : "") + ">" +
           '<span class="l">' + esc(it.label) + '</span><span class="d">' + esc(it.desc) + "</span></a>";
       }).join("");
@@ -134,7 +152,15 @@
     var tab = root.querySelector(".tab");
     var drawer = root.querySelector(".drawer");
 
+    function markCurrent() {
+      root.querySelectorAll("a").forEach(function (a) {
+        var cur = isCurrent(a.href);
+        a.classList.toggle("cur", cur);
+        if (cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+      });
+    }
     function setOpen(open) {
+      if (open) markCurrent();
       wrap.classList.toggle("open", open);
       tab.setAttribute("aria-expanded", open ? "true" : "false");
       if (open) {

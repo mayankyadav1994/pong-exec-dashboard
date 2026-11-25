@@ -52,6 +52,10 @@ PROFILES = {
         "about": "iGaming spans <strong>three product lines</strong>: ELG, PFH2, and Horse Play.",
         "project_label": "iGaming Project (IG)", "roadmap": "roadmap-igaming.html",
         "fv_prefix": "",
+        # Games vs features in the nested layer (same pattern as the roadmap).
+        "game_re": r"^(Gen2\s*-?\s*)?Game\s*(:|\s-\s)",
+        # Game & Feature Pipeline boards for this space (game-pipeline/).
+        "games_feed": "ig", "features_feed": "igf",
     },
     "css": {
         "project": "CSS", "board": os.getenv("JIRA_BOARD_ID_CSS", "217"),
@@ -64,6 +68,8 @@ PROFILES = {
         "project_label": "Cloud Services Project (CSS)", "roadmap": "roadmap-css.html",
         # Template tickets drop the prefix: "Release GCP 2.20" sits in "CS GCP 2.20".
         "fv_prefix": "CS ",
+        "game_re": None,          # Cloud Services ships features only
+        "games_feed": None, "features_feed": "cssf",
     },
 }
 DASH_KEY = (sys.argv[1] if len(sys.argv) > 1 else "igaming").lower()
@@ -1294,6 +1300,10 @@ def main():
 
     # Drift snapshot — compute today's projections, persist, then load the
     # recent history. The template uses these for the ghost bar + HISTORY tab.
+    print("  Tagging games & features …")
+    n_games, n_feats = annotate_pipeline(fv_list)
+    print(f"    {n_games} game card(s), {n_feats} feature card(s) across {len(fv_list)} releases")
+
     today_snap = compute_snapshot(fv_list)
     write_snapshot(DASH_KEY, today_snap)
     snapshots = load_snapshots(DASH_KEY, n=30)
@@ -1313,6 +1323,7 @@ def main():
     rendered = (template
         .replace("__DASH__",           json.dumps(dash, ensure_ascii=False))
         .replace("__SITE_TABS__",      site_tabs())
+        .replace("__SPACE_NAV__",      space_nav())
         .replace("__TITLE__",          P["title"])
         .replace("__LINES__",          P["lines"])
         .replace("__ABOUT__",          P["about"])
@@ -1347,6 +1358,79 @@ def main():
         raise SystemExit(f"unfilled template placeholders: {leftover}")
     (HERE / P["page"]).write_text(rendered, encoding="utf-8")
     print(f"\n✅ {P['page']} written")
+
+
+# ── Games & features layer ────────────────────────────────────────────────────
+# Each release's Scope cards (its epics, Stories rolled up) become the nested
+# rows under the release. Python only labels them; the page forecasts each one
+# with the release bar's own rule, so the layer always adds up to the release.
+_RELEASE_EPIC_RE = re.compile(r"^\s*release\b", re.I)
+
+
+def annotate_pipeline(fv_list):
+    """Tag every scope card with kind (game / feature / release / other), the
+    epic's Jira due date and a display label. Returns (games, features)."""
+    keys = sorted({s["key"] for fv in fv_list for s in fv.get("scope") or [] if s.get("key")})
+    info = {}
+    for i in range(0, len(keys), 80):
+        for e in jira_jql(f"key in ({','.join(keys[i:i + 80])})",
+                          fields=["duedate", "issuetype"]):
+            f = e.get("fields") or {}
+            info[e["key"]] = {"due": f.get("duedate"),
+                              "type": (f.get("issuetype") or {}).get("name")}
+    game_re = re.compile(P["game_re"], re.I) if P.get("game_re") else None
+    boards = {kind: _pipeline_board(P.get(f"{kind}s_feed")) for kind in ("game", "feature")}
+    n_games = n_feats = 0
+    for fv in fv_list:
+        for s in fv.get("scope") or []:
+            name = s.get("name") or ""
+            meta = info.get(s.get("key")) or {}
+            if not s.get("key"):
+                kind = "other"
+            elif _RELEASE_EPIC_RE.search(name):
+                kind = "release"
+            elif game_re and game_re.search(name):
+                kind = "game"
+            else:
+                kind = "feature"
+            s["kind"] = kind
+            s["due"] = meta.get("due")
+            s["itype"] = meta.get("type")
+            s["label"] = (game_re.sub("", name).strip(" :-") or name) if kind == "game" else name
+            feed, on_board = boards.get(kind, (None, set()))
+            if feed and s.get("key") in on_board:
+                s["pipe"] = feed          # link target: game-pipeline.html?project=<feed>&focus=<key>
+            n_games += kind == "game"
+            n_feats += kind == "feature"
+    return n_games, n_feats
+
+
+def _pipeline_board(feed):
+    """(feed, epic keys on that Game & Feature Pipeline board): its default roster
+    plus anything the PMO added. Read from the committed pipeline data, so the
+    links match what the board shows."""
+    if not feed:
+        return None, set()
+    gp = REPO / "game-pipeline"
+    try:
+        games = json.loads((gp / f"data-{feed}.json").read_text(encoding="utf-8")).get("games") or []
+    except (OSError, json.JSONDecodeError):
+        return feed, set()
+    keys = {g.get("jira") for g in games if g.get("in_roster") is not False}
+    try:
+        keys |= set(json.loads((gp / f"plan-{feed}.json").read_text(encoding="utf-8")).get("added") or [])
+    except (OSError, json.JSONDecodeError):
+        pass
+    return feed, keys
+
+
+def space_nav():
+    """Releases (this page) · Games · Features for this dashboard's space."""
+    links = [f'<a class="on" href="{P["page"]}">Releases</a>']
+    for kind, label in (("games_feed", "Games"), ("features_feed", "Features")):
+        if P.get(kind):
+            links.append(f'<a class="ext" href="game-pipeline.html?project={P[kind]}">{label}</a>')
+    return "".join(links)
 
 
 # Site tabs shared by every timeline page (and mirrored in v2-timeline.template.html

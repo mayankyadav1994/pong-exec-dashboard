@@ -81,7 +81,26 @@ PROJECTS: dict[str, dict[str, Any]] = {
         "exclude_prefixes": ("Gen2 Game", "Gen2 - Game", "Release"),
         "out": ROOT / "dashboard-data-igf.js",
     },
+    # V2 + Cloud Services features (2026-11-25): same features mode as igf, one
+    # feature board per space, nested under that space's release timeline.
+    "v2f": {
+        "key": "V2",
+        "sprint_field": "customfield_10020",
+        "board_env": "JIRA_BOARD_ID_V2",
+        "mode": "features",
+        "exclude_prefixes": ("Game:", "Game :", "Release"),
+        "out": ROOT / "dashboard-data-v2f.js",
+    },
+    "cssf": {
+        "key": "CSS",
+        "sprint_field": "customfield_10103",
+        "board_env": "JIRA_BOARD_ID_CSS",
+        "mode": "features",
+        "exclude_prefixes": ("Release",),
+        "out": ROOT / "dashboard-data-cssf.js",
+    },
 }
+FEATURE_FEEDS = [k for k, c in PROJECTS.items() if c.get("mode") == "features"]
 
 # A delivered game drops off the board this many days after its release (#3).
 DELIVERED_GRACE_DAYS = 14
@@ -584,10 +603,11 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
         return any(n.startswith(p) for p in excl)
     before = len(epics)
     if mode == "features":
-        # Features (#70) = non-game, non-release IG epics; keep active ones (or with
-        # a fixVersion). ALL are add-by-search candidates — the board starts empty.
+        # Features (#70) = non-game, non-release epics; keep active ones (or with
+        # a fixVersion). Board = those with a live delivery commitment (set in
+        # main once the release policy is applied) + any added by search.
         epics = [e for e in epics if not _is_excluded(e) and (_has_fv(e) or not _is_done(e))]
-        print(f"   {OK} kept {len(epics)}/{before} feature-candidate epic(s) (excludes games + releases; board starts empty)")
+        print(f"   {OK} kept {len(epics)}/{before} feature-candidate epic(s) (excludes games + releases)")
     else:
         epics = [e for e in epics
                  if _has_fv(e) or (prefix and _epic_name(e).startswith(prefix) and not _is_done(e))]
@@ -821,7 +841,8 @@ def build_project(client: JiraClient, proj_key: str, today: date, verbose: bool)
             review_url, play_url = None, None
         # Board roster = prefixed game WITH a fixVersion. Prefixed games lacking a
         # fixVersion are add-game candidates, not on the board by default (#50).
-        # Features board starts empty — every feature is an add-by-search candidate (#70).
+        # Features: provisional False; main() puts a feature on the board when it has
+        # a live delivery commitment (a dated, unreleased, non-bucket release).
         in_roster = False if mode == "features" else (bool(prefix) and str(gname).startswith(prefix) and bool(fvs))
         games.append({
             "name": gname,
@@ -1013,7 +1034,14 @@ def load_release_policy() -> dict:
             str(r.get("name")): str(r.get("reason") or "excluded")
             for r in (rows or []) if r.get("name")
         }
+        # "games_only": a platform/services workstream — not a game release
+        # train, but a real release for features (feature boards keep it).
+        GAMES_ONLY_RELEASES[str(proj).upper()] = {
+            str(r.get("name")) for r in (rows or []) if r.get("name") and r.get("games_only")}
     return out
+
+
+GAMES_ONLY_RELEASES: dict = {}   # project -> release names excluded for games only
 
 
 def apply_release_policy(games: list, excluded: dict) -> int:
@@ -1808,7 +1836,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
         description="Build dashboard-data-{project}.js from Jira for the Game Pipeline dashboard.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--project", choices=["v2", "ig", "igf", "both"], default="both",
+    p.add_argument("--project", choices=[*PROJECTS, "both", "all"], default="both",
                    help="Which project(s) to build (default: both = v2 + ig + igf).")
     p.add_argument("--today", metavar="YYYY-MM-DD", default=None,
                    help="Snapshot date for current_stage derivation (default: system date).")
@@ -1871,7 +1899,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             pass
     args = parse_args(argv)
     today = resolve_today(args.today)
-    targets = ["v2", "ig", "igf"] if args.project == "both" else [args.project]
+    targets = list(PROJECTS) if args.project in ("both", "all") else [args.project]
 
     base, email, token = require_env()
     client = JiraClient(base, email, token, verbose=args.verbose)
@@ -1898,9 +1926,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         # (#83) Policy first: compute_next_due must not pick a version PMO has
         # already ruled out as a non-commitment, or the feed reports a fake date.
         excluded = policy.get(PROJECTS[proj_key]["key"], {})
+        if PROJECTS[proj_key].get("mode") == "features":
+            keep = GAMES_ONLY_RELEASES.get(PROJECTS[proj_key]["key"], set())
+            excluded = {n: r for n, r in excluded.items() if n not in keep}
         n_excl = apply_release_policy(payload["games"], excluded)
         for g in payload["games"]:
             g["next_due"] = compute_next_due(g, today)        # confidence='committed'
+        if PROJECTS[proj_key].get("mode") == "features":
+            # Like games: a feature with a live delivery commitment is on the board
+            # by default; the rest stay add-by-search candidates (Edit Plan).
+            for g in payload["games"]:
+                g["in_roster"] = g["next_due"] is not None
+            print(f"   {OK} {sum(1 for g in payload['games'] if g['in_roster'])} feature(s) on the "
+                  f"board by default (dated, unreleased, non-bucket release)")
         forecast_basis = compute_forecast(payload["games"], payload["sprints"], today)
         # (#84) Fold today's release dates into the persistent slip history, then
         # publish it in the feed so a reader gets dates AND how they moved.

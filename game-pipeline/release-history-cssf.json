@@ -1,0 +1,88 @@
+{
+ "schema_version": 1,
+ "feed": "cssf",
+ "jira_project": "CSS",
+ "releases": {
+  "CS CRM 9.00": {
+   "name": "CS CRM 9.00",
+   "first_seen": "2026-11-25",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "CS GCP 2.20": {
+   "name": "CS GCP 2.20",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-12-04",
+   "current_date": "2026-12-04",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "CS GCP 2.30": {
+   "name": "CS GCP 2.30",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-12-18",
+   "current_date": "2026-12-18",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "CS GCP 3.00": {
+   "name": "CS GCP 3.00",
+   "first_seen": "2026-11-25",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "CS TH 7.11": {
+   "name": "CS TH 7.11",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-11-24",
+   "current_date": "2026-11-24",
+   "released": true,
+   "released_on": "2026-11-24",
+   "revisions": []
+  },
+  "CS VGTC 7.11": {
+   "name": "CS VGTC 7.11",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-11-24",
+   "current_date": "2026-11-24",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "ELG Website - Trade Show": {
+   "name": "ELG Website - Trade Show",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-11-23",
+   "current_date": "2026-11-23",
+   "released": true,
+   "released_on": "2026-11-23",
+   "revisions": []
+  },
+  "PFH Services 3.00": {
+   "name": "PFH Services 3.00",
+   "first_seen": "2026-11-25",
+   "original_date": "2026-11-30",
+   "current_date": "2026-11-30",
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  },
+  "PFH2 Services 5.00": {
+   "name": "PFH2 Services 5.00",
+   "first_seen": "2026-11-25",
+   "original_date": null,
+   "current_date": null,
+   "released": false,
+   "released_on": null,
+   "revisions": []
+  }
+ }
+}
