@@ -1,6 +1,6 @@
 # ============================================================
 # Refresh Team Board Data
-# Rebuilds team-board-data.js from the DAMS open sprint(s) (IG + V2, Math + Art)
+# Rebuilds team-board/team-board-data.js from the DAMS open sprint(s) (IG + V2, Math + Art)
 # and commits it so GitHub Pages redeploys. Reuses the exec-dashboard secrets
 # JIRA_EMAIL / JIRA_API_TOKEN already configured in this repo.
 # ============================================================
@@ -24,11 +24,11 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.11' }
       - run: pip install -r requirements.txt
-      - run: python team_board.py --verbose
+      - run: python team-board/team_board.py --verbose
         env:
           JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 'Refresh team board data'
-          file_pattern: team-board-data.js
+          file_pattern: team-board/team-board-data.js

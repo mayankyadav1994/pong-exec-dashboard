@@ -2,7 +2,7 @@
 **Project:** Pong Game Studios · iGaming Fix Version Delivery Forecast
 **Jira Instance:** `ponggamestudios.atlassian.net` · Project key: `IG`
 **Cloud ID:** `85005dc7-cde3-4a2c-8e65-2d746db228ed`
-**Current prototype:** `igaming-timeline.html` (single-file static report, rendered from `igaming-timeline.template.html` by `igaming_timeline.py`)
+**Current prototype:** `igaming-timeline.html` (single-file static report, rendered from `timelines/igaming-timeline.template.html` by `timelines/igaming_timeline.py`)
 **Companion doc:** `V2_RELEASE_TIMELINE_KNOWLEDGE.md` — iGaming follows the same conventions except where noted in §10.
 
 ---
@@ -570,12 +570,13 @@ These V2 features now run on iGaming with the same JS (lifted verbatim from `v2-
 
 | File | Description |
 |---|---|
-| `igaming-timeline.html` | Generated output — committed by the workflow on every refresh |
-| `igaming-timeline.template.html` | Source template — placeholders injected by the Python script. Contains all CSS, dashboard JS, Plan Editor + Save-as-default flow. |
-| `igaming_timeline.py` | Refresh script — calls Jira, transforms results, renders the template. Reads `config/igaming.json` with hardcoded fallback. |
+| `timelines/igaming-timeline.html` | Generated output (served at `/igaming-timeline.html`) — committed by the workflow on every refresh |
+| `timelines/igaming-timeline.template.html` | Source template — placeholders injected by the Python script. Contains all CSS, dashboard JS, Plan Editor + Save-as-default flow. |
+| `timelines/igaming_timeline.py` | Refresh script — calls Jira, transforms results, renders the template. Reads `config/igaming.json` with hardcoded fallback. |
 | `config/igaming.json` | **Editable config** — FV order, per-FV metadata (color, sub, qaWeeks, release), scope overrides, milestones, holidays, hidden FVs. Edited via the Plan Editor's Save-as-default button (auto-PR). |
-| `jira_client.py` | Shared `jira_jql` POST `/search/jql` paginator (used by all three refresh scripts: exec, v2, igaming) |
+| `shared/jira_client.py` | Shared `jira_jql` POST `/search/jql` paginator (used by all three refresh scripts: exec, v2, igaming) |
 | `.github/workflows/igaming_timeline.yml` | Workflow — daily cron (`30 6 * * *` UTC) + `workflow_dispatch` + `push.paths: config/igaming.json` |
+| `timelines/snapshots/` | Daily forecast snapshots + scope baselines written by the refresh scripts |
 | `docs/IG_RELEASE_TIMELINE_KNOWLEDGE.md` | This file |
 | `docs/V2_RELEASE_TIMELINE_KNOWLEDGE.md` | Sister dashboard (V2) — same Plan Editor pattern |
 | `docs/CONFIG_EDITOR_SETUP.md` | One-time PAT setup guide for users who'll edit dashboards |

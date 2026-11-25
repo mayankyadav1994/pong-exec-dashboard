@@ -416,9 +416,9 @@ axis; reusing it means one mental model across all studio dashboards.
 
 Source code lives under a `pong-exec-dashboard/game-pipeline/` subfolder of the
 existing repo. A GitHub Actions workflow builds `dashboard-data-{v2,ig}.js` from
-Jira on a schedule (or manual trigger) and copies `v2-game-pipeline.html`,
-`igaming-game-pipeline.html`, `dashboard.js`, `dashboard.css`,
-`dashboard-data-v2.js`, `dashboard-data-ig.js` to the repo root for GitHub Pages.
+Jira on a schedule (or manual trigger) and commits them in `game-pipeline/`;
+`tools/build_site.py` (run by Deploy Pages) publishes them at the site root
+(since 2026-11-25 — before that CI copied them to the repo root).
 
 URLs:
 - https://mayankyadav1994.github.io/pong-exec-dashboard/v2-game-pipeline.html
@@ -676,9 +676,9 @@ UX. Therefore:
   committed plan** < this browser's **local** edits. Shared values override the
   auto-pull and show a 📌 marker (badge: "shared plan · `<user>`"); local edits
   stay private to that browser.
-- **Shared plan** lives at repo root `plan-v2.json` / `plan-ig.json` (canonical;
-  fetched at load, committed there directly — not in the CI copy list, so editor
-  commits persist across data refreshes).
+- **Shared plan** lives at `game-pipeline/plan-v2.json` / `plan-ig.json` / `plan-igf.json`
+  (canonical; committed there directly by the page, fetched at load from the site
+  copy at `/plan-<key>.json`). Moved from the repo root 2026-11-25.
 - **Publishing:** an editor clicks *Save as default for everyone* → pastes a
   **fine-grained GitHub token** (scoped to `pong-exec-dashboard`, Contents:RW;
   kept in `sessionStorage` only, never committed) → the browser `PUT`s the merged
@@ -1117,7 +1117,7 @@ Per-project prefix `gp_v2_` / `gp_ig_`:
 
 ### Deployment (#28)
 - Source under `pong-exec-dashboard/game-pipeline/`; CI builds from Jira and
-  copies the 6 runtime files to repo root for GitHub Pages.
+  commits there; `tools/build_site.py` (run by Deploy Pages) publishes them at the site root.
 
 ### Stage colors (CSS vars)
 ```

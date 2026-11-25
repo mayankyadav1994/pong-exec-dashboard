@@ -31,7 +31,7 @@ TEMPLATE_FILE = os.path.join(HERE, "page_template.html")
 # uploads the whole repo (`path: '.'`) and every other dashboard in this repo
 # is served from root as kebab-case HTML (game-pipeline.html, team-board.html).
 # Writing here directly means there is no copy-to-root step to forget.
-OUTPUT_FILE = os.path.join(HERE, "..", "elg-cost-model.html")
+OUTPUT_FILE = os.path.join(HERE, "elg-cost-model.html")
 PLACEHOLDER = "__DATA__"
 
 

@@ -31,12 +31,13 @@ from dotenv import load_dotenv
 
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "shared"))   # shared/jira_client.py
 from jira_client import (agile_get, agile_post, jira_get, jira_get_raw,
                          jira_put, JIRA_BASE, _auth, JSON_HEADERS)
 
 # Credentials: real env vars in CI; locally fall back to .env / game-pipeline/.env.
 # load_dotenv does NOT override existing env vars, so CI secrets always win.
-_ROOT = Path(__file__).resolve().parent
+_ROOT = Path(__file__).resolve().parents[1]   # repo root (this file lives in team-board/)
 load_dotenv(_ROOT / ".env")
 load_dotenv(_ROOT / "game-pipeline" / ".env")
 

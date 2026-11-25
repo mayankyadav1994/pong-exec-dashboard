@@ -907,12 +907,13 @@ A PMO Done date on M2/M3 overrides the Jira date. Marking M1 done fills any empt
 
 | File | Description |
 |---|---|
-| `v2-timeline.html` | Generated output — committed by the workflow on every refresh |
-| `v2-timeline.template.html` | Source template — placeholders `__FV_DATA__`, `__SPRINTS_DATA__`, etc. injected by the Python script. Contains all CSS, dashboard JS, Plan Editor + Save-as-default flow. |
-| `v2_timeline.py` | Refresh script — calls Jira, transforms results, renders the template. Reads `config/v2.json` with hardcoded fallback. |
+| `timelines/v2-timeline.html` | Generated output (served at `/v2-timeline.html`) — committed by the workflow on every refresh |
+| `timelines/v2-timeline.template.html` | Source template — placeholders `__FV_DATA__`, `__SPRINTS_DATA__`, etc. injected by the Python script. Contains all CSS, dashboard JS, Plan Editor + Save-as-default flow. |
+| `timelines/v2_timeline.py` | Refresh script — calls Jira, transforms results, renders the template. Reads `config/v2.json` with hardcoded fallback. |
 | `config/v2.json` | **Editable config** — FV order, per-FV metadata (color, sub, qaWeeks, lab/sales-trip), scope overrides, milestones, holidays, hidden FVs. Edited via the Plan Editor's Save-as-default button (auto-PR). |
-| `jira_client.py` | Shared `jira_jql` POST `/search/jql` paginator (used by all three refresh scripts: exec, v2, igaming) |
+| `shared/jira_client.py` | Shared `jira_jql` POST `/search/jql` paginator (used by all three refresh scripts: exec, v2, igaming) |
 | `.github/workflows/v2_timeline.yml` | Workflow — daily cron (`15 6 * * *` UTC) + `workflow_dispatch` + `push.paths: config/v2.json` |
+| `timelines/snapshots/` | Daily forecast snapshots + scope baselines written by the refresh scripts |
 | `docs/V2_RELEASE_TIMELINE_KNOWLEDGE.md` | This file |
 | `docs/V2_TIMELINE_EDGE_CASES.md` | Companion: tricky cases the model intentionally doesn't try to solve |
 | `docs/IG_RELEASE_TIMELINE_KNOWLEDGE.md` | Sister dashboard (iGaming) — same Plan Editor pattern |

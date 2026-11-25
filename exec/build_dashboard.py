@@ -13,7 +13,13 @@ from math import ceil
 from dotenv import load_dotenv
 from bs4 import BeautifulSoup
 
-from jira_client import jira_get, jira_post, jira_jql, JSON_HEADERS
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent     # exec/ — writes index.html here
+REPO = HERE.parent                         # repo root
+sys.path.insert(0, str(REPO / "shared"))   # shared/jira_client.py
+from jira_client import jira_get, jira_post, jira_jql, JSON_HEADERS  # noqa: E402
 
 load_dotenv()
 
@@ -1009,7 +1015,7 @@ def main():
     kpis = compute_kpis(active, shipped)
     print(f"  KPIs → 🔴{kpis['red']} 🟡{kpis['yel']} 🟢QA:{kpis['qa']} 🚀{kpis['soon']} ✅{kpis['shipped']}")
     html = generate_html(active, shipped, kpis)
-    with open("index.html", "w", encoding="utf-8") as f:
+    with open(HERE / "index.html", "w", encoding="utf-8") as f:
         f.write(html)
     print("✅ index.html written")
 

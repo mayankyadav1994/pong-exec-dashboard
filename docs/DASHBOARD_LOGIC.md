@@ -280,7 +280,7 @@ Each FV label can show an amber `⚠ N tasks 0h logged` badge. It fires when the
 
 ## 19. Shared infrastructure
 
-### `jira_client.py`
+### `shared/jira_client.py`
 Both generators import `jira_get` / `jira_post` / `jira_jql` from here. Single source of truth for HTTP auth (Basic auth via env vars `JIRA_EMAIL` and `JIRA_API_TOKEN`) and JQL pagination.
 
 The pagination uses `POST /search/jql` (the v3 endpoint) because the legacy `GET /search` returns 410 Gone. Token-based pagination.

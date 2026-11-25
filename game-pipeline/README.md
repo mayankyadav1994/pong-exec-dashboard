@@ -59,9 +59,9 @@ python -m venv .venv
 ```
 
 In production, the **GitHub Actions** workflow rebuilds both data files from Jira
-on a schedule (and on manual dispatch) and commits the refreshed runtime files to
-the `pong-exec-dashboard` repo root for GitHub Pages. See `.github-workflow.yml`
-and Decision #28.
+on a schedule (and on manual dispatch) and commits the refreshed runtime files in
+`game-pipeline/`; `tools/build_site.py` (run by Deploy Pages) publishes them at the site root. See
+`.github/workflows/refresh-game-pipeline.yml` and Decision #28.
 
 ---
 
@@ -106,9 +106,8 @@ site as the release-timeline dashboards):
   - https://mayankyadav1994.github.io/pong-exec-dashboard/v2-game-pipeline.html
   - https://mayankyadav1994.github.io/pong-exec-dashboard/igaming-game-pipeline.html
 
-Source files are committed into that repo under a `game-pipeline/` subfolder; CI
-copies the runtime files to the repo root. See Decision #28 and
-`.github-workflow.yml`.
+Source files are committed into that repo under a `game-pipeline/` subfolder;
+`tools/build_site.py` (run by Deploy Pages) publishes them at the site root. See Decision #28 and `tools/build_site.py`.
 
 ---
 

@@ -245,7 +245,7 @@ const GH_OWNER='mayankyadav1994', GH_REPO='pong-exec-dashboard';
 const GH_API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
 const GH_PAT_KEY='gp_github_pat', GH_USER_KEY='gp_github_user';   // shared with pipeline (PMO)
 const SENT_KEY='pgs_ceo_sent';   // per-browser: which items this viewer has emailed
-const REVIEW_PATH='ceo-review.json';
+const REVIEW_PATH='game-pipeline/ceo-review.json';   // repo path; the site serves it at /ceo-review.json
 
 const ACTIONS = {
   decision: { icon:'🔴', label:'Decision required', cls:'decision' },
@@ -284,7 +284,7 @@ async function ghFetch(url, opts){
 
 async function loadReview(){
   try{
-    const r = await fetch(REVIEW_PATH+'?ts='+Date.now());
+    const r = await fetch('ceo-review.json?ts='+Date.now());   // site copy of REVIEW_PATH
     if(r.ok){ const j = await r.json(); ITEMS=j.items||[]; APPROVED=j.approved||[]; REVIEW_CONFIG=j.config||{}; }
   }catch(e){ ITEMS=[]; APPROVED=[]; }
 }

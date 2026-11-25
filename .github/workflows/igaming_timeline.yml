@@ -18,8 +18,8 @@ on:
     branches: [main]
     paths:
       - "config/igaming.json"
-      - "igaming-timeline.template.html"
-      - "igaming_timeline.py"
+      - "timelines/igaming-timeline.template.html"
+      - "timelines/igaming_timeline.py"
 
 # Serialize against the exec_dashboard and v2_timeline workflows so the
 # three pushes can't race.
@@ -61,7 +61,7 @@ jobs:
           # If the board query fails the script falls back to the anchored
           # 14-day cadence, so the axis renders either way.
           JIRA_BOARD_ID_IG:     '250'
-        run: python igaming_timeline.py
+        run: python timelines/igaming_timeline.py
 
       # Smoke-test the rendered HTML before commit: loads it via jsdom,
       # asserts rows render, clicks Edit Plan + What-If, fails the run if
@@ -74,7 +74,7 @@ jobs:
       - name: Smoke-test iGaming timeline
         run: |
           npm install --no-save --silent jsdom
-          node tools/smoke-test.js igaming-timeline.html
+          node tools/smoke-test.js timelines/igaming-timeline.html
 
       - name: Commit and push
         run: |
@@ -83,7 +83,7 @@ jobs:
           # Stage and commit the regenerated HTML first so the working tree is
           # clean before we touch the remote. If the build produced no diff,
           # exit cleanly without pulling/pushing.
-          git add igaming-timeline.html snapshots/igaming/ snapshots/igaming-scope-baseline.json || true
+          git add timelines/igaming-timeline.html timelines/snapshots/igaming/ timelines/snapshots/igaming-scope-baseline.json || true
           if git diff --staged --quiet; then
             echo "No iGaming timeline changes to commit."
             exit 0

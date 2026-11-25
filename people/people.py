@@ -50,7 +50,8 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-ROOT = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent     # people/ — template + page
+ROOT = HERE.parent                         # repo root — config/, shared/, other dashboards
 load_dotenv(ROOT / ".env")
 load_dotenv(ROOT / "game-pipeline" / ".env")
 # Local runs: the Tempo token lives with the timesheet scripts. CI: repo secret.
@@ -61,6 +62,7 @@ if not os.environ.get("TEMPO_API_TOKEN"):
         if _tok:
             os.environ["TEMPO_API_TOKEN"] = _tok
 
+sys.path.insert(0, str(ROOT / "shared"))   # shared/jira_client.py
 from jira_client import jira_get, jira_jql  # noqa: E402  (needs env loaded)
 
 
@@ -77,8 +79,8 @@ SL = _load_module("sprint_load", ROOT / "sprint-load" / "sprint_load.py")    # p
 GP = _load_module("build_jira_data", ROOT / "game-pipeline" / "build_jira_data.py")  # lanes, velocity
 
 RM = json.loads((ROOT / "config" / "roadmap.json").read_text(encoding="utf-8"))
-TEMPLATE = ROOT / "people.template.html"
-OUTPUT = ROOT / "people.html"
+TEMPLATE = HERE / "people.template.html"
+OUTPUT = HERE / "people.html"
 SITE = "https://ponggamestudios.atlassian.net"
 TEMPO = "https://api.tempo.io/4"
 TODAY = date.today()
@@ -241,8 +243,8 @@ def pipeline_forecast(today: date) -> dict:
     measured velocity per lane over the roster, DEFAULT_VELOCITY fallback."""
     out: dict = {}
     for feed in FEEDS:
-        data = json.loads((ROOT / f"data-{feed}.json").read_text(encoding="utf-8"))
-        pf = ROOT / f"plan-{feed}.json"
+        data = json.loads((ROOT / "game-pipeline" / f"data-{feed}.json").read_text(encoding="utf-8"))
+        pf = ROOT / "game-pipeline" / f"plan-{feed}.json"
         plan = json.loads(pf.read_text(encoding="utf-8")) if pf.exists() else {}
         added, hidden = set(plan.get("added") or []), set(plan.get("hidden") or [])
         shared = plan.get("status") or {}
@@ -420,7 +422,7 @@ def roadmap_cards() -> dict:
     """epic key -> [{s, t, d, r, src}] from the generated roadmap pages."""
     out = defaultdict(list)
     for sid, sp in RM["spaces"].items():
-        f = ROOT / sp["file"]
+        f = ROOT / "roadmap" / sp["file"]
         if not f.exists():
             continue
         html = f.read_text(encoding="utf-8")

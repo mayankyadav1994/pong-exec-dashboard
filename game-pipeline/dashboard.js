@@ -1949,7 +1949,8 @@ function buildPlanPayload() {
   };
 }
 async function publishPlan(force) {
-  const path = `plan-${PROJECT.key}.json`;
+  // Repo path (the page itself reads the site copy at /plan-<key>.json).
+  const path = `game-pipeline/plan-${PROJECT.key}.json`;
   const payload = buildPlanPayload();
   let sha = null, remote = null;
   try {
@@ -2018,7 +2019,7 @@ function sendToCeoReview(g) {
     if (!ms || !date) { msg.textContent = 'Milestone and date are required.'; return; }
     msg.textContent = 'Sending…';
     try {
-      const path = 'ceo-review.json';
+      const path = 'game-pipeline/ceo-review.json';   // repo path; served at /ceo-review.json
       let sha = null, cur = { items: [], approved: [], config: { endpoint: '' } };
       try {
         const gg = await ghFetch(`${GH_API}/contents/${path}`);
@@ -2075,7 +2076,7 @@ function openSignInModal() {
 function confirmPublish() {
   const login = getGhUser();
   openModal(`<h3>💾 Save as default for everyone</h3>
-    <p class="gp-modal-note">This commits the current plan to <code>plan-${PROJECT.key}.json</code> on <code>main</code> as <b>${login}</b>. It becomes the shared baseline for <b>all viewers</b> after the redeploy (~1–3 min), overriding the Jira auto-pull until changed.</p>
+    <p class="gp-modal-note">This commits the current plan to <code>game-pipeline/plan-${PROJECT.key}.json</code> on <code>main</code> as <b>${login}</b>. It becomes the shared baseline for <b>all viewers</b> after the redeploy (~1–3 min), overriding the Jira auto-pull until changed.</p>
     <div class="gp-modal-msg" id="gpPubMsg"></div>
     <div class="gp-modal-foot"><button class="gp-foot-btn" id="gpPubCancel">Cancel</button><button class="gp-foot-btn primary" id="gpPubGo">Commit to main</button></div>`);
   document.getElementById('gpPubCancel').onclick = closeModal;

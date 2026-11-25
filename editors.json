@@ -1,8 +1,0 @@
-{
-  "_comment": "ADVISORY ONLY (#48). The gate to publish is GitHub repo WRITE access: anyone whose token can push to this repo can Save-as-default; anyone who can't is rejected by GitHub. Fine-grained repo-scoped tokens can't read account emails, so this list is no longer used to allow/deny — it's kept for reference and to prefer a friendly display name. Manage real access via repo Collaborators.",
-  "editors": [
-    "mayank.yadav@pongstudios.com",
-    "simon.taylor@pongstudios.com",
-    "pruthvi.patel@pongstudios.com"
-  ]
-}

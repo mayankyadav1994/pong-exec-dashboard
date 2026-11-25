@@ -21,14 +21,13 @@ Four files, split so the slow part runs once and the fast parts rebuild instantl
 games.json               the model's inputs: games, release epics, hourly rate
 elg_cost_data.py         Jira  -> elg_cost_data.json       ~2 min, hits the network
 elg_cost_spreadsheet.py  cache -> .xlsx + .md              instant, offline
-elg_cost_page.py         cache -> ../elg-cost-model.html   instant, offline
+elg_cost_page.py         cache -> elg-cost-model.html      instant, offline
 page_template.html       the page's layout, copy and styling
 ```
 
 The cache (`elg_cost_data.json`) and the workbook are **gitignored** — they are
-rebuilt, never versioned. The built page goes to the repo root because
-`deploy-pages.yml` uploads the whole repo, so there is no copy-to-root step to
-forget.
+rebuilt, never versioned. The built page stays in `elg-cost-model/`;
+`tools/build_site.py` (run by Deploy Pages) publishes it at the site root.
 
 `elg_cost_data.py` needs `JIRA_API_TOKEN` in the environment (it also self-heals
 from `HKCU\Environment`). The other two never touch the network.

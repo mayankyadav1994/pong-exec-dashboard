@@ -44,15 +44,17 @@ if sys.platform == "win32":
     except Exception:
         pass
 
-ROOT = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent     # roadmap/ — template, pages, slip history
+ROOT = HERE.parent                         # repo root — config/, shared/, .env
 load_dotenv(ROOT / ".env")
 
+sys.path.insert(0, str(ROOT / "shared"))   # shared/jira_client.py
 from jira_client import jira_get, jira_jql  # noqa: E402  (needs env loaded)
 
 CONFIG = json.loads((ROOT / "config" / "roadmap.json").read_text(encoding="utf-8"))
 PMO = json.loads((ROOT / "config" / "roadmap-pmo.json").read_text(encoding="utf-8"))
-TEMPLATE = ROOT / "roadmap.template.html"
-HISTORY_FILE = ROOT / "roadmap-history.json"
+TEMPLATE = HERE / "roadmap.template.html"
+HISTORY_FILE = HERE / "roadmap-history.json"
 SITE = "https://ponggamestudios.atlassian.net"
 TODAY = date.today()  # overridable via --today
 FIELDS = ["summary", "issuetype", "status", "parent", "fixVersions", "duedate"]
@@ -151,7 +153,7 @@ def load_history(space):
     hist = json.loads(HISTORY_FILE.read_text(encoding="utf-8")) if HISTORY_FILE.exists() else {}
     seed = {}
     for fn in space.get("history", []):
-        p = ROOT / fn
+        p = ROOT / "game-pipeline" / fn   # release-history-*.json (Game Pipeline)
         if p.exists():
             d = json.loads(p.read_text(encoding="utf-8"))
             for name, rec in (d.get("releases") or {}).items():
@@ -730,7 +732,7 @@ def main():
         data = build_space(sid, space, win_start, win_end)
         payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
         html = tpl.replace("/*__ROADMAP_DATA__*/null", payload)
-        (ROOT / space["file"]).write_text(html, encoding="utf-8")
+        (HERE / space["file"]).write_text(html, encoding="utf-8")
         print(f"  [{sid}] wrote {space['file']}: {len(data['cards'])} cards, "
               f"{len(data['pubs'])} go-lives, "
               f"{sum(len(l['unscheduled']) for g in data['groups'] for l in g['lanes'])} unscheduled")

@@ -1,9 +1,262 @@
 {
-  "order": [],
-  "status": {},
-  "sizes": {},
-  "hidden": [],
-  "config": {},
-  "updated_by": null,
-  "updated_at": null
+  "order": [
+    "Game: Nordic Paws",
+    "Game: Fortune of Z",
+    "Game: Wildlife Safari Gold",
+    "Game: Enchanted East [V]",
+    "Game: Firecracker Frenzy [V]",
+    "Game: Steampunk Fortune 2",
+    "Game: Neon Break",
+    "Game: Canada Eh Part Deux",
+    "Game: Northern Buffalo Fortune 2 [V]",
+    "Game: 3 Chili Riches",
+    "Game: Blue Bird Bonus Extreme [V]",
+    "Game: Fall of Pompeii: Triple Link",
+    "Game: Steampunk Fortune",
+    "Game: Birthday Bash [V]",
+    "Game: Western Grand Express",
+    "Game: Golden Bank Safe",
+    "Game: Monster Cake Smash",
+    "Game: Viking Blox",
+    "Game: Devil's Delight",
+    "Game: Devil's Mischief",
+    "Game: Hell's Outlaw",
+    "Game: Piggy's Kingdom",
+    "Game: Fruit Splitter",
+    "Game: Fangs of Fortune",
+    "Game: Quick Wins Fortune [V]",
+    "Game: Flaming Skulls [V]",
+    "Game: Viking Blox 2",
+    "Game: Canada Eh",
+    "Game: Northern Buffalo",
+    "Game: Northern Buffalo Fortune [V]",
+    "Game: Lantern's Rising- Vertical",
+    "Game: Pharaoh's Quest",
+    "Game: Hollow Graves of Riches",
+    "Game: Grand Prosperity",
+    "Game: Jewels of Cleopatra",
+    "Game: Tiger Hunt [V]",
+    "Game: Sword of Z Nudge",
+    "Game: Blade of Fortune",
+    "Game: Viking’s Voyage of Fortune"
+  ],
+  "status": {
+    "Game: Nordic Paws": "Signed off",
+    "Game: Fortune of Z": "In Review",
+    "Game: Wildlife Safari Gold": "In Review",
+    "Game: Enchanted East [V]": "In Review",
+    "Game: Firecracker Frenzy [V]": "In Review",
+    "Game: Birthday Bash [V]": "In Progress",
+    "Game: Monster Cake Smash": "On Hold",
+    "Game: Viking Blox": "On Hold",
+    "Game: Devil's Delight": "In Progress",
+    "Game: Devil's Mischief": "Signed off",
+    "Game: Hell's Outlaw": "In Progress",
+    "Game: Piggy's Kingdom": "In Progress",
+    "Game: Fruit Splitter": "In QA",
+    "Game: Fangs of Fortune": "On Hold",
+    "Game: Northern Buffalo Fortune [V]": "Signed Off",
+    "Game: Lantern's Rising- Vertical": "In QA"
+  },
+  "stage": {
+    "Game: Fortune of Z": "dev",
+    "Game: Wildlife Safari Gold": "math",
+    "Game: Firecracker Frenzy [V]": "dev",
+    "Game: Steampunk Fortune 2": "math",
+    "Game: Neon Break": "math",
+    "Game: Fall of Pompeii: Triple Link": "dev",
+    "Game: Steampunk Fortune": "math",
+    "Game: Birthday Bash [V]": "art",
+    "Game: Western Grand Express": "concept",
+    "Game: Golden Bank Safe": "dev",
+    "Game: Monster Cake Smash": "design",
+    "Game: Devil's Delight": "art",
+    "Game: Devil's Mischief": "concept",
+    "Game: Fruit Splitter": "qa"
+  },
+  "sizes": {
+    "Game: Enchanted East [V]": {
+      "art": "L",
+      "math": "XL",
+      "dev": "L",
+      "sound": "M"
+    }
+  },
+  "hidden": [
+    "Game: Zombie Hunt",
+    "Game: Canada Eh",
+    "Game: Northern Buffalo Fortune [V]",
+    "Game: Arctic Buffalo",
+    "Game: Lost Totem",
+    "Game: Northern Buffalo",
+    "Game: Quick Win's Diamond 7s - [V]",
+    "Game: Viking’s Voyage of Fortune",
+    "Game: Blade of Fortune",
+    "Game: Lantern's Rising- Vertical",
+    "Game: Pharaoh's Quest",
+    "Game: Hollow Graves of Riches",
+    "Game: Steampunk Fortune",
+    "Game: Viking Blox 2",
+    "Game: Grand Prosperity",
+    "Game: Jewels of Cleopatra",
+    "Game: Tiger Hunt [V]",
+    "Game: Sword of Z Nudge"
+  ],
+  "notes": {
+    "V2-22808": [
+      {
+        "ts": "2026-08-17T15:46:39.590Z",
+        "author": "mayankyadav1994",
+        "body": "Luck bonus change request - pruthvi"
+      },
+      {
+        "ts": "2026-08-11T19:08:15.304Z",
+        "author": "mayankyadav1994",
+        "body": "Added the change request of Fern's PPT - adding more changes to the review."
+      }
+    ],
+    "V2-22634": [
+      {
+        "ts": "2026-08-17T15:43:28.378Z",
+        "author": "mayankyadav1994",
+        "body": "Respin Feature is missing but we can review the demo -Pruthvi"
+      },
+      {
+        "ts": "2026-08-14T16:56:36.642Z",
+        "author": "mayankyadav1994",
+        "body": "because we made math completly diffrent"
+      }
+    ],
+    "V2-22766": [
+      {
+        "ts": "2026-08-17T15:44:35.296Z",
+        "author": "mayankyadav1994",
+        "body": "Sonali needs to create change request - Pruthvi"
+      }
+    ]
+  },
+  "move_reasons": {},
+  "added": [
+    "V2-21483",
+    "V2-22634",
+    "V2-30826",
+    "V2-31951",
+    "V2-31477",
+    "V2-30536",
+    "V2-31019",
+    "V2-31091",
+    "V2-31165"
+  ],
+  "config": {
+    "statuses": [
+      {
+        "key": "Not Started",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "In Progress",
+        "cls": "s-preprod"
+      },
+      {
+        "key": "In Review",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "Signed off",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "In QA",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "In Production",
+        "cls": "s-notstart"
+      },
+      {
+        "key": "On Hold",
+        "cls": "s-notstart"
+      }
+    ],
+    "stages": [
+      {
+        "key": "concept",
+        "label": "Concept",
+        "color": "#fde68a"
+      },
+      {
+        "key": "art",
+        "label": "Art",
+        "color": "#fed7aa"
+      },
+      {
+        "key": "design",
+        "label": "Design",
+        "color": "#bfdbfe"
+      },
+      {
+        "key": "math",
+        "label": "Math",
+        "color": "#bbf7d0"
+      },
+      {
+        "key": "dev",
+        "label": "Dev",
+        "color": "#93c5fd"
+      },
+      {
+        "key": "sound",
+        "label": "Sound",
+        "color": "#f5d0e0"
+      },
+      {
+        "key": "qa",
+        "label": "QA",
+        "color": "#fcd34d"
+      },
+      {
+        "key": "bugfix",
+        "label": "Bug Fix",
+        "color": "#fecaca"
+      },
+      {
+        "key": "done",
+        "label": "Done",
+        "color": "#86efac"
+      }
+    ],
+    "sizes": [
+      {
+        "key": "XS",
+        "label": "Extra Small"
+      },
+      {
+        "key": "S",
+        "label": "Small"
+      },
+      {
+        "key": "M",
+        "label": "Medium"
+      },
+      {
+        "key": "L",
+        "label": "Large"
+      },
+      {
+        "key": "XL",
+        "label": "Extra Large"
+      }
+    ],
+    "capacities": {
+      "art": 240,
+      "design": 80,
+      "math": 320,
+      "dev": 480,
+      "sound": 160,
+      "qa": 200
+    },
+    "velocities": {}
+  },
+  "updated_by": "mayankyadav1994",
+  "updated_at": "2026-10-01 18:12"
 }

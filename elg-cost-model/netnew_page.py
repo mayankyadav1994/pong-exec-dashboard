@@ -33,7 +33,7 @@ STYLE_SOURCE = os.path.join(HERE, "page_template.html")
 
 # Repo root, like every other dashboard here -- deploy-pages.yml uploads the
 # whole repo, so writing straight to root means no copy-to-root step.
-OUTPUT_FILE = os.path.join(HERE, "..", "netnew-vs-port.html")
+OUTPUT_FILE = os.path.join(HERE, "netnew-vs-port.html")
 
 # Only these two categories appear on this page. Skin and Branded games are in
 # the cost model but are not part of the net-new/port question.

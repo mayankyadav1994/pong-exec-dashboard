@@ -50,10 +50,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # Source lives in one folder per dashboard; the public addresses
+      # (…/v2-timeline.html, …/plan-ig.json, …/release-policy.json) stay at the
+      # site root. build_site.py copies the repo into _site/ and puts each
+      # dashboard's public files at its root; it fails if any are missing.
+      - name: Assemble the site
+        run: python3 tools/build_site.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: '_site'
       # deploy-pages sometimes can't see the artifact uploaded seconds earlier
       # ("No artifacts named github-pages were found" / "Found 0 artifact(s)")
       # — about 1 run in 3 in Nov 2026. It fails while fetching artifact

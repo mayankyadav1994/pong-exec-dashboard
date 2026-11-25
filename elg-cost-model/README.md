@@ -19,7 +19,7 @@ instantly:
 games.json               the model's inputs: games, release epics, hourly rate
 elg_cost_data.py         Jira  -> elg_cost_data.json       ~2 min, hits the network
 elg_cost_spreadsheet.py  cache -> .xlsx + .md              instant, offline
-elg_cost_page.py         cache -> ../elg-cost-model.html   instant, offline
+elg_cost_page.py         cache -> elg-cost-model.html      instant, offline
 page_template.html       the page's layout, copy and styling
 ```
 
@@ -53,11 +53,10 @@ There is no `--add` for release epics; edit the `release_epics` block in
 `games.json` directly. A game whose release has no entry there simply gets
 0h of release overhead.
 
-**The built page goes to the repo root**, as `elg-cost-model.html`, matching
-every other dashboard here (`game-pipeline.html`, `team-board.html`). That is
-deliberate: `deploy-pages.yml` uploads the whole repo (`path: '.'`), so writing
-straight to root means there is no copy-to-root step to forget. Pushing to
-`main` triggers a Pages deploy and the page is live at:
+**The built pages stay in this folder** (`elg-cost-model.html`,
+`netnew-vs-port.html`), like every other dashboard's. `tools/build_site.py`
+(run by Deploy Pages) publishes them at the site root, so the address is
+unchanged. Pushing to `main` triggers a Pages deploy and the page is live at:
 
     https://mayankyadav1994.github.io/pong-exec-dashboard/elg-cost-model.html
 

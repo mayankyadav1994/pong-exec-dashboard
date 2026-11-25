@@ -14,17 +14,12 @@ on:
   schedule:
     - cron: '0 6 * * *'  # daily at 6am UTC
   push:
-    # Auto-promote subfolder edits to the served root copies. Without this,
-    # edits to game-pipeline/dashboard.js (forecast logic, HTML cache-buster
-    # bumps, etc.) sit in the subfolder until the next 6am UTC refresh — the
-    # root copies (what Pages actually serves) stay stale and viewers see
-    # old behaviour.
+    # Rebuild the data straight away when the builder or the release policy
+    # changes. Page edits (dashboard.js/.css/.html) need no rebuild: Deploy
+    # Pages publishes them from game-pipeline/ on every push (tools/build_site.py
+    # puts them at the site root), so the old copy-to-root step is gone.
     branches: [main]
     paths:
-      - 'game-pipeline/dashboard.js'
-      - 'game-pipeline/dashboard.css'
-      - 'game-pipeline/game-pipeline.html'
-      - 'game-pipeline/ceo-summary.html'
       - 'game-pipeline/build_jira_data.py'
       - 'game-pipeline/release-policy.json'
 
@@ -60,22 +55,6 @@ jobs:
           JIRA_BASE_URL: https://ponggamestudios.atlassian.net
           JIRA_BOARD_ID_V2: '316'   # V2 Scrum board (axis only; V2 issues are Kanban/no sprints)
           JIRA_BOARD_ID_IG: '250'   # iGaming board
-      - run: |
-          cp game-pipeline/game-pipeline.html .
-          cp game-pipeline/ceo-summary.html .
-          cp game-pipeline/dashboard.js .
-          cp game-pipeline/dashboard.css .
-          cp game-pipeline/dashboard-data-v2.js .
-          cp game-pipeline/dashboard-data-ig.js .
-          cp game-pipeline/dashboard-data-igf.js .
-          cp game-pipeline/data-v2.json .
-          cp game-pipeline/data-ig.json .
-          cp game-pipeline/data-igf.json .
-          cp game-pipeline/release-policy.json .
-          cp game-pipeline/alerts.json .
-          cp game-pipeline/release-history-v2.json .
-          cp game-pipeline/release-history-ig.json .
-          cp game-pipeline/release-history-igf.json .
       - name: Commit & push refreshed data (rebase-safe)
         run: |
           git config user.name  "github-actions[bot]"

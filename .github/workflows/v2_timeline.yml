@@ -15,8 +15,8 @@ on:
     branches: [main]
     paths:
       - "config/v2.json"
-      - "v2-timeline.template.html"
-      - "v2_timeline.py"
+      - "timelines/v2-timeline.template.html"
+      - "timelines/v2_timeline.py"
 
 # Serialize against exec_dashboard so the two pushes can't race.
 concurrency:
@@ -62,7 +62,7 @@ jobs:
           # script defaults to 316; if the board query fails it falls back to
           # the S1 anchor cadence, so the axis renders either way.
           JIRA_BOARD_ID_V2:     '316'
-        run: python v2_timeline.py
+        run: python timelines/v2_timeline.py
 
       # Smoke-test the rendered HTML before commit: loads it via jsdom,
       # asserts rows render, clicks Edit Plan + What-If, fails the run if
@@ -75,7 +75,7 @@ jobs:
       - name: Smoke-test V2 timeline
         run: |
           npm install --no-save --silent jsdom
-          node tools/smoke-test.js v2-timeline.html
+          node tools/smoke-test.js timelines/v2-timeline.html
 
       - name: Commit and push
         run: |
@@ -84,7 +84,7 @@ jobs:
           # Stage and commit the regenerated HTML first so the working tree is
           # clean before we touch the remote. If the build produced no diff,
           # exit cleanly without pulling/pushing.
-          git add v2-timeline.html snapshots/v2/ snapshots/v2-scope-baseline.json || true
+          git add timelines/v2-timeline.html timelines/snapshots/v2/ timelines/snapshots/v2-scope-baseline.json || true
           if git diff --staged --quiet; then
             echo "No V2 timeline changes to commit."
             exit 0

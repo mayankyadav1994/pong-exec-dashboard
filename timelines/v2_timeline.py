@@ -18,7 +18,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from jira_client import agile_get, jira_get, jira_jql
+HERE = Path(__file__).resolve().parent     # timelines/ — template, page, snapshots
+REPO = HERE.parent                         # repo root — config/, shared/
+sys.path.insert(0, str(REPO / "shared"))   # shared/jira_client.py
+from jira_client import agile_get, jira_get, jira_jql  # noqa: E402
 
 # Ensure Unicode glyphs in print() (▶, →, ⛓) render on Windows where the
 # default cp1252 stdout encoding can't handle them. No-op on Linux CI.
@@ -106,7 +109,7 @@ def load_config():
     holidays, hidden_fvs keys (any may be missing → fall back to defaults).
     Never raises — bad JSON falls through silently so the workflow can't be
     bricked by a malformed save from the panel."""
-    cfg_path = Path(__file__).parent / "config" / "v2.json"
+    cfg_path = REPO / "config" / "v2.json"
     if not cfg_path.exists():
         print(f"  ℹ no config file at {cfg_path.name}; using hardcoded defaults")
         return {}
@@ -1013,7 +1016,7 @@ def compute_snapshot(fvs):
 
 def write_snapshot(dashboard_key, snap):
     """Persist snap to snapshots/<dashboard>/<date>.json; trim files >90d old."""
-    snap_dir = Path("snapshots") / dashboard_key
+    snap_dir = HERE / "snapshots" / dashboard_key
     snap_dir.mkdir(parents=True, exist_ok=True)
     (snap_dir / f"{snap['date']}.json").write_text(
         json.dumps(snap, ensure_ascii=False, indent=2),
@@ -1030,7 +1033,7 @@ def write_snapshot(dashboard_key, snap):
 
 def load_snapshots(dashboard_key, n=30):
     """Return last n snapshots (chronological) for injection into the template."""
-    snap_dir = Path("snapshots") / dashboard_key
+    snap_dir = HERE / "snapshots" / dashboard_key
     if not snap_dir.exists():
         return []
     files = sorted(snap_dir.glob("*.json"))[-n:]
@@ -1059,7 +1062,7 @@ def load_snapshots(dashboard_key, n=30):
 # On every build we compute additions / resizes / removals vs this dict.
 
 def _scope_baseline_path(dashboard_key):
-    return Path("snapshots") / f"{dashboard_key}-scope-baseline.json"
+    return HERE / "snapshots" / f"{dashboard_key}-scope-baseline.json"
 
 
 def load_scope_baseline(dashboard_key):
@@ -1413,7 +1416,7 @@ def main():
     if n_with_delta:
         print(f"  scope baseline: {n_with_delta} FV(s) show a deviation vs baseline")
 
-    template = Path("v2-timeline.template.html").read_text(encoding="utf-8")
+    template = (HERE / "v2-timeline.template.html").read_text(encoding="utf-8")
     rendered = (template
         .replace("__TODAY__",         TODAY.isoformat())
         .replace("__FV_DATA__",       json.dumps(fvs, ensure_ascii=False))
@@ -1440,7 +1443,7 @@ def main():
         .replace("__REFRESH_LABEL__", refresh_label)
         .replace("__SPRINT_HEADER__", sprint_header)
     )
-    Path("v2-timeline.html").write_text(rendered, encoding="utf-8")
+    (HERE / "v2-timeline.html").write_text(rendered, encoding="utf-8")
     print("\n✅ v2-timeline.html written")
 
 
