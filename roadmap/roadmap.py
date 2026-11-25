@@ -368,7 +368,10 @@ def build_space(sid, space, win_start, win_end):
         created = epic_created.get(it["key"])
         return it["tagged"] or (it["work"] > 0 and created is not None and created >= recent_cut)
 
-    # 2b. Game market index: every version on each game epic and its stories.
+    # 2b. Game market index. A game is in a market when it carries that market's
+    # version: on the epic itself only (market_from_epic, iGaming), or on the epic
+    # or its market stories (V2). Bugs/CRs never put a game in a market, and only
+    # Epics can be games (a game-named Story is not a launch).
     vindex = {v["id"]: (v, proj) for proj in projects for v in project_versions(proj)}
     game_projects = space.get("game_projects", [])
     game_keys = set()
@@ -383,15 +386,28 @@ def build_space(sid, space, win_start, win_end):
             f'AND statusCategory != Done AND duedate is not EMPTY', FIELDS)
             if re.search(game_re, e["fields"]["summary"], re.I)]
         game_keys |= {e["key"] for e in pmo_games}
+    epic_only = space.get("market_from_epic", False)
     game_vids = defaultdict(set)
+    game_epics = set()
     keys = sorted(game_keys)
     for i in range(0, len(keys), 40):
         chunk = keys[i:i + 40]
         for it in jira_jql(f"key in ({','.join(chunk)}) OR parent in ({','.join(chunk)})",
                            ["fixVersions", "parent", "issuetype"]):
-            owner = it["key"] if it["key"] in game_keys else (it["fields"].get("parent") or {}).get("key")
+            t = it["fields"]["issuetype"]["name"]
+            if it["key"] in game_keys:
+                owner = it["key"]
+                if t == "Epic":
+                    game_epics.add(owner)
+            else:
+                owner = (it["fields"].get("parent") or {}).get("key")
+                if epic_only or t in MISC_TYPES:
+                    continue
             if owner in game_keys:
                 game_vids[owner] |= {fv["id"] for fv in it["fields"].get("fixVersions") or []}
+    for k in list(game_vids):
+        if k not in game_epics:
+            del game_vids[k]
 
     def markets(gkey):
         """market -> sorted [(date|None, version name, released)] of numbered versions."""
@@ -408,7 +424,7 @@ def build_space(sid, space, win_start, win_end):
         return out
 
     def launch(gkey, vid):
-        if gkey not in game_vids or vid not in vindex:
+        if vid not in game_vids.get(gkey, ()) or vid not in vindex:
             return False
         v, proj = vindex[vid]
         m = market_of(v["name"], proj, space)

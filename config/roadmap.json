@@ -19,7 +19,8 @@
       "_markets": "Game markets = the pfh / elg / hp groups. 'New Games - iGaming' holds ELG-bound games, 'New Games - PFH' PFH-bound ones.",
       "game_projects": ["IG"],
       "non_markets": ["kiosk"],
-      "awaiting": [ { "from": "elg", "to": "pfh", "skip_re": "-\\s*ELG\\s*$" } ],
+      "market_from_epic": true,
+      "_market_from_epic": "A game is in ELG/PFH only if its own epic carries that release version; bugs filed under old or other games never make them a launch.",
       "groups": [
         { "id": "pfh", "label": "PFH",
           "match": "^(PFH(?!2? Services)|New Games - PFH|New Features - iGaming)",
