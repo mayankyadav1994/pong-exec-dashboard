@@ -25,7 +25,7 @@ Each refresh runs from `.github/workflows/` and commits the rebuilt page back in
 | Folder | What's in it |
 |---|---|
 | `config/` | PMO-editable settings: the timeline plans saved from the pages (`v2.json`, `igaming.json`), roadmap lanes and PMO dates. |
-| `shared/` | Code every dashboard uses: `jira_client.py`. The unified rules (done, release membership, calendar, forecast) go here next. |
+| `shared/` | Code every dashboard uses: `jira_client.py`, and `site-nav.js` (the navigation drawer and its one list of dashboards). The unified rules (done, release membership, calendar, forecast) go here next. |
 | `tools/` | Smoke tests run before each refresh commits, and `build_site.py`. |
 | `docs/` | Logic and knowledge docs. |
 
@@ -37,6 +37,10 @@ push, **Deploy Pages** runs `tools/build_site.py`, which copies the repo into
 `_site/` and places each dashboard's public files at the site root. To publish a
 new page, add it to `SITE_ROOT` in that script. The build fails if a listed file
 is missing.
+
+The same step adds the navigation drawer to every published page: the tab on the
+left edge opens a list of all dashboards. No template carries it. To add or
+rename a dashboard in that list, edit `GROUPS` in `shared/site-nav.js`.
 
 ## Running locally
 

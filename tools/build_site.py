@@ -11,6 +11,10 @@ So the site is: the whole repo (folder addresses keep working too), plus each
 dashboard's public files copied to the site root (SITE_ROOT below). A file
 missing from SITE_ROOT's sources fails the build, so a broken site never ships.
 
+Every published page also gets the shared navigation drawer: a
+<script src="site-nav.js" defer> before </body> (source: shared/site-nav.js,
+which holds the one list of dashboards). Templates don't carry it.
+
 Used by .github/workflows/deploy-pages.yml. Local preview:
     python tools/build_site.py && python -m http.server 8000 -d _site
 """
@@ -43,7 +47,12 @@ SITE_ROOT: dict[str, list[str]] = {
         "release-history-v2.json", "release-history-ig.json", "release-history-igf.json",
     ],
     "elg-cost-model": ["elg-cost-model.html", "netnew-vs-port.html"],
+    "shared": ["site-nav.js"],
 }
+
+# Published pages outside the site root that also get the drawer.
+NAV_EXTRA_PAGES = ["sprint-load/dashboard.html"]
+NAV_MARK = "<!-- site-nav -->"
 
 SKIP_DIRS = {".git", ".github", ".claude", ".venv", "venv", "node_modules",
              "__pycache__", "_site"}
@@ -82,8 +91,32 @@ def build() -> int:
     if missing:
         print("error: missing published files:\n  " + "\n  ".join(missing), file=sys.stderr)
         return 1
-    print(f"site assembled in {OUT.relative_to(REPO)}/: {placed} files at the root")
+
+    pages = [n for files in SITE_ROOT.values() for n in files if n.endswith(".html")]
+    for rel in pages + NAV_EXTRA_PAGES:
+        if not add_site_nav(OUT / rel, rel):
+            return 1
+    print(f"site assembled in {OUT.relative_to(REPO)}/: {placed} files at the root, "
+          f"navigation on {len(pages) + len(NAV_EXTRA_PAGES)} pages")
     return 0
+
+
+def add_site_nav(page: Path, rel: str) -> bool:
+    """Load the shared navigation drawer on a published page (before </body>)."""
+    if not page.is_file():
+        print(f"error: navigation page {rel} is missing", file=sys.stderr)
+        return False
+    with page.open(encoding="utf-8", newline="") as f:
+        html = f.read()
+    if NAV_MARK in html:
+        return True
+    prefix = "../" * rel.count("/")
+    tag = f'{NAV_MARK}<script src="{prefix}site-nav.js" defer></script>\n'
+    i = html.lower().rfind("</body>")
+    html = html[:i] + tag + html[i:] if i >= 0 else html + "\n" + tag
+    with page.open("w", encoding="utf-8", newline="") as f:
+        f.write(html)
+    return True
 
 
 if __name__ == "__main__":
