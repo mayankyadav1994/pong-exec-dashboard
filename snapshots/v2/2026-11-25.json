@@ -20,13 +20,13 @@
       "spentH": 1141
     },
     "New Games": {
-      "devEnd": "2032-01-16",
-      "qaEnd": "2032-01-30",
+      "devEnd": "2031-09-08",
+      "qaEnd": "2031-09-22",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 25805,
-      "spentH": 12143
+      "spentH": 12148
     },
     "V2 C2 Backlog": {
       "devEnd": "2026-12-02",
