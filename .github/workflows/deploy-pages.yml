@@ -12,22 +12,14 @@
 # ============================================================
 name: Deploy Pages
 on:
-  # Human / PAT commits (e.g. the "Save as default" plan saves) trigger this.
+  # Every commit to main deploys: human commits, "Save as default" plan saves,
+  # AND the daily refresh commits — the refresh workflows push with PUSH_PAT
+  # (since 86355b9), which, unlike GITHUB_TOKEN, does trigger push workflows.
+  # A workflow_run trigger on the refresh workflows used to sit here for the
+  # GITHUB_TOKEN era; once they switched to PUSH_PAT it deployed every refresh
+  # commit twice, doubling the runs and the failure emails (removed 2026-11-25).
   push:
     branches: [main]
-  # The daily refresh workflows commit with GITHUB_TOKEN, whose pushes do NOT
-  # trigger other workflows (GitHub's recursion guard). So re-run the deploy
-  # after each refresh completes — otherwise the site would stop updating daily.
-  workflow_run:
-    workflows:
-      - "Exec Dashboard"
-      - "V2 Timeline"
-      - "iGaming Timeline"
-      - "Refresh Team Board Data"
-      - "Refresh Game Pipeline Dashboard"
-      - "Roadmap"
-      - "People"
-    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -52,18 +44,27 @@ concurrency:
 
 jobs:
   deploy:
-    # For refresh-triggered runs, only deploy if the refresh actually succeeded.
-    # push / manual runs always deploy.
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
+      # deploy-pages sometimes can't see the artifact uploaded seconds earlier
+      # ("No artifacts named github-pages were found" / "Found 0 artifact(s)")
+      # — about 1 run in 3 in Nov 2026. It fails while fetching artifact
+      # metadata, before any Pages deployment is registered, so waiting and
+      # trying once more is safe. Only a second failure fails the job.
       - id: deployment
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - name: Wait for the artifact to become visible
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@v4
