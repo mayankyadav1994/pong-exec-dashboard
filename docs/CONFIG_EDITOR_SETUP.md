@@ -59,7 +59,7 @@ All steps are visible in the [repo's PR list](https://github.com/mayankyadav1994
 | `HTTP 401: Bad credentials` | Token is expired or revoked. | Mint a new PAT (Step 1), re-paste it. |
 | `HTTP 403: Resource not accessible by personal access token` | Fine-grained PAT is missing one of the required permissions (most often Pull requests). | Re-mint with all three permissions from Step 1. |
 | `HTTP 422: Reference already exists` | Two saves landed within the same millisecond. Rare. | Click Save again — branch name includes a timestamp, so retry works. |
-| Save succeeded but the dashboard hasn't updated after 5 min | Workflow ran but Pages might be slow, or the workflow failed. | Check [recent runs of the iGaming Timeline workflow](https://github.com/mayankyadav1994/pong-exec-dashboard/actions/workflows/igaming_timeline.yml). |
+| Save succeeded but the dashboard hasn't updated after 5 min | Workflow ran but Pages might be slow, or the workflow failed. | Check [recent runs of the iGaming + CSS Timelines workflow](https://github.com/mayankyadav1994/pong-exec-dashboard/actions/workflows/igaming_css_timelines.yml). |
 
 ## Security notes
 

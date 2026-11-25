@@ -30,7 +30,7 @@ OUT = REPO / "_site"
 # folder -> files it publishes at the site root (the addresses people use).
 SITE_ROOT: dict[str, list[str]] = {
     "exec": ["index.html"],
-    "timelines": ["v2-timeline.html", "igaming-timeline.html"],
+    "timelines": ["v2-timeline.html", "igaming-timeline.html", "css-timeline.html"],
     "roadmap": ["roadmap-igaming.html", "roadmap-v2.html", "roadmap-css.html",
                 "roadmap-history.json"],
     "people": ["people.html"],

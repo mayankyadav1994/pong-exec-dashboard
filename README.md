@@ -9,7 +9,8 @@ Live site: <https://mayankyadav1994.github.io/pong-exec-dashboard/>
 |---|---|---|---|---|
 | Exec overview | `exec/` | `/` (`index.html`) | `build_dashboard.py` | daily 06:00 UTC |
 | V2 release timeline | `timelines/` | `/v2-timeline.html` | `v2_timeline.py` | daily 06:15 UTC + on plan save |
-| iGaming release timeline | `timelines/` | `/igaming-timeline.html` | `igaming_timeline.py` | daily 06:30 UTC + on plan save |
+| iGaming release timeline | `timelines/` | `/igaming-timeline.html` | `timeline.py igaming` | daily 06:30 UTC + on plan save |
+| Cloud Services release timeline | `timelines/` | `/css-timeline.html` | `timeline.py css` (same engine as iGaming) | daily 06:30 UTC + on plan save |
 | Roadmaps (iGaming, V2, Cloud Services) | `roadmap/` | `/roadmap-igaming.html`, `/roadmap-v2.html`, `/roadmap-css.html` | `roadmap.py all` | daily 06:45 UTC |
 | People | `people/` | `/people.html` | `people.py` | daily 07:15 UTC |
 | Game Pipeline + CEO Summary | `game-pipeline/` | `/game-pipeline.html`, `/ceo-summary.html` | `build_jira_data.py --project both` | daily 06:00 UTC |
@@ -50,6 +51,7 @@ environment.
 
 ```
 python timelines/v2_timeline.py
+python timelines/timeline.py css      # or igaming
 python roadmap/roadmap.py all
 python game-pipeline/build_jira_data.py --project both
 ```

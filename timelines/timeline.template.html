@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>iGaming Release Timeline — Pong Game Studios</title>
+<title>__TITLE__ — Pong Game Studios</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -668,10 +668,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <body>
 <nav class="site-tabs">
   <div class="site-tabs-inner">
-    <a href="index.html" class="site-tab">Overview</a>
-    <a href="v2-timeline.html" class="site-tab">V2 Timeline</a>
-    <a href="igaming-timeline.html" class="site-tab active">iGaming Timeline</a>
-    <a href="roadmap-igaming.html" class="site-tab">Roadmap</a>
+    __SITE_TABS__
   </div>
   <div class="site-nav-actions">
     <button class="site-nav-btn nav-edit-btn" id="editPlanBtn" title="Open the Plan Editor — config that persists for everyone via PR">⚙ Edit Plan</button>
@@ -684,8 +681,8 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 <div class="share-banner" id="shareBanner" style="display:none"></div>
 <div class="hdr">
   <div>
-    <h1>iGaming Release Timeline — Fix Version Delivery Forecast</h1>
-    <p>Pong Game Studios · ELG · PFH2 · Horse Play · Click any row to drill in · Adjust per-person buffers inline</p>
+    <h1>__TITLE__ — Fix Version Delivery Forecast</h1>
+    <p>Pong Game Studios · __LINES__ · Click any row to drill in · Adjust per-person buffers inline</p>
     <div class="refresh-meta"><div class="refresh-dot"></div>Last refreshed from Jira: <strong>__REFRESH_LABEL__</strong>&nbsp;·&nbsp;__SPRINT_HEADER__</div>
   </div>
   <div class="legend">
@@ -754,24 +751,27 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 
 <div class="note">
   <strong>⚠ Notes:</strong>
-  Availability: <strong>75% (6h/day)</strong> all resources. May 18 holiday excluded. iGaming spans <strong>three product lines</strong>: ELG, PFH2, and Horse Play.
+  Availability: <strong>75% (6h/day)</strong> all resources. May 18 holiday excluded. __ABOUT__
   Queued hours auto-calculated from higher-priority releases. QA = <strong>2 weeks</strong> default.
   Critical-path person per FV (⛓) auto-flagged based on highest remaining hours.
   <strong>Hover any row</strong> to reveal the hide (✕) control — hidden FVs collapse into a chip above the list.
 </div>
-<div class="footer">Pong Game Studios PMO · iGaming Project (IG) · ponggamestudios.atlassian.net · Excludes: Bugs, Enhancements, QA Tasks, Release &amp; Merge Tasks/Sub-tasks · Sprint field: customfield_10103</div>
+<div class="footer">Pong Game Studios PMO · __PROJECT_LABEL__ · ponggamestudios.atlassian.net · Excludes: Bugs, Enhancements, QA Tasks, Release &amp; Merge Tasks/Sub-tasks · Sprint field: customfield_10103</div>
 
 <script>
 // ─── CONSTANTS ─────────────────────────────────────────
 const D=s=>new Date(s);
+// Which dashboard this page is (set by timeline.py from its PROFILES entry):
+// key, title, sprintPrefix, configPath, ls (browser-storage key prefix).
+const DASH=__DASH__;
 const TODAY=D('__TODAY__');
-const CHART_START=D('2026-05-11');
+const CHART_START=D('__CHART_START__');
 const CHART_END=D('2027-03-15');   // generous end so far-out releases never clip; scrollable (#67)
 const BASE='https://ponggamestudios.atlassian.net/browse/';
 const HOLIDAYS=__HOLIDAYS__;
 const LS_KEY='ig';
 
-// ─── DATA (injected by igaming_timeline.py) ──────────────────────
+// ─── DATA (injected by timeline.py) ──────────────────────
 const FV=__FV_DATA__;
 FV.forEach(fv=>{ if(typeof fv.devStart==='string') fv.devStart=D(fv.devStart); });
 
@@ -782,17 +782,17 @@ const SPRINT_DATA=__SPRINT_DATA__;
 
 // ─── LOCAL CONFIG OVERRIDES (browser-only until Save-as-default) ─
 // Edits in the What-If panel write here, persist to localStorage, and replay
-// over the FV array on every load. Server config (from config/igaming.json)
+// over the FV array on every load. Server config (from config/<dashboard>.json)
 // is the baseline this overlay sits on top of.
 let LOCAL_CONFIG = { fv_order:null, fv_meta:{}, hidden_fvs:[], holidays:null };
 try {
-  const saved = JSON.parse(localStorage.getItem('ig_local_config')||'{}');
+  const saved = JSON.parse(localStorage.getItem(DASH.ls+'local_config')||'{}');
   LOCAL_CONFIG = { ...LOCAL_CONFIG, ...saved };
   if(!LOCAL_CONFIG.fv_meta) LOCAL_CONFIG.fv_meta={};
   if(!LOCAL_CONFIG.hidden_fvs) LOCAL_CONFIG.hidden_fvs=[];
 } catch(e) {}
 function saveLocalConfig(){
-  try { localStorage.setItem('ig_local_config', JSON.stringify(LOCAL_CONFIG)); } catch(e) {}
+  try { localStorage.setItem(DASH.ls+'local_config', JSON.stringify(LOCAL_CONFIG)); } catch(e) {}
 }
 function hasLocalEdits(){
   return !!(LOCAL_CONFIG.fv_order
@@ -870,7 +870,7 @@ function initSprintLogs(){
   if(typeof SPRINT_DATA === 'undefined' || !SPRINT_DATA) return;
   const start = D(SPRINT_DATA.startDate);
   const end   = D(SPRINT_DATA.endDate);
-  SPRINT.label = (SPRINT_DATA.name||'').replace(/^IG Sprint /,'S');
+  SPRINT.label = (SPRINT_DATA.name||'').replace(new RegExp('^'+DASH.sprintPrefix+'\\s*'),'S');
   const fmt = d => d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
   SPRINT.period = `${fmt(start)} — ${fmt(end)}`;
   function workdays(s, e){
@@ -1321,8 +1321,8 @@ function buildSummaryPanel(fv, devEnd, qaEnd){
 }
 
 // Breakdown persistence — one localStorage key holding a Set of expanded FV
-// keys. Uses 'ig_bd_expanded' to keep V2 and iGaming preferences separate.
-const BD_KEY = 'ig_bd_expanded';
+// keys. Uses DASH.ls+'bd_expanded' to keep V2 and iGaming preferences separate.
+const BD_KEY = DASH.ls+'bd_expanded';
 function _bdRead(){
   try { return new Set(JSON.parse(localStorage.getItem(BD_KEY) || '[]')); }
   catch(e){ return new Set(); }
@@ -1353,13 +1353,13 @@ function hpd(fvKey,name){return 8*getBuffer(fvKey,name)/100}
 // ─── SCENARIOS ─────────────────────────────────────────
 let SCENARIOS=[];
 let scenariosMasterEnabled=true;
-try{ SCENARIOS=JSON.parse(localStorage.getItem('ig_scenarios')||'[]'); }catch(e){}
-try{ scenariosMasterEnabled=JSON.parse(localStorage.getItem('ig_scenarios_master')??'true'); }catch(e){}
+try{ SCENARIOS=JSON.parse(localStorage.getItem(DASH.ls+'scenarios')||'[]'); }catch(e){}
+try{ scenariosMasterEnabled=JSON.parse(localStorage.getItem(DASH.ls+'scenarios_master')??'true'); }catch(e){}
 
 function saveScenarios(){
   try{
-    localStorage.setItem('ig_scenarios',JSON.stringify(SCENARIOS));
-    localStorage.setItem('ig_scenarios_master',JSON.stringify(scenariosMasterEnabled));
+    localStorage.setItem(DASH.ls+'scenarios',JSON.stringify(SCENARIOS));
+    localStorage.setItem(DASH.ls+'scenarios_master',JSON.stringify(scenariosMasterEnabled));
   }catch(e){}
   updateFab();
 }
@@ -1971,11 +1971,11 @@ const rowsEl=document.getElementById('rows');
 let dragSrcIdx=null;
 
 let HIDDEN_FVS=new Set();
-try{ HIDDEN_FVS=new Set(JSON.parse(localStorage.getItem('ig_hidden_fvs')||'[]')); }catch(e){}
+try{ HIDDEN_FVS=new Set(JSON.parse(localStorage.getItem(DASH.ls+'hidden_fvs')||'[]')); }catch(e){}
 // Merge in panel-driven hide list (kept separate so we can distinguish in the editor)
 (LOCAL_CONFIG.hidden_fvs||[]).forEach(k=>HIDDEN_FVS.add(k));
 function saveHidden(){
-  try{localStorage.setItem('ig_hidden_fvs',JSON.stringify([...HIDDEN_FVS]));}catch(e){}
+  try{localStorage.setItem(DASH.ls+'hidden_fvs',JSON.stringify([...HIDDEN_FVS]));}catch(e){}
 }
 function hideFv(key){
   HIDDEN_FVS.add(key);
@@ -2577,10 +2577,10 @@ function buildSprintBoard(){
 }
 
 const sprintBoardEl=document.getElementById('sprintBoard');
-try{ if(localStorage.getItem('ig_sprintboard_collapsed')==='1') sprintBoardEl.classList.add('collapsed'); }catch(e){}
+try{ if(localStorage.getItem(DASH.ls+'sprintboard_collapsed')==='1') sprintBoardEl.classList.add('collapsed'); }catch(e){}
 document.getElementById('sprintBoardHdr').addEventListener('click',()=>{
   sprintBoardEl.classList.toggle('collapsed');
-  try{localStorage.setItem('ig_sprintboard_collapsed', sprintBoardEl.classList.contains('collapsed')?'1':'0');}catch(e){}
+  try{localStorage.setItem(DASH.ls+'sprintboard_collapsed', sprintBoardEl.classList.contains('collapsed')?'1':'0');}catch(e){}
 });
 
 // ─── SCENARIO PANEL ────────────────────────────────────
@@ -2605,17 +2605,17 @@ function updateFab(){
 }
 
 // ─── GITHUB API + SAVE-AS-DEFAULT FLOW ────────────────
-// Promotes the current browser-local edits to config/igaming.json by
+// Promotes the current browser-local edits to config/<dashboard>.json by
 // opening (and auto-merging) a PR. See docs/CONFIG_EDITOR_SETUP.md for
 // the one-time PAT setup the user needs to do.
 const GH_OWNER='mayankyadav1994';
 const GH_REPO='pong-exec-dashboard';
-const GH_CONFIG_PATH='config/igaming.json';
+const GH_CONFIG_PATH=DASH.configPath;
 const GH_API=`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}`;
-const GH_PAT_KEY='ig_github_pat';
-const GH_PAT_USER_KEY='ig_github_pat_user';
+const GH_PAT_KEY=DASH.ls+'github_pat';
+const GH_PAT_USER_KEY=DASH.ls+'github_pat_user';
 
-// Server's persisted fv_meta — the *actual* contents of config/igaming.json
+// Server's persisted fv_meta — the *actual* contents of config/<dashboard>.json
 // at render time, NOT the auto-discovery-merged version. buildConfigPayload
 // uses this as the base so saving doesn't accidentally turn every grey
 // auto-discovered FV into a permanent config entry with grey/Jira-description
@@ -2661,17 +2661,17 @@ function wdDiff(a, b){
 
 // Publish markers — populated by the Save-as-default flow when it PUTs
 // the config. Empty string = no publish has happened yet (first deploy).
-// The opt-in banner reads these and compares to ig_shared_seen in
+// The opt-in banner reads these and compares to <ls>shared_seen in
 // localStorage. See renderShareBanner() below.
 const SERVER_PUBLISHED_AT = __SERVER_PUBLISHED_AT__;
 const SERVER_PUBLISHED_BY = __SERVER_PUBLISHED_BY__;
-const SHARED_SEEN_KEY = 'ig_shared_seen';
+const SHARED_SEEN_KEY = DASH.ls+'shared_seen';
 function getSharedSeen(){ try { return localStorage.getItem(SHARED_SEEN_KEY) || ''; } catch(e) { return ''; } }
 function setSharedSeen(v){ try { localStorage.setItem(SHARED_SEEN_KEY, v || ''); } catch(e) {} }
 function resetLocalEdits(){
   try {
-    localStorage.removeItem('ig_local_config');
-    localStorage.removeItem('ig_hidden_fvs');
+    localStorage.removeItem(DASH.ls+'local_config');
+    localStorage.removeItem(DASH.ls+'hidden_fvs');
   } catch(e){}
   location.reload();
 }
@@ -2731,7 +2731,7 @@ async function verifyPat(){
 }
 
 function buildConfigPayload(){
-  // Compose what should be written to config/igaming.json.
+  // Compose what should be written to config/<dashboard>.json.
   //
   // Critical: we DON'T iterate the in-memory FV array and write every field.
   // After auto-discovery, that array mixes "real config" FVs with Jira+default
@@ -2741,7 +2741,7 @@ function buildConfigPayload(){
   // metadata — bloating the config and polluting every diff.
   //
   // Instead: start from SERVER_FV_META (the actual current contents of
-  // config/igaming.json) and layer LOCAL_CONFIG.fv_meta edits on top. FVs
+  // config/<dashboard>.json) and layer LOCAL_CONFIG.fv_meta edits on top. FVs
   // that have no server config AND no local edits stay out of the saved
   // fv_meta entirely — they'll be re-derived from Jira on the next workflow
   // run, same as they are now.
@@ -2918,7 +2918,7 @@ async function saveConfigToRepo(configContent, commitTitle, commitBody, statusCb
   // 2) Branch from main HEAD
   stat('Creating branch…');
   const mainRef = await ghFetch(`${GH_API}/git/refs/heads/main`);
-  const branchName = `config/igaming-${Date.now()}`;
+  const branchName = `config/${DASH.key}-${Date.now()}`;
   await ghFetch(`${GH_API}/git/refs`, {
     method:'POST',
     body: JSON.stringify({ ref:`refs/heads/${branchName}`, sha:mainRef.object.sha }),
@@ -3047,7 +3047,7 @@ function showSaveModal(){
         </li>`).join('')}
       </ul>
       <label style="margin-top:12px">COMMIT MESSAGE</label>
-      <input type="text" id="spCommitTitle" value="config(igaming): ${summary}">
+      <input type="text" id="spCommitTitle" value="config(${DASH.key}): ${summary}">
       <label style="margin-top:8px">DESCRIPTION (optional)</label>
       <textarea id="spCommitBody" rows="2">Edited via dashboard by @${user}</textarea>
       <div class="sp-status-msg" id="spSaveStatus"></div>`;
@@ -3059,7 +3059,7 @@ function showSaveModal(){
 
     document.getElementById('spSaveCancel').onclick = closeModal;
     document.getElementById('spSaveConfirm').onclick = async () => {
-      const title = document.getElementById('spCommitTitle').value.trim() || `config(igaming): ${summary}`;
+      const title = document.getElementById('spCommitTitle').value.trim() || `config(${DASH.key}): ${summary}`;
       const bodyMsg = document.getElementById('spCommitBody').value.trim();
       const status = document.getElementById('spSaveStatus');
       const btn = document.getElementById('spSaveConfirm');
@@ -3610,8 +3610,8 @@ function renderFvsTab(body, foot){
   document.getElementById('spResetFvsBtn').onclick=()=>{
     if(!hasLocalEdits()){showToast('No local edits to reset');return;}
     if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
-    localStorage.removeItem('ig_local_config');
-    localStorage.removeItem('ig_hidden_fvs');
+    localStorage.removeItem(DASH.ls+'local_config');
+    localStorage.removeItem(DASH.ls+'hidden_fvs');
     location.reload();
   };
   document.getElementById('spSaveCfgBtn').onclick=onSaveClicked;
@@ -3684,8 +3684,8 @@ function renderSettingsTab(body, foot){
   document.getElementById('spResetSettingsBtn').onclick=()=>{
     if(!hasLocalEdits()){showToast('No local edits to reset');return;}
     if(!confirm('Reset all browser-local edits and reload with the server defaults?')) return;
-    localStorage.removeItem('ig_local_config');
-    localStorage.removeItem('ig_hidden_fvs');
+    localStorage.removeItem(DASH.ls+'local_config');
+    localStorage.removeItem(DASH.ls+'hidden_fvs');
     location.reload();
   };
   document.getElementById('spSaveCfgBtn2').onclick=onSaveClicked;

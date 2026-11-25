@@ -1,0 +1,22 @@
+{
+  "_comment": "Editable Cloud Services dashboard config. Don't hand-edit unless you know what you're doing: use the Edit Plan panel and click 'Save as default for everyone'. Releases not listed in fv_order follow Jira's release date; Target dates default to Jira's release date.",
+  "fv_order": [],
+  "fv_meta": {
+    "CS VGTC 7.11":        {"color": "#2dd4bf"},
+    "CS VGTC 7.12":        {"color": "#14b8a6", "sub": "Cloud Services · VGTC"},
+    "CS VGTC 8.00":        {"color": "#0f766e"},
+    "CS GCP 2.20":         {"color": "#60a5fa", "sub": "Cloud Services · GCP"},
+    "CS GCP 2.30":         {"color": "#3b82f6", "sub": "Cloud Services · GCP"},
+    "CS GCP 2.40":         {"color": "#2563eb"},
+    "CS GCP 3.00":         {"color": "#1d4ed8"},
+    "CS CRM 9.00":         {"color": "#a855f7"},
+    "CRM Backlog":         {"color": "#c4b5fd", "sub": "Bucket · CRM backlog"},
+    "CS TH 8.00":          {"color": "#f59e0b"},
+    "CS BD 1.00":          {"color": "#64748b"},
+    "Central Server 1.00": {"color": "#f97316"},
+    "PFH Services 3.00":   {"color": "#fb923c"},
+    "PFH2 Services 5.00":  {"color": "#fdba74"}
+  },
+  "hidden_fvs": [],
+  "holidays": ["2026-05-18"]
+}

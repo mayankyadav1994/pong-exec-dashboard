@@ -22,6 +22,7 @@
     { title: "Releases", items: [
       { href: "v2-timeline.html",      label: "V2 release timeline",      desc: "Dev and QA forecast per release" },
       { href: "igaming-timeline.html", label: "iGaming release timeline", desc: "Dev and QA forecast per release" },
+      { href: "css-timeline.html",     label: "Cloud Services release timeline", desc: "Dev and QA forecast per release" },
       { href: "roadmap-igaming.html",  label: "Roadmap: iGaming",         desc: "Dated releases and go-lives" },
       { href: "roadmap-v2.html",       label: "Roadmap: V2",              desc: "Dated releases and go-lives" },
       { href: "roadmap-css.html",      label: "Roadmap: Cloud Services",  desc: "Dated releases" },

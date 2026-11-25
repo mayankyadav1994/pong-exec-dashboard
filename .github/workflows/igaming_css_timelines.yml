@@ -1,28 +1,29 @@
-name: iGaming Timeline
+name: iGaming + CSS Timelines
+
+# Both pages come from one engine (timelines/timeline.py + timeline.template.html),
+# so they rebuild together in one run: same logic, one slot in the
+# refresh-dashboards queue (it holds only one pending run).
 
 on:
   schedule:
     # 06:30 UTC, 15 minutes after V2 timeline (which runs at 06:15) and
-    # 30 minutes after the exec dashboard (06:00). The three workflows share
+    # 30 minutes after the exec dashboard (06:00). The workflows share
     # the same concurrency group so commits serialize cleanly. See
     # v2_timeline.yml and exec_dashboard.yml for the reasoning behind the
     # early UTC time window.
     - cron: "30 6 * * *"
   workflow_dispatch:
   push:
-    # Rebuild immediately when the editable config changes via the
-    # "Save as default" panel button — gives a ~2-3 min round-trip from
-    # save-click to deployed HTML. Also rebuild when the template HTML or
-    # the builder script changes so manual edits to those files don't
-    # need a separate workflow_dispatch.
+    # Rebuild immediately when an editable config changes via the
+    # "Save as default" panel button (~2-3 min round-trip from save-click to
+    # deployed HTML), or when the engine or its template changes.
     branches: [main]
     paths:
       - "config/igaming.json"
-      - "timelines/igaming-timeline.template.html"
-      - "timelines/igaming_timeline.py"
+      - "config/css.json"
+      - "timelines/timeline.template.html"
+      - "timelines/timeline.py"
 
-# Serialize against the exec_dashboard and v2_timeline workflows so the
-# three pushes can't race.
 concurrency:
   group: refresh-dashboards
   cancel-in-progress: false
@@ -33,7 +34,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -52,29 +53,36 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Sprint axes come from each project's Scrum board. If a board query
+      # fails the engine falls back to the anchored 14-day cadence, so the
+      # axis renders either way.
       - name: Build iGaming timeline
         env:
           JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
           CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
-          # IG Scrum board — sprint axis (same board the game pipeline reads).
-          # If the board query fails the script falls back to the anchored
-          # 14-day cadence, so the axis renders either way.
           JIRA_BOARD_ID_IG:     '250'
-        run: python timelines/igaming_timeline.py
+        run: python timelines/timeline.py igaming
+
+      - name: Build Cloud Services timeline
+        env:
+          JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
+          CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          JIRA_BOARD_ID_CSS:    '217'
+        run: python timelines/timeline.py css
 
       # Smoke-test the rendered HTML before commit: loads it via jsdom,
       # asserts rows render, clicks Edit Plan + What-If, fails the run if
-      # any uncaught JS error fires. Blocks the TDZ / silent-handler bugs
-      # that have shipped twice this week.
+      # any uncaught JS error fires.
       - name: Set up Node for smoke test
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Smoke-test iGaming timeline
+      - name: Smoke-test both timelines
         run: |
           npm install --no-save --silent jsdom
-          node tools/smoke-test.js timelines/igaming-timeline.html
+          node tools/smoke-test.js timelines/igaming-timeline.html timelines/css-timeline.html
 
       - name: Commit and push
         run: |
@@ -83,12 +91,13 @@ jobs:
           # Stage and commit the regenerated HTML first so the working tree is
           # clean before we touch the remote. If the build produced no diff,
           # exit cleanly without pulling/pushing.
-          git add timelines/igaming-timeline.html timelines/snapshots/igaming/ timelines/snapshots/igaming-scope-baseline.json || true
+          git add timelines/igaming-timeline.html timelines/snapshots/igaming/ timelines/snapshots/igaming-scope-baseline.json \
+                  timelines/css-timeline.html timelines/snapshots/css/ timelines/snapshots/css-scope-baseline.json || true
           if git diff --staged --quiet; then
-            echo "No iGaming timeline changes to commit."
+            echo "No timeline changes to commit."
             exit 0
           fi
-          git commit -m "chore: igaming timeline refresh $(date -u +%Y-%m-%d)"
+          git commit -m "chore: igaming + css timeline refresh $(date -u +%Y-%m-%d)"
           # Pull any concurrent commits (e.g. the V2 Timeline workflow ran
           # between our checkout and this push). --autostash safeguards any
           # other unstaged modifications a future build step might introduce.

@@ -1,11 +1,17 @@
 """
-igaming_timeline.py
-Pulls iGaming fix-version delivery data from Jira and renders
-igaming-timeline.html from igaming-timeline.template.html.
+timeline.py: the release-timeline engine for Scrum projects.
 
-See docs/IG_RELEASE_TIMELINE_KNOWLEDGE.md for the spec. Same structure as
-v2_timeline.py but with iGaming-specific data-shaping rules (4 department
-lanes including Design, no Lab pipeline, customfield_10103 for Sprint).
+    python timelines/timeline.py igaming   ->  timelines/igaming-timeline.html
+    python timelines/timeline.py css       ->  timelines/css-timeline.html
+
+One engine, one template (timeline.template.html), one forecast for every
+dashboard in PROFILES: they share Jira's release template (Epics -> Stories ->
+Dev Subtasks, "Release <FV>" QA Task / Release tickets, "QA Testing R<n>"
+rounds). A dashboard differs only in its PROFILES entry and its
+config/<name>.json. V2 still runs on its own copy (v2_timeline.py).
+
+See docs/IG_RELEASE_TIMELINE_KNOWLEDGE.md for the spec (4 department lanes
+including Design, no Lab pipeline, customfield_10103 for Sprint).
 """
 
 import json
@@ -34,6 +40,37 @@ if sys.platform == "win32":
 load_dotenv()
 
 TODAY = date.today()
+
+# ── Dashboards this engine builds ─────────────────────────────────────────────
+# chart_start = the anchor sprint's start; anchor_n = its number on the board.
+PROFILES = {
+    "igaming": {
+        "project": "IG", "board": os.getenv("JIRA_BOARD_ID_IG", "250"),
+        "sprint_prefix": "IG Sprint", "anchor": date(2026, 5, 11), "anchor_n": 6,
+        "config": "igaming.json", "page": "igaming-timeline.html", "ls_prefix": "ig_",
+        "title": "iGaming Release Timeline", "lines": "ELG · PFH2 · Horse Play",
+        "about": "iGaming spans <strong>three product lines</strong>: ELG, PFH2, and Horse Play.",
+        "project_label": "iGaming Project (IG)", "roadmap": "roadmap-igaming.html",
+        "fv_prefix": "",
+    },
+    "css": {
+        "project": "CSS", "board": os.getenv("JIRA_BOARD_ID_CSS", "217"),
+        # "CSS Sprint 17" started 2026-11-23 on the same 14-day cadence.
+        "sprint_prefix": "CSS Sprint", "anchor": date(2026, 8, 31), "anchor_n": 11,
+        "config": "css.json", "page": "css-timeline.html", "ls_prefix": "css_",
+        "title": "Cloud Services Release Timeline",
+        "lines": "VGTC · GCP · CRM · Central Server · PFH Services",
+        "about": "Cloud Services spans <strong>several platforms</strong>: VGTC, GCP, CRM, Task Handler, Big Data, Central Server and PFH Services.",
+        "project_label": "Cloud Services Project (CSS)", "roadmap": "roadmap-css.html",
+        # Template tickets drop the prefix: "Release GCP 2.20" sits in "CS GCP 2.20".
+        "fv_prefix": "CS ",
+    },
+}
+DASH_KEY = (sys.argv[1] if len(sys.argv) > 1 else "igaming").lower()
+if DASH_KEY not in PROFILES:
+    raise SystemExit(f"usage: timeline.py [{'|'.join(PROFILES)}]  (got {DASH_KEY!r})")
+P = PROFILES[DASH_KEY]
+PROJECT = P["project"]
 
 # Sprint custom field — VERIFIED for this Jira instance.
 # Do not assume the standard 10020 ID; see docs/IG_RELEASE_TIMELINE_KNOWLEDGE.md §3.4.
@@ -76,14 +113,18 @@ DEFAULT_FV_META = {
 }
 DEFAULT_HOLIDAYS = {"2026-05-18"}  # Victoria Day
 DEFAULT_HIDDEN_FVS: list = []
+if DASH_KEY != "igaming":
+    # The fallbacks above are iGaming's; other dashboards start from Jira
+    # (release-date order, grey bars) plus their own config file.
+    DEFAULT_FV_ORDER, DEFAULT_FV_META = [], {}
 
 
 def load_config():
-    """Read config/igaming.json if present. Return a dict with fv_order,
+    """Read config/<profile config> if present. Return a dict with fv_order,
     fv_meta, holidays, hidden_fvs keys (any may be missing → fall back to
     DEFAULT_*). Never raises — bad JSON falls through to defaults so the
     workflow can't be bricked by a malformed save."""
-    cfg_path = REPO / "config" / "igaming.json"
+    cfg_path = REPO / "config" / P["config"]
     if not cfg_path.exists():
         print(f"  ℹ no config file at {cfg_path.name}; using hardcoded defaults")
         return {}
@@ -111,9 +152,9 @@ HIDDEN_FVS_DEFAULT = _CONFIG.get("hidden_fvs") or DEFAULT_HIDDEN_FVS
 
 
 def fetch_unreleased_fvs():
-    """Fetch all unreleased, non-archived fix versions for the IG project.
+    """Fetch all unreleased, non-archived fix versions for the project.
     Returns list of dicts: {name, id, releaseDate, description}."""
-    data = jira_get("/project/IG/versions")
+    data = jira_get(f"/project/{PROJECT}/versions")
     out = []
     for v in data:
         if v.get("released") or v.get("archived"):
@@ -189,10 +230,10 @@ STATUS_STYLES = {
 # scheduled sprint so the axis never runs out. Labels follow the board's own
 # numbering: "IG Sprint 6" started 2026-05-11 (the chart start) → chip "S6".
 # The previous hand-maintained list stopped at S20 (Nov 23).
-SPRINT_ANCHOR = date(2026, 5, 11)   # IG Sprint 6
-SPRINT_ANCHOR_N = 6
+SPRINT_ANCHOR = P["anchor"]          # chart start (IG Sprint 6 / CSS Sprint 11)
+SPRINT_ANCHOR_N = P["anchor_n"]
 SPRINT_DAYS = 14
-IG_BOARD_ID = os.getenv("JIRA_BOARD_ID_IG", "250")
+BOARD_ID = P["board"]
 CHART_END = date(2027, 3, 15)       # keep in sync with CHART_END in the template
 
 # Populated by build_sprints() at the top of main(); [] until then so importing
@@ -201,18 +242,19 @@ SPRINTS = []
 
 
 def anchored_label(start):
-    """S{n} label on the IG board's numbering; None before the chart's S6."""
+    """S{n} label on the board's numbering; None before the chart's anchor."""
     n = round((start - SPRINT_ANCHOR).days / SPRINT_DAYS) + SPRINT_ANCHOR_N
     return f"S{n}" if n >= SPRINT_ANCHOR_N else None
 
 
 def fetch_board_sprints():
-    """Scheduled IG sprints from the board, oldest first. The board also lists
-    V2/CSS sprints and dateless future rows, so filter by name and skip
+    """This dashboard's scheduled sprints from the board, oldest first. Boards
+    also list other projects' sprints and dateless future rows, so filter by
+    name and skip
     sprints without dates (covered by the synthesised tail)."""
     raw, start_at = [], 0
     while True:
-        data = agile_get(f"/board/{IG_BOARD_ID}/sprint",
+        data = agile_get(f"/board/{BOARD_ID}/sprint",
                          {"state": "active,closed,future",
                           "startAt": start_at, "maxResults": 50})
         values = data.get("values") or []
@@ -222,7 +264,7 @@ def fetch_board_sprints():
         start_at += len(values)
     out = []
     for v in raw:
-        if not (v.get("name") or "").strip().lower().startswith("ig sprint"):
+        if not (v.get("name") or "").strip().lower().startswith(P["sprint_prefix"].lower()):
             continue
         start, end = v.get("startDate"), v.get("endDate")
         if not start or not end:
@@ -237,10 +279,10 @@ def build_sprints():
     beyond. Same shape and sentinel convention as v2_timeline.build_sprints."""
     try:
         real = fetch_board_sprints()
-        print(f"  sprint axis: {len(real)} scheduled sprint(s) from board {IG_BOARD_ID}")
+        print(f"  sprint axis: {len(real)} scheduled sprint(s) from board {BOARD_ID}")
     except Exception as exc:
         real = []
-        print(f"  ⚠ sprint axis: board {IG_BOARD_ID} unavailable ({exc}) — "
+        print(f"  ⚠ sprint axis: board {BOARD_ID} unavailable ({exc}) — "
               f"falling back to the anchored cadence")
     out = []
     for sp in real:
@@ -569,7 +611,7 @@ def fetch_fv_tasks():
     flags the closed tasks so progress maths still works correctly."""
     return jira_jql(
         jql=(
-            'project = IG '
+            f'project = {PROJECT} '
             'AND fixVersion in unreleasedVersions() '
             'AND issuetype not in ("Bug", "Enhancement", "QA Task") '
             'AND summary !~ "Release" '
@@ -583,7 +625,7 @@ def fetch_sprint_tasks():
     """Active sprint dev work only (§3.3)."""
     return jira_jql(
         jql=(
-            'project = IG '
+            f'project = {PROJECT} '
             'AND sprint in openSprints() '
             'AND statusCategory != Done '
             'AND issuetype in ("Dev Task", "Dev Subtask", "Story", "Pre-Prod Task", "Pre-Prod Subtask") '
@@ -598,7 +640,7 @@ def fetch_epics():
     """All epics in unreleased fix versions (for Scope tab)."""
     return jira_jql(
         jql=(
-            'project = IG '
+            f'project = {PROJECT} '
             'AND issuetype = Epic '
             'AND fixVersion in unreleasedVersions()'
         ),
@@ -685,7 +727,11 @@ def _for_this_fv(summary, fv_name):
     if not _VERSION_RE.search(summary or ""):
         return True
     norm = lambda x: " ".join((x or "").lower().split())
-    return norm(fv_name) in norm(summary)
+    names = {norm(fv_name)}
+    pre = P["fv_prefix"]
+    if pre and fv_name.startswith(pre):      # CSS: "Release GCP 2.20" in "CS GCP 2.20"
+        names.add(norm(fv_name[len(pre):]))
+    return any(n in norm(summary) for n in names)
 
 
 def _status_done(fields):
@@ -698,7 +744,7 @@ def fetch_release_template():
     """Release tickets (with their build subtasks as `_children`) and QA
     Task/Subtask tickets for every unreleased FV, keyed by FV name."""
     rel = jira_jql(
-        jql='project = IG AND fixVersion in unreleasedVersions() AND issuetype = "Release"',
+        jql=f'project = {PROJECT} AND fixVersion in unreleasedVersions() AND issuetype = "Release"',
         fields=["summary", "status", "fixVersions"],
     )
     kids = {}
@@ -708,7 +754,7 @@ def fetch_release_template():
                           fields=["summary", "status", "parent", "created"]):
             kids.setdefault(((c.get("fields") or {}).get("parent") or {}).get("key"), []).append(c)
     qa = jira_jql(
-        jql='project = IG AND fixVersion in unreleasedVersions() '
+        jql=f'project = {PROJECT} AND fixVersion in unreleasedVersions() '
             'AND issuetype in ("QA Task", "QA Subtask")',
         fields=["summary", "status", "created", "resolutiondate",
                 "timeoriginalestimate", "timespent", "fixVersions"],
@@ -1171,7 +1217,7 @@ def make_sprint_header(sprint_data):
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    print(f"▶ Building iGaming timeline — {TODAY}")
+    print(f"▶ Building {P['title']} — {TODAY}")
 
     # Sprint axis first; the template render reads the module-level SPRINTS.
     global SPRINTS
@@ -1249,20 +1295,29 @@ def main():
     # Drift snapshot — compute today's projections, persist, then load the
     # recent history. The template uses these for the ghost bar + HISTORY tab.
     today_snap = compute_snapshot(fv_list)
-    write_snapshot("igaming", today_snap)
-    snapshots = load_snapshots("igaming", n=30)
+    write_snapshot(DASH_KEY, today_snap)
+    snapshots = load_snapshots(DASH_KEY, n=30)
     print(f"\n  snapshot: wrote {len(today_snap['fvs'])} FV projections · loaded {len(snapshots)} historical snapshots")
 
     # Scope-deviation baseline — first pass seeds it; subsequent runs attach
     # fv.scopeDelta = { addedHours, resizedHours, removedHours, ..., baselineDate }.
-    apply_scope_baseline("igaming", fv_list)
+    apply_scope_baseline(DASH_KEY, fv_list)
     n_with_delta = sum(1 for f in fv_list if f.get("scopeDelta"))
     if n_with_delta:
         print(f"  scope baseline: {n_with_delta} FV(s) show a deviation vs baseline")
 
-    template_path = HERE / "igaming-timeline.template.html"
+    template_path = HERE / "timeline.template.html"
     template = template_path.read_text(encoding="utf-8")
+    dash = {"key": DASH_KEY, "title": P["title"], "sprintPrefix": P["sprint_prefix"],
+            "configPath": f"config/{P['config']}", "ls": P["ls_prefix"]}
     rendered = (template
+        .replace("__DASH__",           json.dumps(dash, ensure_ascii=False))
+        .replace("__SITE_TABS__",      site_tabs())
+        .replace("__TITLE__",          P["title"])
+        .replace("__LINES__",          P["lines"])
+        .replace("__ABOUT__",          P["about"])
+        .replace("__PROJECT_LABEL__",  P["project_label"])
+        .replace("__CHART_START__",    SPRINT_ANCHOR.isoformat())
         .replace("__TODAY__",          TODAY.isoformat())
         .replace("__FV_DATA__",        json.dumps(fv_list, ensure_ascii=False))
         .replace("__SPRINTS_DATA__",   json.dumps(SPRINTS, ensure_ascii=False))
@@ -1287,8 +1342,25 @@ def main():
         .replace("__REFRESH_LABEL__",  refresh_label)
         .replace("__SPRINT_HEADER__",  sprint_header)
     )
-    (HERE / "igaming-timeline.html").write_text(rendered, encoding="utf-8")
-    print("\n✅ igaming-timeline.html written")
+    leftover = sorted(ph for ph in set(re.findall(r"__[A-Z][A-Z_]+__", template)) if ph in rendered)
+    if leftover:
+        raise SystemExit(f"unfilled template placeholders: {leftover}")
+    (HERE / P["page"]).write_text(rendered, encoding="utf-8")
+    print(f"\n✅ {P['page']} written")
+
+
+# Site tabs shared by every timeline page (and mirrored in v2-timeline.template.html
+# and exec/build_dashboard.py). The Roadmap tab opens this dashboard's roadmap.
+SITE_TABS = [("index.html", "Overview"), ("v2-timeline.html", "V2 Timeline"),
+             ("igaming-timeline.html", "iGaming Timeline"),
+             ("css-timeline.html", "CSS Timeline")]
+
+
+def site_tabs():
+    tabs = [f'<a href="{href}" class="site-tab{" active" if href == P["page"] else ""}">{label}</a>'
+            for href, label in SITE_TABS]
+    tabs.append(f'<a href="{P["roadmap"]}" class="site-tab">Roadmap</a>')
+    return "\n    ".join(tabs)
 
 
 if __name__ == "__main__":
