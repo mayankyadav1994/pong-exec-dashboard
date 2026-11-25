@@ -1377,6 +1377,7 @@ function applyLocalConfigToFvArray(){
     if(o.color!==undefined)    fv.color=o.color;
     if(o.sub!==undefined)      fv.sub=o.sub;
     if(o.qaWeeks!==undefined)  fv.qaWeeks=o.qaWeeks;
+    if(o.target_date!==undefined) fv.targetDate=o.target_date||fv.jiraReleaseDate||undefined;
     if(o.epic_overrides)       fv.epic_overrides=Object.assign({}, fv.epic_overrides||{}, o.epic_overrides);
     if(o.milestones)           fv.milestones=o.milestones.slice();
     if(o.release_milestones)   fv.releaseMilestones=JSON.parse(JSON.stringify(o.release_milestones));
@@ -2699,6 +2700,9 @@ function buildConfigPayload(){
       if(Object.keys(rm).length) merged.release_milestones = rm;
       else delete merged.release_milestones;
     }
+    // A field cleared in the editor is stored as null so it overrides the
+    // server value; drop it here so the config falls back to Jira.
+    Object.keys(merged).forEach(k => { if(merged[k] === null) delete merged[k]; });
     if(Object.keys(merged).length) fv_meta[key] = merged;
     else delete fv_meta[key];
   });
@@ -3259,13 +3263,14 @@ function renderFvsTab(body, foot){
           // The dashboard reads fv.targetDate (camelCase); the config key is
           // target_date (snake_case). Keep both in sync so the gantt + summary
           // panel react immediately without a page reload.
-          fv.targetDate = val || undefined;
+          fv.targetDate = val || fv.jiraReleaseDate || undefined;
         } else {
           fv[field]=val;
         }
+        // A cleared field is stored as null (not deleted) so it overrides a
+        // saved server value; buildConfigPayload drops nulls at save time.
         LOCAL_CONFIG.fv_meta[fv.key]=LOCAL_CONFIG.fv_meta[fv.key]||{};
-        if(val === null) delete LOCAL_CONFIG.fv_meta[fv.key][field];
-        else LOCAL_CONFIG.fv_meta[fv.key][field]=val;
+        LOCAL_CONFIG.fv_meta[fv.key][field]=val;
         saveLocalConfig();
         row.classList.add('dirty');
         buildRows();

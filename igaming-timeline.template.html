@@ -111,7 +111,28 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .scope-changes .sc-pill.sc-res{background:rgba(217,119,6,.08);color:#c2410c;border-color:rgba(217,119,6,.35)}
 .scope-changes .sc-pill.sc-rem{background:rgba(22,163,74,.08);color:#15803d;border-color:rgba(22,163,74,.35)}
 .scope-changes .sc-group{margin-top:6px}
-.scope-changes .sc-group-h{font-size:9.5px;color:var(--sub);font-weight:600;letter-spacing:.5px;text-transform:uppercase;padding:4px 0 3px}
+/* Group header is a button so the three bulky lists (added/resized/removed)
+   stay collapsed by default — pills summary above is the always-visible
+   signal, click the row to drill in. */
+.scope-changes .sc-group-h{cursor:pointer;background:transparent;border:0;color:var(--sub);
+                           font-size:9.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+                           padding:5px 0 4px;display:flex;align-items:center;gap:7px;width:100%;
+                           text-align:left;font-family:inherit;border-radius:3px;transition:color .15s}
+.scope-changes .sc-group-h:hover{color:var(--text)}
+.scope-changes .sc-caret{display:inline-block;font-size:9px;color:var(--sub);transition:transform .15s;
+                         width:9px;font-family:'IBM Plex Mono',monospace}
+.scope-changes .sc-group:not(.collapsed) .sc-caret{transform:rotate(90deg)}
+.scope-changes .sc-group-n{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--sub);
+                           letter-spacing:0;text-transform:none;font-weight:500;margin-left:auto}
+.scope-changes .sc-group.collapsed .sc-group-body{display:none}
+/* Divider marking where Scope Changes end and the epic rollup begins — makes
+   the two sections visually distinct on busy releases. */
+.scope-heading{display:flex;align-items:center;gap:10px;margin:14px 0 8px}
+.sh-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:700;color:var(--text);
+            letter-spacing:.6px;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px}
+.sh-eyebrow .sh-ico{font-size:11px}
+.sh-count{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--sub);font-weight:500}
+.sh-rule{flex:1;height:1px;background:var(--border)}
 .scope-changes .sc-row{display:grid;grid-template-columns:78px 1fr auto;gap:8px;align-items:center;padding:4px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface);margin-bottom:3px;font-size:11px;font-family:'IBM Plex Mono',monospace}
 .scope-changes .sc-row a{font-size:10px;color:var(--sub);text-decoration:none}
 .scope-changes .sc-row a:hover{color:var(--text);text-decoration:underline}
@@ -138,7 +159,23 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--tex
 .today-line{position:absolute;top:0;bottom:0;width:2px;background:rgba(185,28,28,.5);pointer-events:none;z-index:3}
 
 .bar{position:absolute;height:22px;border-radius:4px;display:flex;align-items:center;padding:0 8px;font-size:10.5px;font-weight:500;white-space:nowrap;overflow:hidden;border:1px solid;pointer-events:none;transition:left .3s,width .3s}
-.bar-dev {background:var(--dev);border-color:#1d4ed8;color:#fff;top:8px}
+.bar-dev {background:var(--dev);border-color:#1d4ed8;color:#fff;top:8px;justify-content:flex-end}
+.scope-marker{position:absolute;top:0;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid #b45309;cursor:pointer;z-index:6;transform:translateX(-5px);transition:transform .12s,filter .12s;pointer-events:auto}
+.scope-marker::before{content:'';position:absolute;top:-2px;left:-6px;right:-6px;height:14px}
+.scope-marker:hover,.scope-marker.active{transform:translateX(-5px) scale(1.35);filter:drop-shadow(0 0 4px rgba(180,83,9,.45))}
+.scope-marker-stem{position:absolute;top:9px;height:22px;width:1.5px;background:#b45309;opacity:.55;z-index:5;pointer-events:none;transform:translateX(-0.5px)}
+.scope-marker-count{position:absolute;top:-9px;transform:translateX(-50%);font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:#b45309;background:var(--bg);padding:0 3px;border-radius:2px;line-height:1;pointer-events:none;white-space:nowrap;z-index:6}
+.scope-pop{position:absolute;top:38px;background:var(--surface);border:1px solid #b45309;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:10px 12px;min-width:260px;max-width:380px;z-index:30;display:none;font-size:11.5px}
+.scope-pop.open{display:block}
+.scope-pop-head{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#b45309;font-weight:700;letter-spacing:.4px;margin-bottom:5px;text-transform:uppercase}
+.scope-pop-stats{font-size:11px;color:var(--muted);margin-bottom:8px}
+.scope-pop-stats b{color:var(--text);font-weight:600}
+.scope-pop-list{max-height:220px;overflow:auto;border-top:1px solid var(--border);padding-top:6px;display:flex;flex-direction:column;gap:3px}
+.scope-pop-row{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;font-size:11px;font-family:'IBM Plex Mono',monospace}
+.scope-pop-row a{color:#2563eb;text-decoration:none}
+.scope-pop-row a:hover{text-decoration:underline}
+.scope-pop-row .scope-pop-sum{color:var(--text);font-family:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scope-pop-row .scope-pop-h{color:var(--muted);font-weight:600}
 .bar-qa  {background:var(--qa); border-color:#b45309; color:#fff;top:8px}
 .bar-live{background:var(--done);border-color:#15803d;color:#fff;top:8px}
 
@@ -419,6 +456,47 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
 /* Milestone pins on the gantt row */
 .ms-pin{position:absolute;top:0;bottom:0;width:1.5px;z-index:4;pointer-events:none}
 .ms-pin-label{position:absolute;font-size:9px;font-weight:600;padding:2px 5px;border-radius:3px;border:1px solid;white-space:nowrap;transform:translateX(-50%);z-index:5;pointer-events:none;top:34px;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+/* Release milestone line — sits under the bars (below any dept rows).
+   ◆ filled = reached · ◇ hollow = forecast/planned · grey tick = plan,
+   joined to the forecast by a red (late) / green (early) connector. */
+.ms-lane{position:absolute;left:0;right:0;pointer-events:none;z-index:5}
+.ms-lane::before{content:'';position:absolute;left:0;right:0;top:7px;border-top:1px dashed var(--border2);opacity:.6}
+.ms-mk{position:absolute;width:9px;height:9px;transform:translate(-50%,0) rotate(45deg);border:1.5px solid;box-sizing:border-box;background:var(--surface);pointer-events:auto;cursor:help}
+.ms-mk.done{background:var(--done);border-color:#15803d}
+.ms-mk.ontrack{border-color:var(--dev)}
+.ms-mk.late,.ms-mk.overdue{border-color:#dc2626}
+.ms-lbl{position:absolute;font-size:9.5px;font-weight:600;white-space:nowrap;font-family:'IBM Plex Mono',monospace;line-height:12px;pointer-events:auto;cursor:help}
+.ms-lbl.done{color:#15803d}.ms-lbl.ontrack{color:#1e3a8a}.ms-lbl.late,.ms-lbl.overdue{color:#b91c1c}
+.ms-lbl .ms-slip{margin-left:3px;padding:0 3px;border-radius:2px;font-size:8.5px}
+.ms-slip.late{background:rgba(220,38,38,.12);color:#b91c1c}.ms-slip.early{background:rgba(22,163,74,.12);color:#15803d}
+.ms-plan{position:absolute;width:1.5px;height:11px;background:var(--sub);opacity:.7;transform:translateX(-50%)}
+.ms-link{position:absolute;height:0;border-top:1.5px solid}
+.ms-link.late{border-color:rgba(220,38,38,.55)}.ms-link.early{border-color:rgba(22,163,74,.55)}
+.fv-meta-chip.ms-ontrack{background:rgba(37,99,235,.08);color:#1e3a8a;border-color:rgba(37,99,235,.3)}
+.fv-meta-chip.ms-late,.fv-meta-chip.ms-overdue{background:rgba(220,38,38,.10);color:#991b1b;border-color:rgba(220,38,38,.35)}
+.fv-meta-chip.ms-done{background:var(--done-bg);color:#15803d;border-color:rgba(22,163,74,.35)}
+/* Plan Editor — release milestone rows (M# · label · plan · done · ×) */
+.sp-rms-head,.sp-rms-row{display:grid;grid-template-columns:58px 1fr 118px 118px 22px;gap:6px;align-items:center;font-size:11px}
+.sp-rms-head{font-size:9.5px;font-weight:700;color:var(--sub);letter-spacing:.3px;padding:0 8px 4px}
+.sp-rms-row{padding:5px 8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;margin-bottom:4px}
+.sp-rms-row input,.sp-rms-row select{border:1px solid var(--border2);border-radius:3px;padding:3px 6px;font-size:11px;font-family:inherit;color:var(--text);background:var(--surface);outline:none;min-width:0}
+.sp-rms-row select:disabled{opacity:1;background:var(--surf2);font-weight:700}
+.sp-rms-row .sp-ms-del{background:none;border:none;cursor:pointer;color:var(--sub);font-size:14px;line-height:1;padding:0 4px}
+.sp-rms-row .sp-ms-del:hover{color:#dc2626}
+.sp-rms-hint{grid-column:2 / -1;font-size:10px;color:var(--sub);line-height:1.45}
+.sp-rms-hint a{color:var(--dev)}
+/* Detail panel — MILESTONES tab */
+.ms-body{padding:12px 18px;display:flex;flex-direction:column;gap:12px}
+.ms-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.ms-table th{text-align:left;font-size:9.5px;font-weight:700;color:var(--sub);letter-spacing:.3px;padding:4px 8px;border-bottom:1px solid var(--border)}
+.ms-table td{padding:6px 8px;border-bottom:1px solid var(--surf3);vertical-align:top}
+.ms-table td.num{font-family:'IBM Plex Mono',monospace;font-weight:700}
+.ms-src{font-size:9.5px;color:var(--sub)}
+.ms-evidence{font-size:11px;color:var(--muted);line-height:1.7;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:8px 12px}
+.ms-evidence a{color:var(--dev)}
+.scope-task-via{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--sub);background:rgba(100,116,139,.1);padding:1px 5px;border-radius:3px;margin-left:6px;font-weight:500;text-decoration:none;white-space:nowrap;vertical-align:middle}
+.scope-task-via:hover{color:var(--text)}
+.scope-task-via b{color:var(--muted);font-weight:600}
 
 /* Compact row-level chips on the FV label panel (replaces per-assignee
    pills that used to sit under the bars and collided with milestone
@@ -619,6 +697,7 @@ input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;bac
     <div class="lg"><div class="lg-sw" style="background:#be185d"></div>Sound</div>
     <div class="lg"><div class="lg-sw" style="background:#0891b2"></div>Design</div>
     <div class="lg"><div class="lg-sw" style="background:transparent;border:1.5px dashed var(--muted)"></div>Was (drift)</div>
+    <div class="lg" style="color:var(--muted)">◆ Milestone reached · ◇ forecast · ▏plan</div>
     <div class="lg"><span style="display:inline-block;width:3px;height:12px;background:#dc2626;border-radius:1px"></span>Today</div>
     <div class="lg" style="color:var(--muted)">🎯 Target</div>
   </div>
@@ -766,9 +845,11 @@ function applyLocalConfigToFvArray(){
     if(o.color!==undefined)    fv.color=o.color;
     if(o.sub!==undefined)      fv.sub=o.sub;
     if(o.qaWeeks!==undefined)  fv.qaWeeks=o.qaWeeks;
-    if(o.release!==undefined)  fv.release=o.release;
+    // Cleared (null) → back to Jira's release date.
+    if(o.release!==undefined){ fv.release=o.release||fv.jiraRelease||null; fv.targetDate=fv.release||undefined; }
     if(o.epic_overrides)       fv.epic_overrides=Object.assign({}, fv.epic_overrides||{}, o.epic_overrides);
     if(o.milestones)           fv.milestones=o.milestones.slice();
+    if(o.release_milestones)   fv.releaseMilestones=JSON.parse(JSON.stringify(o.release_milestones));
   });
 }
 function applyLocalConfigToHolidays(){
@@ -857,7 +938,12 @@ function stCls(s){return({'To Do':'s-todo','In Progress':'s-prog','Ready':'s-rdy
 // two-tone gradient: past = darker, future = lighter.
 function devBarStyle(fv, devEnd){
   if(!fv.devStart){
-    return {left:0, width:+pct(TODAY), bg:'', label:'DEV COMPLETE', cls:'bar bar-live'};
+    // In-QA (or later) FVs — dev is already done. Show the actual completion
+    // date when we have one so the bar reads unambiguously; without a date,
+    // "Dev complete" sentence-case so a glance can't confuse it with a month
+    // abbreviation ("DEC complete") like the all-caps version did.
+    const label = devEnd ? `Dev complete · ${fmtD(devEnd)}` : 'Dev complete';
+    return {left:0, width:+pct(TODAY), bg:'', label, cls:'bar bar-live'};
   }
   const allDevT = (fv.devPeople||[]).flatMap(p=>p.tasks||[]);
   const spent = allDevT.reduce((s,t)=>s+(t.spentH||0),0);
@@ -891,7 +977,10 @@ function devBarStyle(fv, devEnd){
     left: l,
     width: Math.max(w, .3),
     bg,
-    label: w > 3 ? (fv.isScenario ? `⚡ ${fmtD(devEnd)}` : `Dev → ${fmtD(devEnd)}`) : '',
+    // Label right-aligned via .bar-dev CSS so the dev-end date hugs the QA
+    // bar start — the actionable info stays on-screen even when the chart
+    // is scrolled past the bar's left edge.
+    label: w > 3 ? (fv.isScenario ? `⚡ ${fmtD(devEnd)}` : `Dev complete · ${fmtD(devEnd)}`) : '',
     cls: `bar ${fv.isScenario ? 'bar-scenario' : 'bar-dev'}`
   };
 }
@@ -911,6 +1000,12 @@ function phasePct(fv, devEnd, qaEnd){
     return Math.max(0, Math.min(100, Math.round(done/tot*100)));
   }
   if(/QA/i.test(s)){
+    // Prefer task-based progress when the Release-ticket signal populated
+    // fv.qaProgress (V2 Python compute_qa_progress). Falls back to the
+    // calendar-based percentage when no QA-testing tickets exist.
+    if(fv.qaProgress && typeof fv.qaProgress.progress === 'number'){
+      return Math.max(0, Math.min(100, Math.round(fv.qaProgress.progress)));
+    }
     if(!devEnd || !qaEnd) return null;
     const total = qaEnd - devEnd;
     if(total <= 0) return null;
@@ -920,10 +1015,191 @@ function phasePct(fv, devEnd, qaEnd){
   return null;
 }
 
+// ─── Dynamic QA-end (scale-based on actual progress) ─────────────────────
+// When fv.qaProgress is set AND dev is already complete (devEnd <= TODAY),
+// the QA bar's right edge slides based on real burn rate rather than the
+// static qaWeeks window. Formula:
+//   remaining_qa_hours = (1 - progress%) × qaWeeks × 5d × 8h
+//   qaEnd = TODAY + remaining_qa_hours (in working days)
+// At 0% (just entered QA): qaEnd = TODAY + qaWeeks*5d (same as static).
+// At 50%: qaEnd = TODAY + qaWeeks*2.5d (half the planned window left).
+// At 100%: qaEnd = TODAY (basically done).
+//
+// If dev is still running (devEnd > TODAY — e.g. R1 is 79% through QA but
+// there's a batch of new dev tickets still being burned down), fall back
+// to the static qaWeeks formula anchored on devEnd. The dynamic burn-down
+// only makes sense when the thing being QA'd is itself done; while dev is
+// still landing changes, we assume a full QA cycle after dev completes.
+// This also keeps the QA bar visible — anchoring qaEnd to TODAY when
+// devEnd is in the future collapses the QA bar to a 1-pixel sliver.
+//
+// Falls through to the static calc when fv.qaProgress is missing.
+function calcQaEnd(fv, devEnd){
+  const planHours = (fv.qaWeeks || 0) * 5 * 8;
+  if(planHours <= 0) return devEnd;
+  const devStillRunning = devEnd && new Date(devEnd) > TODAY;
+  if(!devStillRunning && fv.qaProgress && typeof fv.qaProgress.progress === 'number' && fv.qaProgress.progress >= 0){
+    const remainPct = Math.max(0, 100 - fv.qaProgress.progress);
+    const remainHours = planHours * (remainPct / 100);
+    return addWD(TODAY, remainHours, 8);
+  }
+  return addWD(devEnd, planHours, 8);
+}
+
 // ─── SPRINT BY LABEL (used by milestone anchor === 'sprint') ─────
 function sprintByLabel(label){
   if(!label) return null;
   return SPRINTS.find(sp => sp.label === label) || null;
+}
+
+// ─── RELEASE MILESTONES (M1 PMO-declared · M2/M3 auto · M4+ PMO) ─────
+// Config: fv.releaseMilestones = {M1:{label?,planned?,done?}, …} from
+// config/v2.json fv_meta[fv].release_milestones. Jira facts arrive in
+// fv.msSignals (v2_timeline.py compute_milestone_signals):
+//   M2 reached = day the last dev task closed (none open)
+//   M3 reached = day the last "QA Testing R<n>" round closed (all closed)
+// A PMO "done" date always wins over the Jira date.
+// Dates are handled as local-noon days: ISO strings from config/Jira render
+// exactly as typed, and Date objects from addWD render like the bar labels.
+const MS_DEFAULT_LABELS={M1:'Dev testing started',M2:'Dev complete',M3:'QA complete'};
+const MS_FIXED=['M1','M2','M3'];
+const MS_MAX=12;
+function msNum(k){return +String(k).slice(1)||0}
+function msDay(x){
+  if(!x) return null;
+  if(typeof x==='string'){
+    const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(x);
+    return m ? new Date(+m[1], +m[2]-1, +m[3], 12) : null;
+  }
+  const d=new Date(x);
+  return isNaN(d.getTime()) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12);
+}
+function msIso(d){
+  if(!d) return null;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const MS_TODAY=msDay(TODAY.toISOString().slice(0,10));
+// fmtD has no year — add it when the date falls outside the chart window so a
+// backlog forecast years out doesn't read as "Jan 12".
+function msFmt(d){
+  if(!d) return '—';
+  const out = d < CHART_START || d > CHART_END;
+  return out ? `${fmtD(d)} '${String(d.getFullYear()).slice(2)}` : fmtD(d);
+}
+function msEsc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+
+// One entry per milestone, sorted M1…Mn. Fields: num, label, planned,
+// forecast, actual (local-noon Dates or null), src ('PMO'|'Jira'|'Forecast'|
+// 'Plan'|null), slip (working days vs plan, + = late), state
+// ('done'|'late'|'overdue'|'ontrack'|'undated').
+function resolveMilestones(fv, devEnd, qaEnd){
+  if(fv.isScenario) return [];
+  const cfg=fv.releaseMilestones||{};
+  const sig=fv.msSignals||{};
+  const keys=[...new Set([...MS_FIXED, ...Object.keys(cfg)])].sort((a,b)=>msNum(a)-msNum(b));
+  return keys.map(num=>{
+    const c=cfg[num]||{};
+    const m={num, label:c.label||MS_DEFAULT_LABELS[num]||num, planned:msDay(c.planned),
+             forecast:null, actual:msDay(c.done), src:c.done?'PMO':null};
+    if(!m.actual && num==='M2' && sig.devClosedDate){ m.actual=msDay(sig.devClosedDate); m.src='Jira'; }
+    if(!m.actual && num==='M3' && sig.qaRoundsClosedDate){ m.actual=msDay(sig.qaRoundsClosedDate); m.src='Jira'; }
+    if(!m.actual){
+      let f=null;
+      if(num==='M2') f=msDay(devEnd);
+      else if(num==='M3') f=msDay(fv.qaWeeks>0 ? qaEnd : devEnd);
+      if(f){
+        // Auto forecasts never sit in the past — an unfinished milestone is
+        // at the earliest due today.
+        m.forecast = f < MS_TODAY ? new Date(MS_TODAY) : f;
+        m.src='Forecast';
+      } else if(m.planned){
+        m.forecast=m.planned; m.src='Plan';
+      }
+    }
+    const at=m.actual||m.forecast;
+    // Slip only means something when the date isn't the plan itself.
+    m.slip = (m.planned && at && m.src!=='Plan') ? wdDelta(at, m.planned) : null;
+    if(m.actual) m.state='done';
+    else if(!m.forecast) m.state='undated';
+    else if(m.src==='Plan' && m.forecast < MS_TODAY) m.state='overdue';
+    else if(m.slip>0) m.state='late';
+    else m.state='ontrack';
+    return m;
+  });
+}
+
+// The milestone the row chip should headline: first unreached one with a
+// date, else the last one reached.
+function nextMilestone(list){
+  return list.find(m=>m.state!=='done' && m.state!=='undated')
+      || [...list].reverse().find(m=>m.state==='done') || null;
+}
+
+function msTooltip(m){
+  const lines=[`${m.num} · ${m.label}`];
+  if(m.actual) lines.push(`Reached ${msFmt(m.actual)} (${m.src==='Jira'?'from Jira':'marked by PMO'})`);
+  else if(m.forecast) lines.push(`${m.src==='Plan'?'Planned':'Forecast'} ${msFmt(m.forecast)}${m.state==='overdue'?' — past plan, not marked done':''}`);
+  if(m.planned && m.src!=='Plan') lines.push(`Plan ${msFmt(m.planned)}${m.slip?` · ${m.slip>0?'+':''}${m.slip} working day${Math.abs(m.slip)===1?'':'s'}`:' · on plan'}`);
+  return lines.join('\n');
+}
+
+// Draws (or redraws) the milestone line inside a row's track at `top`.
+// Returns the lane height in px (0 when nothing has a date).
+function drawMsLane(track, fv, devEnd, qaEnd, top){
+  const old=track.querySelector(':scope > .ms-lane');
+  if(old) old.remove();
+  const list=resolveMilestones(fv, devEnd, qaEnd).filter(m=>m.actual||m.forecast);
+  if(!list.length) return 0;
+  const W=trackPxWidth();
+  const xOf=d=>Math.min(W-6, Math.max(6, (+pct(d))/100*W));
+  const lane=document.createElement('div');lane.className='ms-lane';lane.style.top=top+'px';
+  const TIER_H=16, tierEnd=[];
+  list.slice().sort((a,b)=>(a.actual||a.forecast)-(b.actual||b.forecast)).forEach(m=>{
+    const at=m.actual||m.forecast;
+    const x=xOf(at);
+    const edge = at > CHART_END ? '▶ ' : at < CHART_START ? '◀ ' : '';
+    const when=edge+(m.actual?`✓ ${msFmt(m.actual)}`:msFmt(m.forecast));
+    const text=`${m.num} ${m.label} · ${when}`;
+    const slipTxt=m.slip ? `${m.slip>0?'+':''}${m.slip}d` : '';
+    const w=text.length*6+(slipTxt?slipTxt.length*6+8:0);
+    // Labels run right of the marker; near the right edge they flip left.
+    const flip = x + 8 + w > W;
+    const l0 = flip ? x - 8 - w : x - 6, l1 = flip ? x + 6 : x + 8 + w;
+    let tier=tierEnd.findIndex(e=>l0 > e + 6);
+    if(tier===-1){ tier=tierEnd.length; tierEnd.push(-Infinity); }
+    tierEnd[tier]=Math.max(tierEnd[tier], l1);
+    const y=tier*TIER_H;
+    const tip=msTooltip(m);
+    if(m.planned && +m.planned !== +at){
+      const px=xOf(m.planned);
+      const link=document.createElement('div');
+      link.className='ms-link '+(at>m.planned?'late':'early');
+      link.style.cssText=`left:${Math.min(px,x)}px;width:${Math.abs(x-px)}px;top:${y+7}px`;
+      lane.appendChild(link);
+      const plan=document.createElement('div');plan.className='ms-plan';
+      plan.style.cssText=`left:${px}px;top:${y+2}px`;plan.title=`${m.num} plan · ${msFmt(m.planned)}`;
+      lane.appendChild(plan);
+    }
+    const mk=document.createElement('div');mk.className='ms-mk '+m.state;
+    mk.style.cssText=`left:${x}px;top:${y+3}px`;mk.title=tip;
+    lane.appendChild(mk);
+    const lbl=document.createElement('div');lbl.className='ms-lbl '+m.state;
+    lbl.style.cssText=`left:${flip?x-8-w:x+8}px;top:${y+1}px`;lbl.title=tip;
+    lbl.innerHTML=msEsc(text)+(slipTxt?`<span class="ms-slip ${m.slip>0?'late':'early'}">${slipTxt}</span>`:'');
+    lane.appendChild(lbl);
+  });
+  const h=tierEnd.length*TIER_H+2;
+  lane.style.height=h+'px';
+  track.appendChild(lane);
+  return h;
+}
+
+// Lane geometry per row so refreshAll can redraw when devEnd moves.
+const msLaneRefs={};
+function placeMsLane(idx, track, fv, devEnd, qaEnd, top, baseMinH){
+  msLaneRefs[idx]={track, fv, top, baseMinH};
+  const h=drawMsLane(track, fv, devEnd, qaEnd, top);
+  track.style.minHeight=Math.max(baseMinH, h ? top+h+6 : 0)+'px';
 }
 
 // ─── WORKING-DAY DELTA (signed; positive = a comes after b) ──────
@@ -1199,7 +1475,7 @@ const barEls={}, pillEls={}, panelRefs={};
 function refreshAll(){
   FV.forEach((fv,idx)=>{
     const devEnd=calcDevEnd(fv,idx);
-    const qaEnd=addWD(devEnd,fv.qaWeeks*5*8,8);
+    const qaEnd=calcQaEnd(fv, devEnd); // dynamic when fv.qaProgress is set; else qaWeeks-based
     const devStart=fv.devStart||TODAY;
 
     const db=barEls[`devbar-${idx}`];
@@ -1251,6 +1527,13 @@ function refreshAll(){
       const fn=pname.split(' ');
       pill.textContent=`${fn[0]} ${fn[fn.length-1].charAt(0)}. · ${ph}h · ${buf}%${isBot?' ⛓':''}`;
     });
+
+    // Milestone line follows the new dev/QA ends (buffer slider, scenarios).
+    const msRef=msLaneRefs[idx];
+    if(msRef && msRef.fv===fv){
+      const h=drawMsLane(msRef.track, fv, devEnd, qaEnd, msRef.top);
+      msRef.track.style.minHeight=Math.max(msRef.baseMinH, h ? msRef.top+h+6 : 0)+'px';
+    }
 
     // Refresh right summary panel — est completion + delta shift when devEnd
     // moves (buffer adjustment, scenario inject). Total/spent/target stay put.
@@ -1411,17 +1694,24 @@ function epicStatusCls(s){
   return 's-todo';
 }
 function buildScopeBody(fv){
+  // Build task lookup from devPeople + otherPeople
   const taskLookup={};
   [...fv.devPeople,...(fv.otherPeople||[])].forEach(p=>{
     p.tasks.forEach(t=>{taskLookup[t.key]=t;});
   });
+
   const overrides = fv.epic_overrides || {};
-  const body=document.createElement('div');body.className='scope-body';
-  // Resolve override storage key (real epic key, or sentinel for the
-  // "Other tasks (no epic)" virtual bucket) — same convention as the editor.
+  // Resolve override storage key — real epic key or sentinel for unscoped bucket
   const ovrKeyOf = (epic) => epic.key || '__unscoped__';
 
-  // Scope-changes header (Feature 1) — added/resized/removed tickets vs baseline.
+  const body=document.createElement('div');body.className='scope-body';
+
+  // ── SCOPE CHANGES section (Feature 1) ──
+  // Shown at the top of the SCOPE tab when fv.scopeDelta is set. Lists
+  // added / resized / removed tickets since the baseline, capped at 30
+  // entries per bucket with a "… N more" footer if longer. When there's
+  // no delta at all, the section is omitted (existing epic-by-epic layout
+  // becomes the only thing on the tab, same as before).
   const sd = fv.scopeDelta;
   if(sd && (sd.addedTickets.length || sd.resizedTickets.length || sd.removedTickets.length)){
     const sc=document.createElement('div');sc.className='scope-changes';
@@ -1442,7 +1732,15 @@ function buildScopeBody(fv){
       if(!arr.length) return '';
       const shown = arr.slice(0, cap).map(render).join('');
       const more = arr.length > cap ? `<div class="sc-more">… ${arr.length - cap} more earlier</div>` : '';
-      return `<div class="sc-group"><div class="sc-group-h">${title}</div>${shown}${more}</div>`;
+      // Collapsed by default — the pills row above already shows totals, and
+      // on busy releases (82 added / 43 removed, etc.) the three stacked
+      // lists push the Scope rollup off-screen.
+      return `<div class="sc-group collapsed">
+        <button type="button" class="sc-group-h" aria-expanded="false">
+          <span class="sc-caret">▸</span>${title}<span class="sc-group-n">${arr.length}</span>
+        </button>
+        <div class="sc-group-body">${shown}${more}</div>
+      </div>`;
     };
     sc.innerHTML =
       `<div class="sc-head">📈 <b>SCOPE CHANGES</b> since ${sd.baselineDate} · net <span class="${netCls}">${netSign}${Math.round(net)}h</span></div>` +
@@ -1457,15 +1755,40 @@ function buildScopeBody(fv){
       rowsBlock('Removed', sd.removedTickets, t =>
         `<div class="sc-row sc-rem"><span class="sc-key-plain">${t.key}</span><span class="sc-title sc-muted">(no longer in fixVersion)</span><span class="sc-h">−${t.hours}h</span></div>`);
     body.appendChild(sc);
+    // Wire up the collapse toggles — rowsBlock emits three groups, each a
+    // button that flips `.collapsed` on its parent and the aria-expanded flag.
+    sc.querySelectorAll('.sc-group-h').forEach(btn => btn.addEventListener('click', () => {
+      const g = btn.closest('.sc-group');
+      const nowCollapsed = g.classList.toggle('collapsed');
+      btn.setAttribute('aria-expanded', String(!nowCollapsed));
+    }));
   }
-  (fv.scope||[]).filter(epic => !(overrides[ovrKeyOf(epic)] && overrides[ovrKeyOf(epic)].hidden)).forEach(epic=>{
+
+  // Divider + count so the eye can tell where the "what changed" block ends
+  // and the live epic rollup begins. Only renders when there's actually scope
+  // to show; an FV with no scope keeps the previous empty-tab behavior.
+  const visibleEpics = (fv.scope||[]).filter(epic => !(overrides[ovrKeyOf(epic)] && overrides[ovrKeyOf(epic)].hidden));
+  if (visibleEpics.length) {
+    const heading = document.createElement('div');
+    heading.className = 'scope-heading';
+    const n = visibleEpics.length;
+    heading.innerHTML = `<span class="sh-eyebrow"><span class="sh-ico">📋</span>Scope</span><span class="sh-count">${n} epic${n!==1?'s':''}</span><span class="sh-rule"></span>`;
+    body.appendChild(heading);
+  }
+
+  visibleEpics.forEach(epic=>{
     const pctDone=epic.total>0?(epic.done/epic.total*100):0;
     const open=epic.total-epic.done;
+
+    // Look up tasks for this epic
     const epicTasks=(epic.taskKeys||[]).map(k=>taskLookup[k]).filter(Boolean);
+
     const card=document.createElement('div');card.className='scope-item';
-    const hdr=document.createElement('div');hdr.className='scope-header';
     const ovr = overrides[ovrKeyOf(epic)];
     const displayName = (ovr && ovr.label) ? ovr.label : epic.name;
+
+    // Header (always visible)
+    const hdr=document.createElement('div');hdr.className='scope-header';
     hdr.innerHTML=`
       <div class="scope-title">
         ${epic.key?`<a class="scope-epic-key" href="${BASE}${epic.key}" target="_blank" onclick="event.stopPropagation()">${epic.key}</a>`:'<span class="scope-epic-key">—</span>'}
@@ -1478,22 +1801,37 @@ function buildScopeBody(fv){
           <path d="M2.5 4.5l3.5 3.5 3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>`;
+
+    // Thin progress bar below header
     const prog=document.createElement('div');prog.className='scope-progress';
     prog.innerHTML=`<div class="scope-progress-fill" style="width:${pctDone.toFixed(1)}%"></div>`;
+
+    // Task list (hidden until expanded)
     const taskList=document.createElement('div');taskList.className='scope-tasks';
+
     if(epicTasks.length===0){
       const msg=document.createElement('div');msg.className='scope-no-tasks';
       msg.textContent=open>0?`${open} task${open!==1?'s':''} tracked in Jira (not yet estimated)`:'All tasks complete';
       taskList.appendChild(msg);
     } else {
+      // viaMap exposes the intermediate parent (Story/Task/Bug) that was
+      // collapsed into this Epic by the rollup pass in v2_timeline.py's
+      // compute_scope. Keeping it on the row preserves the Jira hierarchy
+      // ("subtask under Story under Epic") that the direct-parent grouping
+      // used to show on its own card.
+      const viaMap = epic.viaMap || {};
       epicTasks.forEach(t=>{
         const isD=isDone(t.status);
         const row=document.createElement('div');row.className='scope-task';
         const hrsCol=t.hours>0?`<span class="scope-task-hrs ${hCls(t.hours)}">${t.hours}h</span>`:'';
+        const via = viaMap[t.key];
+        const viaChip = via
+          ? ` <a class="scope-task-via" href="${BASE}${via.key}" target="_blank" onclick="event.stopPropagation()" title="Immediate Jira parent: ${(via.name||'').replace(/"/g,'&quot;')}">via <b>${via.key}</b> · ${via.type}</a>`
+          : '';
         row.innerHTML=`
           <div class="scope-task-left" style="${isD?'opacity:.45':''}">
             <a class="scope-task-key" href="${BASE}${t.key}" target="_blank">${t.key}</a>
-            <span class="scope-task-sum">${t.summary}</span>
+            <span class="scope-task-sum">${t.summary}${viaChip}</span>
           </div>
           <div class="scope-task-right">
             ${hrsCol}
@@ -1502,12 +1840,16 @@ function buildScopeBody(fv){
         taskList.appendChild(row);
       });
     }
+
+    // Toggle on header click
     hdr.addEventListener('click',()=>{card.classList.toggle('open');});
+
     card.appendChild(hdr);
     card.appendChild(prog);
     card.appendChild(taskList);
     body.appendChild(card);
   });
+
   if(!body.children.length){
     body.innerHTML='<div style="font-size:11px;color:var(--sub);font-style:italic;padding:16px 18px">No epics defined for this release.</div>';
   }
@@ -1517,6 +1859,55 @@ function buildScopeBody(fv){
 // ── Projection history (drift log) ─────────────────────────────────
 // Walks consecutive snapshots for this FV; emits one row per phase-end
 // change. Reverse-chronological, capped at the 20 most recent moves.
+// ─── MILESTONES TAB ────────────────────────────────────
+// Plan / forecast / reached per milestone, plus the Jira evidence PMO reads
+// before marking M1. Edits happen in ⚙ Edit Plan, not here.
+function msJiraLink(key, text){
+  return `<a href="${BASE}${key}" target="_blank" onclick="event.stopPropagation()">${msEsc(text||key)}</a>`;
+}
+function msEvidenceHtml(fv){
+  const sig=fv.msSignals||{};
+  const parts=[];
+  if(sig.devTotalN)
+    parts.push(`<b>Dev:</b> ${sig.devTotalN-sig.devOpenN}/${sig.devTotalN} tasks closed`
+      + (sig.devHoursPct!=null?` · ${sig.devHoursPct}% of estimated hours`:'')
+      + (sig.devClosedDate?` · last closed ${fmtD(msDay(sig.devClosedDate))}`:''));
+  if(sig.epicsTotal)
+    parts.push(`<b>Epics:</b> ${sig.epicsDevDone}/${sig.epicsTotal} In QA or closed`);
+  parts.push(`<b>QA Dev Test:</b> ${sig.qaDevTest
+    ? `started ${fmtD(msDay(sig.qaDevTest.date))} (${msJiraLink(sig.qaDevTest.key)})`
+    : 'no ticket yet'}`);
+  if((sig.builds||[]).length)
+    parts.push(`<b>Builds to QA:</b> ` + sig.builds.map(b=>`${b.round} ${b.date?fmtD(msDay(b.date)):''} (${msJiraLink(b.key)})`).join(' · '));
+  if((sig.rounds||[]).length)
+    parts.push(`<b>QA rounds:</b> ` + sig.rounds.map(r=>`${msJiraLink(r.key, r.round)} ${r.done?'✓':msEsc(r.status)}`).join(' · '));
+  return parts.join('<br>');
+}
+function buildMsBody(fv, devEnd, qaEnd){
+  const body=document.createElement('div');body.className='ms-body';
+  const list=resolveMilestones(fv, devEnd, qaEnd);
+  const srcTxt={PMO:'PMO',Jira:'Jira',Forecast:'auto forecast',Plan:'PMO plan'};
+  const rows=list.map(m=>{
+    const slip = m.slip==null ? '—'
+      : `<span class="ms-slip ${m.slip>0?'late':m.slip<0?'early':''}">${m.slip>0?'+':''}${m.slip}d</span>`;
+    return `<tr>
+      <td class="num">${m.num}</td>
+      <td>${msEsc(m.label)}</td>
+      <td>${msFmt(m.planned)}</td>
+      <td>${!m.actual && m.forecast?msFmt(m.forecast):'—'}</td>
+      <td>${m.actual?`<b style="color:#15803d">✓ ${msFmt(m.actual)}</b>`:'—'}</td>
+      <td>${slip}</td>
+      <td class="ms-src">${srcTxt[m.src]||(m.num==='M1'?'PMO to mark':'')}</td>
+    </tr>`;
+  }).join('');
+  body.innerHTML=`<table class="ms-table">
+      <thead><tr><th>#</th><th>MILESTONE</th><th>PLAN</th><th>FORECAST</th><th>REACHED</th><th>VS PLAN</th><th>SOURCE</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+    <div class="ms-evidence">${msEvidenceHtml(fv)}</div>
+    <div class="ms-src">M1 is marked by PMO; M2 (all dev tasks closed) and M3 (last QA round closed) come from Jira — a Done date entered by PMO overrides them. Plan dates and M4+ are set in ⚙ Edit Plan → Fix Versions → Milestones.</div>`;
+  return body;
+}
+
 function buildHistoryBody(fv){
   const body=document.createElement('div');body.className='history-body';
   if(!SNAPSHOTS || SNAPSHOTS.length < 2){
@@ -1602,6 +1993,7 @@ function buildRows(){
   Object.keys(barEls).forEach(k=>delete barEls[k]);
   Object.keys(pillEls).forEach(k=>delete pillEls[k]);
   Object.keys(panelRefs).forEach(k=>delete panelRefs[k]);
+  Object.keys(msLaneRefs).forEach(k=>delete msLaneRefs[k]);
 
   const ordered=allFvOrdered();
 
@@ -1630,7 +2022,7 @@ function buildRows(){
     }
 
     const devEnd=calcDevEnd(effectiveFv,idx);
-    const qaEnd=addWD(devEnd,effectiveFv.qaWeeks*5*8,8);
+    const qaEnd=calcQaEnd(effectiveFv, devEnd); // dynamic when qaProgress is set; else qaWeeks-based
     const devStart=effectiveFv.devStart||TODAY;
     const hasOth=(effectiveFv.otherPeople||[]).length>0;
     const allDevT=effectiveFv.devPeople.flatMap(p=>p.tasks);
@@ -1684,6 +2076,9 @@ function buildRows(){
       chips.push(`<span class="fv-meta-chip bot" title="Critical path">⛓ ${critPerson.name.split(' ')[0]} ${critPerson.name.split(' ').slice(-1)[0].charAt(0)}.</span>`);
     if(scenarioInjN > 0)
       chips.push(`<span class="fv-meta-chip scn" title="${scenarioInjN} scenario task${scenarioInjN===1?'':'s'} injected into this FV">⚡ ${scenarioInjN}</span>`);
+    const nextMs = nextMilestone(resolveMilestones(effectiveFv, devEnd, qaEnd));
+    if(nextMs)
+      chips.push(`<span class="fv-meta-chip ms-${nextMs.state}" title="${msEsc(msTooltip(nextMs))}">${nextMs.state==='done'?'◆':'◇'} ${nextMs.num} ${msFmt(nextMs.actual||nextMs.forecast)}${nextMs.slip>0?` +${nextMs.slip}d`:''}</span>`);
 
     const _pp = phasePct(effectiveFv, devEnd, qaEnd);
     const _badgeText = _pp !== null ? `${effectiveFv.statusLabel} · ${_pp}%` : effectiveFv.statusLabel;
@@ -1708,6 +2103,68 @@ function buildRows(){
     db.style.cssText = `left:${dbs.left}%;width:${dbs.width}%;` + (dbs.bg ? `background:${dbs.bg};` : '');
     db.textContent = dbs.label;
     barEls[`devbar-${idx}`]=db;track.appendChild(db);
+
+    // ── Scope-added markers ──
+    // One triangle per unique day scope grew. Source: fv.scopeDelta.addedByDate[]
+    // emitted by compute_scope_delta in v2_timeline.py. Markers clamp to the
+    // visible chart window so a ticket created pre-chart-start pins at the left
+    // edge rather than overflowing off the track.
+    const addedByDate = (effectiveFv.scopeDelta && effectiveFv.scopeDelta.addedByDate) || [];
+    if(addedByDate.length){
+      addedByDate.forEach((batch, bIdx) => {
+        let addedAt;
+        try { addedAt = D(batch.date); } catch(e){ return; }
+        if(!addedAt || isNaN(addedAt.getTime())) return;
+        // Clamp into [chart_start, dev_end] so markers always sit on the dev bar.
+        let anchor = addedAt;
+        if(anchor < CHART_START) anchor = CHART_START;
+        if(devEnd && anchor > devEnd) anchor = devEnd;
+        const x = +pct(anchor);
+        const stem = document.createElement('div');
+        stem.className = 'scope-marker-stem';
+        stem.style.left = x + '%';
+        track.appendChild(stem);
+        const chip = document.createElement('div');
+        chip.className = 'scope-marker-count';
+        chip.style.left = x + '%';
+        chip.textContent = `+${batch.tickets.length}`;
+        track.appendChild(chip);
+        const mk = document.createElement('div');
+        mk.className = 'scope-marker';
+        mk.style.left = x + '%';
+        mk.dataset.idx = idx;
+        mk.dataset.bidx = bIdx;
+        mk.title = `${batch.date} · +${batch.tickets.length} ticket${batch.tickets.length>1?'s':''} · +${batch.hours}h`;
+        track.appendChild(mk);
+        // Popover — clamp to the right so wide batches don't overflow the chart.
+        const pop = document.createElement('div');
+        pop.className = 'scope-pop';
+        pop.dataset.popIdx = idx;
+        pop.dataset.popBidx = bIdx;
+        if(x > 70) pop.style.right = (100 - x + 0.5) + '%';
+        else       pop.style.left  = (x + 0.5) + '%';
+        const rows = batch.tickets.map(t => {
+          const sumEsc = String(t.summary||'').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+          return `<div class="scope-pop-row">`
+               + `<a href="${BASE}${t.key}" target="_blank" onclick="event.stopPropagation()">${t.key}</a>`
+               + `<span class="scope-pop-sum" title="${sumEsc}">${sumEsc}</span>`
+               + `<span class="scope-pop-h">${t.hours ? '+' + t.hours + 'h' : '—'}</span>`
+               + `</div>`;
+        }).join('');
+        pop.innerHTML = `<div class="scope-pop-head">📈 Scope added · ${batch.date}</div>`
+                      + `<div class="scope-pop-stats"><b>${batch.tickets.length} ticket${batch.tickets.length>1?'s':''}</b> · <b>+${batch.hours}h</b></div>`
+                      + `<div class="scope-pop-list">${rows}</div>`;
+        track.appendChild(pop);
+        mk.addEventListener('click', e => {
+          e.stopPropagation();
+          const already = pop.classList.contains('open');
+          // Close all other scope popovers across the chart (one open at a time)
+          document.querySelectorAll('.scope-pop.open').forEach(p => p.classList.remove('open'));
+          document.querySelectorAll('.scope-marker.active').forEach(x => x.classList.remove('active'));
+          if(!already){ pop.classList.add('open'); mk.classList.add('active'); }
+        });
+      });
+    }
 
     const qb=document.createElement('div');qb.id=`qabar-${idx}`;qb.className='bar bar-qa';
     if(effectiveFv.qaWeeks>0){
@@ -1803,6 +2260,14 @@ function buildRows(){
       track.appendChild(drow);
     });
 
+    // ── Release milestone line ── under the dept rows; drops below the Sales
+    // Trip tag (top:32px) on regulated rows so the two never overlap.
+    if(!effectiveFv.isScenario){
+      let msTop = typeRowCount>0 ? nextTop+2 : 34;
+      if(effectiveFv.salesTrip) msTop = Math.max(msTop, 52);
+      placeMsLane(idx, track, effectiveFv, devEnd, qaEnd, msTop, minH);
+    }
+
     // Per-assignee pills used to render here under the bars; removed because
     // they collided with milestone labels. Row-level signals now live as
     // compact chips on the LABEL panel (computed earlier as activePeople /
@@ -1869,6 +2334,7 @@ function buildRows(){
       {id:'dev',label:'DEV WORK'},
       ...(hasOth?[{id:'others',label:'CREATIVE · SOUND · MATH · DESIGN'}]:[]),
       ...(!effectiveFv.isScenario?[{id:'scope',label:'SCOPE'}]:[]),
+      ...(!effectiveFv.isScenario?[{id:'milestones',label:'◆ MILESTONES'}]:[]),
       ...(!effectiveFv.isScenario?[{id:'history',label:'📅 HISTORY'}]:[]),
     ];
     tabDefs.forEach(td=>{
@@ -1891,6 +2357,10 @@ function buildRows(){
     scopeBody.style.display = activeTab==='scope' ? 'block' : 'none';
     panel.appendChild(scopeBody);
 
+    const msBody=buildMsBody(effectiveFv, devEnd, qaEnd);
+    msBody.style.display = activeTab==='milestones' ? 'flex' : 'none';
+    panel.appendChild(msBody);
+
     const historyBody=buildHistoryBody(effectiveFv);
     historyBody.style.display = activeTab==='history' ? 'block' : 'none';
     panel.appendChild(historyBody);
@@ -1903,6 +2373,7 @@ function buildRows(){
         devBody.style.display=activeTab==='dev'?'flex':'none';
         othBody.style.display=activeTab==='others'?'flex':'none';
         scopeBody.style.display=activeTab==='scope'?'block':'none';
+        msBody.style.display=activeTab==='milestones'?'flex':'none';
         historyBody.style.display=activeTab==='history'?'block':'none';
       });
     });
@@ -2289,6 +2760,22 @@ function buildConfigPayload(){
       else delete merged.epic_overrides;
     }
     // Don't persist truly empty fv_meta entries
+    // release_milestones: the local copy is always complete (seeded from the
+    // server value on first edit), so it replaces wholesale. Drop blank rows
+    // (an added M4 that was never filled in) and the key itself when empty.
+    if(merged.release_milestones){
+      const rm = {};
+      Object.entries(merged.release_milestones).forEach(([num, v]) => {
+        const c = {};
+        ['label','planned','done'].forEach(f => { if(v && v[f]) c[f] = v[f]; });
+        if(Object.keys(c).length) rm[num] = c;
+      });
+      if(Object.keys(rm).length) merged.release_milestones = rm;
+      else delete merged.release_milestones;
+    }
+    // A field cleared in the editor is stored as null so it overrides the
+    // server value; drop it here so the config falls back to Jira.
+    Object.keys(merged).forEach(k => { if(merged[k] === null) delete merged[k]; });
     if(Object.keys(merged).length) fv_meta[key] = merged;
     else delete fv_meta[key];
   });
@@ -2358,6 +2845,16 @@ function diffConfigs(server, local){
       }
     });
     // Milestones diff (treat as opaque list-vs-list — just count changes)
+    const sRm = s.release_milestones || {};
+    const lRm = l.release_milestones || {};
+    [...new Set([...Object.keys(sRm), ...Object.keys(lRm)])].sort((a,b)=>msNum(a)-msNum(b)).forEach(num => {
+      const a = sRm[num] || {}, b = lRm[num] || {};
+      ['label','planned','done'].forEach(f => {
+        if((a[f] ?? null) !== (b[f] ?? null)){
+          changes.push({cat:'fv', label:'Milestone', text:`${key} · ${num} ${f}: ${JSON.stringify(a[f] ?? null)} → ${JSON.stringify(b[f] ?? null)}`});
+        }
+      });
+    });
     const sMs = s.milestones || [];
     const lMs = l.milestones || [];
     if(JSON.stringify(sMs) !== JSON.stringify(lMs)){
@@ -2621,6 +3118,45 @@ function buildPanelFooter(foot, saveBtnId, resetBtnId){
   }
 }
 
+// Release milestones live in LOCAL_CONFIG.fv_meta[fv].release_milestones as a
+// complete copy (seeded from the FV's current value), because the payload
+// merge is shallow per FV.
+function editReleaseMs(fvKey, fn){
+  const meta = _ensureFvMeta(fvKey);
+  const fv = FV.find(f => f.key === fvKey);
+  const cur = JSON.parse(JSON.stringify(meta.release_milestones || (fv && fv.releaseMilestones) || {}));
+  fn(cur);
+  Object.keys(cur).forEach(num => {
+    Object.keys(cur[num]).forEach(f => { if(cur[num][f] == null || cur[num][f] === '') delete cur[num][f]; });
+    // Blank fixed rows are implicit; blank M4+ rows stay until filled or removed.
+    if(MS_FIXED.includes(num) && !Object.keys(cur[num]).length) delete cur[num];
+  });
+  meta.release_milestones = cur;
+  if(fv) fv.releaseMilestones = JSON.parse(JSON.stringify(cur));
+  saveLocalConfig();
+}
+function setReleaseMs(fvKey, num, field, value){
+  editReleaseMs(fvKey, cur => { cur[num] = cur[num] || {}; cur[num][field] = value || null; });
+}
+function addReleaseMs(fvKey){
+  let added = null;
+  editReleaseMs(fvKey, cur => {
+    for(let n = 4; n <= MS_MAX; n++){
+      if(!cur['M'+n]){ cur['M'+n] = {}; added = 'M'+n; return; }
+    }
+  });
+  return added;
+}
+function renumberReleaseMs(fvKey, from, to){
+  editReleaseMs(fvKey, cur => {
+    if(cur[to] || !cur[from]) return;
+    cur[to] = cur[from]; delete cur[from];
+  });
+}
+function removeReleaseMs(fvKey, num){
+  editReleaseMs(fvKey, cur => { delete cur[num]; });
+}
+
 // ─── PANEL TAB DISPATCH ────────────────────────────────
 let activeSpTab='scenarios'; // 'scenarios' | 'fvs' | 'settings'
 
@@ -2754,8 +3290,8 @@ function renderFvsTab(body, foot){
         <div class="sp-fv-section-title"><span>DETAILS</span></div>
         <div class="sp-fv-section-grid">
           <div class="sp-fv-row-field">
-            <label>RELEASE DATE</label>
-            <input type="date" data-field="release" value="${fv.release||''}">
+            <label>TARGET DATE</label>
+            <input type="date" data-field="release" value="${fv.release||''}" title="Defaults to Jira's release date. Set a date to override it; clear it to go back to Jira's.">
           </div>
           <div class="sp-fv-row-field">
             <label>QA WEEKS</label>
@@ -2774,10 +3310,19 @@ function renderFvsTab(body, foot){
         </div>
         <div class="sp-epic-list"></div>
       </div>
-      <div class="sp-fv-section" data-section="milestones">
+      <div class="sp-fv-section" data-section="rms">
         <div class="sp-fv-section-title">
           <span>MILESTONES</span>
-          <span style="color:var(--sub);font-weight:400">pins on the gantt bar — moves with dev end</span>
+          <span style="color:var(--sub);font-weight:400">M1 marked by PMO · M2/M3 from Jira (a Done date overrides)</span>
+        </div>
+        <div class="sp-rms-head"><span>#</span><span>MILESTONE</span><span>PLAN</span><span>DONE</span><span></span></div>
+        <div class="sp-rms-list"></div>
+        <button type="button" class="sp-add-ms sp-add-rms">+ Add milestone</button>
+      </div>
+      <div class="sp-fv-section" data-section="milestones" ${(fv.milestones||[]).length?'':'style="display:none"'}>
+        <div class="sp-fv-section-title">
+          <span>PINS (LEGACY)</span>
+          <span style="color:var(--sub);font-weight:400">free-form pins — use Milestones above for new ones</span>
         </div>
         <div class="sp-ms-list"></div>
         <button type="button" class="sp-add-ms">+ Add milestone</button>
@@ -2818,7 +3363,13 @@ function renderFvsTab(body, foot){
         if(field==='qaWeeks') val=Math.max(0,+val||0);
         if(field==='release' && !val) val=null;
         if(field==='sub') val=String(val||'');
-        fv[field]=val;
+        if(field==='release'){
+          // The summary panel reads fv.targetDate; cleared → Jira's date.
+          fv.release = val || fv.jiraRelease || null;
+          fv.targetDate = fv.release || undefined;
+        } else {
+          fv[field]=val;
+        }
         LOCAL_CONFIG.fv_meta[fv.key]=LOCAL_CONFIG.fv_meta[fv.key]||{};
         LOCAL_CONFIG.fv_meta[fv.key][field]=val;
         saveLocalConfig();
@@ -2949,9 +3500,100 @@ function renderFvsTab(body, foot){
       });
     }
     renderMs();
-    expand.querySelector('.sp-add-ms').addEventListener('click', () => {
+    expand.querySelector('[data-section="milestones"] .sp-add-ms').addEventListener('click', () => {
       addMilestone(fv.key);
       renderMs();
+      buildRows();
+    });
+
+    // ── Release milestones section ──
+    const rmsListEl = expand.querySelector('[data-section="rms"] .sp-rms-list');
+    function rmsHint(num, dEnd, qEnd){
+      const sig = fv.msSignals || {};
+      if(num === 'M1'){
+        const bits = [];
+        if(sig.qaDevTest) bits.push(`QA Dev Test from ${fmtD(msDay(sig.qaDevTest.date))} (${msJiraLink(sig.qaDevTest.key)})`);
+        const r1 = (sig.builds||[])[0];
+        if(r1) bits.push(`${r1.round} sent ${fmtD(msDay(r1.date))} (${msJiraLink(r1.key)})`);
+        if(sig.devHoursPct != null) bits.push(`${sig.devHoursPct}% dev hours closed`);
+        if(sig.epicsTotal) bits.push(`${sig.epicsDevDone}/${sig.epicsTotal} epics In QA`);
+        return `PMO marks this. ${bits.length ? 'Evidence: ' + bits.join(' · ') + '. ' : ''}Marking it done fills empty M2/M3 plans with today's forecast.`;
+      }
+      if(num === 'M2'){
+        if(sig.devClosedDate) return `Jira: all dev tasks closed ${fmtD(msDay(sig.devClosedDate))}.`;
+        return `Auto: forecast ${msFmt(msDay(dEnd))} · ${sig.devOpenN||0} dev task${sig.devOpenN===1?'':'s'} open. Enter Done to override.`;
+      }
+      if(num === 'M3'){
+        if(sig.qaRoundsClosedDate) return `Jira: last QA round closed ${fmtD(msDay(sig.qaRoundsClosedDate))}.`;
+        const rounds = (sig.rounds||[]).map(r => `${r.round} ${r.done?'✓':r.status}`).join(' · ');
+        return `Auto: forecast ${msFmt(msDay(fv.qaWeeks>0?qEnd:dEnd))}${rounds ? ' · ' + msEsc(rounds) : ' · no QA round tickets yet'}. Enter Done to override.`;
+      }
+      return '';
+    }
+    function renderRms(){
+      rmsListEl.innerHTML = '';
+      const fvIdx = FV.indexOf(fv);
+      const dEnd = calcDevEnd(fv, fvIdx), qEnd = calcQaEnd(fv, dEnd);
+      const cfg = fv.releaseMilestones || {};
+      const nums = [...new Set([...MS_FIXED, ...Object.keys(cfg)])].sort((a,b)=>msNum(a)-msNum(b));
+      nums.forEach(num => {
+        const c = cfg[num] || {};
+        const fixed = MS_FIXED.includes(num);
+        const free = [];
+        for(let n = 4; n <= MS_MAX; n++) if('M'+n === num || !cfg['M'+n]) free.push('M'+n);
+        const opts = fixed ? `<option>${num}</option>`
+          : free.map(n => `<option value="${n}" ${n===num?'selected':''}>${n}</option>`).join('');
+        const hint = rmsHint(num, dEnd, qEnd);
+        const mr = document.createElement('div');
+        mr.className = 'sp-rms-row';
+        mr.innerHTML = `
+          <select data-f="num" ${fixed?'disabled':''} title="${fixed?'Standard milestone':'Milestone number'}">${opts}</select>
+          <input type="text" data-f="label" value="${msEsc(c.label||'')}" placeholder="${msEsc(MS_DEFAULT_LABELS[num]||'e.g. Lab 1 submission')}">
+          <input type="date" data-f="planned" value="${c.planned||''}" title="Planned date">
+          <input type="date" data-f="done" value="${c.done||''}" title="${num==='M2'||num==='M3'?'Leave empty to use Jira; a date here overrides it':'Date this milestone was reached'}">
+          ${fixed ? '<span></span>' : '<button type="button" class="sp-ms-del" title="Remove">×</button>'}
+          ${hint ? `<div class="sp-rms-hint">${hint}</div>` : ''}`;
+        mr.querySelectorAll('input[data-f]').forEach(input => {
+          input.addEventListener('change', () => {
+            const f = input.dataset.f;
+            const v = f === 'label' ? input.value.trim() : input.value;
+            setReleaseMs(fv.key, num, f, v);
+            if(num === 'M1' && f === 'done' && v){
+              // M1 marked: freeze today's M2/M3 forecasts as their plan so slip
+              // is measured from the day dev testing started.
+              const cur = fv.releaseMilestones || {};
+              const locked = [];
+              if(!(cur.M2 && cur.M2.planned)){ setReleaseMs(fv.key, 'M2', 'planned', msIso(msDay(dEnd))); locked.push('M2'); }
+              if(!(cur.M3 && cur.M3.planned)){ setReleaseMs(fv.key, 'M3', 'planned', msIso(msDay(fv.qaWeeks>0?qEnd:dEnd))); locked.push('M3'); }
+              if(locked.length) showToast(`${locked.join(' & ')} plan set to today's forecast`);
+            }
+            row.classList.add('dirty');
+            renderRms();
+            buildRows();
+          });
+        });
+        const sel = mr.querySelector('select[data-f="num"]');
+        if(!fixed) sel.addEventListener('change', () => {
+          renumberReleaseMs(fv.key, num, sel.value);
+          row.classList.add('dirty');
+          renderRms();
+          buildRows();
+        });
+        const del = mr.querySelector('.sp-ms-del');
+        if(del) del.addEventListener('click', () => {
+          removeReleaseMs(fv.key, num);
+          row.classList.add('dirty');
+          renderRms();
+          buildRows();
+        });
+        rmsListEl.appendChild(mr);
+      });
+    }
+    renderRms();
+    expand.querySelector('.sp-add-rms').addEventListener('click', () => {
+      if(!addReleaseMs(fv.key)){ showToast(`All milestone numbers up to M${MS_MAX} are used`); return; }
+      row.classList.add('dirty');
+      renderRms();
       buildRows();
     });
 

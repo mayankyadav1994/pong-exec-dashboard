@@ -35,7 +35,7 @@
       "pilotEnd": null,
       "finalEnd": "2028-06-12",
       "totalEstH": 9005,
-      "spentH": 1506
+      "spentH": 1508
     },
     "PFH Games 3.00": {
       "devEnd": "2028-05-29",
@@ -52,8 +52,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2028-06-12",
-      "totalEstH": 1097,
-      "spentH": 1246
+      "totalEstH": 1101,
+      "spentH": 1250
     },
     "PFH Games 3.10": {
       "devEnd": "2028-05-29",
@@ -115,8 +115,8 @@
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": "2028-06-27",
-      "totalEstH": 2164,
-      "spentH": 1006
+      "totalEstH": 2158,
+      "spentH": 1011
     },
     "PFH - Features": {
       "devEnd": "2026-11-24",

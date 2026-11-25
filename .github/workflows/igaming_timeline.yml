@@ -57,6 +57,10 @@ jobs:
           JIRA_EMAIL:           ${{ secrets.JIRA_EMAIL }}
           JIRA_API_TOKEN:       ${{ secrets.JIRA_API_TOKEN }}
           CONFLUENCE_API_TOKEN: ${{ secrets.CONFLUENCE_API_TOKEN }}
+          # IG Scrum board — sprint axis (same board the game pipeline reads).
+          # If the board query fails the script falls back to the anchored
+          # 14-day cadence, so the axis renders either way.
+          JIRA_BOARD_ID_IG:     '250'
         run: python igaming_timeline.py
 
       # Smoke-test the rendered HTML before commit: loads it via jsdom,

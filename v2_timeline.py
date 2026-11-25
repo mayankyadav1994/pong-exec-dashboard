@@ -1321,6 +1321,9 @@ def build_fv(cfg):
     target = cfg.get("target_date") or cfg.get("jira_release_date")
     if target:
         fv["targetDate"] = target
+    if cfg.get("jira_release_date"):
+        # Editor falls back to this when the Target Date override is cleared.
+        fv["jiraReleaseDate"] = cfg["jira_release_date"]
     if cfg.get("note"):
         fv["note"] = cfg["note"]
     # Regulated-release fields (lab pipeline + Sales Trip pin)

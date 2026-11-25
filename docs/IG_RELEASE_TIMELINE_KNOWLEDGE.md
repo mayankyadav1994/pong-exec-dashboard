@@ -539,6 +539,22 @@ The editor JS is byte-identical between iGaming and V2 except for four dashboard
 
 Plus the Python script needs its own `load_config()` pointing at the new JSON file, and its own `.github/workflows/<dashboard>.yml` push trigger. Everything else (CSS, modal markup, editor JS, save flow, milestone rendering) ports verbatim.
 
+### 11.11 Parity with the V2 timeline (ported 2026-11-24)
+
+These V2 features now run on iGaming with the same JS (lifted verbatim from `v2-timeline.template.html`) and an iGaming-shaped Python side:
+
+| Feature | iGaming specifics |
+|---|---|
+| **Release milestones** (M1 PMO · M2/M3 from Jira · M4+ PMO) — see V2 knowledge base §22.11 | Config key `fv_meta[<FV>].release_milestones` in `config/igaming.json`. Rounds match `QA Testing R<n>` and `QA Testing Staging R<n>` in either word order; Dev Test evidence matches `Dev Test(ing)` QA tickets. |
+| **QA-round status** — "In QA · R<n>", task-based QA %, QA bar that shrinks with progress | R<n> = highest round with a build sent (Release subtask) **or a QA Testing ticket that has started** — IG pre-creates R1–R3 at release setup, so unstarted round tickets don't count. Otherwise the existing `classify_fv_status` labels apply. |
+| **Sprint axis from the IG board** (`JIRA_BOARD_ID_IG`, default 250) | "IG Sprint N" names; IG Sprint 6 = 2026-05-11 = chart start, so chips keep the S6… numbering. Cadence synthesised to CHART_END. Replaces the hand-typed list that stopped at S20. |
+| **Scope tab rolls up to Epics** | Story/Task parents walked up ≤3 hops (`PARENT_CHAIN`); the intermediate parent shows as a "via" chip on the task row. |
+| **Scope-added markers** on the dev bar + collapsed Scope Changes groups + Scope heading | `compute_scope_delta` emits `addedByDate` from each task's `created`. |
+| **"Dev complete · <date>"** dev-bar label | — |
+| **Target Date** (was "Release date") in Edit Plan | Still stored as `release`; defaults to Jira's date, updates the summary immediately, and clearing it falls back to Jira's date (`jiraRelease`). |
+
+**Stale template tickets.** IG fix versions carry leftover QA/Release tickets from earlier release names (e.g. "QA Testing R1 - PFH2 Games 4.00" inside PFH Games 3.00). Any round/build/Dev Test ticket whose summary names a *different* version number is ignored (`_for_this_fv`).
+
 ---
 
 ## 12. Known Issues / Open Items
