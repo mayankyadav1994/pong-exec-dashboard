@@ -702,6 +702,8 @@ def mark_bottleneck_for_fv(fv, fvs_before):
     def queued_for(name):
         total = 0
         for prev in fvs_before:
+            if not prev.get("targetDate"):
+                continue   # undated backlogs never delay dated work
             prev_p = next((x for x in prev["devPeople"] if x["name"] == name), None)
             if prev_p:
                 total += sum(t["hours"] for t in prev_p["tasks"] if not is_done(t["status"]))
@@ -709,6 +711,8 @@ def mark_bottleneck_for_fv(fv, fvs_before):
 
     best_days, best_person = -1, None
     for p in fv["devPeople"]:
+        if not any(not is_done(t["status"]) for t in p["tasks"]):
+            continue
         open_h = sum(t["hours"] for t in p["tasks"] if not is_done(t["status"]))
         total  = open_h + queued_for(p["name"])
         days   = total / hpd(p["name"]) if total > 0 else 0
@@ -954,12 +958,16 @@ def _calc_dev_end(fvs, fv_idx, fv):
     latest = TODAY
     for p in fv.get("devPeople", []):
         name = p.get("name", "")
-        open_h = sum(t["hours"] for t in p.get("tasks", []) if not is_done(t["status"]))
-        # Queued = this person's open hours on higher-priority (lower-index) FVs
+        open_t = [t for t in p.get("tasks", []) if not is_done(t["status"])]
+        if not open_t:
+            continue   # nothing left here → their other work can't delay it
+        open_h = sum(t["hours"] for t in open_t)
+        # Queued = this person's open hours on higher-priority (lower-index)
+        # FVs that have a release/target date — undated backlogs never delay.
         queued = 0
         for j in range(fv_idx):
             other = fvs[j]
-            if other.get("isScenario"):
+            if other.get("isScenario") or not other.get("targetDate"):
                 continue
             for op in other.get("devPeople", []):
                 if op.get("name") == name:

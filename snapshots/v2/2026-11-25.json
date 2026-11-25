@@ -29,8 +29,8 @@
       "spentH": 12143
     },
     "V2 C2 Backlog": {
-      "devEnd": "2032-01-16",
-      "qaEnd": "2032-01-30",
+      "devEnd": "2026-12-02",
+      "qaEnd": "2026-12-16",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -38,8 +38,8 @@
       "spentH": 625
     },
     "V2 P2P Backlog": {
-      "devEnd": "2032-02-19",
-      "qaEnd": "2032-03-04",
+      "devEnd": "2027-01-04",
+      "qaEnd": "2027-01-18",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -56,8 +56,8 @@
       "spentH": 214
     },
     "V2 SW Backlog": {
-      "devEnd": "2032-02-19",
-      "qaEnd": "2032-03-04",
+      "devEnd": "2026-12-03",
+      "qaEnd": "2026-12-17",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -65,8 +65,8 @@
       "spentH": 81
     },
     "V2 HHR 3.20": {
-      "devEnd": "2032-03-16",
-      "qaEnd": "2032-03-30",
+      "devEnd": "2026-12-22",
+      "qaEnd": "2027-01-08",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -80,11 +80,11 @@
       "pilotEnd": null,
       "finalEnd": null,
       "totalEstH": 30,
-      "spentH": 23
+      "spentH": 24
     },
     "V2 P2P 16.10": {
-      "devEnd": "2032-03-16",
-      "qaEnd": "2032-03-30",
+      "devEnd": "2026-12-02",
+      "qaEnd": "2026-12-16",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,
@@ -92,8 +92,8 @@
       "spentH": 51
     },
     "V2 C2 5.30": {
-      "devEnd": "2032-03-16",
-      "qaEnd": "2032-03-30",
+      "devEnd": "2026-12-22",
+      "qaEnd": "2027-01-08",
       "lab1End": null,
       "pilotEnd": null,
       "finalEnd": null,

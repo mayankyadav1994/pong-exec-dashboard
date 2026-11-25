@@ -1401,8 +1401,11 @@ function getDynamicQueued(fvIdx, personName){
   let q=0;
   for(let i=0;i<fvIdx;i++){
     const fv=ordered[i];
+    // Versions with no release/target date (backlogs, buckets) are not
+    // commitments — their hours never delay dated work below them.
+    if(!fv.isScenario && !fv.targetDate) continue;
     const p=fv.devPeople.find(x=>x.name===personName);
-    if(p) q+=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    if(p)q+=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
     if(!fv.isScenario) q+=getInjectedHours(fv.key, personName);
   }
   return q;
@@ -1411,7 +1414,10 @@ function calcDevEnd(fv,fvIdx){
   if(!fv.devStart) return new Date(TODAY);
   let latest=new Date(TODAY);
   for(const p of fv.devPeople){
-    const openH=p.tasks.filter(t=>!isDone(t.status)).reduce((s,t)=>s+t.hours,0);
+    const openT=p.tasks.filter(t=>!isDone(t.status));
+    // Nothing left for this person here → their other work can't delay it.
+    if(!openT.length)continue;
+    const openH=openT.reduce((s,t)=>s+t.hours,0);
     const total=openH+getDynamicQueued(fvIdx,p.name);
     if(total<=0)continue;
     const done=addWD(TODAY,total,hpd(fv.key,p.name));

@@ -331,12 +331,16 @@ def _calc_dev_end(fvs, fv_idx, fv):
     latest = TODAY
     for p in fv.get("devPeople", []):
         name = p.get("name", "")
-        open_h = sum(t["hours"] for t in p.get("tasks", []) if not is_done(t["status"]))
-        # Queued = this person's open hours on higher-priority (lower-index) FVs
+        open_t = [t for t in p.get("tasks", []) if not is_done(t["status"])]
+        if not open_t:
+            continue   # nothing left here → their other work can't delay it
+        open_h = sum(t["hours"] for t in open_t)
+        # Queued = this person's open hours on higher-priority (lower-index)
+        # FVs that have a release/target date — undated backlogs never delay.
         queued = 0
         for j in range(fv_idx):
             other = fvs[j]
-            if other.get("isScenario"):
+            if other.get("isScenario") or not other.get("targetDate"):
                 continue
             for op in other.get("devPeople", []):
                 if op.get("name") == name:
