@@ -281,24 +281,33 @@ tr.xb .name { color: var(--crit-ink); }
 
   const B = () => S[state.slug];
   const skey = b => "sprintload:" + b.slug + ":" + (b.sprints.map(s => s.id).join("-") || "none");
-  const capOf = b => { const v = store.get(skey(b) + ":cap", null); return typeof v === "number" && v >= 0 ? v : b.config.capacity_h; };
+  // Capacity = hours per working day × working days (public holidays excluded).
+  // Current sprint: days LEFT from the build date. Next sprint: its full length.
+  const hpdOf = b => { const v = store.get(skey(b) + ":hpd", null); return typeof v === "number" && v >= 0 ? v : b.config.hours_per_day; };
   const ptoOf = b => store.get(skey(b) + ":pto", {}) || {};
-  const personCap = (b, p) => { const o = ptoOf(b)[p.account]; return typeof o === "number" && o >= 0 ? o : capOf(b); };
+  const capLeft = (b, p) => hpdOf(b) * p.window.days_left;
+  const capFull = (b, p) => hpdOf(b) * p.window.days_total;
+  const capNextDefault = (b, p) => hpdOf(b) * p.window.next.days;
+  const personCap = (b, p) => { const o = ptoOf(b)[p.account]; return typeof o === "number" && o >= 0 ? o : capNextDefault(b, p); };
+  const fmtH = x => h1(x).replace(/\.0$/, "");
 
   const fmtDay = iso => { if (!iso) return "?"; const d = new Date(iso); return isNaN(d) ? "?" : d.toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
   const fmtTime = iso => { const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
   const fmtStamp = iso => { const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); };
+  const fmtD = s => { if (!s) return "?"; const d = new Date(s + "T12:00:00"); return isNaN(d) ? s : d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }); };
 
-  // ── shared arithmetic (mirrors sprint_load.py intake_row) ──
-  function nextRow(p, cap) {
+  // ── shared arithmetic (mirrors sprint_load.py plan_row) ──
+  // Carryover = real hours (remaining × bias) that won't fit in the working
+  // days left this sprint; next-sprint room is measured against that.
+  function nextRow(p, capNow, capNext) {
     const bias = p.bias.factor;
-    const trueLoad = p.remaining_h * bias;
-    const room = cap - trueLoad;
-    return { bias, trueLoad, room, intake: room > 0 ? room / bias : 0,
+    const trueLoad = Math.max(0, p.remaining_h * bias - capNow);
+    const room = capNext - trueLoad;
+    return { bias, carry: trueLoad / bias, trueLoad, room, intake: room > 0 ? room / bias : 0,
              overflow: room < 0 ? -room : 0, toMove: room < 0 ? -room / bias : 0 };
   }
   function verdict(v, cap, band) {
-    if (cap <= 0) return v > 0 ? { cls: "over", icon: "▲", text: "No capacity set" } : { cls: "at", icon: "●", text: "No capacity" };
+    if (cap <= 0) return v > 0 ? { cls: "over", icon: "▲", text: `No working days left · ${h1(v)}h carries` } : { cls: "at", icon: "●", text: "Sprint over" };
     const d = v - cap;
     if (Math.abs(d) <= band) return { cls: "at", icon: "●", text: "At capacity" };
     if (d > 0) return { cls: "over", icon: "▲", text: `Over by ${h1(d)}h`, mult: `${(v / cap).toFixed(2)}×` };
@@ -353,6 +362,7 @@ tr.xb .name { color: var(--crit-ink); }
     $("#boardHead").innerHTML = `
       <h2>${esc(b.label)} <span style="font-weight:450;color:var(--ink-3);font-size:14px;font-stretch:100%">board ${b.board_id}</span></h2>
       <div class="meta">${sp || '<span class="sprint-chip">No active sprint found</span>'}</div>
+      <div class="meta">${(b.windows || []).map(w => `<span>${esc(w.sprint)}: <b>${w.days_left}</b> of ${w.days_total} working days left (${fmtD(w.start_day)} – ${fmtD(w.end_day)}${w.holidays.length ? `, holiday ${w.holidays.map(fmtD).join(", ")}` : ""}) · next: ${esc(w.next.name)}, ${w.next.days} working days${w.next.dated ? "" : " (no dates in Jira yet, assumed two weeks)"}${w.next.holidays.length ? `, holiday ${w.next.holidays.map(fmtD).join(", ")}` : ""}</span>`).join("")}</div>
       <div class="meta">
         <span>Scope: ${esc(b.scope)} · <a href="${esc(b.scope_url)}" target="_blank" rel="noopener">open in Jira</a></span>
         <span>Pulled ${fmtTime(pl.start)}–${fmtTime(pl.end)} (${pl.seconds}s) · <b>${pl.counted_tickets}</b> tickets counted${pl.raw_tickets !== pl.counted_tickets ? ` of ${pl.raw_tickets} pulled` : ""}</span>
@@ -372,8 +382,8 @@ tr.xb .name { color: var(--crit-ink); }
 
   function renderControls() {
     const b = B();
-    const cap = capOf(b), edited = cap !== b.config.capacity_h;
-    const capIn = `<label>Capacity <input type="number" id="capIn" min="0" max="400" step="1" value="${cap}" class="${edited ? "edited" : ""}" aria-label="Capacity hours per person"> h / person</label>`;
+    const hpd = hpdOf(b), edited = hpd !== b.config.hours_per_day;
+    const capIn = `<label>Capacity <input type="number" id="capIn" min="0" max="24" step="0.5" value="${hpd}" class="${edited ? "edited" : ""}" aria-label="Capacity hours per person per working day"> h / working day</label>`;
     if (state.tab === "current") {
       $("#controls").innerHTML = `${capIn}
         <span class="seg" role="group" aria-label="Measure against capacity">
@@ -388,30 +398,34 @@ tr.xb .name { color: var(--crit-ink); }
 
   // ── tab 1: current load ──
   function renderCurrent() {
-    const b = B(), cap = capOf(b), band = b.config.at_capacity_band_h;
+    const b = B(), band = b.config.at_capacity_band_h, hpd = hpdOf(b);
     const m = state.measure, mLabel = m === "remaining" ? "Remaining" : "Assigned";
     const val = p => m === "remaining" ? p.remaining_h : p.assigned_h;
+    // Remaining is judged against the hours LEFT in the sprint; Assigned (the
+    // whole sprint's work) against the whole sprint.
+    const cap = p => m === "remaining" ? capLeft(b, p) : capFull(b, p);
     if (!b.people.length) return `<div class="group"><div class="empty">No tickets counted on this board.</div></div>`;
 
-    const maxV = Math.max(0, ...b.people.map(val));
-    const scale = Math.max(cap * 1.3, Math.min(maxV * 1.04, cap * 3), 1);
-    const over = b.people.filter(p => val(p) - cap > band).length;
+    const maxV = Math.max(0, ...b.people.map(val)), maxC = Math.max(1, ...b.people.map(cap));
+    const scale = Math.max(maxC * 1.3, Math.min(maxV * 1.04, maxC * 3), 1);
+    const over = b.people.filter(p => val(p) - cap(p) > band).length;
     const tot = sum(b.people, val);
+    const capLabel = rows => { const cs = [...new Set(rows.map(cap))]; return cs.length === 1 ? `${rows.length} × ${fmtH(cs[0])}h` : "capacity differs by sprint"; };
 
     let html = `<div class="tiles">
       <div class="tile"><div class="k">People</div><div class="v">${b.people.length}</div></div>
       <div class="tile"><div class="k">Tickets</div><div class="v">${sum(b.people, p => p.tickets)}</div></div>
-      <div class="tile"><div class="k">${mLabel}</div><div class="v">${h1(tot)}<small>h of ${h1(cap * b.people.length).replace(/\.0$/, "")}h</small></div></div>
+      <div class="tile"><div class="k">${mLabel}</div><div class="v">${h1(tot)}<small>h of ${fmtH(sum(b.people, cap))}h ${m === "remaining" ? "left" : "in the sprint"}</small></div></div>
       <div class="tile ${over ? "bad" : ""}"><div class="k">Over capacity</div><div class="v">${over}<small> ${over === 1 ? "person" : "people"}</small></div></div>
     </div>`;
-    if (m === "assigned") html += `<p class="note">Showing <b>Assigned</b> (original estimate). This is the size of the work handed out, not the work left, so it overstates load once anything has been done. Remaining is the capacity measure.</p>`;
+    if (m === "assigned") html += `<p class="note">Showing <b>Assigned</b> (original estimate) against the <b>whole</b> sprint's capacity. This is the size of the work handed out, not the work left, so it overstates load once anything has been done. Remaining against the hours left is the capacity measure.</p>`;
 
     for (const [disc, rows] of groupsOf(b)) {
-      const gCap = cap * rows.length, gv = sum(rows, val);
+      const gCap = sum(rows, cap), gv = sum(rows, val);
       const gvd = verdict(gv, gCap, band * rows.length);
       html += `<section class="group">
         <header class="group-head"><h3>${esc(disc)}<span>${rows.length} ${rows.length === 1 ? "person" : "people"}</span></h3>
-          <span class="sub">${mLabel} ${h1(gv)}h of ${h1(gCap).replace(/\.0$/, "")}h (${rows.length} × ${cap}h) · ${gCap ? Math.round(gv / gCap * 100) : 0}% · ${verdictHtml(gvd)}</span></header>
+          <span class="sub">${mLabel} ${h1(gv)}h of ${fmtH(gCap)}h ${m === "remaining" ? "left" : ""} (${capLabel(rows)}) · ${gCap ? Math.round(gv / gCap * 100) : 0}% · ${verdictHtml(gvd)}</span></header>
         <table class="grid cur"><thead><tr>
           <th>Person</th><th class="num">Tickets</th><th>${mLabel} vs capacity</th>
           <th class="num">Assigned</th><th class="num">Spent</th><th class="num">Remaining</th><th>Verdict</th>
@@ -421,33 +435,35 @@ tr.xb .name { color: var(--crit-ink); }
         html += `<tr class="row ${xb ? "xb" : ""}">
           ${nameCell(b, p, true)}
           <td class="num" data-label="Tickets"><a href="${esc(p.links.person)}" target="_blank" rel="noopener">${p.tickets}</a>${p.no_estimate ? `<a class="sub" href="${esc(p.links.no_estimate)}" target="_blank" rel="noopener" title="Tickets with no original estimate">${p.no_estimate} unestimated</a>` : ""}</td>
-          <td class="c-bar" data-label="${mLabel} vs capacity">${barHtml(v, cap, scale, b, mLabel)}</td>
+          <td class="c-bar" data-label="${mLabel} vs capacity">${barHtml(v, cap(p), scale, b, mLabel)}</td>
           <td class="num" data-label="Assigned"><a href="${esc(p.links.assigned)}" target="_blank" rel="noopener">${h1(p.assigned_h)}</a></td>
           <td class="num" data-label="Spent"><a href="${esc(p.links.spent)}" target="_blank" rel="noopener">${h1(p.spent_h)}</a></td>
           <td class="num" data-label="Remaining"><a href="${esc(p.links.remaining)}" target="_blank" rel="noopener">${h1(p.remaining_h)}</a></td>
-          <td class="c-verdict" data-label="Verdict">${verdictHtml(verdict(v, cap, band))}</td>
+          <td class="c-verdict" data-label="Verdict">${verdictHtml(verdict(v, cap(p), band))}</td>
         </tr>`;
       }
       html += `</tbody><tfoot><tr>
           <td class="c-name">Subtotal</td>
           <td class="num" data-label="Tickets">${sum(rows, p => p.tickets)}</td>
-          <td class="c-bar" data-label="${mLabel} vs ${rows.length} × ${cap}h">${barHtml(gv, gCap, Math.max(gCap * 1.3, gv * 1.04, 1), b, mLabel)}</td>
+          <td class="c-bar" data-label="${mLabel} vs ${capLabel(rows)}">${barHtml(gv, gCap, Math.max(gCap * 1.3, gv * 1.04, 1), b, mLabel)}</td>
           <td class="num" data-label="Assigned">${h1(sum(rows, p => p.assigned_h))}</td>
           <td class="num" data-label="Spent">${h1(sum(rows, p => p.spent_h))}</td>
           <td class="num" data-label="Remaining">${h1(sum(rows, p => p.remaining_h))}</td>
           <td class="c-verdict" data-label="Verdict">${verdictHtml(gvd)}</td>
         </tr></tfoot></table></section>`;
     }
-    html += crossBoardExplain(b, cap);
-    html += `<p class="note">Capacity is ${cap}h of planned work per person per sprint. A separate ${b.config.unplanned_h}h unplanned allowance sits outside it and is not deducted. The black tick on each bar is the capacity line; “at capacity” means within ±${band}h.</p>`;
+    html += crossBoardExplain(b);
+    html += `<p class="note">Capacity is ${fmtH(hpd)}h of planned work per person per working day (${fmtH(hpd * b.config.capacity_h / b.config.hours_per_day)}h over a standard 10-day sprint), with public holidays taken out.
+      Remaining is measured against the hours <b>left</b> in each person's sprint as of the build date (${fmtD(b.today)}), counting that day, so “room” shrinks as the sprint goes on.
+      A separate ${b.config.unplanned_h}h unplanned allowance sits outside capacity and is not deducted. The black tick on each bar is the capacity line; “at capacity” means within ±${band}h.</p>`;
     return html;
   }
 
-  function crossBoardExplain(b, cap) {
+  function crossBoardExplain(b) {
     const xb = b.people.filter(p => (p.other_boards || []).length);
     if (!xb.length) return "";
     return `<div class="explain"><b>Red rows</b> (${xb.map(p => esc(p.name)).join(", ")}) have open work on more than one board.
-      Each board grants them a separate ${cap}-hour capacity, so the verdict here judges only this board's slice. Their real load is the
+      Each board grants them a separate capacity, so the verdict here judges only this board's slice. Their real load is the
       combined figure in the chip. These are usually leads, who hold parent tickets in their own name and open more work than they close,
       so their numbers tend to grow through the sprint rather than burn down.</div>`;
   }
@@ -456,26 +472,27 @@ tr.xb .name { color: var(--crit-ink); }
   function renderNext() {
     const b = B();
     if (!b.people.length) return `<div class="group"><div class="empty">No tickets counted on this board.</div></div>`;
-    const calc = new Map(b.people.map(p => [p.account, nextRow(p, personCap(b, p))]));
+    const calc = new Map(b.people.map(p => [p.account, nextRow(p, capLeft(b, p), personCap(b, p))]));
     const pto = ptoOf(b);
     const T = f => sum(b.people, p => f(calc.get(p.account), p));
     const overN = b.people.filter(p => calc.get(p.account).overflow > 0).length;
     const inferredN = b.people.filter(p => p.bias.source === "inferred").length;
 
     let html = `<div class="tiles">
-      <div class="tile"><div class="k">Carryover</div><div class="v">${h1(T((c, p) => p.remaining_h))}<small>h remaining</small></div></div>
+      <div class="tile"><div class="k">Carryover</div><div class="v">${h1(T(c => c.carry))}<small>h projected</small></div></div>
       <div class="tile"><div class="k">True load</div><div class="v">${h1(T(c => c.trueLoad))}<small>h × bias</small></div></div>
       <div class="tile"><div class="k">Intake</div><div class="v">${h1(T(c => c.intake))}<small>h of estimate</small></div></div>
       <div class="tile ${overN ? "bad" : ""}"><div class="k">Overflow</div><div class="v">${h1(T(c => c.overflow))}<small>h · ${overN} ${overN === 1 ? "person" : "people"}</small></div></div>
     </div>
-    <p class="note">Intake is how much new <i>estimated</i> work each person can take next sprint: room = capacity − (carryover × bias); intake = room ÷ bias.
+    <p class="note"><b>Carryover is projected</b>: the remaining work, at each person's bias, that won't fit into the working days left this sprint at ${fmtH(hpdOf(b))}h/day.
+      Capacity is the next sprint's working days × ${fmtH(hpdOf(b))}h, public holidays excluded. Intake is how much new <i>estimated</i> work fits: room = capacity − (carryover × bias); intake = room ÷ bias.
       Edit a capacity cell for PTO. Work can only be redistributed <b>inside</b> a discipline; a Math overflow cannot be absorbed by Creative room.
       ${inferredN ? `<b>${inferredN}</b> bias factor${inferredN > 1 ? "s are" : " is"} inferred (⚑), so treat those rows as estimates of an estimate.` : ""}</p>`;
 
     for (const [disc, rows] of groupsOf(b)) {
       html += `<section class="group">
         <header class="group-head"><h3>${esc(disc)}<span>${rows.length} ${rows.length === 1 ? "person" : "people"}</span></h3>
-          <span class="sub">Carryover ${h1(sum(rows, p => p.remaining_h))}h · true load ${h1(sum(rows, p => calc.get(p.account).trueLoad))}h · capacity ${h1(sum(rows, p => personCap(b, p))).replace(/\.0$/, "")}h</span></header>
+          <span class="sub">Carryover ${h1(sum(rows, p => calc.get(p.account).carry))}h · true load ${h1(sum(rows, p => calc.get(p.account).trueLoad))}h · capacity ${fmtH(sum(rows, p => personCap(b, p)))}h</span></header>
         <table class="grid nxt"><thead><tr>
           <th>Person</th><th class="num">Carryover</th><th>Bias</th><th class="num">True load</th><th class="num">Capacity</th><th>Intake</th>
         </tr></thead><tbody>`;
@@ -489,16 +506,16 @@ tr.xb .name { color: var(--crit-ink); }
           : `<span class="verdict over"><i aria-hidden="true">▲</i>Over ${h1(c.overflow)}h</span><span class="sub">${h1(c.toMove)}h of estimate must move</span>`;
         html += `<tr class="row ${xb ? "xb" : ""}">
           ${nameCell(b, p, false)}
-          <td class="num" data-label="Carryover"><a href="${esc(p.links.remaining)}" target="_blank" rel="noopener">${h1(p.remaining_h)}</a></td>
+          <td class="num" data-label="Carryover" title="${h1(p.remaining_h)}h remaining now; ${fmtH(capLeft(b, p))}h of capacity left this sprint (${p.window.days_left} working days in ${esc(p.window.sprint)})">${h1(c.carry)}<a class="sub" href="${esc(p.links.remaining)}" target="_blank" rel="noopener">of ${h1(p.remaining_h)}h left now</a></td>
           <td data-label="Bias"><span class="bias-num" title="${esc(p.bias.detail)}">${p.bias.factor.toFixed(2)}×</span><span class="badge ${bs}" title="${esc(p.bias.detail)}">${bs === "inferred" ? "⚑ " : ""}${bs}</span>${p.bias_note ? `<span class="sub" title="${esc(p.bias_note)}">⚑ unestimated work inflates this</span>` : ""}</td>
           <td class="num" data-label="True load">${h1(c.trueLoad)}</td>
-          <td class="num" data-label="Capacity"><input type="number" class="ptoIn ${ed ? "edited" : ""}" data-acct="${esc(p.account)}" min="0" max="400" step="1" value="${capV}" aria-label="Capacity for ${esc(p.name)}"></td>
+          <td class="num" data-label="Capacity" title="${esc(p.window.next.name)}: ${p.window.next.days} working days × ${fmtH(hpdOf(b))}h${p.window.next.holidays.length ? ` (holiday ${p.window.next.holidays.map(fmtD).join(", ")})` : ""}"><input type="number" class="ptoIn ${ed ? "edited" : ""}" data-acct="${esc(p.account)}" min="0" max="400" step="1" value="${capV}" aria-label="Capacity for ${esc(p.name)}"></td>
           <td class="c-verdict" data-label="Intake">${intake}</td>
         </tr>`;
       }
       html += `</tbody><tfoot><tr>
           <td class="c-name">Subtotal</td>
-          <td class="num" data-label="Carryover">${h1(sum(rows, p => p.remaining_h))}</td>
+          <td class="num" data-label="Carryover">${h1(sum(rows, p => calc.get(p.account).carry))}</td>
           <td data-label="Bias"></td>
           <td class="num" data-label="True load">${h1(sum(rows, p => calc.get(p.account).trueLoad))}</td>
           <td class="num" data-label="Capacity">${h1(sum(rows, p => personCap(b, p)))}</td>
@@ -507,7 +524,7 @@ tr.xb .name { color: var(--crit-ink); }
         ${statement(disc, rows, calc)}
       </section>`;
     }
-    html += crossBoardExplain(b, capOf(b));
+    html += crossBoardExplain(b);
     return html;
   }
 
@@ -559,12 +576,13 @@ tr.xb .name { color: var(--crit-ink); }
     if (t.id === "capIn") {
       const v = parseFloat(t.value);
       if (!isFinite(v) || v < 0) return;
-      if (v === b.config.capacity_h) store.del(skey(b) + ":cap"); else store.set(skey(b) + ":cap", v);
+      if (v === b.config.hours_per_day) store.del(skey(b) + ":hpd"); else store.set(skey(b) + ":hpd", v);
       render("#capIn");
     } else if (t.classList.contains("ptoIn")) {
       const v = parseFloat(t.value), acct = t.dataset.acct, pto = ptoOf(b);
-      if (!isFinite(v) || v < 0) return;
-      if (v === capOf(b)) delete pto[acct]; else pto[acct] = v;
+      const p = b.people.find(x => x.account === acct);
+      if (!isFinite(v) || v < 0 || !p) return;
+      if (v === capNextDefault(b, p)) delete pto[acct]; else pto[acct] = v;
       store.set(skey(b) + ":pto", pto);
       render(`.ptoIn[data-acct="${CSS.escape(acct)}"]`);
     }

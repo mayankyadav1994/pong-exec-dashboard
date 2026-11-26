@@ -78,9 +78,23 @@ The test is the ticket's status history: `status WAS "Closed" ON "<sprint start>
 
 JQL reads that date in the viewer's Jira time zone. The script converts each sprint start to the token user's time zone, so the figures and the links agree for that user. For someone in another time zone, the links can differ only for tickets closed within a few hours of the sprint starting.
 
+### Open work under a cancelled or on-hold epic is left out
+
+If a ticket's epic is **Canceled or On Hold in Jira**, or the **Game Pipeline board** shows the game as On Hold or Cancelled, its open tickets are not planned work. They are dropped from every figure and listed in a notice on the board, with their epic, the reason and the hours. Closed tickets under such an epic still count, because that work happened and still measures estimate bias.
+
+The rule lives in `shared/plan_rules.py`, and the People page and Team Board use the same one. The Game Pipeline status is the one the board shows: the PMO's status override, unless Jira has since moved the game past it.
+
 ### Capacity model
 
-**70 planned hours per person per sprint.** A separate 10h allowance for unplanned work sits *outside* the 70 and is never deducted. No further reserve is taken off. The capacity box at the top changes the figure for the whole board (it is remembered in your browser only).
+**7 planned hours per person per working day**, which is 70h over a standard 10-day sprint (`HOURS_PER_DAY`). A separate 10h allowance for unplanned work sits *outside* capacity and is never deducted.
+
+**Capacity shrinks as the sprint goes on.** Remaining is measured against the hours **left**: 7h × the working days from the build date to the end of the person's sprint, counting the build day. The scheduled build runs at 06:30 UTC, before the working day starts. On the last day someone has 7h; after the end date they have none, and anything still open shows as carrying over. Assigned, the whole sprint's work, is measured against the whole sprint.
+
+- **Working days** are Monday to Friday, minus public holidays. The holidays come from the `holidays` lists in `config/igaming.json`, `config/v2.json` and `config/css.json`, the same lists the release timelines use. The union of the three is taken. If a sprint runs past the last listed holiday, each board shows a warning to add next year's.
+- **A sprint's working days** run from its start date through its end date, inclusive, in the Jira user's time zone. End dates are entered inconsistently: IG sprints end on a Friday at 00:00, V2 sprints on a Monday at 23:00. So a V2 sprint counts its hand-over Monday, and the next V2 sprint starts counting the day after.
+- **Which sprint a person is measured against:** the sprint holding most of their remaining hours. This matters on DAMS, where people work in both the IG and the V2 sprint and the two end on different days.
+
+The capacity box at the top changes the hours per day for the whole board. The change is remembered in your browser only.
 
 ---
 
@@ -90,14 +104,15 @@ What each person can take on next sprint, given what they're carrying over.
 
 | Column | Meaning |
 |---|---|
-| **Carryover** | Remaining today: the work that rolls into next sprint if nothing else closes |
+| **Carryover** | **Projected**: the remaining work, at the person's bias, that won't fit into the hours left this sprint. Shown in estimate hours, with today's remaining underneath. |
 | **Bias** | Estimate-bias factor (see below), with its source: *measured*, *carried* or *inferred* ⚑ |
 | **True load** | Carryover × bias: how many real hours the carryover will actually take |
-| **Capacity** | Editable per person. Lower it for PTO. Edits are kept in your browser only. |
+| **Capacity** | 7h × the next sprint's working days, public holidays excluded. The dates come from the board's next future sprint in Jira. If it has no dates yet, two weeks after the current sprint's end is assumed. Editable per person; lower it for PTO. Edits are kept in your browser only. |
 | **Intake** | How much new *estimated* work fits |
 
 ```
-room   = capacity − (carryover × bias)
+carryover (real hours) = max(0, remaining × bias − hours left this sprint)
+room   = next-sprint capacity − carryover (real hours)
 intake = room > 0 ? room ÷ bias : 0
 ```
 
@@ -117,6 +132,9 @@ Every measured factor is written to `bias.json` after each run, and the schedule
 
 Checks on bias:
 
+- **Some closed tickets are left out of bias**, because they don't measure one person's estimating. A board notice lists each one with its reason. They still count in Tickets, Assigned and Spent.
+  - **More than 10h logged on the ticket in one day.** Several people log on it, as with team test rounds assigned to a QA lead. Jira can't say who logged, because every worklog is authored by the Tempo bot, so this is the available signal. A single person's long day can trip it.
+  - **Logged time more than 10× the estimate.** These are time buckets, such as a general test-case review ticket that collects a team's time over many sprints.
 - A measured factor outside 0.25–4.0 is **rejected** (not used, not saved) and flagged. It usually means time was logged on the wrong ticket.
 - If more than 10% of a person's closed spent time sits on tickets with **no** original estimate, the row is flagged. That time inflates the factor.
 - Only status `Closed` counts. Other done-category statuses (e.g. V2's *Signed Off*) are listed in a warning and left out of bias.
@@ -161,6 +179,7 @@ Each run prints tickets pulled per board, then per board: people, tickets, total
 | Missing credentials, missing template, any non-200 from Jira, runaway paging | fatal |
 | Closed tickets carrying remaining hours | warn |
 | Tickets already Closed when the sprint started (left out of every figure) | info |
+| Open tickets under a cancelled or on-hold epic (left out of every figure) | info |
 | Discipline set by Jira group over ticket types, or from ticket types because the groups are ambiguous | info |
 | Done-category statuses other than `Closed` | warn |
 | Remaining above 3× capacity for one person | warn |

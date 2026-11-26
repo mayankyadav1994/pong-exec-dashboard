@@ -28,12 +28,16 @@ import statistics
 import sys
 import time
 from collections import Counter
-from datetime import datetime, timezone
+import re
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "shared"))   # shared/plan_rules.py
+from plan_rules import parked_reason, pipeline_parked  # noqa: E402
 
 # ════════════════════════════════════════════════════════════════════════════
 #  HAND-MAINTAINED CONFIGURATION - edit these, nothing below needs to change
@@ -90,7 +94,12 @@ BOARD_EXCLUSIONS: dict[str, dict[str, str]] = {
 }
 
 # ── Capacity & thresholds ───────────────────────────────────────────────────
-CAPACITY_H = 70.0             # planned hours per person per sprint
+HOURS_PER_DAY = 7.0           # planned hours per person per working day (70h over a 10-day sprint)
+STANDARD_SPRINT_DAYS = 10     # working days in a standard two-week sprint
+CAPACITY_H = HOURS_PER_DAY * STANDARD_SPRINT_DAYS   # 70h - a full standard sprint
+# Public holidays come from the timeline configs (one shared list, edited via
+# the timelines' config panel). The union of all three files is used.
+HOLIDAY_CONFIGS = ("igaming.json", "v2.json", "css.json")
 UNPLANNED_H = 10.0            # separate unplanned allowance - sits OUTSIDE the 70, never deducted
 AT_CAPACITY_BAND_H = 3.5      # |load - capacity| <= this  -> "at capacity"
 NEAR_CAPACITY_PCT = 0.85      # load bar turns amber from this share of capacity
@@ -98,6 +107,11 @@ NEAR_CAPACITY_PCT = 0.85      # load bar turns amber from this share of capacity
 BIAS_MIN_CLOSED_EST_H = 40.0  # closed original estimate needed to measure bias
 BIAS_SANE_RANGE = (0.25, 4.0) # a measured factor outside this is rejected and flagged
 BIAS_UNESTIMATED_SPENT_FLAG = 0.10  # flag if >10% of closed spent sits on unestimated tickets
+# A closed ticket is left out of bias when it can't be one person's estimate
+# accuracy: more than this many hours logged on it in one day (several people
+# log on it), or logged time above this multiple of its estimate (a bucket).
+BIAS_MULTI_LOGGER_DAY_H = 10.0
+BIAS_BUCKET_MULT = 10.0
 OUTLIER_REMAINING_MULT = 3.0  # flag anyone whose remaining exceeds this multiple of capacity
 CLOSED_STATUS = "Closed"      # the only status that counts as closed for bias
 
@@ -125,13 +139,14 @@ HTTP_TIMEOUT_S = 60
 # ════════════════════════════════════════════════════════════════════════════
 
 HERE = Path(__file__).resolve().parent
+CONFIG_DIR = HERE.parent / "config"
 TEMPLATE_PATH = HERE / "template.html"
 OUTPUT_PATH = HERE / "dashboard.html"
 BIAS_PATH = HERE / "bias.json"
 PLACEHOLDER = "__SNAPSHOTS__"
 
 FIELDS = ["issuetype", "status", "assignee", SPRINT_FIELD,
-          "timeoriginalestimate", "timespent", "timeestimate", "resolutiondate"]
+          "timeoriginalestimate", "timespent", "timeestimate", "resolutiondate", "parent"]
 
 LINK_PREDICATES = {
     "assigned":    "originalEstimate > 0",
@@ -235,6 +250,10 @@ class Jira:
         self.s.headers.update({"Accept": "application/json"})
         self._groups: dict[str, list[str]] = {}
         self._tz: ZoneInfo | None = None
+        self._future: dict[int, list[dict]] = {}
+        self._day_max: dict[str, float] = {}
+        self._meta: dict[str, dict] = {}
+        self._pipe: dict[str, str] | None = None
 
     def _req(self, method: str, url: str, **kw) -> dict:
         for attempt in range(4):
@@ -294,6 +313,67 @@ class Jira:
                 raise BuildError(f"Python has no time-zone data for '{name}' (Jira profile time zone). "
                                  "On Windows: pip install tzdata") from e
         return self._tz
+
+    def future_sprints(self, board_id: int) -> list[dict]:
+        """Future sprints created on this board, in Jira's rank order."""
+        if board_id not in self._future:
+            d = self._req("GET", f"{SITE}/rest/agile/1.0/board/{board_id}/sprint",
+                          params={"state": "future", "maxResults": 50})
+            self._future[board_id] = [s for s in d.get("values") or []
+                                      if s.get("originBoardId") in (None, board_id)]
+        return self._future[board_id]
+
+    def issue_meta(self, keys) -> dict[str, dict]:
+        """key -> {type, status, summary, parent} for parent / epic lookups (cached)."""
+        need = sorted({k for k in keys if k and k not in self._meta})
+        for i in range(0, len(need), PAGE_SIZE):
+            for x in self.search(f"key IN ({', '.join(need[i:i + PAGE_SIZE])})",
+                                 ["issuetype", "status", "summary", "parent"]):
+                f = x.get("fields") or {}
+                self._meta[x["key"]] = {"type": (f.get("issuetype") or {}).get("name"),
+                                        "status": (f.get("status") or {}).get("name"),
+                                        "summary": f.get("summary") or x["key"],
+                                        "parent": (f.get("parent") or {}).get("key")}
+        return self._meta
+
+    def parked_epics(self, issues: list[dict]) -> dict[str, dict]:
+        """issue key -> {epic, name, why} for tickets under a parked epic: Canceled /
+        On Hold in Jira, or On Hold / Cancelled on the Game Pipeline board
+        (shared/plan_rules.py, the rule People and Team Board use too)."""
+        if self._pipe is None:
+            self._pipe = pipeline_parked()
+        meta = self.issue_meta(i["parent"] for i in issues)                  # parent
+        meta = self.issue_meta(m["parent"] for k, m in list(meta.items())    # grandparent
+                               if m["type"] != "Epic")
+        out = {}
+        for i in issues:
+            k, hops = i["parent"], 0
+            while k and k in meta and hops < 3:
+                m = meta[k]
+                if m["type"] == "Epic":
+                    why = parked_reason(k, m["status"], self._pipe)
+                    if why:
+                        out[i["key"]] = {"epic": k, "name": m["summary"], "why": why}
+                    break
+                k, hops = m["parent"], hops + 1
+        return out
+
+    def max_hours_in_a_day(self, key: str) -> float:
+        """Most hours logged on this ticket on any one calendar day."""
+        if key not in self._day_max:
+            days: Counter = Counter()
+            start = 0
+            for _ in range(MAX_PAGES):
+                d = self._req("GET", f"{SITE}/rest/api/3/issue/{key}/worklog",
+                              params={"startAt": start, "maxResults": 1000})
+                wl = d.get("worklogs") or []
+                for w in wl:
+                    days[(w.get("started") or "")[:10]] += (w.get("timeSpentSeconds") or 0) / 3600.0
+                start += len(wl)
+                if not wl or start >= (d.get("total") or 0):
+                    break
+            self._day_max[key] = max(days.values(), default=0.0)
+        return self._day_max[key]
 
     def closed_sprints(self, board_id: int) -> list[dict]:
         out, start = [], 0
@@ -397,6 +477,7 @@ def norm(issue: dict) -> dict:
         "rem_s": f.get("timeestimate"),
         "resolved": f.get("resolutiondate"),
         "active_sprints": active,
+        "parent": (f.get("parent") or {}).get("key"),
     }
 
 
@@ -435,7 +516,9 @@ def aggregate(board: dict, issues: list[dict]) -> dict[str, dict]:
                 "closed_tickets": 0, "closed_est_h": 0.0, "closed_spent_h": 0.0,
                 "closed_spent_unestimated_h": 0.0,
                 "closed_rem": {"count": 0, "hours": 0.0, "keys": []},
+                "bias_skipped": [],
                 "_votes": Counter(), "_types": Counter(),
+                "_sprint_rem": Counter(), "_sprint_n": Counter(),
             }
             p["name"] = p["name"] or i["name"]
         o, s, r = hours(i["orig_s"]), hours(i["spent_s"]), hours(i["rem_s"])
@@ -444,12 +527,19 @@ def aggregate(board: dict, issues: list[dict]) -> dict[str, dict]:
             p["no_estimate"] += 1
         p["assigned_h"] += o
         p["spent_h"] += s
+        for sp in i["active_sprints"]:
+            p["_sprint_n"][sp.get("id")] += 1
+            if i["status"] != CLOSED_STATUS:
+                p["_sprint_rem"][sp.get("id")] += r
         if i["status"] == CLOSED_STATUS:
-            p["closed_tickets"] += 1
-            p["closed_est_h"] += o
-            p["closed_spent_h"] += s
-            if not i["orig_s"]:
-                p["closed_spent_unestimated_h"] += s
+            if i.get("bias_skip"):
+                p["bias_skipped"].append({"key": i["key"], "est_h": r1(o), "spent_h": r1(s), "why": i["bias_skip"]})
+            else:
+                p["closed_tickets"] += 1
+                p["closed_est_h"] += o
+                p["closed_spent_h"] += s
+                if not i["orig_s"]:
+                    p["closed_spent_unestimated_h"] += s
             if r > 0:                         # closed with remaining: counted as 0, flagged
                 p["closed_rem"]["count"] += 1
                 p["closed_rem"]["hours"] += r
@@ -573,6 +663,26 @@ def build_board(jira: Jira, board: dict) -> dict:
                "(e.g. moved there when an earlier sprint was completed) and were closed before it began." if n_other else ""),
             [i["key"] for i in stale], nav(f"{pos} AND ({clause})")))
 
+    # ── open work under a Canceled / On Hold epic ───────────────────────────
+    # Not planned work any more: dropped from every figure. Closed tickets stay
+    # (the work happened, and they still measure estimate bias).
+    pk = jira.parked_epics(issues)
+    parked = [i for i in issues if i["key"] in pk and i["status"] != CLOSED_STATUS]
+    if parked:
+        issues = [i for i in issues if not (i["key"] in pk and i["status"] != CLOSED_STATUS)]
+        by_epic: dict[str, list[dict]] = {}
+        for i in parked:
+            by_epic.setdefault(pk[i["key"]]["epic"], []).append(i)
+        warnings.append(warn(
+            "info", f"{len(parked)} open ticket(s) left out: their epic is cancelled or on hold",
+            f"{r1(sum(hours(i['rem_s']) for i in parked))}h remaining, not counted anywhere on this board. "
+            "An epic that is Canceled / On Hold in Jira, or On Hold / Cancelled on the Game Pipeline board, "
+            "is off the plan; its closed tickets still count. "
+            + "; ".join(f"{pk[v[0]['key']]['name']} ({e}, {pk[v[0]['key']]['why']}): {len(v)} ticket(s), "
+                        f"{r1(sum(hours(i['rem_s']) for i in v))}h"
+                        for e, v in sorted(by_epic.items(), key=lambda kv: -sum(hours(i['rem_s']) for i in kv[1])))
+            + ".", [i["key"] for i in parked]))
+
     # ── data-quality checks ─────────────────────────────────────────────────
     cr = [i for i in issues if i["status"] == CLOSED_STATUS and (i["rem_s"] or 0) > 0]
     if cr:
@@ -612,6 +722,33 @@ def build_board(jira: Jira, board: dict) -> dict:
         if d > 2:
             warnings.append(warn("warn", "Sprints on this board end on different dates",
                                  f"Ends: {', '.join(ends)}. The 70h capacity assumes one sprint window."))
+
+    # ── closed tickets that can't measure one person's estimate accuracy ────
+    # Only tickets with more than BIAS_MULTI_LOGGER_DAY_H logged in total can
+    # break the per-day rule, so only those need their worklogs fetched.
+    skipped = []
+    for i in issues:
+        if i["status"] != CLOSED_STATUS:
+            continue
+        o, s_ = hours(i["orig_s"]), hours(i["spent_s"])
+        if o > 0 and s_ > BIAS_BUCKET_MULT * o:
+            i["bias_skip"] = f"{r1(s_)}h logged on a {r1(o)}h estimate ({s_ / o:.0f}×): a time bucket"
+        elif s_ > BIAS_MULTI_LOGGER_DAY_H:
+            peak = jira.max_hours_in_a_day(i["key"])
+            if peak > BIAS_MULTI_LOGGER_DAY_H:
+                i["bias_skip"] = f"{r1(peak)}h logged on it in one day: several people log on this ticket"
+        if i.get("bias_skip"):
+            skipped.append(i)
+    if skipped:
+        warnings.append(warn(
+            "info", f"{len(skipped)} closed ticket(s) left out of estimate bias",
+            f"{r1(sum(hours(i['orig_s']) for i in skipped))}h estimate / {r1(sum(hours(i['spent_s']) for i in skipped))}h spent. "
+            "Bias measures one person's estimating, so it skips tickets where more than "
+            f"{BIAS_MULTI_LOGGER_DAY_H:g}h was logged in a single day (several people log on them) and tickets with "
+            f"more than {BIAS_BUCKET_MULT:g}× their estimate logged (time buckets). They still count in Tickets, "
+            "Assigned and Spent. " + "; ".join(f"{i['key']} ({i['name']}): {i['bias_skip']}" for i in skipped[:12])
+            + (f"; +{len(skipped) - 12} more" if len(skipped) > 12 else "") + ".",
+            [i["key"] for i in skipped]))
 
     people = aggregate(board, issues)
 
@@ -737,7 +874,9 @@ def resolve_bias(boards: list[dict], store: dict) -> tuple[list[dict], int]:
         if f is not None:
             p["bias"] = {"factor": round(f, 3), "source": "measured",
                          "detail": f"{p['closed_spent_h']}h spent ÷ {p['closed_est_h']}h estimate on "
-                                   f"{p['closed_tickets']} tickets Closed during this sprint"}
+                                   f"{p['closed_tickets']} tickets Closed during this sprint"
+                                   + (f" ({len(p['bias_skipped'])} more left out: "
+                                      + ", ".join(x["key"] for x in p["bias_skipped"]) + ")" if p["bias_skipped"] else "")}
             persist.append({"account": p["account"], "name": p["name"], "board": b["slug"], "factor": round(f, 4),
                             "closed_est_h": p["closed_est_h"], "closed_spent_h": p["closed_spent_h"],
                             "sprint": " + ".join(s["name"] for s in b["sprints"]),
@@ -866,12 +1005,111 @@ def mark_cross_board(boards: list[dict]) -> int:
 
 # ── next-sprint arithmetic (mirrored in template.html) ──────────────────────
 
-def intake_row(remaining_h: float, bias: float, capacity: float = CAPACITY_H) -> dict:
-    true_load = remaining_h * bias
-    room = capacity - true_load
-    return {"true_load": true_load, "room": room,
+def plan_row(remaining_h: float, bias: float, cap_left: float, cap_next: float) -> dict:
+    """Carryover = the real hours that won't fit in the working days left
+    this sprint; next-sprint room is measured against that."""
+    carry_true = max(0.0, remaining_h * bias - cap_left)
+    room = cap_next - carry_true
+    return {"carry_h": carry_true / bias, "true_load": carry_true, "room": room,
             "intake": room / bias if room > 0 else 0.0,
             "overflow": -room if room < 0 else 0.0}
+
+
+# ── working-day calendar ────────────────────────────────────────────────────
+
+HOLIDAYS: set[date] = set()
+
+
+def load_holidays() -> tuple[set[date], list[str]]:
+    days, used = set(), []
+    for name in HOLIDAY_CONFIGS:
+        p = CONFIG_DIR / name
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise BuildError(f"Holiday config {p} cannot be read ({e}).") from e
+        used.append(name)
+        for s in data.get("holidays") or []:
+            try:
+                days.add(date.fromisoformat(s))
+            except (TypeError, ValueError) as e:
+                raise BuildError(f"{p}: holiday {s!r} is not a YYYY-MM-DD date.") from e
+    return days, used
+
+
+def working_days(d0: date, d1: date) -> list[date]:
+    """Mon-Fri, not a public holiday, d0..d1 inclusive."""
+    out, d = [], d0
+    while d <= d1:
+        if d.weekday() < 5 and d not in HOLIDAYS:
+            out.append(d)
+        d += timedelta(days=1)
+    return out
+
+
+def _local_day(ts: str | None, tz) -> date | None:
+    t = parse_ts(ts)
+    return t.astimezone(tz).date() if t else None
+
+
+def next_sprint_of(jira: Jira, s: dict) -> dict | None:
+    """The board's next sprint: the earliest dated future sprint, else the first
+    future sprint named like this one ("IG Sprint 20" -> "IG Sprint 21")."""
+    fut = jira.future_sprints(s["board_id"]) if s.get("board_id") else []
+    dated = [f for f in fut if f.get("startDate") and f.get("endDate")
+             and (parse_ts(f["startDate"]) or datetime.min.replace(tzinfo=timezone.utc)) >= (parse_ts(s["start"]) or datetime.min.replace(tzinfo=timezone.utc))]
+    if dated:
+        return min(dated, key=lambda f: f["startDate"])
+    stem = re.sub(r"\d+\s*$", "", s.get("name") or "").strip()
+    named = [f for f in fut if stem and (f.get("name") or "").startswith(stem)]
+    return named[0] if named else None
+
+
+def sprint_window(jira: Jira, s: dict, today: date) -> dict:
+    """Working days in a sprint (start date through end date, inclusive), how
+    many are left from today, and the same for the board's next sprint."""
+    tz = jira.tz()
+    start, end = _local_day(s.get("start"), tz), _local_day(s.get("end"), tz)
+    if not (start and end):
+        return {"sprint": s.get("name"), "start_day": None, "end_day": None, "days_total": STANDARD_SPRINT_DAYS,
+                "days_left": STANDARD_SPRINT_DAYS, "holidays": [], "next": {"name": "next sprint", "days": STANDARD_SPRINT_DAYS,
+                "dated": False, "start_day": None, "end_day": None, "holidays": []}, "undated": True}
+    days = working_days(start, end)
+    nx = next_sprint_of(jira, s)
+    n_start = end + timedelta(days=1)                       # never double-count the hand-over day
+    if nx and nx.get("startDate") and nx.get("endDate"):
+        ns, ne, dated = max(_local_day(nx["startDate"], tz), n_start), _local_day(nx["endDate"], tz), True
+    else:
+        ns, ne, dated = n_start, end + timedelta(days=14), False   # assume another two weeks
+    hol = lambda a, b: sorted(d.isoformat() for d in HOLIDAYS if a <= d <= b and d.weekday() < 5)
+    return {"sprint": s.get("name"), "sprint_id": s.get("id"),
+            "start_day": start.isoformat(), "end_day": end.isoformat(),
+            "days_total": len(days), "days_left": sum(1 for d in days if d >= today),
+            "holidays": hol(start, end),
+            "next": {"name": (nx or {}).get("name") or "next sprint", "dated": dated,
+                     "start_day": ns.isoformat(), "end_day": ne.isoformat(),
+                     "days": len(working_days(ns, ne)), "holidays": hol(ns, ne)}}
+
+
+def attach_windows(jira: Jira, boards: list[dict], today: date) -> None:
+    """Give every person the capacity window of the sprint holding most of their
+    remaining work (DAMS people can straddle IG and V2 sprints that end on
+    different days)."""
+    for b in boards:
+        wins = {s["id"]: sprint_window(jira, s, today) for s in b["sprints"]}
+        b["windows"] = list(wins.values())
+        home = next((s["id"] for s in b["sprints"] if s.get("board_id") == b["board_id"]),
+                    b["sprints"][0]["id"] if b["sprints"] else None)
+        for p in b["_people"].values():
+            rem, n = p.pop("_sprint_rem"), p.pop("_sprint_n")
+            pick = (max(rem, key=rem.get) if any(v > 0 for v in rem.values())
+                    else max(n, key=n.get) if n else home)
+            w = wins.get(pick) or (wins.get(home) if home is not None else None)
+            p["window"] = w or sprint_window(jira, {"name": None}, today)
+            p["cap_left_h"] = r1(HOURS_PER_DAY * p["window"]["days_left"])
+            p["cap_next_h"] = r1(HOURS_PER_DAY * p["window"]["next"]["days"])
 
 
 # ── output ──────────────────────────────────────────────────────────────────
@@ -907,6 +1145,7 @@ def main() -> int:
     email, token = credentials()
     jira = Jira(email, token)
     store = load_bias()
+    HOLIDAYS.update(load_holidays()[0])
 
     # Jira answers a JQL with an unknown accountId with 200 + zero issues, so a
     # typo in the roster would silently drop a person. Verify every ID up front.
@@ -948,6 +1187,22 @@ def main() -> int:
     persist, n_measured = resolve_bias(boards, store)
     n_cross = mark_cross_board(boards)
 
+    # ── capacity windows: 7h per working day left, public holidays excluded ──
+    today = datetime.now(jira.tz()).date()
+    attach_windows(jira, boards, today)
+    needed = max((date.fromisoformat(w["next"]["end_day"]) for b in boards for w in b["windows"]
+                  if w["next"].get("end_day")), default=today)
+    if not HOLIDAYS:
+        for b in boards:
+            b["warnings"].append(warn("warn", "No public holidays loaded",
+                                      f"None of config/{', config/'.join(HOLIDAY_CONFIGS)} lists any holidays, so "
+                                      "capacity assumes every weekday is worked."))
+    elif needed > max(HOLIDAYS):
+        for b in boards:
+            b["warnings"].append(warn("warn", "Public-holiday list runs out",
+                                      f"The holiday list ends {max(HOLIDAYS).isoformat()} but the next sprint runs to "
+                                      f"{needed.isoformat()}. Add the coming holidays to config/v2.json."))
+
     # ── tripwire, loudly ────────────────────────────────────────────────────
     tw = boards[0]["tripwire"]
     if tw and tw["count"]:
@@ -959,26 +1214,36 @@ def main() -> int:
         print("\nTripwire: 0 DAMS-roster tickets outside the issue-type filter")
 
     # ── per-board summary ───────────────────────────────────────────────────
-    print(f"\n{'Board':<22} {'people':>6} {'tickets':>7} {'remaining':>10} {'intake':>8} {'overflow':>9}   bias m/c/i")
+    print(f"\n{'Board':<22} {'people':>6} {'tickets':>7} {'remaining':>10} {'cap left':>9} {'over now':>9}"
+          f" {'next intake':>12} {'next over':>10}   bias m/c/i")
     snapshots = {}
     for b in boards:
         people = list(b.pop("_people").values())
         people.sort(key=lambda p: (DISCIPLINE_ORDER.index(p["discipline"]), -p["remaining_h"], p["name"]))
         rem = sum(p["remaining_h"] for p in people)
-        calc = [intake_row(p["remaining_h"], p["bias"]["factor"]) for p in people]
+        calc = [plan_row(p["remaining_h"], p["bias"]["factor"], p["cap_left_h"], p["cap_next_h"]) for p in people]
+        over_now = sum(max(0.0, p["remaining_h"] - p["cap_left_h"]) for p in people)
         src = Counter(p["bias"]["source"] for p in people)
         print(f"  {b['label']:<20} {len(people):>6} {sum(p['tickets'] for p in people):>7} "
-              f"{rem:>9.1f}h {sum(c['intake'] for c in calc):>7.1f}h {sum(c['overflow'] for c in calc):>8.1f}h"
+              f"{rem:>9.1f}h {sum(p['cap_left_h'] for p in people):>8.1f}h {over_now:>8.1f}h"
+              f" {sum(c['intake'] for c in calc):>11.1f}h {sum(c['overflow'] for c in calc):>9.1f}h"
               f"   {src['measured']}/{src['carried']}/{src['inferred']}")
+        for w in b["windows"]:
+            print(f"      {w['sprint']}: {w['start_day']} – {w['end_day']}, {w['days_left']} of {w['days_total']} working days left"
+                  f"{' (holidays ' + ', '.join(w['holidays']) + ')' if w['holidays'] else ''}; next: {w['next']['name']}"
+                  f" {w['next']['days']} days{'' if w['next']['dated'] else ' (undated - assumed two weeks)'}"
+                  f"{' (holidays ' + ', '.join(w['next']['holidays']) + ')' if w['next']['holidays'] else ''}")
         b["people"] = people
         b["generated_at"] = generated
+        b["today"] = today.isoformat()
         b["site"] = SITE
-        b["config"] = {"capacity_h": CAPACITY_H, "unplanned_h": UNPLANNED_H,
+        b["config"] = {"capacity_h": CAPACITY_H, "hours_per_day": HOURS_PER_DAY, "unplanned_h": UNPLANNED_H,
                        "at_capacity_band_h": AT_CAPACITY_BAND_H, "near_capacity_pct": NEAR_CAPACITY_PCT,
                        "bias_min_closed_est_h": BIAS_MIN_CLOSED_EST_H, "closed_status": CLOSED_STATUS,
                        "discipline_order": DISCIPLINE_ORDER}
         snapshots[b["slug"]] = b
-    print("  overflow = true-load hours (remaining × bias) above 70h; bias m/c/i = measured/carried/inferred")
+    print(f"  cap left = {HOURS_PER_DAY:g}h × working days left; over now = remaining above it; next = after projected carryover;"
+          " bias m/c/i = measured/carried/inferred")
     print(f"\nCross-board people: {n_cross}")
 
     # ── warnings ────────────────────────────────────────────────────────────
