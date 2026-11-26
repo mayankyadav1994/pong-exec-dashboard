@@ -1,0 +1,64 @@
+{
+  "_comment": "PMO planning sub-pages (Releases | Planning switch on each space). Imported from the SharePoint sheet below, which stays the source of truth: when it changes, ask Claude to re-import. lane.space = which roadmap space shows it (igaming / v2 / css). initiative.month = YYYY-MM (null = not scheduled yet, shown in the lane's tray). initiative.jira = epic keys mapped by name; their status and % done come live from Jira.",
+  "source": {
+    "name": "PFH Roadmap 2027 - source data.xlsx",
+    "sheet": "Sheet2",
+    "url": "https://pongstudios.sharepoint.com/sites/ProjectManagement/Shared%20Documents/PFH%20Roadmap%202027%20-%20source%20data.xlsx",
+    "imported": "2026-11-25"
+  },
+  "lanes": [
+    {
+      "id": "pop", "label": "PoP", "space": "css",
+      "initiatives": [
+        { "name": "Platform", "month": "2026-12", "weeks": "4 weeks", "status": "To Do",
+          "items": ["User Roles", "Environment"],
+          "jira": ["CSS-3083", "CSS-2737"],
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "Pulsar", "month": "2026-12", "weeks": "2 weeks", "status": "To Do",
+          "jira": ["CSS-3032", "CSS-2745"],
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "DAC", "desc": "Dynamic Account Creation", "month": "2027-01", "weeks": "2 weeks", "status": "To Do",
+          "jira": ["CSS-3006", "CSS-2756"],
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "UPC", "desc": "Universal Promo Code", "month": "2027-02", "weeks": "2 weeks", "status": "To Do",
+          "jira": ["CSS-2592", "CSS-2587"],
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "TH", "desc": "Task Handler", "month": "2027-02", "weeks": "2 weeks", "status": "To Do",
+          "jira": ["CSS-2746", "CSS-2742"],
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "Offline Licensing", "month": "2027-03", "weeks": "2 weeks", "status": "To Do",
+          "jira": ["CSS-2750"],
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "Location Deployment Controls", "month": "2027-04", "weeks": "2 weeks", "status": "To Do",
+          "developers": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"] },
+        { "name": "3rd Party Integration", "month": null, "status": "To Do",
+          "items": ["NetSuite", "Ticketing", "Reporting (Shemal / Suki / PowerBI)"],
+          "jira": ["CSS-1966"] },
+        { "name": "New Features", "month": null, "status": "To Do" }
+      ]
+    },
+    {
+      "id": "pfhx", "label": "PFH X", "space": "igaming",
+      "note": "1 month prototype · 3 months complete dev · 2 months QA",
+      "initiatives": [
+        { "name": "BE", "month": "2026-12", "status": "To Do",
+          "jira": ["CSS-1944"],
+          "developers": ["Raman", "Raj", "Jason"] },
+        { "name": "Portal", "month": "2027-02", "weeks": "4-6 weeks", "status": "To Do",
+          "developers": ["?"] },
+        { "name": "GE, Progressives", "month": "2027-02", "status": "To Do",
+          "developers": ["Raman", "Raj", "Jason"] }
+      ]
+    },
+    {
+      "id": "pfh", "label": "PFH", "space": "igaming",
+      "initiatives": [
+        { "name": "Guest to Registered", "month": "2026-12",
+          "jira": ["IG-4649"],
+          "developers": ["Blazesoft", "Ben"] },
+        { "name": "Loyalty", "month": "2027-01", "weeks": "2 weeks", "status": "To Do",
+          "jira": ["IG-9391"] }
+      ]
+    }
+  ]
+}

@@ -22,7 +22,8 @@ async function check(file) {
 
   const cards = d.querySelectorAll('.tcard').length;
   const lanes = d.querySelectorAll('.lane').length;
-  if (cards < MIN_CARDS) fails.push(`expected ≥${MIN_CARDS} .tcard, got ${cards}`);
+  const minCards = d.body.dataset.kind === 'planning' ? 0 : MIN_CARDS;
+  if (cards < minCards) fails.push(`expected ≥${minCards} .tcard, got ${cards}`);
   if (!lanes) fails.push('no lanes rendered');
 
   const more = d.querySelector('.more');

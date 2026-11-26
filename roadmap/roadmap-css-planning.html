@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Theme = Game Pipeline (dashboard.css): light, IBM Plex, navy text. */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--surface:#ffffff;--surf2:#f0f3f9;--surf3:#e8ecf4;
+  --border:#dde2ee;--border2:#c8cedf;--muted:#6b7a99;--text:#1a2035;--sub:#8a94ad;
+  --text-mid:#4a5672;--text-dim:#8a94ad;--card-text:#2a3247;--hair:#e8ecf4;
+  --today:#b91c1c;--today-bg:rgba(239,68,68,.10);--today-bd:rgba(239,68,68,.35);
+  --gold:#b45309;--gold-bg:#fffbeb;--gold-bd:#fcd34d;
+  --blue:#2563eb;--blue-bg:#eff6ff;--blue-bd:#bfdbfe;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-bd:#bbf7d0;
+  --rose:#dc2626;--rose-bg:#fef2f2;--rose-bd:#fecaca;
+  --violet:#7c3aed;--violet-bg:#f5f3ff;--violet-bd:#ddd6fe;
+  --amber:#d97706;--amber-bg:#fffbeb;--amber-bd:#fde68a;
+  --grey:#64748b;--grey-bg:#f1f5f9;--grey-bd:#cbd5e1;
+  --sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans)}
+body{padding:12px 24px 0;overflow-x:hidden;min-height:100vh}
+a{color:inherit}
+
+/* ── one-line header bar: title · space tabs · refreshed · legend · today · controls ── */
+.bar{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;padding:0 2px 8px;margin-bottom:8px;border-bottom:1px solid var(--border)}
+h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+.nav{display:flex;align-items:center;gap:2px;background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:2px}
+.nav a{font-size:12px;font-weight:500;text-decoration:none;color:var(--muted);padding:3px 10px;border-radius:4px;white-space:nowrap}
+.nav a:hover{color:var(--text)}
+.nav a.active{color:#fff;background:#4F46E5;font-weight:600}
+.subnav a.active{background:#1a2035}
+.sub{font-size:11px;color:var(--sub);white-space:nowrap}
+.legend{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
+.leg-sep{width:1px;height:14px;background:var(--border)}
+.sw{width:14px;height:5px;border-radius:2px}
+.grow{flex:1}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:4px 8px;border-radius:4px;cursor:pointer;white-space:nowrap;
+  color:var(--today);background:var(--today-bg);border:1px solid var(--today-bd)}
+.pill:hover{background:rgba(239,68,68,.18)}
+.btns{display:flex;gap:4px}
+.btn{font-size:12px;line-height:1;padding:5px 9px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  cursor:pointer;font-family:inherit;font-weight:600}
+.btn:hover{background:var(--surf2);color:var(--text)}
+.back{font-size:12px;font-weight:500;color:var(--muted);text-decoration:none;white-space:nowrap}
+.back:hover{color:var(--text)}
+
+/* ── scroll area: scrollbar on top AND bottom ── */
+.topscroll{overflow-x:auto;overflow-y:hidden;height:14px;margin-bottom:2px}
+.topscroll>div{height:1px}
+.tl{overflow:auto;position:relative;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+.canvas{position:relative}
+.gridlines{position:absolute;top:0;bottom:0;pointer-events:none;z-index:1}
+.mline{position:absolute;top:0;bottom:0;width:1px;background:var(--surf3)}
+.tline{position:absolute;top:0;bottom:0;width:2px;z-index:25;background:rgba(185,28,28,.4)}
+
+.ruler{position:sticky;top:0;z-index:50;display:flex;background:var(--surf2);border-bottom:1px solid var(--border2);height:42px}
+.ruler-corner{position:sticky;left:0;z-index:2;background:var(--surf2);flex-shrink:0;border-right:1px solid var(--border);
+  font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;padding-left:12px}
+.ruler-body{position:relative;flex-shrink:0}
+.mcell{position:absolute;top:0;bottom:0;display:flex;align-items:flex-start;justify-content:center;padding-top:6px;
+  font-size:11px;font-weight:600;color:var(--muted);border-left:1px solid var(--border)}
+.today-lbl{position:absolute;bottom:3px;transform:translateX(-50%);z-index:3;font-family:var(--mono);font-size:9px;font-weight:700;
+  color:var(--today);background:#fff;padding:1px 6px;border:1px solid var(--today-bd);border-radius:3px;white-space:nowrap}
+
+/* ── groups & lanes ── */
+.grp-hdr{display:flex;align-items:center;padding:14px 0 4px;background:var(--surface)}
+.grp-name{position:sticky;left:0;z-index:30;background:var(--surface);font-size:15px;font-weight:700;color:var(--text);padding:0 12px}
+.grp-line{flex:1;height:1px;background:var(--border)}
+.lane{display:flex;border-bottom:1px solid var(--border)}
+.lane-lbl{position:sticky;left:0;z-index:30;flex-shrink:0;background:var(--surface);padding:12px 12px 8px;
+  text-align:right;border-right:1px solid var(--border)}
+.lane-name{color:var(--text-mid);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;line-height:1.2}
+.tray-btn{margin-top:6px;font-size:10px;font-weight:600;color:var(--muted);background:var(--surf2);border:1px dashed var(--border2);
+  border-radius:4px;padding:2px 7px;cursor:pointer;font-family:inherit}
+.tray-btn:hover{color:var(--text);border-color:var(--muted)}
+.lane-body{position:relative;flex-shrink:0;z-index:5}
+.lane-empty{position:absolute;left:12px;top:14px;font-size:11px;color:var(--sub);font-style:italic}
+.tray{display:none;border-bottom:1px solid var(--border);background:var(--surf2)}
+.tray.open{display:block}
+.tray-in{position:sticky;left:0;padding:10px 12px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start}
+.tray-ttl{width:100%;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px}
+.uchip{font-size:11px;color:var(--text);background:var(--surface);border:1px dashed var(--border2);border-radius:5px;padding:4px 8px;text-decoration:none;max-width:320px}
+.uchip small{display:block;font-family:var(--mono);font-size:9px;color:var(--sub)}
+.uchip:hover{border-color:var(--muted)}
+.lane-note{font-size:10px;color:var(--sub);line-height:1.35;margin-top:4px}
+.devs{font-size:11px;color:var(--text-mid);margin-top:6px;line-height:1.4}
+
+/* ── release cards ── */
+.tcard{position:absolute;border-radius:8px;border:1px solid;background:var(--surface);box-shadow:0 1px 2px rgba(26,32,53,.06)}
+.accent{height:4px;border-radius:7px 7px 0 0;margin:-1px -1px 0;position:relative}
+.ms{position:absolute;top:50%;width:10px;height:10px;border-radius:2px;transform:translate(-50%,-50%) rotate(45deg);border:2px solid}
+.card{padding:9px 11px 10px;border-radius:0 0 8px 8px}
+.card-date{font-family:var(--mono);font-size:9.5px;font-weight:500;margin-bottom:3px}
+.card-title{font-size:14px;font-weight:600;line-height:1.25;color:var(--text)}
+.card-desc{font-size:10.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+.card-status{display:flex;align-items:center;gap:7px;margin:7px 0 6px;padding-bottom:7px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
+.badge{font-size:9px;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.3px;font-weight:700;border:1px solid;white-space:nowrap}
+.ptrack{flex:1;height:5px;border-radius:3px;background:var(--surf3);overflow:hidden;min-width:40px}
+.pfill{height:100%;border-radius:3px}
+.ppct{font-family:var(--mono);font-size:10px;font-weight:600}
+.slip{font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:4px;white-space:nowrap;font-weight:500}
+.slip.late{color:var(--rose);background:var(--rose-bg)}
+.slip.early{color:var(--green);background:var(--green-bg)}
+.cgroup{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:6px 0 2px}
+.items{list-style:none;display:flex;flex-direction:column;gap:3px}
+.items li{font-size:11.5px;color:var(--card-text);display:flex;gap:6px;align-items:baseline;line-height:1.3}
+.items li .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transform:translateY(-1px)}
+.dot.done{background:var(--green)}.dot.indeterminate{background:var(--blue)}.dot.new{background:var(--border2)}
+.ipct{font-family:var(--mono);font-size:9.5px;color:var(--sub);flex-shrink:0}
+.jira{font-family:var(--mono);font-size:9px;padding:0 4px;border-radius:3px;border:1px solid var(--border);
+  background:var(--surf2);text-decoration:none;white-space:nowrap;color:var(--muted)}
+.jira:hover{background:var(--surf3);color:var(--text)}
+.more{display:block;margin-top:5px;font-size:10px;font-weight:600;color:#1e40af;background:none;border:none;cursor:pointer;padding:0;font-family:inherit}
+.more:hover{text-decoration:underline}
+.misc{font-size:10.5px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.notes{list-style:none;margin-top:4px}
+.notes li{font-size:11px;color:var(--text-mid);line-height:1.4}
+.ftag{font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:7px;display:inline-block}
+
+/* ── publishing chips ── */
+.pub{position:absolute;display:flex;flex-direction:column}
+.pub-card{border:1px solid var(--green-bd);border-left:3px solid var(--green);background:var(--surface);
+  border-radius:6px;padding:5px 8px 6px;box-shadow:0 1px 2px rgba(26,32,53,.05)}
+.pub.assumed .pub-card{border-style:dashed;border-left-style:dashed;background:var(--surf2)}
+.pub.assumed .pub-title{color:var(--muted)}
+.pub.flag-red .pub-card{border-left-color:var(--rose);background:var(--rose-bg)}
+.pub.flag-amber .pub-card{border-left-color:var(--amber);background:var(--amber-bg)}
+.pub-date{font-family:var(--mono);font-size:9.5px;color:var(--green);font-weight:600}
+.pub-title{font-size:12.5px;font-weight:600;color:var(--text);line-height:1.25;margin-top:1px}
+.pub-note{font-size:10px;color:var(--muted);margin-top:2px}
+.pub-flag{font-size:10px;margin-top:3px;font-weight:600}
+.flag-red .pub-flag{color:var(--rose)}.flag-amber .pub-flag{color:var(--amber)}
+.pub-rel{font-family:var(--mono);font-size:9px;color:var(--sub);margin-top:2px}
+.pub-run{height:3px;border-radius:2px;margin-top:3px;background:linear-gradient(90deg,var(--green),rgba(22,163,74,.12))}
+
+.parked{position:absolute;border:1px dashed var(--amber-bd);border-left:3px solid var(--amber);background:var(--amber-bg);
+  border-radius:6px;padding:6px 9px}
+.pk-tag{font-size:9.5px;color:var(--amber);font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+.pk-title{font-size:13px;font-weight:600;line-height:1.2;margin-top:1px}
+.pk-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+.foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 2px 16px;font-size:11px;color:var(--sub)}
+
+@media print{
+  @page{size:11in 17in landscape;margin:.35in}
+  .nav,.btns,.back,.topscroll,.tray-btn,.more{display:none!important}
+  .pill{cursor:default}
+  body{padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tl{overflow:visible!important;height:auto!important;border:none}
+  .ruler{position:static}
+  .tcard,.pub-card{box-shadow:none!important;break-inside:avoid}
+}
+@media (max-width:700px){body{padding:12px 16px 0}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 id="title"></h1>
+  <nav class="nav" id="nav"></nav>
+  <nav class="nav subnav" id="subnav" hidden></nav>
+  <span class="sub" id="sub"></span>
+  <span class="leg-sep"></span>
+  <div class="legend" id="legend"></div>
+  <span class="grow"></span>
+  <button class="pill" id="goToday" title="Scroll to today"></button>
+  <div class="btns">
+    <button class="btn" id="zoomOut" title="Zoom out">−</button>
+    <button class="btn" id="zoomIn" title="Zoom in">+</button>
+    <button class="btn" id="btnPrint" title="Print (11×17 landscape)">🖨</button>
+  </div>
+  <a class="back" id="gpLink" hidden>Game Pipeline →</a>
+  <a class="back" href="index.html">← Release Dashboard</a>
+</header>
+<div class="topscroll" id="topScroll"><div id="topScrollInner"></div></div>
+<div class="tl" id="tl"><div class="canvas" id="canvas"></div></div>
+<div class="foot" id="foot"></div>
+
+<script>
+const D = {"space": "css", "kind": "planning", "title": "Cloud Services", "pipeline": null, "nav": [{"id": "igaming", "title": "iGaming", "file": "roadmap-igaming.html"}, {"id": "v2", "title": "V2", "file": "roadmap-v2.html"}, {"id": "css", "title": "Cloud Services", "file": "roadmap-css.html"}, {"id": "people", "title": "People", "file": "people.html", "_comment": "Built by people.py (who works on what, week by week)."}], "subnav": [{"id": "releases", "title": "Releases", "file": "roadmap-css.html", "active": false}, {"id": "planning", "title": "Planning", "file": "roadmap-css-planning.html", "active": true}], "source": {"name": "PFH Roadmap 2027 - source data.xlsx", "sheet": "Sheet2", "url": "https://pongstudios.sharepoint.com/sites/ProjectManagement/Shared%20Documents/PFH%20Roadmap%202027%20-%20source%20data.xlsx", "imported": "2026-11-25"}, "generated": "2026-11-26T15:53+00:00", "today": "2026-11-26", "window": {"start": "2026-01-01", "end": "2027-07-31"}, "groups": [{"id": "planning", "label": "", "lanes": [{"id": "pop", "label": "PoP", "color": null, "kind": "plan", "note": null, "count": 7, "unscheduled": [{"name": "3rd Party Integration", "url": "https://ponggamestudios.atlassian.net/browse/CSS-1966", "desc": "Scope: NetSuite, Ticketing, Reporting (Shemal / Suki / PowerBI) · CSS-1966"}, {"name": "New Features", "url": null, "desc": "No month in the plan yet"}]}]}], "cards": [{"group": "planning", "lane": "pop", "source": "plan", "date": "2026-12-01", "title": "Platform", "desc": "Scope: User Roles, Environment", "status": "To Do", "released": false, "pct": 0, "weeks": "4 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [{"key": "CSS-3083", "name": "PoP - Portal Foundation (Shell, Auth & Shared Platform)", "summary": "PoP - Portal Foundation (Shell, Auth & Shared Platform)", "status": "New", "statusCat": "new", "cat": "features", "pct": 0, "total": 10, "done": 0}, {"key": "CSS-2737", "name": "Platform Conventions, Environments & Feature Isolation", "summary": "[PongData] Platform Conventions, Environments & Feature Isolation", "status": "New", "statusCat": "new", "cat": "features", "pct": null, "total": 0, "done": 0}], "misc": 0, "notes": [], "url": null, "unmapped": false}, {"group": "planning", "lane": "pop", "source": "plan", "date": "2026-12-01", "title": "Pulsar", "desc": "", "status": "In progress", "released": false, "pct": 35, "weeks": "2 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [{"key": "CSS-3032", "name": "Pulsar Phone-Time Sender (CRM Replacement)", "summary": "Pulsar Phone-Time Sender (CRM Replacement)", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "pct": 17, "total": 24, "done": 4}, {"key": "CSS-2745", "name": "PhoneTime / Pulsar - Credit Flow Migration", "summary": "[PongData] PhoneTime / Pulsar - Credit Flow Migration", "status": "Review In Progress", "statusCat": "done", "cat": "features", "pct": 100, "total": 7, "done": 7}], "misc": 0, "notes": [], "url": null, "unmapped": false}, {"group": "planning", "lane": "pop", "source": "plan", "date": "2027-01-01", "title": "DAC", "desc": "Dynamic Account Creation", "status": "In progress", "released": false, "pct": 38, "weeks": "2 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [{"key": "CSS-3006", "name": "DAC Service Modernization (CRM Replacement)", "summary": "DAC Service Modernization (CRM Replacement)", "status": "On Hold", "statusCat": "new", "cat": "features", "pct": 0, "total": 13, "done": 0}, {"key": "CSS-2756", "name": "DAC - Card Provisioning Migration", "summary": "[PongData] DAC - Card Provisioning Migration", "status": "Review In Progress", "statusCat": "done", "cat": "features", "pct": 100, "total": 8, "done": 8}], "misc": 0, "notes": [], "url": null, "unmapped": false}, {"group": "planning", "lane": "pop", "source": "plan", "date": "2027-02-01", "title": "UPC", "desc": "Universal Promo Code", "status": "In progress", "released": false, "pct": 82, "weeks": "2 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [{"key": "CSS-2592", "name": "Universal Promo Codes", "summary": "Universal Promo Codes", "status": "In QA", "statusCat": "indeterminate", "cat": "features", "pct": 78, "total": 9, "done": 7}, {"key": "CSS-2587", "name": "CRM Universal Promo - Add HasPromocode feature", "summary": "CRM Universal Promo - Add HasPromocode feature", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "pct": 100, "total": 2, "done": 2}], "misc": 0, "notes": [], "url": null, "unmapped": false}, {"group": "planning", "lane": "pop", "source": "plan", "date": "2027-02-01", "title": "TH", "desc": "Task Handler", "status": "In progress", "released": false, "pct": 14, "weeks": "2 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [{"key": "CSS-2746", "name": "TaskHandler Location Settings Migration", "summary": "[PongData] TaskHandler Location Settings Migration", "status": "New", "statusCat": "new", "cat": "features", "pct": 0, "total": 9, "done": 0}, {"key": "CSS-2742", "name": "OData Layer — TaskHandler External Entities", "summary": "[PongData] OData Layer — TaskHandler External Entities", "status": "In Progress", "statusCat": "indeterminate", "cat": "features", "pct": 40, "total": 5, "done": 2}], "misc": 0, "notes": [], "url": null, "unmapped": false}, {"group": "planning", "lane": "pop", "source": "plan", "date": "2027-03-01", "title": "Offline Licensing", "desc": "", "status": "In progress", "released": false, "pct": 50, "weeks": "2 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [{"key": "CSS-2750", "name": "Licensing - Machine Fill-Licence Ledger Migration", "summary": "[PongData] Licensing - Machine Fill-Licence Ledger Migration", "status": "New", "statusCat": "new", "cat": "features", "pct": 50, "total": 12, "done": 6}], "misc": 0, "notes": [], "url": null, "unmapped": false}, {"group": "planning", "lane": "pop", "source": "plan", "date": "2027-04-01", "title": "Location Deployment Controls", "desc": "", "status": "To Do", "released": false, "pct": null, "weeks": "2 weeks", "devs": ["Ehsan 10%", "Amin 70%", "John 20%", "Nima 80%", "Vlad 100%"], "items": [], "misc": 0, "notes": [], "url": null, "unmapped": true}], "pubs": [], "parked": [], "awaits": [], "browse": "https://ponggamestudios.atlassian.net/browse/"};
+const LW = 160, DAY = 864e5;
+const S = { monthPx: 420, cardW: 272, pubW: 184, maxItems: 8, print: false, expanded: new Set(), trays: new Set() };
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ws = dt(D.window.start), we = dt(D.window.end), today = dt(D.today);
+const totalDays = Math.round((we - ws) / DAY) + 1;
+
+function dt(s){ return new Date(s + 'T00:00:00'); }
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function ppd(){ return S.monthPx / 30.44; }
+function TW(){ return Math.round(totalDays * ppd()); }
+function xr(s){ return (dt(s) - ws) / DAY * ppd(); }            // raw x (may be outside)
+function xc(s){ return Math.max(0, Math.min(TW(), xr(s))); }     // clamped x
+function fmt(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
+function fmtS(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()]; }
+function col(c, k){ return `var(--${c}${k ? '-' + k : ''})`; }
+function jl(key){ return key ? `<a class="jira" href="${esc(D.browse + key)}" target="_blank" rel="noopener">${esc(key)} ↗</a>` : ''; }
+
+/* ── header, nav, legend ── */
+function renderChrome(){
+  document.title = D.title + ' Roadmap';
+  if (D.pipeline) { const gp = document.getElementById('gpLink'); gp.href = 'game-pipeline.html?project=' + encodeURIComponent(D.pipeline); gp.hidden = false; }
+  document.getElementById('nav').innerHTML =
+    D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('');
+  document.getElementById('title').innerHTML = `🗺️ ${esc(D.title)} Roadmap`;
+  document.body.dataset.kind = D.kind || 'releases';
+  if ((D.subnav || []).length) {
+    const sn = document.getElementById('subnav');
+    sn.innerHTML = D.subnav.map(n => `<a href="${esc(n.file)}" class="${n.active ? 'active' : ''}">${esc(n.title)}</a>`).join('');
+    sn.hidden = false;
+  }
+  if (D.kind === 'planning') return renderPlanningChrome();
+  const gen = new Date(D.generated), sub = document.getElementById('sub');
+  sub.textContent = `Jira · ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`;
+  sub.title = `Live from Jira, refreshed ${gen.toLocaleString()} · rolling window ${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()}`;
+  document.getElementById('goToday').textContent = `▼ Today ${fmt(D.today)}`;
+  document.getElementById('legend').innerHTML =
+    `<div class="leg"><span class="sw" style="background:var(--green)"></span>Released</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>Upcoming</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--rose)"></span>Overdue</div>
+     <div class="leg" title="PMO plan or epic due date — no market release in Jira yet"><span class="sw" style="border:1.5px dotted var(--gold)"></span>PMO date</div>` +
+    ((D.awaits || []).length ? `<div class="leg" title="Game launched in a sister market, no release here yet"><span class="sw" style="border:1.5px dashed var(--amber)"></span>Awaiting market version</div>` : '') +
+    (D.pubs.length ? `<span class="leg-sep"></span>
+     <div class="leg" title="Go-live date is before the release ships"><span class="sw" style="background:var(--rose)"></span>Go-live &lt; release</div>
+     <div class="leg" title="No release with a date in Jira"><span class="sw" style="background:var(--amber)"></span>No release</div>
+     <div class="leg" title="No PMO go-live; assumed = release date"><span class="sw" style="border:1.5px dashed var(--green)"></span>Assumed go-live</div>` : '');
+  const nUns = D.groups.reduce((a, g) => a + g.lanes.reduce((b, l) => b + l.unscheduled.length, 0), 0);
+  document.getElementById('foot').innerHTML =
+    `<span>Source: Jira (read-only) · PMO plan for go-lives &amp; undated forecasts · Jira wins where it has a date · ${nUns} unscheduled item(s) in lane trays</span>
+     <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
+}
+
+/* Planning tab: PMO plan imported from SharePoint, not Jira. */
+function renderPlanningChrome(){
+  const src = D.source || {}, sub = document.getElementById('sub');
+  sub.innerHTML = `PMO plan · ${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(src.name || 'source sheet')}</a>` : esc(src.name || '')}${src.imported ? ' · imported ' + fmt(src.imported) : ''}`;
+  sub.title = 'Planned initiatives from the PMO sheet, each with the Jira epics mapped to it (live status and % done). Not mixed into the release roadmap.';
+  document.getElementById('goToday').textContent = `▼ Today ${fmt(D.today)}`;
+  document.getElementById('legend').innerHTML =
+    `<div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>Planned</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>In progress</div>
+     <div class="leg"><span class="sw" style="background:var(--green)"></span>Done</div>`;
+  const nUns = D.groups[0].lanes.reduce((a, l) => a + l.unscheduled.length, 0);
+  document.getElementById('foot').innerHTML =
+    `<span>Plan: ${esc(src.name || 'PMO plan')}${src.sheet ? ' (' + esc(src.sheet) + ')' : ''} · tickets &amp; progress live from Jira · ${nUns} initiative(s) without a month in lane trays</span>
+     <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
+}
+
+/* ── card HTML ── */
+function statusColor(st){
+  return ({Delivered:'green', Ready:'green', Done:'green', Overdue:'rose', 'In progress':'blue', Planned:'grey', Forecast:'grey'})[st] || 'grey';
+}
+/* Colour = release state, never lane/market: released green, overdue rose, PMO gold, else blue. */
+function cardColor(c){
+  if (c.released) return 'green';
+  if (c.source === 'plan') return /progress/i.test(c.status) ? 'blue' : 'gold';
+  if (c.status === 'Overdue') return 'rose';
+  // PMO dates: PMO-plan forecasts and epic due dates with no market release yet.
+  return (c.source === 'pmo' || c.source === 'epic-due') ? 'gold' : 'blue';
+}
+const CAT_LBL = { features: 'Features', games: 'Games', gamefix: 'Updates to existing games' };
+function itemLi(it, c){
+  const pct = it.due ? `<span class="ipct">due ${fmtS(it.due)}</span>`
+    : it.pct != null ? `<span class="ipct">${it.pct}%</span>` : '';
+  return `<li title="${esc(it.summary + ' — ' + it.status)}"><span class="dot ${esc(it.statusCat)}"></span>` +
+         `<span class="nm">${esc(it.name)}</span>${jl(it.key)}${pct}</li>`;
+}
+function cardHTML(c, lane, id){
+  const color = cardColor(c), released = c.released, pmo = c.source === 'pmo';
+  let date;
+  if (c.source === 'plan') date = `${released ? '✓ Done' : 'Planned'} · ${MON[dt(c.date).getMonth()]} ${dt(c.date).getFullYear()}${c.weeks ? ' · ' + esc(c.weeks) : ''}`;
+  else if (released) date = `✓ Released ${fmt(c.date)}`;
+  else if (pmo) date = `PMO forecast · ${esc(c.label || fmt(c.date))}`;
+  else if (c.source === 'epic-due' && c.status === 'Overdue') date = `Past due · as of ${fmt(c.date)}`;
+  else if (c.source === 'epic-due') date = `PMO date · by ${fmt(c.date)}`;
+  else date = `Release ${fmt(c.date)}`;
+  const sc = statusColor(c.status);
+  const prog = c.pct != null ? `<div class="ptrack"><div class="pfill" style="width:${c.pct}%;background:${col(color)}"></div></div><span class="ppct" style="color:${col(color)}">${c.pct}%</span>` : '';
+  const slip = c.slip ? `<span class="slip ${c.slip.days > 0 ? 'late' : 'early'}" title="Originally ${fmt(c.slip.from)}">${c.slip.days > 0 ? '▲ moved +' + c.slip.days : '▼ pulled in ' + (-c.slip.days)}d · was ${fmtS(c.slip.from)}</span>` : '';
+  const status = `<div class="card-status"><span class="badge" style="color:${col(sc)};border-color:${col(sc,'bd')};background:${col(sc,'bg')}">${esc(c.status)}</span>${prog}${slip}</div>`;
+
+  const open = S.expanded.has(id), max = S.print ? 5 : S.maxItems;
+  const list = arr => `<ul class="items">${arr.map(i => itemLi(i, c)).join('')}</ul>`;
+  const cats = ['games', 'features', 'gamefix'].filter(k => c.items.some(i => i.cat === k));
+  let body = '', shown = 0, hidden = 0;
+  cats.forEach(k => {
+    const arr = c.items.filter(i => i.cat === k);
+    if (k === 'gamefix' && !open) {
+      const names = arr.map(i => i.name);
+      body += `<div class="misc" title="${esc(names.join(', '))}">🔧 Updates to ${arr.length} existing game${arr.length > 1 ? 's' : ''}: ${esc(names.slice(0, 3).join(', '))}${arr.length > 3 ? '…' : ''}</div>`;
+      return;
+    }
+    const show = open ? arr : arr.slice(0, Math.max(2, max - shown));
+    shown += show.length; hidden += arr.length - show.length;
+    if (cats.length > 1) body += `<div class="cgroup" style="color:${col(color)}">${CAT_LBL[k]}</div>`;
+    body += list(show);
+  });
+  const expandable = hidden > 0 || cats.includes('gamefix');
+  const more = open ? `<button class="more" data-card="${id}">▴ show less</button>`
+    : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game updates'}</button>` : '';
+  const misc = c.misc ? `<div class="misc" title="Bug fixes, CRs, updates to existing games and long-running epics (Game Menu, Server, System …)">+ ${c.misc} bugs, CRs &amp; maintenance tickets</div>` : '';
+  const notes = (c.notes || []).length ? `<ul class="notes">${c.notes.map(n => `<li>· ${esc(n)}</li>`).join('')}</ul>` : '';
+  const unm = c.unmapped ? `<div class="misc" title="Add the epic key(s) to config/roadmap-planning.json">No Jira tickets mapped yet</div>` : '';
+  const ftag = pmo ? `<div class="ftag" style="color:var(--gold);border:1px dotted var(--gold-bd)">◇ PMO forecast — not dated in Jira</div>` : '';
+  const titleLink = c.url ? ` <a class="jira" href="${esc(c.url)}" target="_blank" rel="noopener">${pmo ? esc(c.key) : 'Jira'} ↗</a>` : '';
+  const desc = c.desc ? `<div class="card-desc">${esc(c.desc)}</div>` : '';
+  const devs = (c.devs || []).length ? `<div class="devs" title="Developers (allocation)">👥 ${esc(c.devs.join(' · '))}</div>` : '';
+  return `<div class="card">
+      <div class="card-date" style="color:${col(color)}">${date}</div>
+      <div class="card-title">${esc(c.title)}${titleLink}</div>${desc}${status}${body}${unm}${more}${misc}${devs}${notes}${ftag}</div>`;
+}
+
+/* ── skyline packing: place boxes top-down without overlap ── */
+function pack(boxes, hgap = 10, vgap = 10){
+  boxes.sort((a, b) => a.l - b.l);
+  const placed = [];
+  let bottom = 0;
+  for (const b of boxes) {
+    let y = 0, guard = 0;
+    while (guard++ < 200) {
+      const hit = placed.find(p => p.l < b.r + hgap && b.l < p.r + hgap && p.t < y + b.h + vgap && y < p.t + p.h + vgap);
+      if (!hit) break;
+      y = hit.t + hit.h + vgap;
+    }
+    b.t = y; placed.push(b);
+    b.el.style.top = (y + 10) + 'px';
+    bottom = Math.max(bottom, y + b.h);
+  }
+  return bottom + 22;
+}
+
+/* ── timeline ── */
+function renderTimeline(){
+  const tw = TW(), canvas = document.getElementById('canvas');
+  canvas.style.width = (LW + tw) + 'px';
+  let html = '';
+  // ruler
+  let months = '', lines = '';
+  for (let d = new Date(ws); d <= we; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+    const s = d.toISOString().slice(0, 10), x0 = xr(isoLocal(d));
+    const nx = new Date(d.getFullYear(), d.getMonth() + 1, 1), x1 = Math.min(tw, xr(isoLocal(nx)));
+    months += `<div class="mcell" style="left:${x0}px;width:${x1 - x0}px">${MON[d.getMonth()]} ${d.getFullYear()}</div>`;
+    lines += `<div class="mline" style="left:${x0}px"></div>`;
+  }
+  const tx = xc(D.today);
+  html += `<div class="ruler"><div class="ruler-corner" style="width:${LW}px">${esc(D.title)}</div>
+           <div class="ruler-body" style="width:${tw}px">${months}<div class="today-lbl" style="left:${tx}px">▼ TODAY</div></div></div>`;
+  html += `<div class="gridlines" style="left:${LW}px;width:${tw}px">${lines}<div class="tline" style="left:${tx}px"></div></div>`;
+  // groups
+  const grpHdr = label => `<div class="grp-hdr"><div class="grp-name" style="width:${LW}px;text-align:right">${esc(label)}</div><div class="grp-line"></div></div>`;
+  const laneHTML = (g, l, label) => {
+    const lid = g.id + '__' + l.id, n = l.unscheduled.length;
+    let h = `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
+        <div class="lane-name">${esc(label)}</div>${l.note ? `<div class="lane-note">${esc(l.note)}</div>` : ''}
+        ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
+      </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
+    if (n) h += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
+        <div class="tray-ttl">${D.kind === 'planning' ? `Not scheduled yet · ${esc(label)} — no month in the plan` : `Unscheduled · ${esc(label)} — no release or due date in Jira`}</div>
+        ${l.unscheduled.map(u => { const inner = `${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small>`;
+          return u.url ? `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${inner}</a>` : `<span class="uchip">${inner}</span>`; }).join('')}
+      </div></div>`;
+    return h;
+  };
+  // Development (releases) first, per group …
+  D.groups.forEach(g => {
+    const dev = g.lanes.filter(l => l.kind !== 'publishing');
+    if (!dev.length) return;
+    if (g.label) html += grpHdr(g.label);
+    dev.forEach(l => html += laneHTML(g, l, l.label));
+  });
+  // … then one Game Publishing section at the bottom, one go-live lane per market.
+  const pubLanes = D.groups.flatMap(g => g.lanes.filter(l => l.kind === 'publishing').map(l => [g, l]));
+  if (pubLanes.length) {
+    html += grpHdr('Game Publishing');
+    pubLanes.forEach(([g, l]) => html += laneHTML(g, l, `${g.label} go-lives`));
+  }
+  canvas.innerHTML = html;
+
+  // populate lanes
+  D.groups.forEach(g => g.lanes.forEach(l => {
+    const body = document.getElementById(`lb-${g.id}__${l.id}`), boxes = [];
+    if (l.kind === 'publishing') {
+      D.pubs.filter(p => p.group === g.id).forEach(p => {
+        const x = xc(p.golive), xe = p.until ? xc(p.until) : x;
+        const el = document.createElement('div');
+        el.className = 'pub' + (p.assumed ? ' assumed' : '') + (p.flag ? ' flag-' + p.flag : '');
+        el.style.left = x + 'px';
+        const rel = p.release && !p.assumed
+          ? `<div class="pub-rel">Release: ${esc(p.release.name)} ${p.release.released ? '✓' : '·'} ${fmtS(p.release.date)}${shelf(p)}</div>` : '';
+        el.innerHTML = `<div class="pub-card" style="width:${S.pubW}px"><div class="pub-date">${p.assumed ? '≈ ' : ''}${fmtS(p.golive)}</div>
+            <div class="pub-title">${esc(p.game)} ${jl(p.key)}</div>
+            ${p.note ? `<div class="pub-note">${esc(p.note)}</div>` : ''}
+            ${p.flagText ? `<div class="pub-flag">⚠ ${esc(p.flagText)}</div>` : ''}${rel}</div>` +
+          (p.until ? `<div class="pub-run" style="width:${Math.max(xe - x, 4)}px"></div>` : '');
+        body.appendChild(el);
+        boxes.push({ el, l: x, r: Math.max(x + S.pubW, xe) });
+      });
+    } else {
+      D.cards.forEach((c, i) => {
+        if (c.group !== g.id || c.lane !== l.id) return;
+        // Planned initiatives sit inside their month (left edge = month start);
+        // releases end at their date.
+        const id = 'c' + i, x = xc(c.date), w = S.cardW, left = c.source === 'plan' ? x : Math.max(0, x - w);
+        const el = document.createElement('div');
+        el.className = 'tcard';
+        const cc = cardColor(c);
+        el.style.cssText = `left:${left}px;width:${w}px;border-color:${col(cc,'bd')};` +
+          (cc === 'gold' ? 'border-style:dotted;' : '');
+        const accent = c.released ? `background:${col(cc)}`
+          : `background:repeating-linear-gradient(90deg,${col(cc)} 0 6px,transparent 6px 11px)`;
+        el.innerHTML = `<div class="accent" style="${accent}"><span class="ms" style="left:${x - left}px;background:${c.released ? col(cc) : 'var(--surface)'};border-color:${col(cc)}"></span></div>` + cardHTML(c, l, id);
+        body.appendChild(el);
+        boxes.push({ el, l: left, r: left + w });
+      });
+      D.parked.filter(p => p.group === g.id && p.lane === l.id).forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'parked'; el.style.left = '0px'; el.style.width = '220px';
+        el.innerHTML = `<div class="pk-tag">⏸ Parked · ${esc(p.since)}</div><div class="pk-title">${esc(p.title)}</div><div class="pk-sub">${esc(p.note)}</div>`;
+        body.appendChild(el);
+        boxes.push({ el, l: 0, r: 220 });
+      });
+      // Game launched in a sister market with no release here yet (e.g. ELG -> PFH).
+      (D.awaits || []).filter(a => a.group === g.id && a.lane === l.id).forEach(a => {
+        const x = xc(a.date), w = 210, left = Math.max(0, x - w);
+        const el = document.createElement('div');
+        el.className = 'parked await'; el.style.left = left + 'px'; el.style.width = w + 'px';
+        el.innerHTML = `<div class="pk-tag">⚠ Awaiting ${esc(g.label)} version</div>` +
+          `<div class="pk-title">${esc(a.game)} ${jl(a.key)}</div>` +
+          `<div class="pk-sub">${esc(a.text)} · on ${esc(a.from)} ${fmtS(a.date)}</div>`;
+        body.appendChild(el);
+        boxes.push({ el, l: left, r: left + w });
+      });
+    }
+    boxes.forEach(b => b.h = b.el.offsetHeight || 120);
+    if (!boxes.length) body.innerHTML = `<div class="lane-empty">${D.kind === 'planning' ? 'No planned initiatives yet' : 'Nothing dated in this window'}</div>`;
+    body.style.height = (boxes.length ? pack(boxes) : 44) + 'px';
+  }));
+  document.getElementById('topScrollInner').style.width = (LW + tw) + 'px';
+  sizeScroller();
+}
+function shelf(p){
+  if (!p.release) return '';
+  const days = Math.round((dt(p.golive) - dt(p.release.date)) / DAY);
+  return days > 0 ? ` · ${days}d on shelf` : '';
+}
+function isoLocal(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+
+/* ── scrolling: synced top + bottom bars ── */
+const tl = document.getElementById('tl'), top_ = document.getElementById('topScroll');
+let syncing = false;
+tl.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; top_.scrollLeft = tl.scrollLeft; });
+top_.addEventListener('scroll', () => { if (syncing) { syncing = false; return; } syncing = true; tl.scrollLeft = top_.scrollLeft; });
+function sizeScroller(){
+  if (S.print) return;
+  const h = window.innerHeight - tl.getBoundingClientRect().top - 44;
+  tl.style.height = Math.max(420, h) + 'px';
+}
+function scrollToToday(){ tl.scrollLeft = Math.max(0, xc(D.today) - (tl.clientWidth - LW) * 0.3); }
+
+/* ── controls ── */
+function zoom(f){
+  const keep = (tl.scrollLeft + tl.clientWidth / 2 - LW) / TW();
+  S.monthPx = Math.max(200, Math.min(900, Math.round(S.monthPx * f)));
+  renderTimeline();
+  tl.scrollLeft = keep * TW() + LW - tl.clientWidth / 2;
+}
+const saved = { monthPx: 0, cardW: 0 };
+function beforePrint(){
+  if (S.print) return;
+  saved.monthPx = S.monthPx; saved.cardW = S.cardW;
+  S.print = true;
+  S.monthPx = (16.3 * 96 - LW) / (totalDays / 30.44);
+  S.cardW = Math.min(230, S.cardW);
+  renderTimeline();
+}
+function afterPrint(){
+  if (!S.print) return;
+  S.print = false; S.monthPx = saved.monthPx; S.cardW = saved.cardW;
+  renderTimeline(); sizeScroller();
+}
+document.getElementById('btnPrint').onclick = () => { beforePrint(); window.print(); };
+document.getElementById('zoomIn').onclick = () => zoom(1.25);
+document.getElementById('zoomOut').onclick = () => zoom(0.8);
+document.getElementById('goToday').onclick = scrollToToday;
+window.addEventListener('beforeprint', beforePrint);
+window.addEventListener('afterprint', afterPrint);
+window.addEventListener('resize', sizeScroller);
+document.addEventListener('click', e => {
+  const m = e.target.closest('.more');
+  if (m) { const id = m.dataset.card; S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id); keepScroll(renderTimeline); return; }
+  const t = e.target.closest('.tray-btn');
+  if (t) { const id = t.dataset.tray; S.trays.has(id) ? S.trays.delete(id) : S.trays.add(id);
+           document.getElementById('tray-' + id).classList.toggle('open', S.trays.has(id)); }
+});
+function keepScroll(fn){ const l = tl.scrollLeft, t = tl.scrollTop; fn(); tl.scrollLeft = l; tl.scrollTop = t; }
+
+renderChrome();
+renderTimeline();
+scrollToToday();
+</script>
+</body>
+</html>

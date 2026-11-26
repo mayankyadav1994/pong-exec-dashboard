@@ -4,6 +4,8 @@
               "_comment": "from_year_start: data starts 1 Jan of this year (Jan-Mar: last year) so you can scroll back; the page still opens on Today." },
   "scope": { "container_age_months": 12,
              "_comment": "A feature epic is listed on a release card if the epic itself carries that fix version, or it has new stories there and was created within container_age_months. Older untagged epics are long-running containers (Game Menu / Server / System / Website ...) and are only counted." },
+  "planning": { "data": "roadmap-planning.json",
+                "_comment": "Planning sub-page per space (roadmap-<space>-planning.html): PMO initiatives imported from the SharePoint sheet named in the data file, each mapped to Jira epics. Not mixed into the release roadmap." },
   "extra_nav": [ { "id": "people", "title": "People", "file": "people.html",
                    "_comment": "Built by people.py (who works on what, week by week)." } ],
   "bucket_re":"(Backlog|^New Games|^New Features|Features$|R&D|Dev Test|Game Config|Website|Training|Cleanup|Show Prep)",

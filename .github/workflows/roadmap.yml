@@ -14,6 +14,7 @@ on:
     paths:
       - "config/roadmap.json"
       - "config/roadmap-pmo.json"
+      - "config/roadmap-planning.json"
       - "roadmap/roadmap.template.html"
       - "roadmap/roadmap.py"
 
@@ -61,13 +62,13 @@ jobs:
       - name: Smoke-test roadmap pages
         run: |
           npm install --no-save --silent jsdom
-          node tools/smoke-roadmap.js roadmap/roadmap-igaming.html roadmap/roadmap-v2.html roadmap/roadmap-css.html
+          node tools/smoke-roadmap.js roadmap/roadmap-*.html
 
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add roadmap/roadmap-igaming.html roadmap/roadmap-v2.html roadmap/roadmap-css.html roadmap/roadmap-history.json || true
+          git add roadmap/roadmap-*.html roadmap/roadmap-history.json || true
           if git diff --staged --quiet; then
             echo "No roadmap changes to commit."
             exit 0

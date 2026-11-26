@@ -34,6 +34,7 @@ h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
 .nav a{font-size:12px;font-weight:500;text-decoration:none;color:var(--muted);padding:3px 10px;border-radius:4px;white-space:nowrap}
 .nav a:hover{color:var(--text)}
 .nav a.active{color:#fff;background:#4F46E5;font-weight:600}
+.subnav a.active{background:#1a2035}
 .sub{font-size:11px;color:var(--sub);white-space:nowrap}
 .legend{display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center}
 .leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);white-space:nowrap}
@@ -88,6 +89,8 @@ h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
 .uchip{font-size:11px;color:var(--text);background:var(--surface);border:1px dashed var(--border2);border-radius:5px;padding:4px 8px;text-decoration:none;max-width:320px}
 .uchip small{display:block;font-family:var(--mono);font-size:9px;color:var(--sub)}
 .uchip:hover{border-color:var(--muted)}
+.lane-note{font-size:10px;color:var(--sub);line-height:1.35;margin-top:4px}
+.devs{font-size:11px;color:var(--text-mid);margin-top:6px;line-height:1.4}
 
 /* ── release cards ── */
 .tcard{position:absolute;border-radius:8px;border:1px solid;background:var(--surface);box-shadow:0 1px 2px rgba(26,32,53,.06)}
@@ -162,6 +165,7 @@ h1{font-size:15px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
 <header class="bar">
   <h1 id="title"></h1>
   <nav class="nav" id="nav"></nav>
+  <nav class="nav subnav" id="subnav" hidden></nav>
   <span class="sub" id="sub"></span>
   <span class="leg-sep"></span>
   <div class="legend" id="legend"></div>
@@ -205,6 +209,13 @@ function renderChrome(){
   document.getElementById('nav').innerHTML =
     D.nav.map(n => `<a href="${esc(n.file)}" class="${n.id === D.space ? 'active' : ''}">${esc(n.title)}</a>`).join('');
   document.getElementById('title').innerHTML = `🗺️ ${esc(D.title)} Roadmap`;
+  document.body.dataset.kind = D.kind || 'releases';
+  if ((D.subnav || []).length) {
+    const sn = document.getElementById('subnav');
+    sn.innerHTML = D.subnav.map(n => `<a href="${esc(n.file)}" class="${n.active ? 'active' : ''}">${esc(n.title)}</a>`).join('');
+    sn.hidden = false;
+  }
+  if (D.kind === 'planning') return renderPlanningChrome();
   const gen = new Date(D.generated), sub = document.getElementById('sub');
   sub.textContent = `Jira · ${gen.toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}`;
   sub.title = `Live from Jira, refreshed ${gen.toLocaleString()} · rolling window ${MON[ws.getMonth()]} ${ws.getFullYear()} → ${MON[we.getMonth()]} ${we.getFullYear()}`;
@@ -225,13 +236,30 @@ function renderChrome(){
      <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
 }
 
+/* Planning tab: PMO plan imported from SharePoint, not Jira. */
+function renderPlanningChrome(){
+  const src = D.source || {}, sub = document.getElementById('sub');
+  sub.innerHTML = `PMO plan · ${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(src.name || 'source sheet')}</a>` : esc(src.name || '')}${src.imported ? ' · imported ' + fmt(src.imported) : ''}`;
+  sub.title = 'Planned initiatives from the PMO sheet, each with the Jira epics mapped to it (live status and % done). Not mixed into the release roadmap.';
+  document.getElementById('goToday').textContent = `▼ Today ${fmt(D.today)}`;
+  document.getElementById('legend').innerHTML =
+    `<div class="leg"><span class="sw" style="border:1.5px dotted var(--gold)"></span>Planned</div>
+     <div class="leg"><span class="sw" style="border:1.5px dashed var(--blue)"></span>In progress</div>
+     <div class="leg"><span class="sw" style="background:var(--green)"></span>Done</div>`;
+  const nUns = D.groups[0].lanes.reduce((a, l) => a + l.unscheduled.length, 0);
+  document.getElementById('foot').innerHTML =
+    `<span>Plan: ${esc(src.name || 'PMO plan')}${src.sheet ? ' (' + esc(src.sheet) + ')' : ''} · tickets &amp; progress live from Jira · ${nUns} initiative(s) without a month in lane trays</span>
+     <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
+}
+
 /* ── card HTML ── */
 function statusColor(st){
-  return ({Delivered:'green', Ready:'green', Overdue:'rose', 'In progress':'blue', Planned:'grey', Forecast:'grey'})[st] || 'grey';
+  return ({Delivered:'green', Ready:'green', Done:'green', Overdue:'rose', 'In progress':'blue', Planned:'grey', Forecast:'grey'})[st] || 'grey';
 }
 /* Colour = release state, never lane/market: released green, overdue rose, PMO gold, else blue. */
 function cardColor(c){
   if (c.released) return 'green';
+  if (c.source === 'plan') return /progress/i.test(c.status) ? 'blue' : 'gold';
   if (c.status === 'Overdue') return 'rose';
   // PMO dates: PMO-plan forecasts and epic due dates with no market release yet.
   return (c.source === 'pmo' || c.source === 'epic-due') ? 'gold' : 'blue';
@@ -246,7 +274,8 @@ function itemLi(it, c){
 function cardHTML(c, lane, id){
   const color = cardColor(c), released = c.released, pmo = c.source === 'pmo';
   let date;
-  if (released) date = `✓ Released ${fmt(c.date)}`;
+  if (c.source === 'plan') date = `${released ? '✓ Done' : 'Planned'} · ${MON[dt(c.date).getMonth()]} ${dt(c.date).getFullYear()}${c.weeks ? ' · ' + esc(c.weeks) : ''}`;
+  else if (released) date = `✓ Released ${fmt(c.date)}`;
   else if (pmo) date = `PMO forecast · ${esc(c.label || fmt(c.date))}`;
   else if (c.source === 'epic-due' && c.status === 'Overdue') date = `Past due · as of ${fmt(c.date)}`;
   else if (c.source === 'epic-due') date = `PMO date · by ${fmt(c.date)}`;
@@ -277,12 +306,14 @@ function cardHTML(c, lane, id){
     : expandable ? `<button class="more" data-card="${id}">▾ ${hidden > 0 ? `+${hidden} more` : 'show game updates'}</button>` : '';
   const misc = c.misc ? `<div class="misc" title="Bug fixes, CRs, updates to existing games and long-running epics (Game Menu, Server, System …)">+ ${c.misc} bugs, CRs &amp; maintenance tickets</div>` : '';
   const notes = (c.notes || []).length ? `<ul class="notes">${c.notes.map(n => `<li>· ${esc(n)}</li>`).join('')}</ul>` : '';
+  const unm = c.unmapped ? `<div class="misc" title="Add the epic key(s) to config/roadmap-planning.json">No Jira tickets mapped yet</div>` : '';
   const ftag = pmo ? `<div class="ftag" style="color:var(--gold);border:1px dotted var(--gold-bd)">◇ PMO forecast — not dated in Jira</div>` : '';
   const titleLink = c.url ? ` <a class="jira" href="${esc(c.url)}" target="_blank" rel="noopener">${pmo ? esc(c.key) : 'Jira'} ↗</a>` : '';
   const desc = c.desc ? `<div class="card-desc">${esc(c.desc)}</div>` : '';
+  const devs = (c.devs || []).length ? `<div class="devs" title="Developers (allocation)">👥 ${esc(c.devs.join(' · '))}</div>` : '';
   return `<div class="card">
       <div class="card-date" style="color:${col(color)}">${date}</div>
-      <div class="card-title">${esc(c.title)}${titleLink}</div>${desc}${status}${body}${more}${misc}${notes}${ftag}</div>`;
+      <div class="card-title">${esc(c.title)}${titleLink}</div>${desc}${status}${body}${unm}${more}${misc}${devs}${notes}${ftag}</div>`;
 }
 
 /* ── skyline packing: place boxes top-down without overlap ── */
@@ -326,12 +357,13 @@ function renderTimeline(){
   const laneHTML = (g, l, label) => {
     const lid = g.id + '__' + l.id, n = l.unscheduled.length;
     let h = `<div class="lane"><div class="lane-lbl" style="width:${LW}px">
-        <div class="lane-name">${esc(label)}</div>
+        <div class="lane-name">${esc(label)}</div>${l.note ? `<div class="lane-note">${esc(l.note)}</div>` : ''}
         ${n ? `<button class="tray-btn" data-tray="${lid}">◌ ${n} unscheduled</button>` : ''}
       </div><div class="lane-body" id="lb-${lid}" style="width:${tw}px"></div></div>`;
     if (n) h += `<div class="tray ${S.trays.has(lid) ? 'open' : ''}" id="tray-${lid}"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
-        <div class="tray-ttl">Unscheduled · ${esc(label)} — no release or due date in Jira</div>
-        ${l.unscheduled.map(u => `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small></a>`).join('')}
+        <div class="tray-ttl">${D.kind === 'planning' ? `Not scheduled yet · ${esc(label)} — no month in the plan` : `Unscheduled · ${esc(label)} — no release or due date in Jira`}</div>
+        ${l.unscheduled.map(u => { const inner = `${esc(u.name)}<small>${esc(u.kind === 'epic' ? `${u.key} · ${u.status} · ${u.bucket}` : (u.desc || 'version without a release date'))}</small>`;
+          return u.url ? `<a class="uchip" href="${esc(u.url)}" target="_blank" rel="noopener">${inner}</a>` : `<span class="uchip">${inner}</span>`; }).join('')}
       </div></div>`;
     return h;
   };
@@ -372,7 +404,9 @@ function renderTimeline(){
     } else {
       D.cards.forEach((c, i) => {
         if (c.group !== g.id || c.lane !== l.id) return;
-        const id = 'c' + i, x = xc(c.date), w = S.cardW, left = Math.max(0, x - w);
+        // Planned initiatives sit inside their month (left edge = month start);
+        // releases end at their date.
+        const id = 'c' + i, x = xc(c.date), w = S.cardW, left = c.source === 'plan' ? x : Math.max(0, x - w);
         const el = document.createElement('div');
         el.className = 'tcard';
         const cc = cardColor(c);
@@ -404,7 +438,7 @@ function renderTimeline(){
       });
     }
     boxes.forEach(b => b.h = b.el.offsetHeight || 120);
-    if (!boxes.length) body.innerHTML = `<div class="lane-empty">Nothing dated in this window</div>`;
+    if (!boxes.length) body.innerHTML = `<div class="lane-empty">${D.kind === 'planning' ? 'No planned initiatives yet' : 'Nothing dated in this window'}</div>`;
     body.style.height = (boxes.length ? pack(boxes) : 44) + 'px';
   }));
   document.getElementById('topScrollInner').style.width = (LW + tw) + 'px';

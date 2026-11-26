@@ -715,8 +715,7 @@ def build_space(sid, space, win_start, win_end):
 
     return {
         "space": sid, "title": space["title"], "pipeline": space.get("pipeline"),
-        "nav": [{"id": k, "title": s["title"], "file": s["file"]} for k, s in CONFIG["spaces"].items()]
-               + CONFIG.get("extra_nav", []),
+        "nav": nav_entries(), "subnav": subnav(sid, "releases"),
         "generated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "today": TODAY.isoformat(),
         "window": {"start": win_start.isoformat(), "end": win_end.isoformat()},
@@ -725,10 +724,119 @@ def build_space(sid, space, win_start, win_end):
     }
 
 
+def nav_entries():
+    """Space tabs always land on Releases (the stakeholder view); Planning is
+    reached only through the Releases | Planning switch inside a space."""
+    return ([{"id": k, "title": s["title"], "file": s["file"]} for k, s in CONFIG["spaces"].items()]
+            + CONFIG.get("extra_nav", []))
+
+
+def planning_file(space):
+    return space["file"].replace(".html", "-planning.html")
+
+
+def subnav(sid, active):
+    """Releases | Planning switch shown inside each space's pages."""
+    if not CONFIG.get("planning"):
+        return []
+    sp = CONFIG["spaces"][sid]
+    return [{"id": "releases", "title": "Releases", "file": sp["file"], "active": active == "releases"},
+            {"id": "planning", "title": "Planning", "file": planning_file(sp), "active": active == "planning"}]
+
+
+def build_planning(sid, space, win_start, win_end):
+    """PMO planning sub-page for one space: initiatives from config/<planning.data>
+    (imported from the PMO's SharePoint sheet), each listing the Jira epics mapped
+    to it with live status and % done. Never mixed into the release roadmap."""
+    P = json.loads((ROOT / "config" / CONFIG["planning"]["data"]).read_text(encoding="utf-8"))
+    lanes_src = [ln for ln in P["lanes"] if ln.get("space") == sid]
+    keys = sorted({k for ln in lanes_src for ini in ln["initiatives"] for k in ini.get("jira", [])})
+    epics, prog = {}, defaultdict(lambda: [0, 0])
+    for i in range(0, len(keys), 40):
+        ch = ",".join(keys[i:i + 40])
+        for it in jira_jql(f"key in ({ch})", ["summary", "status", "issuetype"]):
+            epics[it["key"]] = it["fields"]
+        for it in jira_jql(f"parent in ({ch})", ["status", "parent", "issuetype"]):
+            if "ubtask" in it["fields"]["issuetype"]["name"]:
+                continue
+            p = prog[it["fields"]["parent"]["key"]]
+            p[0] += 1
+            p[1] += status_of(it["fields"])[1] == "done"
+
+    def item(k):
+        f = epics.get(k)
+        if not f:
+            return {"key": k, "name": k, "summary": "Not found in Jira", "status": "?",
+                    "statusCat": "new", "cat": "features", "total": 0, "done": 0}
+        sname, scat = status_of(f)
+        tot, dn = prog[k]
+        return {"key": k, "name": re.sub(r"^\[[^\]]+\]\s*", "", f["summary"]).strip(),
+                "summary": f["summary"], "status": sname, "statusCat": scat, "cat": "features",
+                "pct": round(100 * dn / tot) if tot else None, "total": tot, "done": dn}
+
+    cards, lanes_out, last = [], [], None
+    for ln in lanes_src:
+        uns = []
+        for ini in ln["initiatives"]:
+            its = [item(k) for k in ini.get("jira", [])]
+            scope = ini.get("items", [])
+            desc = " · ".join(([ini["desc"]] if ini.get("desc") else [])
+                              + (["Scope: " + ", ".join(scope)] if scope else []))
+            cats = {i["statusCat"] for i in its}
+            tot, dn = sum(i["total"] for i in its), sum(i["done"] for i in its)
+            if its and cats == {"done"}:
+                status = "Done"
+            elif cats & {"indeterminate", "done"} or dn:
+                status = "In progress"
+            else:
+                status = ini.get("status") or "Planned"
+            if not ini.get("month"):
+                uns.append({"name": ini["name"],
+                            "url": f"{SITE}/browse/{its[0]['key']}" if its else None,
+                            "desc": " · ".join(filter(None, [desc, ", ".join(i["key"] for i in its)]))
+                                    or "No month in the plan yet"})
+                continue
+            d = date.fromisoformat(ini["month"] + "-01")
+            last = max(last or d, d)
+            cards.append({
+                "group": "planning", "lane": ln["id"], "source": "plan",
+                "date": d.isoformat(), "title": ini["name"], "desc": desc,
+                "status": status, "released": status == "Done",
+                "pct": round(100 * dn / tot) if tot else None,
+                "weeks": ini.get("weeks"), "devs": ini.get("developers", []),
+                "items": its, "misc": 0, "notes": ini.get("notes", []), "url": None,
+                "unmapped": not its,
+            })
+        lanes_out.append({"id": ln["id"], "label": ln["label"], "color": None, "kind": "plan",
+                          "note": ln.get("note"), "count": sum(c["lane"] == ln["id"] for c in cards),
+                          "unscheduled": uns})
+    if not lanes_out:
+        lanes_out.append({"id": "none", "label": "Planned initiatives", "color": None, "kind": "plan",
+                          "note": f"Nothing for {space['title']} in the PMO plan yet",
+                          "count": 0, "unscheduled": []})
+    if last:  # always show the last planned month (+1 for breathing room)
+        win_end = max(win_end, month_add(last, 2) - timedelta(days=1))
+    return {
+        "space": sid, "kind": "planning", "title": space["title"], "pipeline": space.get("pipeline"),
+        "nav": nav_entries(), "subnav": subnav(sid, "planning"), "source": P.get("source", {}),
+        "generated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+        "today": TODAY.isoformat(),
+        "window": {"start": win_start.isoformat(), "end": win_end.isoformat()},
+        "groups": [{"id": "planning", "label": "", "lanes": lanes_out}],
+        "cards": cards, "pubs": [], "parked": [], "awaits": [], "browse": f"{SITE}/browse/",
+    }
+
+
+def write_page(tpl, fname, data):
+    payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    (HERE / fname).write_text(tpl.replace("/*__ROADMAP_DATA__*/null", payload), encoding="utf-8")
+
+
 def main():
     global TODAY
     ap = argparse.ArgumentParser()
     ap.add_argument("space", nargs="?", default="all", choices=["all", *CONFIG["spaces"].keys()])
+    ap.add_argument("--planning-only", action="store_true", help="rebuild only the Planning sub-pages")
     ap.add_argument("--today", help="override today (YYYY-MM-DD) for testing")
     args = ap.parse_args()
     TODAY = pd(args.today) if args.today else date.today()
@@ -745,10 +853,15 @@ def main():
     targets = list(CONFIG["spaces"]) if args.space == "all" else [args.space]
     for sid in targets:
         space = CONFIG["spaces"][sid]
+        if CONFIG.get("planning"):
+            data = build_planning(sid, space, win_start, win_end)
+            write_page(tpl, planning_file(space), data)
+            print(f"  [{sid}] wrote {planning_file(space)}: {len(data['cards'])} initiatives, "
+                  f"{sum(len(l['unscheduled']) for l in data['groups'][0]['lanes'])} not scheduled")
+        if args.planning_only:
+            continue
         data = build_space(sid, space, win_start, win_end)
-        payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
-        html = tpl.replace("/*__ROADMAP_DATA__*/null", payload)
-        (HERE / space["file"]).write_text(html, encoding="utf-8")
+        write_page(tpl, space["file"], data)
         print(f"  [{sid}] wrote {space['file']}: {len(data['cards'])} cards, "
               f"{len(data['pubs'])} go-lives, "
               f"{sum(len(l['unscheduled']) for g in data['groups'] for l in g['lanes'])} unscheduled")
