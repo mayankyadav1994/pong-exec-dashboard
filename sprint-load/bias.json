@@ -56,11 +56,11 @@
       "name": "James Zhang",
       "boards": {
         "dams": {
-          "factor": 1.8542,
-          "closed_est_h": 253.0,
-          "closed_spent_h": 469.1,
-          "sprint": "V2 Sprint 14 + IG Sprint 19",
-          "measured_at": "2026-11-12T17:04:28+00:00",
+          "factor": 0.8542,
+          "closed_est_h": 48.0,
+          "closed_spent_h": 41.0,
+          "sprint": "V2 Sprint 15 + IG Sprint 20",
+          "measured_at": "2026-11-26T16:49:49+00:00",
           "origin": "run"
         }
       }
@@ -194,11 +194,11 @@
       "name": "Linda Zhang",
       "boards": {
         "v2": {
-          "factor": 1.0995,
-          "closed_est_h": 95.5,
-          "closed_spent_h": 105.0,
-          "sprint": "V2 Sprint 14",
-          "measured_at": "2026-11-18T15:01:21+00:00",
+          "factor": 2.7389,
+          "closed_est_h": 280.0,
+          "closed_spent_h": 766.9,
+          "sprint": "V2 Sprint 15",
+          "measured_at": "2026-11-26T16:49:49+00:00",
           "origin": "run"
         }
       }
@@ -246,11 +246,11 @@
       "name": "Aleksey Vorotilin",
       "boards": {
         "v2": {
-          "factor": 0.6875,
-          "closed_est_h": 40.0,
-          "closed_spent_h": 27.5,
-          "sprint": "V2 Sprint 14",
-          "measured_at": "2026-11-18T15:01:21+00:00",
+          "factor": 1.3125,
+          "closed_est_h": 152.0,
+          "closed_spent_h": 199.5,
+          "sprint": "V2 Sprint 15",
+          "measured_at": "2026-11-26T16:49:49+00:00",
           "origin": "run"
         }
       }
@@ -272,11 +272,11 @@
       "name": "Ehsan Mamakani",
       "boards": {
         "css": {
-          "factor": 0.9909,
-          "closed_est_h": 88.0,
-          "closed_spent_h": 87.2,
-          "sprint": "CSS Sprint 16 + IG Sprint 19",
-          "measured_at": "2026-11-18T15:01:21+00:00",
+          "factor": 1.0204,
+          "closed_est_h": 49.0,
+          "closed_spent_h": 50.0,
+          "sprint": "CSS Sprint 17 + IG Sprint 20",
+          "measured_at": "2026-11-26T16:49:49+00:00",
           "origin": "run"
         }
       }
@@ -311,11 +311,11 @@
       "name": "Yves Griber",
       "boards": {
         "v2": {
-          "factor": 0.7451,
-          "closed_est_h": 153.0,
-          "closed_spent_h": 114.0,
-          "sprint": "V2 Sprint 14",
-          "measured_at": "2026-11-12T17:04:28+00:00",
+          "factor": 0.9153,
+          "closed_est_h": 59.0,
+          "closed_spent_h": 54.0,
+          "sprint": "V2 Sprint 15",
+          "measured_at": "2026-11-26T16:49:49+00:00",
           "origin": "run"
         }
       }
@@ -358,8 +358,21 @@
           "origin": "run"
         }
       }
+    },
+    "557058:a0d18102-fb3b-4e01-8725-eead5f2bc3aa": {
+      "name": "Justin Kwon",
+      "boards": {
+        "v2": {
+          "factor": 0.7527,
+          "closed_est_h": 91.0,
+          "closed_spent_h": 68.5,
+          "sprint": "V2 Sprint 15",
+          "measured_at": "2026-11-26T16:49:49+00:00",
+          "origin": "run"
+        }
+      }
     }
   },
-  "updated": "2026-11-18T15:01:22+00:00",
+  "updated": "2026-11-26T16:49:49+00:00",
   "_note": "Estimate-bias factors (closed spent / closed estimate) per person per board. Written by sprint_load.py; carried forward when a person has < 40h closed this sprint."
 }
