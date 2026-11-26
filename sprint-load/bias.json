@@ -60,7 +60,7 @@
           "closed_est_h": 48.0,
           "closed_spent_h": 41.0,
           "sprint": "V2 Sprint 15 + IG Sprint 20",
-          "measured_at": "2026-11-26T16:49:49+00:00",
+          "measured_at": "2026-11-26T19:09:20+00:00",
           "origin": "run"
         }
       }
@@ -194,11 +194,11 @@
       "name": "Linda Zhang",
       "boards": {
         "v2": {
-          "factor": 2.7389,
-          "closed_est_h": 280.0,
-          "closed_spent_h": 766.9,
+          "factor": 0.9689,
+          "closed_est_h": 103.0,
+          "closed_spent_h": 99.8,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-26T16:49:49+00:00",
+          "measured_at": "2026-11-26T19:09:20+00:00",
           "origin": "run"
         }
       }
@@ -250,7 +250,7 @@
           "closed_est_h": 152.0,
           "closed_spent_h": 199.5,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-26T16:49:49+00:00",
+          "measured_at": "2026-11-26T19:09:20+00:00",
           "origin": "run"
         }
       }
@@ -272,11 +272,11 @@
       "name": "Ehsan Mamakani",
       "boards": {
         "css": {
-          "factor": 1.0204,
-          "closed_est_h": 49.0,
-          "closed_spent_h": 50.0,
+          "factor": 0.8902,
+          "closed_est_h": 41.0,
+          "closed_spent_h": 36.5,
           "sprint": "CSS Sprint 17 + IG Sprint 20",
-          "measured_at": "2026-11-26T16:49:49+00:00",
+          "measured_at": "2026-11-26T19:09:20+00:00",
           "origin": "run"
         }
       }
@@ -315,7 +315,7 @@
           "closed_est_h": 59.0,
           "closed_spent_h": 54.0,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-26T16:49:49+00:00",
+          "measured_at": "2026-11-26T19:09:20+00:00",
           "origin": "run"
         }
       }
@@ -367,12 +367,12 @@
           "closed_est_h": 91.0,
           "closed_spent_h": 68.5,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-26T16:49:49+00:00",
+          "measured_at": "2026-11-26T19:09:20+00:00",
           "origin": "run"
         }
       }
     }
   },
-  "updated": "2026-11-26T16:49:49+00:00",
+  "updated": "2026-11-26T19:09:21+00:00",
   "_note": "Estimate-bias factors (closed spent / closed estimate) per person per board. Written by sprint_load.py; carried forward when a person has < 40h closed this sprint."
 }
