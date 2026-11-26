@@ -1,0 +1,69 @@
+name: Sprint Load
+
+on:
+  schedule:
+    # 06:30 UTC, after the other dashboard refreshes (06:00 / 06:15), so they
+    # don't all queue at once. See exec_dashboard.yml for why the time is early.
+    - cron: "30 6 * * *"
+  workflow_dispatch:
+  push:
+    # Rebuild straight away when the builder or the page template changes.
+    # The job itself only commits dashboard.html + bias.json, which are not
+    # listed here, so it can't trigger itself.
+    branches: [main]
+    paths:
+      - "sprint-load/sprint_load.py"
+      - "sprint-load/template.html"
+
+# Same group as the other refresh workflows so the pushes can't race.
+concurrency:
+  group: refresh-dashboards
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # PUSH_PAT, not GITHUB_TOKEN: it is the bypass actor on the main
+          # ruleset, and its pushes trigger Deploy Pages (see v2_timeline.yml).
+          token: ${{ secrets.PUSH_PAT }}
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Reads and updates sprint-load/bias.json (estimate-bias carried between
+      # runs). Any fatal check - bad credentials, unknown roster ID, a board
+      # with zero tickets - exits non-zero and writes nothing, so the live
+      # page keeps the last good build and the run fails visibly.
+      - name: Build sprint load dashboard
+        env:
+          JIRA_EMAIL:     ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: python sprint-load/sprint_load.py
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sprint-load/dashboard.html sprint-load/bias.json
+          if git diff --staged --quiet; then
+            echo "No sprint load changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: sprint load refresh $(date -u +%Y-%m-%d)"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push

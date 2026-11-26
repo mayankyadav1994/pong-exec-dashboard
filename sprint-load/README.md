@@ -2,6 +2,10 @@
 
 `sprint_load.py` pulls the open sprints for four Jira boards and writes `dashboard.html`, a single self-contained page you can open locally or host anywhere. All data is inlined at build time. The page makes no network calls when it renders, except to load the Google Fonts typeface.
 
+**It rebuilds itself daily.** `.github/workflows/sprint_load.yml` runs at 06:30 UTC. It also runs on any push that changes `sprint_load.py` or `template.html`, and on demand from the Actions tab ("Sprint Load" → *Run workflow*). It commits `dashboard.html` and `bias.json` back to main, and that push deploys the page. If any fatal check fails, the run fails and nothing is committed, so the page keeps the last good build.
+
+To refresh between scheduled runs, trigger the workflow rather than running the script locally and pushing. A local run updates your own copy of `bias.json`, which then diverges from the copy in the repo.
+
 ```
 python sprint_load.py            # normal run
 python sprint_load.py --seed     # first run only: seed bias.json from last closed sprints, then build
@@ -16,7 +20,7 @@ Files beside the script:
 |---|---|
 | `template.html` | Page shell. Contains `__SNAPSHOTS__` exactly once; the script swaps in the data. |
 | `dashboard.html` | Output. Rewritten on every successful run. |
-| `bias.json` | Estimate-bias memory. **Keep it between runs.** See *Estimate bias*. |
+| `bias.json` | Estimate-bias memory, committed to the repo and updated by every scheduled run. **Don't delete it.** See *Estimate bias*. The repo is public, so this file is too. It holds the same per-person factors the page shows, plus their earlier values. |
 
 ---
 
@@ -109,7 +113,7 @@ Intake is divided by bias because new work arrives as *estimates*. Someone with 
 | **carried** | Not enough closed work now, but `bias.json` holds a factor from an earlier run (same board first, otherwise their best-evidenced other board) | Their own past data |
 | **inferred** ⚑ | Neither of the above | Median of measured + carried factors for the same discipline across all boards. If there are none, 1.0 as an explicit placeholder. Flagged in the UI. |
 
-Every measured factor is written to `bias.json` after each run. **That file is load-bearing.** Early in a sprint almost nothing has closed, and without carry-forward every person would collapse to the discipline median. Keep it between runs and don't delete it casually. `--seed` fills it once from each board's most recently closed sprint, and never overwrites an existing entry.
+Every measured factor is written to `bias.json` after each run, and the scheduled job commits it. **That file is load-bearing.** Early in a sprint almost nothing has closed, and without carry-forward every person would collapse to the discipline median. Don't delete it casually. `--seed` fills it once from each board's most recently closed sprint, and never overwrites an existing entry.
 
 Checks on bias:
 

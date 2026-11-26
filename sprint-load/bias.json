@@ -1,0 +1,365 @@
+{
+  "people": {
+    "712020:8bc52dab-f9c9-4044-898b-c7d758b00b9c": {
+      "name": "Roopesh Nair Perayil",
+      "boards": {
+        "dams": {
+          "factor": 0.6149,
+          "closed_est_h": 47.0,
+          "closed_spent_h": 28.9,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:2eeacc30-2c87-41c2-b778-1999a985649d": {
+      "name": "Joel Kazmi",
+      "boards": {
+        "dams": {
+          "factor": 0.9875,
+          "closed_est_h": 40.0,
+          "closed_spent_h": 39.5,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:aec68cc3-5c35-4bb9-96cf-59a41347e4e9": {
+      "name": "Christopher Coey",
+      "boards": {
+        "dams": {
+          "factor": 1.0229,
+          "closed_est_h": 52.3,
+          "closed_spent_h": 53.5,
+          "sprint": "IG Sprint 18 + V2 Sprint 13 + CSS Sprint 15",
+          "measured_at": "2026-11-10T18:15:13+00:00",
+          "origin": "seed"
+        }
+      }
+    },
+    "62b98f18228c59d8da18ba1e": {
+      "name": "Sonali Mehra",
+      "boards": {
+        "dams": {
+          "factor": 2.402,
+          "closed_est_h": 100.0,
+          "closed_spent_h": 240.2,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:cf48926d-5b86-4e89-b72c-a06762358e79": {
+      "name": "James Zhang",
+      "boards": {
+        "dams": {
+          "factor": 1.8542,
+          "closed_est_h": 253.0,
+          "closed_spent_h": 469.1,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:6a098f57-08e4-4320-b109-27b2228a54df": {
+      "name": "Leonid Romanov",
+      "boards": {
+        "dams": {
+          "factor": 1.2771,
+          "closed_est_h": 205.0,
+          "closed_spent_h": 261.8,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "557058:563cea80-a325-47cf-974a-c84d37ad5e7e": {
+      "name": "Matthew Rawlings",
+      "boards": {
+        "ig": {
+          "factor": 0.8877,
+          "closed_est_h": 77.5,
+          "closed_spent_h": 68.8,
+          "sprint": "IG Sprint 19",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "62cd85365d6f5fd2c3d9f64b": {
+      "name": "Avtar Hothi",
+      "boards": {
+        "ig": {
+          "factor": 0.8588,
+          "closed_est_h": 88.5,
+          "closed_spent_h": 76.0,
+          "sprint": "IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "62d570911834ae63caf7492d": {
+      "name": "Rjpreet Gill",
+      "boards": {
+        "ig": {
+          "factor": 1.1287,
+          "closed_est_h": 50.5,
+          "closed_spent_h": 57.0,
+          "sprint": "IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        },
+        "css": {
+          "factor": 1.0444,
+          "closed_est_h": 72.0,
+          "closed_spent_h": 75.2,
+          "sprint": "CSS Sprint 16 + IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "62ab24f59cd13c0068b15093": {
+      "name": "Alex Laher",
+      "boards": {
+        "ig": {
+          "factor": 1.4,
+          "closed_est_h": 83.0,
+          "closed_spent_h": 116.2,
+          "sprint": "IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:c010e703-83b5-43d5-bda0-54e21c6f2403": {
+      "name": "Ben Akram",
+      "boards": {
+        "ig": {
+          "factor": 0.467,
+          "closed_est_h": 112.0,
+          "closed_spent_h": 52.3,
+          "sprint": "IG Sprint 18",
+          "measured_at": "2026-11-10T18:15:15+00:00",
+          "origin": "seed"
+        }
+      }
+    },
+    "557058:7c61b7ef-9247-4c3f-878e-c5cdc280036b": {
+      "name": "Jason Huang",
+      "boards": {
+        "ig": {
+          "factor": 1.2123,
+          "closed_est_h": 89.5,
+          "closed_spent_h": 108.5,
+          "sprint": "IG Sprint 19",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "62366765442e0e0069eeec35": {
+      "name": "Antonio Tran",
+      "boards": {
+        "ig": {
+          "factor": 0.5068,
+          "closed_est_h": 74.0,
+          "closed_spent_h": 37.5,
+          "sprint": "IG Sprint 19",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:4067d529-8db3-4812-9704-bb56b8846b02": {
+      "name": "BinZhang",
+      "boards": {
+        "ig": {
+          "factor": 1.5969,
+          "closed_est_h": 64.0,
+          "closed_spent_h": 102.2,
+          "sprint": "IG Sprint 18",
+          "measured_at": "2026-11-10T18:15:15+00:00",
+          "origin": "seed"
+        }
+      }
+    },
+    "557058:ecfe0b4a-d8fa-477f-8b67-d19d8f7656cf": {
+      "name": "Linda Zhang",
+      "boards": {
+        "v2": {
+          "factor": 1.0995,
+          "closed_est_h": 95.5,
+          "closed_spent_h": 105.0,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "557058:46d37007-998b-47ca-a767-fe4985fb21e2": {
+      "name": "Maria Vlah",
+      "boards": {
+        "v2": {
+          "factor": 1.0,
+          "closed_est_h": 86.0,
+          "closed_spent_h": 86.0,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "557058:e70d51bd-1712-478c-a3aa-3abadb94b548": {
+      "name": "Rejosh Samuel",
+      "boards": {
+        "v2": {
+          "factor": 0.7127,
+          "closed_est_h": 55.0,
+          "closed_spent_h": 39.2,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "557058:2317ad0d-256c-4c5b-946f-c26446f9eb56": {
+      "name": "Hemmat Rezvani",
+      "boards": {
+        "v2": {
+          "factor": 0.8,
+          "closed_est_h": 50.0,
+          "closed_spent_h": 40.0,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "557058:138c86a9-843e-4f51-8b80-3f3066920ce2": {
+      "name": "Aleksey Vorotilin",
+      "boards": {
+        "v2": {
+          "factor": 0.6875,
+          "closed_est_h": 40.0,
+          "closed_spent_h": 27.5,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "6089cc42543264006869c979": {
+      "name": "Asif Masood",
+      "boards": {
+        "v2": {
+          "factor": 1.0,
+          "closed_est_h": 48.0,
+          "closed_spent_h": 48.0,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "61d344270586a2006940c9eb": {
+      "name": "Ehsan Mamakani",
+      "boards": {
+        "css": {
+          "factor": 0.9909,
+          "closed_est_h": 88.0,
+          "closed_spent_h": 87.2,
+          "sprint": "CSS Sprint 16 + IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:426824d4-0532-45d1-819b-d0320444ea77": {
+      "name": "Nima Shahmoradi",
+      "boards": {
+        "css": {
+          "factor": 2.1346,
+          "closed_est_h": 52.0,
+          "closed_spent_h": 111.0,
+          "sprint": "CSS Sprint 15",
+          "measured_at": "2026-11-10T18:15:17+00:00",
+          "origin": "seed"
+        }
+      }
+    },
+    "712020:06475e7e-ff2c-4c9c-8695-12362c981622": {
+      "name": "Vlad Choumakov",
+      "boards": {
+        "css": {
+          "factor": 0.3864,
+          "closed_est_h": 176.0,
+          "closed_spent_h": 68.0,
+          "sprint": "CSS Sprint 15",
+          "measured_at": "2026-11-10T18:15:17+00:00",
+          "origin": "seed"
+        }
+      }
+    },
+    "5e6540a338b8bd0cf890e9f4": {
+      "name": "Yves Griber",
+      "boards": {
+        "v2": {
+          "factor": 0.7451,
+          "closed_est_h": 153.0,
+          "closed_spent_h": 114.0,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:557cf77c-6ce8-40e3-8b06-628727d4e627": {
+      "name": "Krupa Kanani",
+      "boards": {
+        "v2": {
+          "factor": 0.9,
+          "closed_est_h": 42.0,
+          "closed_spent_h": 37.8,
+          "sprint": "V2 Sprint 14",
+          "measured_at": "2026-11-12T17:04:28+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:dbae655b-7d4f-4a01-a4e2-8d21d54b534e": {
+      "name": "John Di Mauro",
+      "boards": {
+        "dams": {
+          "factor": 0.734,
+          "closed_est_h": 47.0,
+          "closed_spent_h": 34.5,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    },
+    "712020:d2ccfe31-a230-49f6-8adb-c8010c3e0740": {
+      "name": "Jen Johnson",
+      "boards": {
+        "dams": {
+          "factor": 1.3293,
+          "closed_est_h": 82.0,
+          "closed_spent_h": 109.0,
+          "sprint": "V2 Sprint 14 + IG Sprint 19",
+          "measured_at": "2026-11-18T15:01:21+00:00",
+          "origin": "run"
+        }
+      }
+    }
+  },
+  "updated": "2026-11-18T15:01:22+00:00",
+  "_note": "Estimate-bias factors (closed spent / closed estimate) per person per board. Written by sprint_load.py; carried forward when a person has < 40h closed this sprint."
+}
