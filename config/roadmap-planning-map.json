@@ -1,0 +1,27 @@
+{
+  "_comment": "Mapping for the Planning sub-pages. The PMO sheet (source) holds the plan; this file only says which roadmap space each product block belongs to and which Jira epics each initiative maps to (key = '<lane id>/<initiative name as in the sheet, before any [..]>'). roadmap/sync_planning.py merges both into config/roadmap-planning.json every day.",
+  "source": {
+    "name": "PFH Roadmap 2027 - source data.xlsx",
+    "drive_id": "b!_tK1colXgE-LdjDrWuVjXERTeZODZJ5Oi9iF7-_zuxd7Fn6tis5qSIRj5PlMhX9_",
+    "item_id": "01PYOBJX6N2243Y7HLLZAJ5DVRBO4CYQHL",
+    "sheet": "Sheet2",
+    "url": "https://pongstudios.sharepoint.com/sites/ProjectManagement/Shared%20Documents/PFH%20Roadmap%202027%20-%20source%20data.xlsx"
+  },
+  "lanes": {
+    "PoP":   { "id": "pop",  "space": "css" },
+    "PFH X": { "id": "pfhx", "space": "igaming" },
+    "PFH":   { "id": "pfh",  "space": "igaming" }
+  },
+  "jira": {
+    "pop/Platform":              ["CSS-3083", "CSS-2737"],
+    "pop/Pulsar":                ["CSS-3032", "CSS-2745"],
+    "pop/DAC":                   ["CSS-3006", "CSS-2756"],
+    "pop/UPC":                   ["CSS-2592", "CSS-2587"],
+    "pop/TH":                    ["CSS-2746", "CSS-2742"],
+    "pop/Offline Licensing":     ["CSS-2750"],
+    "pop/3rd Party Integration": ["CSS-1966"],
+    "pfhx/BE":                   ["CSS-1944"],
+    "pfh/Guest to Registered":   ["IG-4649"],
+    "pfh/Loyalty":               ["IG-9391"]
+  }
+}

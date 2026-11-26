@@ -15,6 +15,8 @@ on:
       - "config/roadmap.json"
       - "config/roadmap-pmo.json"
       - "config/roadmap-planning.json"
+      - "config/roadmap-planning-map.json"
+      - "roadmap/sync_planning.py"
       - "roadmap/roadmap.template.html"
       - "roadmap/roadmap.py"
 
@@ -47,6 +49,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      # Planning sub-pages: pull the PMO sheet from SharePoint (Graph, app-only;
+      # same Azure app as the PRF checker). Missing secrets or any failure keeps
+      # the last imported plan, so the build below never breaks on it.
+      - name: Sync PMO plan from SharePoint
+        env:
+          SP_TENANT_ID:     ${{ secrets.SP_TENANT_ID }}
+          SP_CLIENT_ID:     ${{ secrets.SP_CLIENT_ID }}
+          SP_CLIENT_SECRET: ${{ secrets.SP_CLIENT_SECRET }}
+        run: python roadmap/sync_planning.py
+
       - name: Build roadmap pages (iGaming, V2, Cloud Services)
         env:
           JIRA_EMAIL:     ${{ secrets.JIRA_EMAIL }}
@@ -68,7 +80,7 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add roadmap/roadmap-*.html roadmap/roadmap-history.json || true
+          git add roadmap/roadmap-*.html roadmap/roadmap-history.json config/roadmap-planning.json || true
           if git diff --staged --quiet; then
             echo "No roadmap changes to commit."
             exit 0
