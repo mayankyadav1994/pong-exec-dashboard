@@ -71,7 +71,8 @@ if not os.environ.get("TEMPO_API_TOKEN"):
 
 sys.path.insert(0, str(ROOT / "shared"))   # shared/jira_client.py, shared/plan_rules.py
 from jira_client import jira_get, jira_jql  # noqa: E402  (needs env loaded)
-from plan_rules import HOURS_PER_DAY, is_parked, load_holidays  # noqa: E402
+from plan_rules import (HOURS_PER_DAY, load_holidays, parked_reason,  # noqa: E402
+                         pipeline_parked, pipeline_status)
 
 
 def _load_module(name: str, path: Path):
@@ -110,9 +111,6 @@ MIN_PLAN_WORKDAYS = 10                  # one sprint
 TEAM_OF_SLUG = {"dams": "DAMS", "ig": "iGaming", "v2": "V2", "css": "Cloud Services"}
 TEAM_OF_PROJECT = {"IG": "iGaming", "V2": "V2", "CSS": "Cloud Services"}
 TEAM_ORDER = ["DAMS", "iGaming", "V2", "Cloud Services", "Other"]
-# Mirrors STATUS_PROGRESSION in game-pipeline/dashboard.js (stale shared-status rule).
-STATUS_PROGRESSION = ["Not Started", "On Hold", "In Pre-Prod", "In Progress", "In QA",
-                      "Signed Off", "Delivered"]
 LINES = {
     "ig":       {"label": "iGaming",        "color": "blue"},
     "v2":       {"label": "V2",             "color": "violet"},
@@ -249,18 +247,13 @@ def users(account_ids) -> dict:
 
 
 # ── Game Pipeline forecast (port of applyForecast in game-pipeline/dashboard.js) ──
-def pipeline_forecast(today: date) -> tuple[dict, dict]:
-    """(forecast, parked).
-
-    forecast: epic key -> {feed, name, ship, lanes{lane: end ISO}, hidden}.
-    parked:   epic key -> status, for games the pipeline board shows as On Hold
-              or Cancelled (the PMO's override, unless Jira has moved past it).
+def pipeline_forecast(today: date) -> dict:
+    """epic key -> {feed, name, ship, lanes{lane: end ISO}, hidden}.
 
     Same inputs the pipeline page uses: the board roster (in_roster or added in
     Edit Plan), shared status overrides (dropped when Jira has moved past them),
     measured velocity per lane over the roster, DEFAULT_VELOCITY fallback."""
     out: dict = {}
-    parked: dict = {}
     for feed in FEEDS:
         data = json.loads((ROOT / "game-pipeline" / f"data-{feed}.json").read_text(encoding="utf-8"))
         pf = ROOT / "game-pipeline" / f"plan-{feed}.json"
@@ -298,21 +291,12 @@ def pipeline_forecast(today: date) -> tuple[dict, dict]:
                 return max(0.0, float(d["remaining"]))
             return max(0.0, float(d.get("est") or 0) - float(d.get("spent") or 0))
 
-        def sidx(s):
-            return STATUS_PROGRESSION.index(s) if s in STATUS_PROGRESSION else -1
-
         first_future = next((i for i, s in enumerate(ladder) if pd(s["start"]) > today), len(ladder))
         needs, max_need = {}, 0
         for g in raw:
             if g.get("delivered"):
                 continue
-            auto = g.get("workflow_status") or ""
-            sh = shared.get(g.get("name"))
-            if sh and sh != auto and sidx(auto) >= 0 and sidx(sh) >= 0 and sidx(auto) > sidx(sh):
-                sh = None                      # Jira moved past a stale override
-            ws = sh or auto
-            if is_parked(ws) and g.get("jira"):
-                parked[g["jira"]] = ws
+            ws = pipeline_status(g.get("workflow_status"), shared.get(g.get("name")))
             if ws in GP.STATUS_TERMINAL:
                 continue
             by_key = {d.get("key"): d for d in g.get("disciplines") or []}
@@ -353,7 +337,7 @@ def pipeline_forecast(today: date) -> tuple[dict, dict]:
                         "ship": slot_end(max(lanes.values())),
                         "lanes": {k: slot_end(n) for k, n in lanes.items()},
                         "hidden": g.get("name") in hidden}
-    return out, parked
+    return out
 
 
 def lane_of(issuetype: str, summary: str) -> str:
@@ -515,7 +499,8 @@ def build(today: date) -> dict:
         return root_cache[key]
 
     cards = roadmap_cards()
-    fc, pipe_parked = pipeline_forecast(today)
+    fc = pipeline_forecast(today)
+    pipe_parked = pipeline_parked(ROOT)
     print(f"  Game Pipeline velocity forecast: {len(fc)} epics "
           f"({sum(1 for v in fc.values() if v['hidden'])} hidden on the board)")
 
@@ -525,12 +510,7 @@ def build(today: date) -> dict:
         it = issues.get(rk)
         if not it or it["fields"]["issuetype"]["name"] != "Epic":
             return None
-        st = (it["fields"].get("status") or {}).get("name")
-        if is_parked(st):
-            return f"{st} in Jira"
-        if rk in pipe_parked:
-            return f"{pipe_parked[rk]} on the Game Pipeline board"
-        return None
+        return parked_reason(rk, (it["fields"].get("status") or {}).get("name"), pipe_parked)
 
     items: dict = {}
 

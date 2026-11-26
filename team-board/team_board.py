@@ -40,6 +40,7 @@ from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "shared"))   # shared/jira_client.py
 from jira_client import jira_jql  # noqa: E402
+from plan_rules import parked_reason, pipeline_parked  # noqa: E402
 
 # Windows console UTF-8 (✓ ⚠ ✗ glyphs) — no-op on Linux CI.
 if sys.platform == "win32":
@@ -180,7 +181,7 @@ def build_parent_cache(issues, verbose=False):
             chunk = keys[i:i + 50]
             jql = "key in (" + ",".join(chunk) + ")"
             for it in jira_jql(jql, ["summary", "fixVersions", "parent",
-                                     EPIC_NAME_FIELD, "issuetype"]):
+                                     EPIC_NAME_FIELD, "issuetype", "status"]):
                 cache[it["key"]] = it.get("fields", {}) or {}
 
     # Level 1: direct parents of tickets that lack their own fixVersion.
@@ -212,6 +213,30 @@ def resolve_release(fields, cache):
         node = cache.get(pk)
         seen += 1
     return rel, game
+
+
+def epic_of(fields, cache):
+    """(epic key, epic fields) by walking up: self -> parent -> grandparent."""
+    pk = (fields.get("parent") or {}).get("key")
+    seen = 0
+    while pk and pk in cache and seen < 3:
+        node = cache[pk]
+        if (node.get("issuetype") or {}).get("name", "").lower() == "epic":
+            return pk, node
+        pk = (node.get("parent") or {}).get("key")
+        seen += 1
+    return None, None
+
+
+def parked_why(it, cache, pipe):
+    """Why an open ticket is off the board: its epic is Canceled / On Hold in
+    Jira, or On Hold / Cancelled on the Game Pipeline board (shared/plan_rules.py,
+    the rule People and Sprint Load use too). Finished tickets stay."""
+    f = it.get("fields", {}) or {}
+    if bucket((f.get("status") or {}).get("name")) == "done":
+        return None
+    ek, ef = epic_of(f, cache)
+    return parked_reason(ek, ((ef or {}).get("status") or {}).get("name"), pipe) if ek else None
 
 
 def day_index(due, start, end):
@@ -307,6 +332,20 @@ def build_dept(dept_key, cfg, verbose=False):
               f"= pills; {len(subs)} subtask(s) nested")
 
     cache = build_parent_cache(pill_issues + subs, verbose) if (pill_issues or subs) else {}
+
+    # Open work under a Canceled / On Hold epic is off the board (subtasks of a
+    # dropped pill go with it).
+    pipe = pipeline_parked()
+    gone = {it["key"]: why for it in pill_issues + subs if (why := parked_why(it, cache, pipe))}
+    dropped_pills = {it["key"] for it in pill_issues if it["key"] in gone}
+    n_before = len(pill_issues) + len(subs)
+    pill_issues = [it for it in pill_issues if it["key"] not in gone]
+    subs = [s for s in subs if s["key"] not in gone
+            and (s["fields"].get("parent") or {}).get("key") not in dropped_pills]
+    if gone:
+        print(f"      {OK} left off the board (epic cancelled / on hold): "
+              f"{n_before - len(pill_issues) - len(subs)} ticket(s) · "
+              + ", ".join(sorted(set(gone.values()))))
 
     # Subtask dicts grouped by their parent key.
     subs_by_parent = {}
