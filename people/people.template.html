@@ -147,6 +147,7 @@ a.uchip:hover{border-color:var(--muted)}
 .tray-btn{font-size:9.5px;font-weight:600;color:var(--muted);background:var(--surf2);border:1px dashed var(--border2);
   border-radius:4px;padding:0 5px;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .tray-btn:hover{color:var(--text);border-color:var(--muted)}
+.meta .late{color:var(--amber);font-weight:600}
 .unst{font-size:9.5px;font-weight:600;color:var(--amber);white-space:nowrap;flex-shrink:0}
 .older{display:flex;position:relative;z-index:5}
 .older button{position:sticky;left:0;margin:6px 0 6px 28px;font-size:10.5px;font-weight:600;color:#1e40af;background:none;border:none;cursor:pointer;padding:0}
@@ -317,12 +318,12 @@ function renderChrome(){
     `<div class="lg-sec"><div class="lg-h">Bars</div>
        <div class="leg"><span class="sw" style="background:var(--done)"></span>Done <small>hours logged in Tempo</small></div>
        <div class="leg"><span class="sw" style="${sw('grey','s')}"></span>Sprint <small>active or next sprint</small></div>
-       <div class="leg"><span class="sw" style="${sw('grey','f')}"></span>Velocity forecast <small>Game Pipeline end date</small></div>
+       <div class="leg"><span class="sw" style="${sw('grey','f')}"></span>Game work, queued <small>after sprint work, by release date</small></div>
        <div class="leg"><span style="font-weight:700;width:16px;text-align:center">◌</span>Unscheduled hours <small>click the chip</small></div>
      </div>
      <div class="lg-sec"><div class="lg-h">Hours per week · under each name</div>
        <div class="leg"><span class="sw" style="background:var(--done);opacity:.6"></span>Logged</div>
-       <div class="leg"><span class="sw" style="background:var(--plan-bar);opacity:.75"></span>Planned <small>sprint + forecast</small></div>
+       <div class="leg"><span class="sw" style="background:var(--plan-bar);opacity:.75"></span>Planned <small>7h per working day</small></div>
      </div>
      <div class="lg-sec"><div class="lg-h">Markers</div>
        <div class="leg">${mkd}Roadmap date <small>green = released</small></div>
@@ -338,13 +339,14 @@ function renderChrome(){
   const st = D.stats, pl = st.planned || {};
   document.getElementById('foot').innerHTML =
     `<span><b>Logged</b> = Tempo worklogs (real author), rolled up to each ticket's epic; Pong Internal splits into Internal and Time off.
-     <b>Plan</b> = open Jira work with a remaining estimate. Epics on a Game Pipeline board get the pipeline's own velocity forecast
-     (remaining ÷ that discipline's hours per sprint, lanes in parallel from the next sprint), and each person's remaining is spread to their discipline's projected end.
-     Other work sits in its active or next sprint; anything else is in the person's <i>unscheduled</i> tray, not on the chart.
+     <b>Plan</b> = open Jira work with a remaining estimate, queued per person at ${hrs(D.hours_per_day || 7)}h per working day, one ticket after another:
+     active-sprint tickets first (Jira rank), then next-sprint tickets (not before that sprint starts), then game work on a Game Pipeline board,
+     by the game's next release or Roadmap date (else the pipeline's own finish date). The grey marker is the Game Pipeline's velocity finish, for comparison.
+     Anything else is in the person's <i>unscheduled</i> tray, not on the chart.
      Planned hours land on working days only: weekends and public holidays${D.holidays_until ? ` (list runs to ${fmt(D.holidays_until)})` : ''} are skipped, and a week's shading is measured against ${hrs(D.hours_per_day || 7)}h per working day.
      Work under an epic that is Canceled or On Hold in Jira, or On Hold or Cancelled on the Game Pipeline board, is left off the plan${parkedTxt(st.parked)}.
      Teams and disciplines from Sprint Load.
-     · ${hrs(st.logged_h)}h logged (${Math.round(st.epic_share * 100)}% on epics) · placed: ${hrs(pl['velocity forecast'] || 0)}h forecast, ${hrs(pl['sprint'] || 0)}h sprint, ${hrs(pl['unscheduled tray'] || 0)}h unscheduled
+     · ${hrs(st.logged_h)}h logged (${Math.round(st.epic_share * 100)}% on epics) · placed: ${hrs(pl['sprint'] || 0)}h sprint, ${hrs(pl['game work'] || 0)}h game work, ${hrs(pl['unscheduled tray'] || 0)}h unscheduled
      · ${hrs(st.unstaffed_h)}h planned work unassigned · ${st.unestimated} planned tickets with no estimate</span>
      <span>PONG GAME STUDIOS · CONFIDENTIAL</span>`;
 }
@@ -437,9 +439,9 @@ function segStyle(c, k){
   return `background:#fff;border:1.5px dashed ${cv(c)};color:${cv(c)}`;
 }
 // Hours per week under each name: logged (green) then planned (indigo).
-// No capacity line or over/under colouring — the forecast spreads work by
-// pipeline velocity, not per person, so a capacity % would be misleading
-// (that belongs on Sprint Load).
+// No capacity line or over/under colouring: the plan is a queue at 7h per
+// working day, so a week never holds more than the person can work; overload
+// shows as the plan running later (that % view belongs on Sprint Load).
 function sparkSVG(p){
   const H = 16, max = 56;
   let bars = '';
@@ -469,10 +471,11 @@ function personRow(p){
   }).join('');
   const now = nowItem(p);
   const meta = [now ? `<b>${esc(itemOf(now).n)}</b>` : (p.last ? `last logged ${fmtS(p.last)}` : ''),
-                p.p.length ? '' : 'nothing planned',
+                clearsTxt(p),
+                p.p.length || p.beyond ? '' : 'nothing planned',
                 p.unest ? `${p.unest} unestimated` : ''].filter(Boolean).join(' · ');
   const multi = (p.boards || []).length > 1 ? `<span class="disc multi" title="On ${p.boards.length} Sprint Load boards: ${esc(p.boards.join(', '))}">${p.boards.length} boards</span>` : '';
-  const tray = p.trayH >= 1 ? `<button class="tray-btn" data-tray="${esc(p.id)}" title="Unscheduled: open work with a remaining estimate but no sprint and no pipeline forecast. Click to list.">◌${hrs(p.trayH)}h</button>` : '';
+  const tray = p.trayH >= 1 ? `<button class="tray-btn" data-tray="${esc(p.id)}" title="Unscheduled: open work with a remaining estimate but no sprint and not on a Game Pipeline board. Click to list.">◌${hrs(p.trayH)}h</button>` : '';
   const open = S.open.has(p.id);
   let html = `<div class="row ${p.active ? '' : 'inactive'}" data-p="${esc(p.id)}" style="height:50px">
     <div class="lbl" style="width:${LW}px">
@@ -488,6 +491,15 @@ function personRow(p){
       .sort((x, y) => planWeek(p.items[x]) - planWeek(p.items[y]) || (p.items[y].a + p.items[y].p) - (p.items[x].a + p.items[x].p))
       .map(i => subRow(i, p.items[i].w, p.id, itemLabel(i, p.items[i]), 'subrow', true)).join('');
   return html;
+}
+// When this person's queue (7h per working day, in priority order) runs out.
+function clearsTxt(p){
+  if (!p.clears) return '';
+  const d = dt(p.clears), y = d.getFullYear() !== dt(D.today).getFullYear() ? ` '${String(d.getFullYear()).slice(2)}` : '';
+  const txt = `${d.getDate()} ${MON[d.getMonth()]}${y}`;
+  return p.beyond >= 1
+    ? `<span class="late" title="At 7h per working day this person's planned work runs to ${fmt(p.clears)}: ${hrs(p.beyond)}h falls after the end of this chart.">plan to ${txt}</span>`
+    : `<span title="At 7h per working day, in priority order, this person's planned work is done by ${fmt(p.clears)}">clears ${txt}</span>`;
 }
 function planWeek(x){ const ws = Object.keys(x.w).map(Number).filter(w => w >= CUR && x.w[w][1] > 0); return ws.length ? Math.min(...ws) : 1e9; }
 function itemLabel(i, x){
@@ -525,7 +537,7 @@ function markers(it, upcomingOnly){
 }
 function trayRow(p){
   return `<div class="tray-row"><div class="tray-in" style="width:min(100%, calc(100vw - 80px))">
-      <div class="tray-ttl">Unscheduled · ${esc(p.n)} — remaining estimate with no sprint and no pipeline forecast (not drawn)</div>
+      <div class="tray-ttl">Unscheduled · ${esc(p.n)} — remaining estimate with no sprint and not on a Game Pipeline board (not drawn)</div>
       ${p.tray.map(([i, h]) => { const it = itemOf(i), u = itemUrl(it);
         return `<${u ? 'a' : 'span'} class="uchip" ${u ? `href="${esc(u)}" target="_blank" rel="noopener"` : ''}>${esc(it.n)}<small>${hrs(h)}h</small></${u ? 'a' : 'span'}>`; }).join('')}
     </div></div>`;
@@ -611,7 +623,7 @@ function rerender(){ const l = tl.scrollLeft, t = tl.scrollTop; renderTools(); r
 /* ── tooltips ── */
 const tip = document.getElementById('tip');
 function weekLabel(w){ const d = dt(D.weeks[w]); const e = new Date(d.getTime() + 4 * DAY); return `Week of ${d.getDate()} ${MON[d.getMonth()]} – ${e.getDate()} ${MON[e.getMonth()]} ${e.getFullYear()}${holTxt(w)}`; }
-function kindTag(k){ return k === 'f' ? '<span class="tag">forecast</span>' : k === 's' ? '<span class="tag">sprint</span>' : ''; }
+function kindTag(k){ return k === 'f' ? '<span class="tag">queued</span>' : k === 's' ? '<span class="tag">sprint</span>' : ''; }
 function personTip(p, w){
   const rows = [];
   if (p.A[w]) for (const i in p.A[w]) rows.push([i, p.A[w][i], 'a']);

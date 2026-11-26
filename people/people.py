@@ -10,16 +10,18 @@ Builds people.html: where everyone works, week by week, on the roadmap's items.
   Weeks   The Roadmap window (config/roadmap.json), Monday-based.
   Past    Tempo worklogs, attributed to the real author, rolled up issue -> epic.
           Pong Internal (PI) time splits into Internal and Time off.
-  Future  Open Jira work with a remaining estimate, placed by:
-            1. the Game Pipeline velocity forecast, for epics on a pipeline board
-               (same rule as the pipeline's applyForecast(): remaining hours / that
-               lane's velocity = sprints needed, lanes run in parallel from the
-               first future sprint). Each person's remaining on the epic's lane is
-               spread from today to that lane's projected end; else
-            2. the ticket's active or next dated sprint; else
-            3. the person's unscheduled tray (counted, not drawn).
-          Every plan window is at least one sprint long: work left at the end of
-          a sprint rolls into the next one, it doesn't all happen on the last day.
+  Future  Open Jira work with a remaining estimate, queued per person: everyone
+          works through their own list at 7h per working day (public holidays
+          skipped), one ticket after another, in this order:
+            1. tickets in the active sprint, in Jira rank order;
+            2. tickets in a future dated sprint (never before that sprint starts);
+            3. game work on a Game Pipeline board, by the game's next Roadmap
+               date (dated fix version / release / epic due), else the
+               pipeline's own velocity finish date.
+          Anything else sits in the person's unscheduled tray (counted, not
+          drawn). Work that runs past the page's window is counted per person
+          ("plan runs to ..."). The Game Pipeline's own velocity finish stays on
+          the chart as a marker for comparison.
           Work under an epic that is Canceled / On Hold in Jira, or On Hold /
           Cancelled on the Game Pipeline board, is left off the plan (listed in
           the footer); hours already logged on it still show.
@@ -107,7 +109,8 @@ FEEDS = ("ig", "igf", "v2")             # Game Pipeline boards: IG games, IG fea
 INTERNAL_PROJECT = "PI"                 # "Pong Internal": meetings, admin, leave ...
 AWAY_RE = re.compile(r"vacation|personal day|time off|in lieu|sick|holiday|leave|bereave", re.I)
 ACTIVE_WEEKS = 6                        # logged within this many weeks = active
-MIN_PLAN_WORKDAYS = 10                  # one sprint
+RANK_FIELD = "customfield_10104"        # Jira Rank (lexorank string, sorts as text)
+QUEUE_YEARS = 5                         # stop queueing this far out (flagged, never silent)
 TEAM_OF_SLUG = {"dams": "DAMS", "ig": "iGaming", "v2": "V2", "css": "Cloud Services"}
 TEAM_OF_PROJECT = {"IG": "iGaming", "V2": "V2", "CSS": "Cloud Services"}
 TEAM_ORDER = ["DAMS", "iGaming", "V2", "Cloud Services", "Other"]
@@ -122,7 +125,7 @@ LINES = {
 GAME_RE = {"IG": RM["spaces"]["igaming"]["game_re"], "V2": RM["spaces"]["v2"]["game_re"]}
 F_META = ["project", "issuetype", "summary", "parent", "fixVersions", "status"]
 F_OPEN = F_META + ["assignee", "timeestimate", "timeoriginalestimate", "timespent",
-                   "subtasks", *SPRINT_FIELDS]
+                   "subtasks", RANK_FIELD, *SPRINT_FIELDS]
 
 
 # ── small helpers ────────────────────────────────────────────────────────────
@@ -169,16 +172,6 @@ def next_workday(d: date) -> date:
     while not is_workday(d):
         d += timedelta(days=1)
     return d
-
-
-def plan_days(start: date, end: date) -> list[date]:
-    """Working days from start to end, stretched to at least one sprint."""
-    days = workdays(start, max(start, end))
-    d = days[-1] if days else start
-    while len(days) < MIN_PLAN_WORKDAYS:
-        d = next_workday(d)
-        days.append(d)
-    return days
 
 
 def clean_name(summary: str, proj: str) -> str:
@@ -358,8 +351,8 @@ def counts_own_remaining(f: dict) -> bool:
 
 
 def sprint_window(f: dict, today: date):
-    """(start, end, label) of the ticket's active sprint, else its next dated
-    future sprint. Dateless parking sprints ("Refined Backlog") don't count."""
+    """(start, end, label, state) of the ticket's active sprint, else its next
+    dated future sprint. Dateless parking sprints ("Refined Backlog") don't count."""
     act = fut = None
     for fld in SPRINT_FIELDS:
         for s in f.get(fld) or []:
@@ -367,9 +360,9 @@ def sprint_window(f: dict, today: date):
                 continue
             sd, ed = pd(s.get("startDate")), pd(s.get("endDate"))
             if s.get("state") == "active" and ed:
-                act = (next_workday(today) if ed > today else today, ed, s.get("name"))
+                act = (next_workday(today) if ed > today else today, ed, s.get("name"), "active")
             elif s.get("state") == "future" and sd and ed and (fut is None or sd < fut[0]):
-                fut = (max(sd, next_workday(today)), ed, s.get("name"))
+                fut = (max(sd, next_workday(today)), ed, s.get("name"), "future")
     return act or fut
 
 
@@ -592,18 +585,17 @@ def build(today: date) -> dict:
     planned_by = Counter()
     parked_h = defaultdict(Counter)                        # epic -> person name -> remaining h left out
 
-    def put(acct, iid, hours, days, kind):
-        per = hours / len(days)
-        for dd in days:
-            wi = widx.get(monday(dd))
-            if wi is None:
-                continue
-            cell = plan[acct][wi].setdefault(iid, [0.0, kind])
-            cell[0] += per
-            if kind == "f":
-                cell[1] = "f"
+    units = defaultdict(list)                              # acct -> [{iid, h, k, nb, o}]
 
-    start_day = next_workday(today)
+    def target(rk, f) -> date:
+        """When game work is wanted: the earliest dated, unreleased fix version on
+        the ticket or Roadmap date on its epic, else the pipeline's finish."""
+        ds = [pd(v["releaseDate"]) for v in f.get("fixVersions") or []
+              if v.get("releaseDate") and not v.get("released")]
+        ds += [pd(c["d"]) for c in cards.get(rk, []) if not c["r"]]
+        ds = [d for d in ds if d and d >= today]
+        return min(ds) if ds else pd(fc[rk]["ship"])
+
     for it in open_iss:
         f = it["fields"]
         a = f.get("assignee") or {}
@@ -631,15 +623,51 @@ def build(today: date) -> dict:
             if not f.get("timeoriginalestimate") and (on_pipeline or sw):
                 unest[acct] += 1
             continue
-        if on_pipeline:
-            put(acct, iid, rem_h, plan_days(start_day, pd(fcast["lanes"][lane])), "f")
-            planned_by["velocity forecast"] += rem_h
-        elif sw:
-            put(acct, iid, rem_h, plan_days(sw[0], sw[1]), "s")
+        rank = f.get(RANK_FIELD) or "~"
+        if sw:                                             # sprint work comes first
+            tier = 0 if sw[3] == "active" else 1
+            units[acct].append({"iid": iid, "h": rem_h, "k": "s", "nb": today if tier == 0 else sw[0],
+                                "o": (tier, sw[0] if tier else sw[1], rank, it["key"])})
             planned_by["sprint"] += rem_h
+        elif on_pipeline:
+            units[acct].append({"iid": iid, "h": rem_h, "k": "f", "nb": today,
+                                "o": (2, target(rk, f), rank, it["key"])})
+            planned_by["game work"] += rem_h
         else:
             tray[acct][iid] += rem_h
             planned_by["unscheduled tray"] += rem_h
+
+    # Queue: each person, HOURS_PER_DAY per working day, highest priority first.
+    # A future-sprint ticket waits for its sprint; meanwhile the next ticket runs.
+    beyond, clears, overflow = Counter(), {}, Counter()
+    first_day = today if is_workday(today) else next_workday(today)
+    horizon = today + timedelta(days=365 * QUEUE_YEARS)
+    for acct, us in units.items():
+        us.sort(key=lambda u: u["o"])
+        left = [u["h"] for u in us]
+        todo, d = sum(left), first_day
+        while todo > 1e-6 and d <= horizon:
+            cap, wi = HOURS_PER_DAY, widx.get(monday(d))
+            for n, u in enumerate(us):
+                if left[n] <= 1e-6 or u["nb"] > d:
+                    continue
+                use = min(left[n], cap)
+                left[n] -= use
+                todo -= use
+                cap -= use
+                if wi is not None and d <= win_end:
+                    cell = plan[acct][wi].setdefault(u["iid"], [0.0, u["k"]])
+                    cell[0] += use
+                    if u["k"] == "f":
+                        cell[1] = "f"
+                else:
+                    beyond[acct] += use
+                clears[acct] = d
+                if cap <= 1e-6:
+                    break
+            d = next_workday(d)
+        if todo > 1e-6:
+            overflow[acct] += todo                         # past the horizon: flagged
 
     # 6. People --------------------------------------------------------------------
     accts = set(actual) | set(plan) | set(tray)
@@ -663,6 +691,8 @@ def build(today: date) -> dict:
             "last": last.isoformat() if last else None,
             "a": a_rows, "p": p_rows,
             "tray": sorted(([iid, r1(h)] for iid, h in tray[acct].items() if h >= 0.05), key=lambda x: -x[1]),
+            "clears": clears[acct].isoformat() if acct in clears else None,
+            "beyond": r1(beyond[acct] + overflow[acct]),
             "unest": unest[acct],
         })
     team_rank = {t: i for i, t in enumerate(TEAM_ORDER)}
@@ -692,6 +722,10 @@ def build(today: date) -> dict:
     print("  Remaining hours placed: " + ", ".join(f"{k} {r1(v)}h" for k, v in planned_by.most_common()))
     print(f"  Unstaffed remaining on planned items: {r1(sum(unstaffed.values()))}h; "
           f"assigned tickets without an estimate: {sum(unest.values())}")
+    late = sorted((p for p in people if p.get("clears")), key=lambda p: p["clears"], reverse=True)
+    print(f"  Queue at {HOURS_PER_DAY:g}h/working day — latest finishes: " + "; ".join(
+        f"{p['n']} {p['clears']}" + (f" ({p['beyond']}h past the window)" if p["beyond"] else "") for p in late[:8]))
+    print(f"  {sum(1 for p in late if p['beyond'])} people's plan runs past {win_end}")
     parked = sorted(({"key": k, "n": items[k]["n"] if k in items else k, "why": parked_why(k),
                       "h": r1(sum(c.values())),
                       "people": [[n, r1(h)] for n, h in c.most_common() if h >= 0.05]}
