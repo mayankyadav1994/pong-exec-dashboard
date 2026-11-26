@@ -535,7 +535,8 @@ def build(today: date) -> dict:
                 kind = "game" if is_game else ("release" if re.match(r"^\s*release\b", summ, re.I) else "feature")
                 st = rf.get("status") or {}
                 items[rk] = {"n": clean_name(summ, proj), "l": LINE_OF_PROJECT[proj], "k": kind, "key": rk,
-                             "st": st.get("name"), "cards": cards.get(rk, [])}
+                             "st": st.get("name"), "cards": cards.get(rk, []),
+                             "dn": (st.get("statusCategory") or {}).get("key") == "done"}
                 if rk in fc:
                     items[rk]["fc"] = {x: fc[rk][x] for x in ("ship", "lanes", "feed", "hidden")}
                 why = parked_why(rk)

@@ -219,12 +219,15 @@ const LW = 260, DAY = 864e5, WK = 7 * DAY;
 const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const LINE_ORDER = ['ig', 'v2', 'css', 'internal', 'away', 'other'];
-const S = { view: 'person', wk: 26, team: 'All', disc: 'All', q: '', inactive: false, print: false,
+// Zoom = px per week. Lands at 72 (about four months on screen); goes to 200.
+const WK_MIN = 10, WK_MAX = 200, WK_DEFAULT = 72;
+const S = { view: 'person', wk: WK_DEFAULT, team: 'All', disc: 'All', q: '', inactive: false, print: false,
             open: new Set(), trays: new Set(), older: new Set() };
-try { const v = JSON.parse(localStorage.getItem('people_view') || '{}');
+// Key bumped (v2) when the landing zoom changed, so older saved zooms don't override it.
+try { const v = JSON.parse(localStorage.getItem('people_view_v2') || '{}');
       if (v.view === 'person' || v.view === 'project') S.view = v.view;
-      if (v.wk >= 10 && v.wk <= 72) S.wk = v.wk; } catch (e) {}
-function saveView(){ try { localStorage.setItem('people_view', JSON.stringify({ view: S.view, wk: S.wk })); } catch (e) {} }
+      if (v.wk >= WK_MIN && v.wk <= WK_MAX) S.wk = v.wk; } catch (e) {}
+function saveView(){ try { localStorage.setItem('people_view_v2', JSON.stringify({ view: S.view, wk: S.wk })); } catch (e) {} }
 
 const W0 = dt(D.window.start), NW = D.weeks.length, CUR = D.cur_wi, CAP = D.cap_week;
 function dt(s){ return new Date(s + 'T00:00:00'); }
@@ -486,11 +489,24 @@ function personRow(p){
     </div>
     <div class="body" style="width:${TW()}px" data-ptip="${esc(p.id)}"><div class="band">${segs}</div>${sparkSVG(p)}</div></div>`;
   if (S.trays.has(p.id)) html += trayRow(p);
-  // Planned work first (soonest first), then everything else by hours logged.
-  if (open) html += Object.keys(p.items)
-      .sort((x, y) => planWeek(p.items[x]) - planWeek(p.items[y]) || (p.items[y].a + p.items[y].p) - (p.items[x].a + p.items[x].p))
-      .map(i => subRow(i, p.items[i].w, p.id, itemLabel(i, p.items[i]), 'subrow', true)).join('');
+  // Current and future work only, soonest first: anything planned from this
+  // week on, or logged this week on an open item. Finished epics, past-only
+  // work, Time off and Internal sit behind "show earlier".
+  if (open) {
+    const ids = Object.keys(p.items)
+      .sort((x, y) => planWeek(p.items[x]) - planWeek(p.items[y]) || (p.items[y].a + p.items[y].p) - (p.items[x].a + p.items[x].p));
+    const cur = ids.filter(i => isCurrent(i, p.items[i])), old = ids.filter(i => !isCurrent(i, p.items[i]));
+    const showOld = S.older.has('p:' + p.id);
+    html += (showOld ? [...cur, ...old] : cur).map(i => subRow(i, p.items[i].w, p.id, itemLabel(i, p.items[i]), 'subrow', true)).join('');
+    if (!cur.length && !showOld) html += `<div class="older"><button disabled style="color:var(--muted);cursor:default">No current or planned work</button></div>`;
+    if (old.length) html += `<div class="older"><button data-older="p:${esc(p.id)}">${showOld ? '▴ hide' : '▾ show'} ${old.length} earlier item(s): finished, past work, time off</button></div>`;
+  }
   return html;
+}
+function isCurrent(i, x){
+  if (planWeek(x) < 1e9) return true;                                  // planned from this week on
+  const it = itemOf(i);
+  return !!(x.w[CUR] && x.w[CUR][0] >= 0.05 && !it.dn && it.k !== 'internal' && !it.parked);
 }
 // When this person's queue (7h per working day, in priority order) runs out.
 function clearsTxt(p){
@@ -687,7 +703,7 @@ function scrollToToday(){ tl.scrollLeft = Math.max(0, xd(D.today) - (tl.clientWi
 /* ── controls ── */
 function zoom(f){
   const keep = (tl.scrollLeft + tl.clientWidth / 2 - LW) / TW();
-  S.wk = Math.max(10, Math.min(72, Math.round(S.wk * f)));
+  S.wk = Math.max(WK_MIN, Math.min(WK_MAX, Math.round(S.wk * f)));
   saveView(); render();
   tl.scrollLeft = keep * TW() + LW - tl.clientWidth / 2;
 }
