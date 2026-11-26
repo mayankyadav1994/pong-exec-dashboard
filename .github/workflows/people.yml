@@ -13,6 +13,7 @@ on:
     paths:
       - "people/people.py"
       - "people/people.template.html"
+      - "shared/plan_rules.py"
       - "config/roadmap.json"
 
 concurrency:

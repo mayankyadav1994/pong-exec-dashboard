@@ -20,7 +20,14 @@ Builds people.html: where everyone works, week by week, on the roadmap's items.
             3. the person's unscheduled tray (counted, not drawn).
           Every plan window is at least one sprint long: work left at the end of
           a sprint rolls into the next one, it doesn't all happen on the last day.
-  Capacity  Sprint Load's 70h per person per sprint (35h a week).
+          Work under an epic that is Canceled / On Hold in Jira, or On Hold /
+          Cancelled on the Game Pipeline board, is left off the plan (listed in
+          the footer); hours already logged on it still show.
+  Calendar  Planned hours land on working days only: weekends and the public
+            holidays in config/igaming|v2|css.json are skipped (shared/plan_rules.py).
+  Capacity  7h per person per working day, as Sprint Load: 35h a normal week,
+            less in a holiday week. Only shades the weekly pills; never coloured
+            as over / under.
 
 Read-only: Tempo + Jira reads only.
 Usage:  python people.py [--today YYYY-MM-DD]
@@ -62,8 +69,9 @@ if not os.environ.get("TEMPO_API_TOKEN"):
         if _tok:
             os.environ["TEMPO_API_TOKEN"] = _tok
 
-sys.path.insert(0, str(ROOT / "shared"))   # shared/jira_client.py
+sys.path.insert(0, str(ROOT / "shared"))   # shared/jira_client.py, shared/plan_rules.py
 from jira_client import jira_get, jira_jql  # noqa: E402  (needs env loaded)
+from plan_rules import HOURS_PER_DAY, is_parked, load_holidays  # noqa: E402
 
 
 def _load_module(name: str, path: Path):
@@ -86,7 +94,8 @@ TEMPO = "https://api.tempo.io/4"
 TODAY = date.today()
 
 CAP_SPRINT = float(SL.CAPACITY_H)       # 70h per person per sprint
-CAP_WEEK = CAP_SPRINT / 2
+CAP_WEEK = HOURS_PER_DAY * 5            # 35h in a week with no public holiday
+HOLIDAYS = load_holidays()              # shared list: config/igaming|v2|css.json
 # Jira group -> discipline, as Sprint Load maps it (older sprint_load.py
 # copies don't define it, so fall back to the same two groups).
 DISCIPLINE_GROUPS = getattr(SL, "DISCIPLINE_GROUPS", {"QA Team": "QA", "Development": "Dev"})
@@ -148,13 +157,18 @@ def window(today: date) -> tuple[date, date]:
     return start, end
 
 
+def is_workday(d: date) -> bool:
+    return d.weekday() < 5 and d not in HOLIDAYS
+
+
 def workdays(d0: date, d1: date) -> list[date]:
-    return [d0 + timedelta(i) for i in range((d1 - d0).days + 1) if (d0 + timedelta(i)).weekday() < 5]
+    """Mon-Fri, public holidays excluded, d0..d1 inclusive."""
+    return [d0 + timedelta(i) for i in range((d1 - d0).days + 1) if is_workday(d0 + timedelta(i))]
 
 
 def next_workday(d: date) -> date:
     d = d + timedelta(days=1)
-    while d.weekday() >= 5:
+    while not is_workday(d):
         d += timedelta(days=1)
     return d
 
@@ -235,13 +249,18 @@ def users(account_ids) -> dict:
 
 
 # ── Game Pipeline forecast (port of applyForecast in game-pipeline/dashboard.js) ──
-def pipeline_forecast(today: date) -> dict:
-    """epic key -> {feed, name, ship, lanes{lane: end ISO}, hidden}.
+def pipeline_forecast(today: date) -> tuple[dict, dict]:
+    """(forecast, parked).
+
+    forecast: epic key -> {feed, name, ship, lanes{lane: end ISO}, hidden}.
+    parked:   epic key -> status, for games the pipeline board shows as On Hold
+              or Cancelled (the PMO's override, unless Jira has moved past it).
 
     Same inputs the pipeline page uses: the board roster (in_roster or added in
     Edit Plan), shared status overrides (dropped when Jira has moved past them),
     measured velocity per lane over the roster, DEFAULT_VELOCITY fallback."""
     out: dict = {}
+    parked: dict = {}
     for feed in FEEDS:
         data = json.loads((ROOT / "game-pipeline" / f"data-{feed}.json").read_text(encoding="utf-8"))
         pf = ROOT / "game-pipeline" / f"plan-{feed}.json"
@@ -292,6 +311,8 @@ def pipeline_forecast(today: date) -> dict:
             if sh and sh != auto and sidx(auto) >= 0 and sidx(sh) >= 0 and sidx(auto) > sidx(sh):
                 sh = None                      # Jira moved past a stale override
             ws = sh or auto
+            if is_parked(ws) and g.get("jira"):
+                parked[g["jira"]] = ws
             if ws in GP.STATUS_TERMINAL:
                 continue
             by_key = {d.get("key"): d for d in g.get("disciplines") or []}
@@ -332,7 +353,7 @@ def pipeline_forecast(today: date) -> dict:
                         "ship": slot_end(max(lanes.values())),
                         "lanes": {k: slot_end(n) for k, n in lanes.items()},
                         "hidden": g.get("name") in hidden}
-    return out
+    return out, parked
 
 
 def lane_of(issuetype: str, summary: str) -> str:
@@ -494,9 +515,22 @@ def build(today: date) -> dict:
         return root_cache[key]
 
     cards = roadmap_cards()
-    fc = pipeline_forecast(today)
+    fc, pipe_parked = pipeline_forecast(today)
     print(f"  Game Pipeline velocity forecast: {len(fc)} epics "
           f"({sum(1 for v in fc.values() if v['hidden'])} hidden on the board)")
+
+    def parked_why(rk) -> str | None:
+        """Why an epic's open work is off the plan: its Jira status is Canceled /
+        On Hold, or the Game Pipeline board shows the game On Hold / Cancelled."""
+        it = issues.get(rk)
+        if not it or it["fields"]["issuetype"]["name"] != "Epic":
+            return None
+        st = (it["fields"].get("status") or {}).get("name")
+        if is_parked(st):
+            return f"{st} in Jira"
+        if rk in pipe_parked:
+            return f"{pipe_parked[rk]} on the Game Pipeline board"
+        return None
 
     items: dict = {}
 
@@ -531,6 +565,10 @@ def build(today: date) -> dict:
                              "st": st.get("name"), "cards": cards.get(rk, [])}
                 if rk in fc:
                     items[rk]["fc"] = {x: fc[rk][x] for x in ("ship", "lanes", "feed", "hidden")}
+                why = parked_why(rk)
+                if why:
+                    items[rk]["parked"] = why
+                    items[rk].pop("fc", None)          # no forecast for parked work
             return rk
         fvs = f.get("fixVersions") or rf.get("fixVersions") or []
         if fvs:
@@ -572,6 +610,7 @@ def build(today: date) -> dict:
     names_from_jira = {}
     unstaffed = Counter()
     planned_by = Counter()
+    parked_h = defaultdict(Counter)                        # epic -> person name -> remaining h left out
 
     def put(acct, iid, hours, days, kind):
         per = hours / len(days)
@@ -594,6 +633,10 @@ def build(today: date) -> dict:
         rem_h = (f.get("timeestimate") or 0) / 3600
         iid = item_for(it["key"])
         rk = root_of(it["key"])
+        if parked_why(rk):                                 # Canceled / On Hold epic: off the plan
+            if rem_h > 0 and counts_own_remaining(f):
+                parked_h[rk][a.get("displayName") or "Unassigned"] += rem_h
+            continue
         lane = lane_of(f["issuetype"]["name"], f.get("summary") or "")
         fcast = fc.get(rk)
         on_pipeline = bool(fcast and not fcast["hidden"] and lane in fcast["lanes"])
@@ -669,6 +712,22 @@ def build(today: date) -> dict:
     print("  Remaining hours placed: " + ", ".join(f"{k} {r1(v)}h" for k, v in planned_by.most_common()))
     print(f"  Unstaffed remaining on planned items: {r1(sum(unstaffed.values()))}h; "
           f"assigned tickets without an estimate: {sum(unest.values())}")
+    parked = sorted(({"key": k, "n": items[k]["n"] if k in items else k, "why": parked_why(k),
+                      "h": r1(sum(c.values())),
+                      "people": [[n, r1(h)] for n, h in c.most_common() if h >= 0.05]}
+                     for k, c in parked_h.items()), key=lambda x: -x["h"])
+    print(f"  Left off the plan (Canceled / On Hold epics): {r1(sum(x['h'] for x in parked))}h on {len(parked)} epics")
+    for x in parked:
+        print(f"    {x['key']:<10} {x['h']:>7}h  {x['why']:<36} {x['n']}")
+
+    # working-day calendar: 7h per working day, public holidays excluded --------
+    cap_weeks = [HOURS_PER_DAY * len(workdays(w, w + timedelta(days=4))) for w in weeks]
+    hol = sorted(d.isoformat() for d in HOLIDAYS if w0 <= d <= win_end and d.weekday() < 5)
+    hol_until = max(HOLIDAYS).isoformat() if HOLIDAYS else None
+    if not HOLIDAYS:
+        print("  WARNING: no public holidays in config/igaming|v2|css.json; every weekday counts as worked")
+    elif max(HOLIDAYS) < win_end:
+        print(f"  WARNING: the public-holiday list ends {hol_until}; weeks after it assume every weekday is worked")
 
     nav = [{"id": k, "title": s["title"], "file": s["file"]} for k, s in RM["spaces"].items()]
     nav += [n for n in RM.get("extra_nav", []) if n.get("id") != "people"]
@@ -678,7 +737,8 @@ def build(today: date) -> dict:
         "today": today.isoformat(), "cur_wi": cur_wi,
         "window": {"start": w0.isoformat(), "end": win_end.isoformat()},
         "weeks": [w.isoformat() for w in weeks],
-        "cap_week": CAP_WEEK, "cap_sprint": CAP_SPRINT,
+        "cap_week": CAP_WEEK, "cap_sprint": CAP_SPRINT, "cap_weeks": cap_weeks,
+        "hours_per_day": HOURS_PER_DAY, "holidays": hol, "holidays_until": hol_until,
         "nav": nav, "browse": f"{SITE}/browse/", "site": SITE,
         "lines": LINES, "teams": TEAM_ORDER, "disciplines": SL.DISCIPLINE_ORDER,
         "sprint_load_at": sl_gen,
@@ -686,7 +746,7 @@ def build(today: date) -> dict:
         "stats": {"logged_h": r1(tot_a), "epic_share": round(epic_a / max(tot_a, 1), 3),
                   "planned": {k: r1(v) for k, v in planned_by.items()},
                   "unstaffed_h": r1(sum(unstaffed.values())), "unestimated": sum(unest.values()),
-                  "forecast_epics": len(fc)},
+                  "forecast_epics": len(fc), "parked": parked},
     }
 
 
@@ -694,14 +754,16 @@ def main():
     global TODAY
     ap = argparse.ArgumentParser()
     ap.add_argument("--today", help="override today (YYYY-MM-DD) for testing")
+    ap.add_argument("--out", help="write the page here instead of people/people.html (previews)")
     args = ap.parse_args()
     TODAY = pd(args.today) if args.today else date.today()
     t0 = time.time()
     data = build(TODAY)
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     html = TEMPLATE.read_text(encoding="utf-8").replace("/*__PEOPLE_DATA__*/null", payload)
-    OUTPUT.write_text(html, encoding="utf-8")
-    print(f"Wrote {OUTPUT.name} ({len(html) / 1024:.0f} KB) in {time.time() - t0:.0f}s")
+    out = Path(args.out) if args.out else OUTPUT
+    out.write_text(html, encoding="utf-8")
+    print(f"Wrote {out} ({len(html) / 1024:.0f} KB) in {time.time() - t0:.0f}s")
 
 
 if __name__ == "__main__":
