@@ -1,0 +1,131 @@
+{
+  "date": "2026-11-26",
+  "fvs": {
+    "CS VGTC 7.11": {
+      "devEnd": "2026-11-27",
+      "qaEnd": "2026-12-11",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-11",
+      "totalEstH": 0,
+      "spentH": 7
+    },
+    "CS VGTC 7.12": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "PFH Services 3.00": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 2,
+      "spentH": 2
+    },
+    "CS GCP 2.20": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 161,
+      "spentH": 103
+    },
+    "CS GCP 2.30": {
+      "devEnd": "2026-12-01",
+      "qaEnd": "2026-12-15",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-15",
+      "totalEstH": 69,
+      "spentH": 55
+    },
+    "CS GCP 2.40": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "Central Server 1.00": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "CRM Backlog": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "CS BD 1.00": {
+      "devEnd": "2027-01-13",
+      "qaEnd": "2027-01-27",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2027-01-27",
+      "totalEstH": 654,
+      "spentH": 381
+    },
+    "CS CRM 9.00": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 46,
+      "spentH": 12
+    },
+    "CS GCP 3.00": {
+      "devEnd": "2026-12-14",
+      "qaEnd": "2026-12-28",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-28",
+      "totalEstH": 132,
+      "spentH": 12
+    },
+    "CS TH 8.00": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 0,
+      "spentH": 0
+    },
+    "CS VGTC 8.00": {
+      "devEnd": "2026-11-26",
+      "qaEnd": "2026-12-10",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-10",
+      "totalEstH": 16,
+      "spentH": 30
+    },
+    "PFH2 Services 5.00": {
+      "devEnd": "2026-11-27",
+      "qaEnd": "2026-12-11",
+      "lab1End": null,
+      "pilotEnd": null,
+      "finalEnd": "2026-12-11",
+      "totalEstH": 1639,
+      "spentH": 1762
+    }
+  }
+}
