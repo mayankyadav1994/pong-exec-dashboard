@@ -105,8 +105,11 @@
     });
   }
 
-  // "…/pong-exec-dashboard/" and "…/index.html" are the same page.
-  function norm(path) { return path.replace(/\/index\.html$/, "/"); }
+  // "…/pong-exec-dashboard/" and "…/index.html" are the same page, and a
+  // Roadmap's Planning sub-page (roadmap-css-planning.html) counts as that Roadmap.
+  function norm(path) {
+    return path.replace(/\/index\.html$/, "/").replace(/(\/roadmap-[a-z0-9]+)-planning\.html$/, "$1.html");
+  }
   function isCurrent(href) {
     var u = new URL(href, location.href);
     if (norm(u.pathname) !== norm(location.pathname)) return false;

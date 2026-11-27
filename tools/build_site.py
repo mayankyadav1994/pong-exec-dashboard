@@ -74,7 +74,7 @@ def build() -> int:
         shutil.rmtree(OUT)
     shutil.copytree(REPO, OUT, ignore=_ignore)
 
-    missing, placed = [], 0
+    missing, placed, pages = [], 0, []
     for folder, files in SITE_ROOT.items():
         names = []
         for name in files:
@@ -94,11 +94,12 @@ def build() -> int:
                 return 1
             shutil.copy2(src, dst)
             placed += 1
+            if name.endswith(".html"):   # glob matches too (roadmap-*-planning.html)
+                pages.append(name)
     if missing:
         print("error: missing published files:\n  " + "\n  ".join(missing), file=sys.stderr)
         return 1
 
-    pages = [n for files in SITE_ROOT.values() for n in files if n.endswith(".html") and "*" not in n]
     for rel in pages + NAV_EXTRA_PAGES:
         if not add_site_nav(OUT / rel, rel):
             return 1
