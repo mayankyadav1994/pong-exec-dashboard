@@ -21,19 +21,19 @@
     ]},
     // One group per space: its releases, then the games and features inside them.
     { title: "V2", items: [
-      { href: "v2-timeline.html",                 label: "Releases",  desc: "Dev and QA forecast per release" },
+      { href: "v2-timeline.html",                 label: "Release Timeline", desc: "Dev and QA forecast per release" },
       { href: "game-pipeline.html?project=v2",    label: "Games",     desc: "Every game's lifecycle" },
       { href: "game-pipeline.html?project=v2f",   label: "Features",  desc: "Every feature's lifecycle" },
       { href: "roadmap-v2.html",                  label: "Roadmap",   desc: "Dated releases and go-lives" },
     ]},
     { title: "iGaming", items: [
-      { href: "igaming-timeline.html",            label: "Releases",  desc: "Dev and QA forecast per release" },
+      { href: "igaming-timeline.html",            label: "Release Timeline", desc: "Dev and QA forecast per release" },
       { href: "game-pipeline.html?project=ig",    label: "Games",     desc: "Every game's lifecycle" },
       { href: "game-pipeline.html?project=igf",   label: "Features",  desc: "Every feature's lifecycle" },
       { href: "roadmap-igaming.html",             label: "Roadmap",   desc: "Dated releases and go-lives" },
     ]},
     { title: "Cloud Services", items: [
-      { href: "css-timeline.html",                label: "Releases",  desc: "Dev and QA forecast per release" },
+      { href: "css-timeline.html",                label: "Release Timeline", desc: "Dev and QA forecast per release" },
       { href: "game-pipeline.html?project=cssf",  label: "Features",  desc: "Every feature's lifecycle" },
       { href: "roadmap-css.html",                 label: "Roadmap",   desc: "Dated releases" },
     ]},
@@ -84,9 +84,10 @@
     "  color:#6b7a99;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}",
     ".close:hover,.close:focus-visible{background:#f0f3f9;color:#1a2035;outline:none}",
     ".list{flex:1;overflow-y:auto;padding:6px 10px 16px}",
-    ".group{margin-top:12px}",
-    ".gtitle{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;",
-    "  color:#8a94ad;padding:0 10px 4px}",
+    ".group{margin-top:14px}",
+    // Section names (V2, iGaming …) as solid bars so they read at a glance.
+    ".gtitle{font-size:13px;font-weight:600;letter-spacing:.03em;color:#fff;",
+    "  background:#1a2035;padding:7px 12px;border-radius:8px;margin-bottom:4px}",
     "a{display:block;text-decoration:none;color:inherit;padding:7px 10px 7px 12px;margin:1px 0;",
     "  border-radius:8px;border-left:3px solid transparent}",
     "a:hover,a:focus-visible{background:#f0f3f9;outline:none}",
