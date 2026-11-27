@@ -853,9 +853,15 @@
    "first_seen": "2026-11-06",
    "original_date": "2026-11-30",
    "current_date": "2026-11-30",
-   "released": false,
-   "released_on": null,
-   "revisions": []
+   "released": true,
+   "released_on": "2026-11-30",
+   "revisions": [
+    {
+     "observed": "2026-11-27",
+     "to": "2026-11-30",
+     "kind": "released"
+    }
+   ]
   },
   "PFH Games 3.10": {
    "name": "PFH Games 3.10",
