@@ -60,7 +60,7 @@
           "closed_est_h": 64.0,
           "closed_spent_h": 53.0,
           "sprint": "V2 Sprint 15 + IG Sprint 20",
-          "measured_at": "2026-11-27T14:37:53+00:00",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
@@ -198,7 +198,7 @@
           "closed_est_h": 103.0,
           "closed_spent_h": 99.8,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-27T14:37:53+00:00",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
@@ -250,7 +250,7 @@
           "closed_est_h": 152.0,
           "closed_spent_h": 199.5,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-27T14:37:53+00:00",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
@@ -276,7 +276,7 @@
           "closed_est_h": 41.0,
           "closed_spent_h": 36.5,
           "sprint": "CSS Sprint 17 + IG Sprint 20",
-          "measured_at": "2026-11-27T14:37:53+00:00",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
@@ -315,7 +315,7 @@
           "closed_est_h": 59.0,
           "closed_spent_h": 54.0,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-27T14:37:53+00:00",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
@@ -324,11 +324,11 @@
       "name": "Krupa Kanani",
       "boards": {
         "v2": {
-          "factor": 0.9,
-          "closed_est_h": 42.0,
-          "closed_spent_h": 37.8,
-          "sprint": "V2 Sprint 14",
-          "measured_at": "2026-11-12T17:04:28+00:00",
+          "factor": 0.8276,
+          "closed_est_h": 58.0,
+          "closed_spent_h": 48.0,
+          "sprint": "V2 Sprint 15",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
@@ -367,12 +367,12 @@
           "closed_est_h": 91.0,
           "closed_spent_h": 68.5,
           "sprint": "V2 Sprint 15",
-          "measured_at": "2026-11-27T14:37:53+00:00",
+          "measured_at": "2026-11-27T16:51:55+00:00",
           "origin": "run"
         }
       }
     }
   },
-  "updated": "2026-11-27T14:37:54+00:00",
+  "updated": "2026-11-27T16:51:56+00:00",
   "_note": "Estimate-bias factors (closed spent / closed estimate) per person per board. Written by sprint_load.py; carried forward when a person has < 40h closed this sprint."
 }
