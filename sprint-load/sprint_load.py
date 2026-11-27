@@ -337,8 +337,8 @@ class Jira:
         return self._meta
 
     def parked_epics(self, issues: list[dict]) -> dict[str, dict]:
-        """issue key -> {epic, name, why} for tickets under a parked epic: Canceled /
-        On Hold in Jira, or On Hold / Cancelled on the Game Pipeline board
+        """issue key -> {epic, name, why} for tickets under an off-plan epic: Closed /
+        Done / Canceled / On Hold in Jira, or On Hold / Cancelled on the Game Pipeline board
         (shared/plan_rules.py, the rule People and Team Board use too)."""
         if self._pipe is None:
             self._pipe = pipeline_parked()
@@ -663,7 +663,7 @@ def build_board(jira: Jira, board: dict) -> dict:
                "(e.g. moved there when an earlier sprint was completed) and were closed before it began." if n_other else ""),
             [i["key"] for i in stale], nav(f"{pos} AND ({clause})")))
 
-    # ── open work under a Canceled / On Hold epic ───────────────────────────
+    # ── open work under a Closed / Canceled / On Hold epic ──────────────────
     # Not planned work any more: dropped from every figure. Closed tickets stay
     # (the work happened, and they still measure estimate bias).
     pk = jira.parked_epics(issues)
@@ -674,13 +674,15 @@ def build_board(jira: Jira, board: dict) -> dict:
         for i in parked:
             by_epic.setdefault(pk[i["key"]]["epic"], []).append(i)
         warnings.append(warn(
-            "info", f"{len(parked)} open ticket(s) left out: their epic is cancelled or on hold",
+            "info", f"{len(parked)} open ticket(s) left out: their epic is closed, cancelled or on hold",
             f"{r1(sum(hours(i['rem_s']) for i in parked))}h remaining, not counted anywhere on this board. "
-            "An epic that is Canceled / On Hold in Jira, or On Hold / Cancelled on the Game Pipeline board, "
-            "is off the plan; its closed tickets still count. "
+            "An epic that is Closed, Canceled or On Hold in Jira, or On Hold / Cancelled on the Game Pipeline "
+            "board, is off the plan (tickets left open under a closed epic are leftovers); its closed tickets "
+            "still count. "
             + "; ".join(f"{pk[v[0]['key']]['name']} ({e}, {pk[v[0]['key']]['why']}): {len(v)} ticket(s), "
                         f"{r1(sum(hours(i['rem_s']) for i in v))}h"
-                        for e, v in sorted(by_epic.items(), key=lambda kv: -sum(hours(i['rem_s']) for i in kv[1])))
+                        for e, v in sorted(by_epic.items(), key=lambda kv: -sum(hours(i['rem_s']) for i in kv[1]))[:12])
+            + (f"; +{len(by_epic) - 12} more epics" if len(by_epic) > 12 else "")
             + ".", [i["key"] for i in parked]))
 
     # ── data-quality checks ─────────────────────────────────────────────────

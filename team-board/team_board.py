@@ -229,8 +229,8 @@ def epic_of(fields, cache):
 
 
 def parked_why(it, cache, pipe):
-    """Why an open ticket is off the board: its epic is Canceled / On Hold in
-    Jira, or On Hold / Cancelled on the Game Pipeline board (shared/plan_rules.py,
+    """Why an open ticket is off the board: its epic is Closed / Done / Canceled /
+    On Hold in Jira, or On Hold / Cancelled on the Game Pipeline board (shared/plan_rules.py,
     the rule People and Sprint Load use too). Finished tickets stay."""
     f = it.get("fields", {}) or {}
     if bucket((f.get("status") or {}).get("name")) == "done":
@@ -333,7 +333,7 @@ def build_dept(dept_key, cfg, verbose=False):
 
     cache = build_parent_cache(pill_issues + subs, verbose) if (pill_issues or subs) else {}
 
-    # Open work under a Canceled / On Hold epic is off the board (subtasks of a
+    # Open work under a Closed / Canceled / On Hold epic is off the board (subtasks of a
     # dropped pill go with it).
     pipe = pipeline_parked()
     gone = {it["key"]: why for it in pill_issues + subs if (why := parked_why(it, cache, pipe))}
@@ -343,7 +343,7 @@ def build_dept(dept_key, cfg, verbose=False):
     subs = [s for s in subs if s["key"] not in gone
             and (s["fields"].get("parent") or {}).get("key") not in dropped_pills]
     if gone:
-        print(f"      {OK} left off the board (epic cancelled / on hold): "
+        print(f"      {OK} left off the board (epic closed / cancelled / on hold): "
               f"{n_before - len(pill_issues) - len(subs)} ticket(s) · "
               + ", ".join(sorted(set(gone.values()))))
 

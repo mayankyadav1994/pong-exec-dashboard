@@ -78,9 +78,9 @@ The test is the ticket's status history: `status WAS "Closed" ON "<sprint start>
 
 JQL reads that date in the viewer's Jira time zone. The script converts each sprint start to the token user's time zone, so the figures and the links agree for that user. For someone in another time zone, the links can differ only for tickets closed within a few hours of the sprint starting.
 
-### Open work under a cancelled or on-hold epic is left out
+### Open work under a closed, cancelled or on-hold epic is left out
 
-If a ticket's epic is **Canceled or On Hold in Jira**, or the **Game Pipeline board** shows the game as On Hold or Cancelled, its open tickets are not planned work. They are dropped from every figure and listed in a notice on the board, with their epic, the reason and the hours. Closed tickets under such an epic still count, because that work happened and still measures estimate bias.
+If a ticket's epic is **Closed, Canceled or On Hold in Jira**, or the **Game Pipeline board** shows the game as On Hold or Cancelled, its open tickets are not planned work. Tickets left open under a closed epic are leftovers nobody closed. ("Review In Progress" is in Jira's done category, but the game is still being reviewed, so its work stays.) They are dropped from every figure and listed in a notice on the board, with their epic, the reason and the hours. Closed tickets under such an epic still count, because that work happened and still measures estimate bias.
 
 The rule lives in `shared/plan_rules.py`, and the People page and Team Board use the same one. The Game Pipeline status is the one the board shows: the PMO's status override, unless Jira has since moved the game past it.
 
@@ -179,7 +179,7 @@ Each run prints tickets pulled per board, then per board: people, tickets, total
 | Missing credentials, missing template, any non-200 from Jira, runaway paging | fatal |
 | Closed tickets carrying remaining hours | warn |
 | Tickets already Closed when the sprint started (left out of every figure) | info |
-| Open tickets under a cancelled or on-hold epic (left out of every figure) | info |
+| Open tickets under a closed, cancelled or on-hold epic (left out of every figure) | info |
 | Discipline set by Jira group over ticket types, or from ticket types because the groups are ambiguous | info |
 | Done-category statuses other than `Closed` | warn |
 | Remaining above 3× capacity for one person | warn |

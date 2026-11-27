@@ -4,11 +4,14 @@ plan_rules.py
 Planning rules the PMO dashboards share, so every builder applies one
 definition instead of its own copy.
 
-  Parked epics  An epic that is Canceled / On Hold in Jira, or that the Game
-                Pipeline board shows as On Hold / Cancelled, is not planned
-                work: its open tickets stay off people's plans and boards.
-                Finished work and time already logged on it still count as
-                history. Used by People, Sprint Load and Team Board.
+  Off-plan epics  An epic that is Closed / Done (finished: tickets left open
+                under it are leftovers), Canceled / On Hold in Jira, or that
+                the Game Pipeline board shows as On Hold / Cancelled, is not
+                planned work: its open tickets stay off people's plans and
+                boards. Finished work and time already logged on it still count
+                as history. Used by People, Sprint Load and Team Board.
+                ("Review In Progress" is in Jira's done category but the game
+                is still being reviewed, so it stays on the plan.)
   Working days  Monday to Friday, minus the public holidays in the timeline
                 configs (config/igaming.json, v2.json, css.json; the union of
                 all three, the one list PMO edits in the timelines' config panel).
@@ -31,6 +34,8 @@ PIPELINE_FEEDS = ("ig", "igf", "v2")     # Game Pipeline boards: IG games, IG fe
 
 # Jira spells it "Canceled" (IG epics); the Game Pipeline board says "Cancelled".
 PARKED_RE = re.compile(r"^\s*(cancell?ed|on\s*hold)\s*$", re.I)
+# A finished epic: open tickets still under it are leftovers, not planned work.
+FINISHED = {"closed", "done"}
 
 # Mirrors STATUS_PROGRESSION in game-pipeline/dashboard.js (stale-override rule).
 STATUS_PROGRESSION = ["Not Started", "On Hold", "In Pre-Prod", "In Progress", "In QA",
@@ -40,6 +45,11 @@ STATUS_PROGRESSION = ["Not Started", "On Hold", "In Pre-Prod", "In Progress", "I
 def is_parked(status: str | None) -> bool:
     """True for an epic / game status that takes its work off the plan."""
     return bool(status and PARKED_RE.match(status))
+
+
+def is_finished(status: str | None) -> bool:
+    """True for an epic status that means its work is done (Closed / Done)."""
+    return bool(status and status.strip().lower() in FINISHED)
 
 
 def pipeline_status(auto: str | None, shared: str | None) -> str:
@@ -81,7 +91,7 @@ def pipeline_parked(root: Path = ROOT) -> dict[str, str]:
 
 def parked_reason(epic_key: str | None, jira_status: str | None, pipe: dict[str, str]) -> str | None:
     """Why an epic's open work is off the plan, or None. `pipe` = pipeline_parked()."""
-    if is_parked(jira_status):
+    if is_parked(jira_status) or is_finished(jira_status):
         return f"{jira_status} in Jira"
     if epic_key and epic_key in pipe:
         return f"{pipe[epic_key]} on the Game Pipeline board"

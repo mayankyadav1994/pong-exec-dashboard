@@ -22,9 +22,10 @@ Builds people.html: where everyone works, week by week, on the roadmap's items.
           drawn). Work that runs past the page's window is counted per person
           ("plan runs to ..."). The Game Pipeline's own velocity finish stays on
           the chart as a marker for comparison.
-          Work under an epic that is Canceled / On Hold in Jira, or On Hold /
-          Cancelled on the Game Pipeline board, is left off the plan (listed in
-          the footer); hours already logged on it still show.
+          Work under an epic that is Closed / Done, Canceled or On Hold in Jira,
+          or On Hold / Cancelled on the Game Pipeline board, is left off the
+          plan (shared/plan_rules.py; listed in the footer); hours already
+          logged on it still show.
   Calendar  Planned hours land on working days only: weekends and the public
             holidays in config/igaming|v2|css.json are skipped (shared/plan_rules.py).
   Capacity  7h per person per working day, as Sprint Load: 35h a normal week,
@@ -498,8 +499,9 @@ def build(today: date) -> dict:
           f"({sum(1 for v in fc.values() if v['hidden'])} hidden on the board)")
 
     def parked_why(rk) -> str | None:
-        """Why an epic's open work is off the plan: its Jira status is Canceled /
-        On Hold, or the Game Pipeline board shows the game On Hold / Cancelled."""
+        """Why an epic's open work is off the plan: its Jira status is Closed /
+        Done / Canceled / On Hold, or the Game Pipeline board shows the game On
+        Hold / Cancelled."""
         it = issues.get(rk)
         if not it or it["fields"]["issuetype"]["name"] != "Epic":
             return None
@@ -731,8 +733,8 @@ def build(today: date) -> dict:
                       "h": r1(sum(c.values())),
                       "people": [[n, r1(h)] for n, h in c.most_common() if h >= 0.05]}
                      for k, c in parked_h.items()), key=lambda x: -x["h"])
-    print(f"  Left off the plan (Canceled / On Hold epics): {r1(sum(x['h'] for x in parked))}h on {len(parked)} epics")
-    for x in parked:
+    print(f"  Left off the plan (Closed / Canceled / On Hold epics): {r1(sum(x['h'] for x in parked))}h on {len(parked)} epics")
+    for x in parked[:15]:
         print(f"    {x['key']:<10} {x['h']:>7}h  {x['why']:<36} {x['n']}")
 
     # working-day calendar: 7h per working day, public holidays excluded --------

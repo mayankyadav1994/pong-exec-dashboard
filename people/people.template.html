@@ -246,8 +246,10 @@ function parkTag(it){
 function parkedTxt(list){
   if (!list || !list.length) return '';
   const tot = list.reduce((s, x) => s + x.h, 0);
-  return ` (${hrs(tot)}h remaining: ` + list.map(x =>
-    `<a href="${esc(D.browse + x.key)}" target="_blank" rel="noopener" title="${esc(x.why)} · ${esc(x.people.map(([n, h]) => n + ' ' + hrs(h) + 'h').join(', '))}">${esc(x.n)}</a> ${hrs(x.h)}h`).join(', ') + ')';
+  const top = list.slice(0, 10), rest = list.slice(10), restH = rest.reduce((s, x) => s + x.h, 0);
+  return ` (${hrs(tot)}h remaining on ${list.length} epics: ` + top.map(x =>
+    `<a href="${esc(D.browse + x.key)}" target="_blank" rel="noopener" title="${esc(x.why)} · ${esc(x.people.map(([n, h]) => n + ' ' + hrs(h) + 'h').join(', '))}">${esc(x.n)}</a> ${hrs(x.h)}h`).join(', ')
+    + (rest.length ? `, and ${rest.length} more (${hrs(restH)}h)` : '') + ')';
 }
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmt(s){ const d = dt(s); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); }
@@ -332,7 +334,7 @@ function renderChrome(){
        <div class="leg">${mkd}Roadmap date <small>green = released</small></div>
        <div class="leg">${mks}Game Pipeline finish</div>
        <div class="leg"><span class="sw" style="background:rgba(217,119,6,.18);border-left:1px solid var(--amber-bd)"></span>Public holiday <small>no work planned</small></div>
-       <div class="leg"><span class="ptag" style="margin:0 3px 0 0">On Hold</span>Epic on hold / cancelled <small>open work left off the plan</small></div>
+       <div class="leg"><span class="ptag" style="margin:0 3px 0 0">On Hold</span>Epic closed / on hold / cancelled <small>open work left off the plan</small></div>
      </div>
      <div class="lg-sec"><div class="lg-h">Projects</div><div class="lg-cols">` +
     LINE_ORDER.map(l => `<div class="leg"><span class="sw" style="background:${cv(line(l).color)}"></span>${esc(line(l).label)}</div>`).join('') +
@@ -347,7 +349,7 @@ function renderChrome(){
      by the game's next release or Roadmap date (else the pipeline's own finish date). The grey marker is the Game Pipeline's velocity finish, for comparison.
      Anything else is in the person's <i>unscheduled</i> tray, not on the chart.
      Planned hours land on working days only: weekends and public holidays${D.holidays_until ? ` (list runs to ${fmt(D.holidays_until)})` : ''} are skipped, and a week's shading is measured against ${hrs(D.hours_per_day || 7)}h per working day.
-     Work under an epic that is Canceled or On Hold in Jira, or On Hold or Cancelled on the Game Pipeline board, is left off the plan${parkedTxt(st.parked)}.
+     Work under an epic that is Closed, Canceled or On Hold in Jira, or On Hold or Cancelled on the Game Pipeline board, is left off the plan${parkedTxt(st.parked)}.
      Teams and disciplines from Sprint Load.
      · ${hrs(st.logged_h)}h logged (${Math.round(st.epic_share * 100)}% on epics) · placed: ${hrs(pl['sprint'] || 0)}h sprint, ${hrs(pl['game work'] || 0)}h game work, ${hrs(pl['unscheduled tray'] || 0)}h unscheduled
      · ${hrs(st.unstaffed_h)}h planned work unassigned · ${st.unestimated} planned tickets with no estimate</span>
